@@ -84,7 +84,7 @@ test and coverage output.
 
 ### qa
 
-- [ ] T024 [P] [qa] Test strategy addendum `docs/testing/023-lyric-assist.md`: coverage map per FR/SC, fixture inventory (T009), fake stack scripts, injection/guardrail matrix, a11y plan (axe + one NVDA pass), evidence required per hand-off
+- [x] T024 [P] [qa] Test strategy addendum `docs/testing/023-lyric-assist.md`: coverage map per FR/SC, fixture inventory (T009), fake stack scripts, injection/guardrail matrix, a11y plan (axe + one NVDA pass), evidence required per hand-off
 
 ---
 
@@ -102,7 +102,7 @@ test and coverage output.
 - [x] T034 [US1] [frontend] Implement T033
 - [x] T035 [P] [US1] [frontend] Failing bUnit tests keyboard and screen reader: F8/Shift+F8, Alt+Enter, Alt+Backspace, Alt+I, Escape, Ctrl+Alt+C; `role=listbox/option`, `aria-activedescendant`; live-region texts of ui-test-ids.delta.md (FR-028, SC-008)
 - [x] T036 [US1] [frontend] Implement T035
-- [ ] T037 [P] [US1] [qa] Failing Playwright `e2e/lyric-assist.spec.ts` "check": quickstart Q1 and Q2 on the fake stack (Dutch sheet; licences untouched at balanced, notes at strict; accept, accept all, undo, intentional mark respected, my words respected)
+- [x] T037 [P] [US1] [qa] Failing Playwright `e2e/lyric-assist.spec.ts` "check": quickstart Q1 and Q2 on the fake stack (Dutch sheet; licences untouched at balanced, notes at strict; accept, accept all, undo, intentional mark respected, my words respected)
 
 ## Phase 3: User Story 2 - Devices and proposed poetic licence (P1)
 
@@ -112,7 +112,7 @@ test and coverage output.
 - [x] T041 [US2] [ai-agent] Implement T040
 - [x] T042 [P] [US2] [frontend] Failing bUnit tests: Suggest devices, selection-scoped requests, device/licence type labels, syllables before -> after, rhyme partner shown, rhythm target form and syllable gutter (`lyric-syllables-<n>` with `data-deviates`, updates after a typing pause through `POST /api/lyric-assist/syllables`), density line (FR-013, FR-017)
 - [x] T043 [US2] [frontend] Implement T042
-- [ ] T044 [P] [US2] [qa] Playwright "devices": quickstart Q3 steps 1-2
+- [x] T044 [P] [US2] [qa] Playwright "devices": quickstart Q3 steps 1-2
 
 ## Phase 4: User Story 3 - Writing help (P2)
 
@@ -124,7 +124,7 @@ test and coverage output.
 - [x] T050 [US3] [ai-agent] Implement T049
 - [x] T051 [P] [US3] [frontend] Failing bUnit tests: Alternatives (count), Continue, Title ideas (sets the title as one undo step), instruction field, rhyme finder panel (insert at cursor), withheld counter, not-own refusal, imitation refusal message (FR-015, FR-016, FR-022, FR-023)
 - [x] T052 [US3] [frontend] Implement T051
-- [ ] T053 [P] [US3] [qa] Playwright "writing help" and "guardrails": quickstart Q3 steps 3-6 and Q5
+- [x] T053 [P] [US3] [qa] Playwright "writing help" and "guardrails": quickstart Q3 steps 3-6 and Q5
 
 ## Phase 5: User Story 4 - Agent (P2)
 
@@ -134,7 +134,7 @@ test and coverage output.
 - [x] T057 [US4] [backend] Implement T056
 - [x] T058 [P] [US4] [frontend] Failing bUnit tests: panel context sends `lyricsId` on `/lyrics/{id}`; `open_lyrics_editor` UI handler (`?assist=` opens the pane); approval card diff `agent-approval-lyrics-diff-*` rendered from the stored suggestions; take details `take-lyrics-assisted` (FR-018, FR-024)
 - [x] T059 [US4] [frontend] Implement T058
-- [ ] T060 [P] [US4] [qa] Playwright "agent": quickstart Q4 with the scripted agent backend (no text in the tool log; approval reject/approve; undo)
+- [x] T060 [P] [US4] [qa] Playwright "agent": quickstart Q4 with the scripted agent backend (no text in the tool log; approval reject/approve; undo)
 
 ## Phase 6: User Story 5 - Local, honest, degraded (P1)
 
@@ -142,7 +142,7 @@ test and coverage output.
 - [x] T062 [US5] [backend] Implement T061
 - [x] T063 [P] [US5] [frontend] Failing bUnit tests: Claude notice dialog (ack/cancel; nothing sent on cancel), disabled writing buttons with reason when the model is unavailable, fallback badge and estimate, usage line (Advanced), assist log (Expert), revision list (Expert) (FR-026, FR-027, FR-029)
 - [x] T064 [US5] [frontend] Implement T063
-- [ ] T065 [P] [US5] [qa] Playwright "local-only": quickstart Q6 (backend none; fake Claude notice) with the outbound-request recorder
+- [x] T065 [P] [US5] [qa] Playwright "local-only": quickstart Q6 (backend none; fake Claude notice) with the outbound-request recorder
 
 ---
 
@@ -152,7 +152,7 @@ test and coverage output.
 - [x] T075 [US6] [backend] Implement T074 (`OwnWorkOverride` owned type in the `AddLyricAssist` migration, `OwnWorkOverrideService`, endpoints, guard change)
 - [x] T076 [P] [US6] [frontend] Failing bUnit tests: `lyric-assist-own-work-open` on the refusal, dialog (statement text and version from `GET /api/lyric-assist/settings`, matched track, name, tick box; confirm enabled only when both are set; cancel sends nothing), badge `lyric-own-work-badge` with name/date/track, revoke with confirm, refusal shown again after revoke, keyboard and screen-reader labels; no override control in the agent panel (FR-031, FR-028)
 - [x] T077 [US6] [frontend] Implement T076
-- [ ] T078 [P] [US6] [qa] Playwright "own-work override": quickstart Q5 steps 4-7 (refused -> confirm -> runs; verbatim still withheld; imitation still refused; revoke -> refused again) and agent case S5 (no override tool) on the fake stack
+- [x] T078 [P] [US6] [qa] Playwright "own-work override": quickstart Q5 steps 4-7 (refused -> confirm -> runs; verbatim still withheld; imitation still refused; revoke -> refused again) and agent case S5 (no override tool) on the fake stack
 
 ## Phase 7: Evaluation, polish, review (wave 2)
 
