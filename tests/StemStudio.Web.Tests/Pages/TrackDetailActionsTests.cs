@@ -63,6 +63,18 @@ public sealed class TrackDetailActionsTests : PageTestContext
         await second;
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(3, true)]
+    public async Task DeleteConfirmation_NamesTheTakes_OnlyWhenThereAreSome(int takes, bool shown)
+    {
+        var page = RenderPage(TestData.Track() with { TakeCount = takes });
+
+        await page.Find(DeleteButton).ClickAsync(new());
+
+        page.FindAll("[data-testid=track-delete-takes-note]").Count.ShouldBe(shown ? 1 : 0);
+    }
+
     [Fact]
     public async Task RetryRejected_ShowsActionError_WithoutFailedAgainMessage()
     {
