@@ -21,6 +21,12 @@ public interface ILibraryFiles
     /// <param name="destination">New path (must not exist).</param>
     /// <exception cref="IOException">The move failed (open handle, permissions).</exception>
     void Move(string source, string destination);
+
+    /// <summary>Copies a file, creating its folder and replacing an existing file (the merge restore).</summary>
+    /// <param name="source">Existing file.</param>
+    /// <param name="destination">Target path.</param>
+    /// <exception cref="IOException">The copy failed (disk full, open handle).</exception>
+    void Copy(string source, string destination);
 }
 
 /// <summary><see cref="ILibraryFiles"/> on the real file system.</summary>
@@ -52,6 +58,13 @@ public sealed class LibraryFiles : ILibraryFiles
         {
             File.Move(source, destination);
         }
+    }
+
+    /// <inheritdoc />
+    public void Copy(string source, string destination)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, overwrite: true);
     }
 }
 

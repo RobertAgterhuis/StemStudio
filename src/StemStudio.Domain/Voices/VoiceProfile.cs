@@ -104,6 +104,10 @@ public sealed class VoiceProfile
             CreatedAt = nowUtc,
         };
     }
+
+    /// <summary>Gives a profile a merge restore adds the free name of <see cref="VoiceNaming.RestoredName"/>.</summary>
+    /// <param name="name">The new name.</param>
+    public void RenameRestored(string name) => (DisplayName, NormalizedName) = (name, VoiceNaming.Normalize(name));
 }
 
 /// <summary>Voice profile names are unique ignoring case.</summary>
@@ -113,4 +117,11 @@ public static class VoiceNaming
     /// <param name="name">The name.</param>
     /// <returns>The normalised name.</returns>
     public static string Normalize(string name) => CopyNames.Normalize(name);
+
+    /// <summary>"&lt;name&gt; (restored)", numbered when taken, at most 60 characters (013 merge, research R-07).</summary>
+    /// <param name="name">The archived name.</param>
+    /// <param name="takenNames">Names in the library.</param>
+    /// <returns>A free name.</returns>
+    public static string RestoredName(string name, IEnumerable<string> takenNames) =>
+        CopyNames.Next(name, takenNames, VoiceProfile.MaxDisplayNameLength, CopyNames.RestoredWord);
 }

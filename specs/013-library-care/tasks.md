@@ -158,8 +158,8 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ## Phase 7: User Story 5 - Merge a backup into my library (P3, cuttable)
 
-- [ ] T062 [P] [US5] [backend] Failing tests `LibraryMergerTests.cs`: dependency order, same id -> skip, same source key -> skip with dependants, unique-name clashes renamed "(restored)", one transaction (failure leaves nothing), files moved after commit and completed by start-up recovery, report entries (US5 scenarios) **011 claude-key**: `AgentSecrets` rows of the archive are never imported by a merge, and the live row is never changed (011 follow-up CK-FR-017)
-- [ ] T063 [US5] [backend] Implement `Restore/LibraryMerger.cs` and the `merge` mode to pass T062
+- [x] T062 [P] [US5] [backend] Failing tests `LibraryMergerTests.cs`: dependency order, same id -> skip, same source key -> skip with dependants, unique-name clashes renamed "(restored)", one transaction (failure leaves nothing), files moved after commit and completed by start-up recovery, report entries (US5 scenarios) **011 claude-key**: `AgentSecrets` rows of the archive are never imported by a merge, and the live row is never changed (011 follow-up CK-FR-017)
+- [x] T063 [US5] [backend] Implement `Restore/LibraryMerger.cs` and the `merge` mode to pass T062
 - [x] T064 [US5] [frontend] Merge option (Advanced+) and the skipped/renamed list in the report; bUnit tests first
 - [x] T065 [US5] [qa] E2E `library-care-merge.spec.ts`: library A + archive of B -> merged result as in the US5 independent test
 

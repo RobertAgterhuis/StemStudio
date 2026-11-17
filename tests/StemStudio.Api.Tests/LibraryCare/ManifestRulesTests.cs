@@ -62,16 +62,17 @@ public sealed class ManifestRulesTests : ApiTestBase
     }
 
     [Fact]
-    public async Task Restore_RefusesMergeIncompatibleArchivesAndMissingSpace()
+    public async Task Restore_RefusesIncompatibleArchivesForReplaceAndMerge()
     {
         var library = new LibraryFixture(Factory);
         await library.TrackAsync();
-        var name = await RestoreServiceTests.BackupAsync(Client, Factory);
+        Directory.CreateDirectory(Factory.BackupDir);
         HostileArchives.Write(Path.Combine(Factory.BackupDir, "newer.zip"), [HostileArchives.StemEntry()], manifest =>
             manifest["schema"] = new { provider = "sqlite", lastMigration = "20991231000000_Future", migrations = new[] { "20991231000000_Future" } });
         var replace = new RestoreOptionsDto { Mode = RestoreModeDto.Replace, Confirmation = "REPLACE" };
 
-        (await Client.PostAsJsonAsync(ApiRoutes.RestoreBackup(name), new RestoreOptionsDto { Mode = RestoreModeDto.Merge }, Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        using var merge = await Client.PostAsJsonAsync(ApiRoutes.RestoreBackup("newer.zip"), new RestoreOptionsDto { Mode = RestoreModeDto.Merge }, Ct);
+        (merge.StatusCode, (await merge.JsonAsync()).GetProperty("type").GetString()).ShouldBe((HttpStatusCode.UnprocessableEntity, LibraryCareProblemTypes.BaseUri + LibraryCareProblemTypes.ArchiveIncompatible));
         using var newer = await Client.PostAsJsonAsync(ApiRoutes.RestoreBackup("newer.zip"), replace, Ct);
         (await newer.JsonAsync()).GetProperty("type").GetString().ShouldEndWith(LibraryCareProblemTypes.ArchiveIncompatible);
         using var details = await Client.GetAsync(ApiRoutes.Backup("newer.zip"), Ct);

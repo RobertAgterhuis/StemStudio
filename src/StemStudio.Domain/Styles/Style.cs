@@ -110,6 +110,15 @@ public sealed class Style
         Apply(Valid(fields), nowUtc);
     }
 
+    /// <summary>Gives a user style a merge restore adds the free name of <see cref="StyleNaming.RestoredName"/>.</summary>
+    /// <param name="name">The new name.</param>
+    /// <exception cref="StyleReadOnlyException">The style is a preset.</exception>
+    public void RenameRestored(string name)
+    {
+        RequireUser();
+        (Name, NormalizedName) = (name, StyleNaming.Normalize(name));
+    }
+
     /// <summary>Upserts a preset from the resource (start-up seeding).</summary>
     /// <param name="preset">The preset definition.</param>
     /// <param name="nowUtc">Current time (UTC).</param>
