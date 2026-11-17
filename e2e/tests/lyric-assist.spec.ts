@@ -189,7 +189,7 @@ test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter ac
   await expect(assistPane.live).toContainText(/Check finished/u);
 
   await page.keyboard.press('F8');
-  const focused = assistPane.list.locator('[role="option"]:focus, [aria-selected="true"]').first();
+  const focused = assistPane.list.locator('[role="listitem"][aria-current="true"]');
   await expect(focused).toBeVisible();
   await expect(assistPane.live).toContainText(/Line \d+/u);
   const firstId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');

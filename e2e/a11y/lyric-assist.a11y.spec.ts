@@ -79,7 +79,7 @@ for (const theme of matrixThemes) {
         await assistPane.goto(sheet.id);
         expect(await axeViolations(page), 'pane idle').toEqual([]);
         await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-        await expect(assistPane.list).toHaveAttribute('role', 'listbox');
+        await expect(assistPane.list).toHaveAttribute('role', 'list');
         expect(await axeViolations(page), 'pane with suggestions').toEqual([]);
       });
 

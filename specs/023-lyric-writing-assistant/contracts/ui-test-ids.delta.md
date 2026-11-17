@@ -40,8 +40,8 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-filter-<category>` | category filter toggle (attribute `aria-pressed`); `lyric-assist-filter-all` | A, E |
 | Lyrics editor | `lyric-assist-accept-all` | "Accept all" for the current filter (count in the label) | all |
 | Lyrics editor | `lyric-assist-undo` | undo the newest accept (enabled when `assist.canUndo`) | all |
-| Lyrics editor | `lyric-assist-list` | the suggestion list (`role="listbox"`, `aria-activedescendant`); rendered only while there are open suggestions | all |
-| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`role="option"`); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
+| Lyrics editor | `lyric-assist-list` | the suggestion list: a plain list (`<ul role="list">`, no `aria-activedescendant`, not a tab stop itself); rendered only while there are open suggestions. Not a listbox: entries hold buttons (WCAG 4.1.2, axe `nested-interactive`; orchestrator decision 2026-11-17) | all |
+| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`<li role="listitem">`, `tabindex="-1"` so F8 can focus it, `aria-current="true"` on the focused entry, no `aria-label` other than its visible text); its buttons are in the tab order (Tab); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
 | Lyrics editor | `lyric-suggestion-original-<suggestionId>`, `lyric-suggestion-proposal-<suggestionId>`, `lyric-suggestion-explanation-<suggestionId>` | texts of the entry | all |
 | Lyrics editor | `lyric-suggestion-syllables-<suggestionId>` | "11 -> 9 syllables" (when present) | all |
 | Lyrics editor | `lyric-suggestion-accept-<suggestionId>`, `lyric-suggestion-reject-<suggestionId>` | decide one | all |
@@ -68,12 +68,16 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 
 | Key | Where | Action |
 |---|---|---|
-| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry) |
+| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry; the decision keys act on the entry that holds the focus, also when a button of it is focused) |
 | Alt+Enter | focused suggestion | accept |
 | Alt+Backspace | focused suggestion | reject |
 | Alt+I | focused correction | mark as intentional (default scope: word for spelling, phrase otherwise) |
 | Escape | list | back to the text at the suggestion's position |
 | Ctrl+Alt+C | editor | Check |
+
+The list is not a listbox (orchestrator decision 2026-11-17, WCAG 4.1.2 / axe `nested-interactive`):
+Tab reaches every button of every entry; after a decision (key or button) the focus moves to the
+entry that takes the decided one's place.
 
 Announcements in `lyric-assist-live`: check started ("Checking 40 lines"), finished ("Check
 finished: 7 suggestions - 2 spelling, 1 grammar, 3 flow, 1 device"), focused suggestion ("Line 4,

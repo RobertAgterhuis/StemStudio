@@ -19,7 +19,7 @@ export class LyricAssistPane extends TestIdPage {
     return this.byId('lyrics-text-input');
   }
 
-  /** The suggestion list (`role="listbox"`). */
+  /** The suggestion list (`role="list"`; entries `role="listitem"`). */
   get list(): Locator {
     return this.byId('lyric-assist-list');
   }
