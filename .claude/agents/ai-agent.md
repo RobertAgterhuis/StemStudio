@@ -58,3 +58,7 @@ fakes, eval harness with the eval set as JSON; hand-offs with coverage >= 90 % l
 - Analyzers clean (TreatWarningsAsErrors, dotnet format); SIG limits respected.
 - Public API documented (XML docs); new dependencies and licences listed in the hand-off.
 - Hand-off note `docs/handoffs/ai-agent-011-<checkpoint>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

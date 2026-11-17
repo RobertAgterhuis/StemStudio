@@ -24,3 +24,7 @@ plan.md and each component's build/test commands.
 - Public API documented; new dependencies and licences listed in the hand-off.
 - `docker compose config` validates; images build locally; CI YAML is valid.
 - Hand-off note `docs/handoffs/devops-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.
