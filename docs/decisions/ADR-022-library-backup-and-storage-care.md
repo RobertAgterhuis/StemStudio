@@ -1,7 +1,8 @@
 # ADR-022: Library backup, restore and storage care (feature 013)
 
-- **Status**: Proposed (architect, 2026-11-16); accepted at Phase 0 (tasks.md T001). Number chosen
-  in roadmap order (012 is expected to take ADR-021); the CTO renumbers on a collision.
+- **Status**: **Accepted** (architect, Phase 0 T001, 2026-11-17; proposed 2026-11-16). Number
+  check: 012 took ADR-021, 022/023 took ADR-036/037, ADR-023-ADR-035 belong to 014-021 and the
+  011 claude-key follow-up; ADR-022 is free and stays with 013 (no renumbering). Constitution 1.4.0.
 - **Context documents**: `specs/013-library-care/{spec.md, research.md, plan.md, data-model.md}`,
   `specs/013-library-care/contracts/*`, MoSCoW M4 and M5, ADR-004 (stem storage), ADR-009 (model
   weights), ADR-016 D5 (the API is the only writer of the library; read-only mount in the worker),
@@ -105,3 +106,22 @@ library stems from its read-only `/library` mount into a new cache entry.
   maintenance window; the write gate refuses deletes during a backup.
 - Follow-ups (backlog): encrypted archives, scheduled backups with retention, model-cache removal
   coordinated across containers, agent tools for backup and storage (tool catalogue minor).
+
+## Phase 0 outcome (T001/T003, 2026-11-17)
+
+Spike results: `specs/013-library-care/research.md` R-04 "Phase 0 results" and R-12. D1-D10 stand
+unchanged; the spike adds four binding refinements (no contract change):
+
+- **P1 Zip64** works on .NET 10 for a 4.5 GiB entry and 70,000 entries on Windows and Linux; no
+  writer switch is needed.
+- **P2 WAL for snapshots**: `BackupDatabase` fails with `SQLITE_BUSY` under a concurrent writer when
+  the live database uses a rollback journal; with WAL (EF Core's default for databases it creates)
+  10 snapshots under a writer loop caused 0 failed writes. `DatabaseSnapshot` checks the journal
+  mode and retries busy snapshots with back-off (job error `io-error` after 5 attempts).
+- **P3 WAL after a restore**: the archived database is a single file (`journal_mode=DELETE`); the
+  switch sets `PRAGMA journal_mode=WAL` on the restored live database before the gate opens.
+- **P4 Switch retries**: renames inside the named volume are O(1); on Windows (non-Docker path) and
+  on bind mounts an open handle blocks a directory move, so the switch clears the SQLite pools,
+  waits for in-flight requests and retries each move (10 x 200 ms) before rolling back.
+- Bind-mount throughput 353-360 MB/s write, 213-386 MB/s read: SC-002 (>= 60 MB/s) has a wide
+  margin and is not changed.
