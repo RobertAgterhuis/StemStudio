@@ -162,6 +162,8 @@ test('a broken picture shows the placeholder without moving the layout', { tag: 
   const before = await folders.tile(id).boundingBox();
   await page.route(`**/api/tracks/${meters.track.id}/artwork/**`, (route) => route.fulfill({ status: 404, body: '' }));
   await page.reload();
+  // Lazy pictures load (and fail) only near the viewport; the root of a busy stack lists many artists.
+  await folders.tile(id).scrollIntoViewIfNeeded();
   await expect(folders.tileArt(id).locator('img:visible')).toHaveCount(0);
   await expect(folders.tileArt(id)).toContainText(/\S/u);
   const after = await folders.tile(id).boundingBox();
