@@ -27,7 +27,12 @@
       sizer.observe(dock);
     }
   };
-  new MutationObserver(sync).observe(document.body, { childList: true, subtree: true });
+  // O(1) per DOM change while the observed dock is still in the page (the karaoke banner and meters change often).
+  new MutationObserver(() => {
+    if (observed === null || !observed.isConnected) {
+      sync();
+    }
+  }).observe(document.body, { childList: true, subtree: true });
   // The sticky offset changes with the small-screen breakpoint without resizing the dock.
   window.addEventListener('resize', () => {
     if (observed !== null) {
