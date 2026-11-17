@@ -8,7 +8,8 @@ namespace StemStudio.Persistence.Migrations
     /// <summary>
     /// Feature 022 (research R-13): placement, item library info, <c>FiledVersion</c> (0 = not filed; the start-up backfill
     /// files every item) and <c>FiledAt</c> on <c>Assets</c>, track library info on <c>Tracks</c>, the folder index
-    /// <c>IX_Assets_Folder</c> (created here, outside the model, because its columns belong to the complex property) and <c>IX_Assets_FiledVersion</c>.
+    /// <c>IX_Assets_Folder</c> (created here, outside the model, because its columns belong to the complex property),
+    /// <c>IX_Assets_FiledVersion</c> and the indexes the library revision reads (<c>UpdatedAt</c>, <c>FiledAt</c>).
     /// Only columns and indexes are added (013 restore accepts it). <b>Down</b> drops them: the user's library info is lost.
     /// </summary>
     public partial class AddLibraryFolders : Migration
@@ -147,9 +148,19 @@ namespace StemStudio.Persistence.Migrations
                 nullable: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Assets_FiledAt",
+                table: "Assets",
+                column: "FiledAt");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Assets_FiledVersion",
                 table: "Assets",
                 column: "FiledVersion");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Assets_UpdatedAt",
+                table: "Assets",
+                column: "UpdatedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Assets_Folder",
@@ -165,7 +176,15 @@ namespace StemStudio.Persistence.Migrations
                 table: "Assets");
 
             migrationBuilder.DropIndex(
+                name: "IX_Assets_FiledAt",
+                table: "Assets");
+
+            migrationBuilder.DropIndex(
                 name: "IX_Assets_FiledVersion",
+                table: "Assets");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Assets_UpdatedAt",
                 table: "Assets");
 
             migrationBuilder.DropColumn(

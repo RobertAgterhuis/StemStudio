@@ -87,7 +87,7 @@ public sealed class InstrumentTerms
     }
 
     private static InstrumentTerms Single(string channel, string label, int group) =>
-        new([Cache.GetOrAdd($"{label}{channel}", _ => Term(label, channel))], group, IndexOf(channel));
+        new([Cache.GetOrAdd($"{label}\u001f{channel}", _ => Term(label, channel))], group, IndexOf(channel));
 
     private static InstrumentTerm ChannelTerm(string channelId) => Cache.GetOrAdd(channelId, id =>
     {

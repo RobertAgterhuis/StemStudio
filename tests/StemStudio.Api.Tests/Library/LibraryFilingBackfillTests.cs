@@ -56,7 +56,7 @@ public sealed class LibraryFilingBackfillTests : IDisposable
 
         _factory.Clock.Advance(LibraryFilingBackfill.StartDelay);
 
-        await Eventually.WaitUntilAsync(async () => await PendingAsync() == 0);
+        await WaitUntilAsync(async () => await PendingAsync() == 0, _factory);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class LibraryFilingBackfillTests : IDisposable
         _factory.Services.GetRequiredService<ILibraryFilingTrigger>().Trigger();
         _factory.Services.GetRequiredService<ILibraryFilingTrigger>().Trigger();
 
-        await Eventually.WaitUntilAsync(async () => await PendingAsync() == 0);
+        await WaitUntilAsync(async () => await PendingAsync() == 0, _factory);
     }
 
     [Fact]

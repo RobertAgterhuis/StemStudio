@@ -38,10 +38,10 @@ internal sealed class SnapshotBuilder
     }
 
     /// <summary>Adds a filed raw export of one channel.</summary>
-    public Asset Export(Guid trackId, TrackFacts facts, string channel = "drums", long size = 1000, LibraryInfo? info = null)
+    public Asset Export(Guid trackId, TrackFacts facts, string channel = "drums", long size = 1000)
     {
         var asset = Asset.Create(Guid.NewGuid(), $"{facts.Title} - {channel}", LibraryTestData.ExportProvenance(trackId, facts.Title, facts.Artist, channel), Next());
-        return Add(Ready(asset, size), facts, info);
+        return Add(Ready(asset, size), facts);
     }
 
     /// <summary>Adds a filed mix of several channels.</summary>
@@ -51,7 +51,7 @@ internal sealed class SnapshotBuilder
         {
             Recipe = new ExportRecipe { TrackId = trackId, Mode = ExportMode.Mix, Channels = channels, Format = new ExportFormat(AudioFormat.Flac, 16, null) },
         };
-        return Add(Asset.Create(Guid.NewGuid(), $"{facts.Title} - mix", provenance, Next()), facts, null);
+        return Add(Asset.Create(Guid.NewGuid(), $"{facts.Title} - mix", provenance, Next()), facts);
     }
 
     /// <summary>Adds a filed score.</summary>
@@ -63,7 +63,7 @@ internal sealed class SnapshotBuilder
             Recipe = null,
             ScoreRecipe = new ScoreRecipe { Source = ScoreSource.FromChannel(trackId, "bass"), Profile = profile, Resolution = ScoreResolution.Sixteenth },
         };
-        return Add(Asset.CreateScore(Guid.NewGuid(), $"{facts.Title} - score", provenance, Next()), facts, null);
+        return Add(Asset.CreateScore(Guid.NewGuid(), $"{facts.Title} - score", provenance, Next()), facts);
     }
 
     /// <summary>Adds a filed generated take without a track ("My songs").</summary>
@@ -71,7 +71,7 @@ internal sealed class SnapshotBuilder
     {
         var provenance = new Provenance { Origin = AssetOrigin.Generation, TrackTitle = title, Contents = "take 1", Generation = new GenerationSource(Guid.NewGuid(), 1, GenerationKind.Song) };
         var stored = new GeneratedAudio($"{title} - take 1", [new AssetFile("audio", "audio.flac", "audio/flac", 10, new string('a', 64))], new AudioFacts(AudioFormat.Flac, 24, null, 10, -1, 0));
-        return Add(Asset.CreateGenerated(Guid.NewGuid(), provenance, stored, Next()), null, null);
+        return Add(Asset.CreateGenerated(Guid.NewGuid(), provenance, stored, Next()), null);
     }
 
     /// <summary>Adds an item that is not filed yet.</summary>
@@ -91,14 +91,9 @@ internal sealed class SnapshotBuilder
         return asset;
     }
 
-    private Asset Add(Asset asset, TrackFacts? facts, LibraryInfo? info)
+    private Asset Add(Asset asset, TrackFacts? facts)
     {
-        if (info is not null)
-        {
-            asset.SetLibraryInfo(info, asset.CreatedAt);
-        }
-
-        asset.File(PlacementResolver.Resolve(new PlacementInput { Provenance = asset.Provenance, Track = facts, ItemInfo = asset.LibraryInfo }), asset.CreatedAt);
+        asset.File(PlacementResolver.Resolve(new PlacementInput { Provenance = asset.Provenance, Track = facts }), asset.CreatedAt);
         _items.Add(asset);
         return asset;
     }

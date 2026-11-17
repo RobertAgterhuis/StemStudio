@@ -46,7 +46,7 @@ public static class LibrarySearch
 
         var folders = index.Folders.Where(node => InScope(node, request.Within)).Select(node => FolderMatch.Of(node, index, request.Tokens)).OfType<FolderMatch>().ToList();
         var items = index.Items.Where(item => request.Within is null || IsInside(item.Entry, request.Within))
-            .Select(item => ItemMatch.Of(item, index, request.Tokens)).OfType<ItemMatch>().OrderBy(hit => hit.Score).ThenBy(hit => hit.Item.Name.Value, StringComparer.InvariantCulture)
+            .Select(item => ItemMatch.Of(item, request.Tokens)).OfType<ItemMatch>().OrderBy(hit => hit.Score).ThenBy(hit => hit.Item.Name.Value, StringComparer.Ordinal)
             .ThenBy(hit => hit.Item.Entry.Asset.Id).ToList();
         return Result(snapshot, request, folders, items);
     }
@@ -104,7 +104,7 @@ public static class LibrarySearch
     private static LibrarySearchResultDto Result(LibrarySnapshot snapshot, SearchRequest request, List<FolderMatch> folders, List<ItemMatch> items)
     {
         var groups = new[] { FolderLevel.Artist, FolderLevel.Album, FolderLevel.Song }
-            .Select(level => folders.Where(hit => hit.Node.Level == level).OrderBy(hit => hit.Score).ThenBy(hit => hit.Node.SortName, StringComparer.InvariantCulture).ThenBy(hit => hit.Node.Id, StringComparer.Ordinal).ToList())
+            .Select(level => folders.Where(hit => hit.Node.Level == level).OrderBy(hit => hit.Score).ThenBy(hit => hit.Node.SortName, StringComparer.Ordinal).ThenBy(hit => hit.Node.Id, StringComparer.Ordinal).ToList())
             .ToArray();
         return new LibrarySearchResultDto
         {
@@ -120,7 +120,7 @@ public static class LibrarySearch
     }
 
     /// <summary>A folder hit: at least one word in its own name, every word in its name or its parents' names.</summary>
-    private sealed record FolderMatch(FolderNode Node, int Score, IReadOnlyList<HighlightDto> Highlights, IReadOnlyList<FolderNode> Parents)
+    private sealed record FolderMatch(FolderNode Node, int Score, IReadOnlyList<string> Tokens, IReadOnlyList<FolderNode> Parents)
     {
         public static FolderMatch? Of(FolderNode node, SearchIndex index, IReadOnlyList<string> tokens)
         {
@@ -131,52 +131,68 @@ public static class LibrarySearch
                 return null;
             }
 
-            var highlights = tokens.Select(token => Highlight(FieldOf(node.Level), node.Folded, token)).OfType<HighlightDto>();
-            return new FolderMatch(node, classes.Sum(), [.. highlights.Take(ContractLimits.SearchHighlightsMax)], parents);
+            return new FolderMatch(node, classes.Sum(), tokens, parents);
         }
 
         public FolderHitDto ToDto(LibrarySnapshot snapshot) => new()
         {
             Folder = FolderTreeBuilder.Folder(snapshot, Node.Level, Node.Entries, Node.Entries),
             Path = [.. Parents.Select(RefOf)],
-            Highlights = Highlights,
+            Highlights = [.. Tokens.Select(token => Highlight(FieldOf(Node.Level), Node.Folded, token)).OfType<HighlightDto>().Take(ContractLimits.SearchHighlightsMax)],
         };
 
         private static int InParents(List<FolderNode> parents, string token) => parents.Any(parent => ClassOf(parent.Folded.Value, token) >= 0) ? AncestorClass : -1;
     }
 
     /// <summary>An item hit: every word in one of its fields (folder names, artist credit, name, instruments).</summary>
-    private sealed record ItemMatch(ItemNode Item, int Score, IReadOnlyList<HighlightDto> Highlights, IReadOnlyList<string> Instruments, IReadOnlyList<FolderNode> Path)
+    private sealed record ItemMatch(ItemNode Item, int Score, IReadOnlyList<string> Tokens, InstrumentMatcher.Result Instruments)
     {
-        public static ItemMatch? Of(ItemNode item, SearchIndex index, IReadOnlyList<string> tokens)
+        public static ItemMatch? Of(ItemNode item, IReadOnlyList<string> tokens)
         {
-            var path = new[] { item.Entry.ArtistId, item.Entry.AlbumId, item.Entry.SongId }.Select(id => index.Folder(id)!).ToList();
-            var instruments = InstrumentMatcher.Match(item.Entry.Terms.Terms, tokens);
-            var classes = tokens.Select((token, i) => Best(TextClasses(item, path, token).Append(instruments.ClassOf(i)))).ToList();
-            if (classes.Contains(-1))
+            if (!tokens.All(token => item.Haystack.Contains(token, StringComparison.Ordinal)))
             {
                 return null;
             }
 
-            return new ItemMatch(item, classes.Sum(), [.. ItemHighlights(item, path, tokens, instruments).Take(ContractLimits.SearchHighlightsMax)], instruments.Labels, path);
+            var instruments = InstrumentMatcher.Match(item.Entry.Terms.Terms, tokens);
+            var score = 0;
+            for (var i = 0; i < tokens.Count; i++)
+            {
+                var best = Best(item.Fields, tokens[i], instruments.ClassOf(i));
+                if (best < 0)
+                {
+                    return null;
+                }
+
+                score += best;
+            }
+
+            return new ItemMatch(item, score, tokens, instruments);
         }
 
         public ItemHitDto ToDto(LibrarySnapshot snapshot) => new()
         {
             Asset = AssetMapper.ToDto(Item.Entry.Asset, snapshot.TrackExists(Item.Entry.Asset)),
-            Path = [.. Path.Select(RefOf)],
-            Highlights = Highlights,
-            MatchedInstruments = [.. Instruments.Take(ContractLimits.MatchedInstrumentsMax)],
+            Path = [.. Item.Path.Select(RefOf)],
+            Highlights = [.. ItemHighlights(Item, Tokens, Instruments).Take(ContractLimits.SearchHighlightsMax)],
+            MatchedInstruments = [.. Instruments.Labels.Take(ContractLimits.MatchedInstrumentsMax)],
         };
 
-        private static IEnumerable<int> TextClasses(ItemNode item, List<FolderNode> path, string token) =>
-            path.Select(node => node.Folded.Value).Append(item.Name.Value).Append(item.Credit).Select(field => ClassOf(field, token));
+        private static int Best(IReadOnlyList<string> fields, string token, int instrument)
+        {
+            var best = instrument;
+            foreach (var field in fields)
+            {
+                var value = ClassOf(field, token);
+                best = value >= 0 && (best < 0 || value < best) ? value : best;
+            }
 
-        private static int Best(IEnumerable<int> classes) => classes.Where(value => value >= 0).DefaultIfEmpty(-1).Min();
+            return best;
+        }
 
-        private static IEnumerable<HighlightDto> ItemHighlights(ItemNode item, List<FolderNode> path, IReadOnlyList<string> tokens, InstrumentMatcher.Result instruments) =>
-            tokens.SelectMany(token => path.Select(node => Highlight(FieldOf(node.Level), node.Folded, token)).Append(Highlight(SearchFieldDto.Name, item.Name, token)))
-                .Concat(instruments.Highlights).OfType<HighlightDto>();
+        private static IEnumerable<HighlightDto> ItemHighlights(ItemNode item, IReadOnlyList<string> tokens, InstrumentMatcher.Result instruments) =>
+            tokens.SelectMany(token => item.Path.Select(node => Highlight(FieldOf(node.Level), node.Folded, token)).Append(Highlight(SearchFieldDto.Name, item.Name, token)))
+                .Concat(instruments.Highlights(tokens)).OfType<HighlightDto>();
     }
 
     private static FolderRefDto RefOf(FolderNode node) => new() { Id = node.Id, Level = LibraryMapper.ToDto(node.Level), Name = node.Name };

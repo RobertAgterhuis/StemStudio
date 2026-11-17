@@ -38,10 +38,17 @@ public sealed partial class LibraryFilingBackfill(
     /// <summary>Delay of the start-up run after the host started (keeps it out of the start-up work of other services).</summary>
     public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(2);
 
+    /// <summary>Wait (real time) before a failed run is repeated, e.g. after a transient <c>database is locked</c>.</summary>
+    public static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
+
+    /// <summary>Failed runs in a row that are repeated automatically; later ones wait for the next library read.</summary>
+    public const int MaxRetries = 5;
+
     private readonly SemaphoreSlim _wake = new(0, 1);
     private readonly SemaphoreSlim _running = new(1, 1);
     private readonly Lock _lock = new();
     private int _pending;
+    private int _failures;
 
     /// <inheritdoc />
     public int Pending => Volatile.Read(ref _pending);
@@ -87,7 +94,7 @@ public sealed partial class LibraryFilingBackfill(
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _ = TriggerAfterStartDelayAsync(stoppingToken);
+        _ = TriggerAfterAsync(StartDelay, clock, stoppingToken);
         while (!stoppingToken.IsCancellationRequested)
         {
             await _wake.WaitAsync(stoppingToken);
@@ -95,16 +102,16 @@ public sealed partial class LibraryFilingBackfill(
         }
     }
 
-    private async Task TriggerAfterStartDelayAsync(CancellationToken stoppingToken)
+    private async Task TriggerAfterAsync(TimeSpan delay, TimeProvider timer, CancellationToken stoppingToken)
     {
         try
         {
-            await Task.Delay(StartDelay, clock, stoppingToken);
+            await Task.Delay(delay, timer, stoppingToken);
             Trigger();
         }
         catch (OperationCanceledException)
         {
-            // The host stopped before the start-up run.
+            // The host stopped first.
         }
     }
 
@@ -113,11 +120,21 @@ public sealed partial class LibraryFilingBackfill(
         try
         {
             var filed = await RunOnceAsync(cancellationToken);
+            _failures = 0;
             LogFiled(logger, filed);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             LogRunFailed(logger, exception);
+            RetryLater(cancellationToken);
+        }
+    }
+
+    private void RetryLater(CancellationToken cancellationToken)
+    {
+        if (++_failures <= MaxRetries)
+        {
+            _ = TriggerAfterAsync(RetryDelay, TimeProvider.System, cancellationToken);
         }
     }
 
@@ -165,6 +182,6 @@ public sealed partial class LibraryFilingBackfill(
     [LoggerMessage(Level = LogLevel.Information, Message = "Library filing: {Filed} items filed")]
     private static partial void LogFiled(ILogger logger, int filed);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Library filing failed; it runs again on the next library read")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Library filing failed; it is retried shortly or on the next library read")]
     private static partial void LogRunFailed(ILogger logger, Exception exception);
 }

@@ -11,10 +11,18 @@ public static class InstrumentMatcher
 {
     /// <summary>The outcome for one item.</summary>
     /// <param name="Classes">Best match class per search word (-1 = none).</param>
-    /// <param name="Labels">Labels of the matched terms, in term order.</param>
-    /// <param name="Highlights">Highlights on matched labels.</param>
-    public sealed record Result(IReadOnlyList<int> Classes, IReadOnlyList<string> Labels, IReadOnlyList<HighlightDto> Highlights)
+    /// <param name="Matched">The matched terms, in term order.</param>
+    public sealed record Result(IReadOnlyList<int> Classes, IReadOnlyList<InstrumentTerm> Matched)
     {
+        /// <summary>Labels of the matched terms.</summary>
+        public IEnumerable<string> Labels => Matched.Select(term => term.Label);
+
+        /// <summary>Highlights of the words on the matched labels (computed for returned hits only).</summary>
+        /// <param name="tokens">The folded search words.</param>
+        /// <returns>The highlights.</returns>
+        public IEnumerable<HighlightDto> Highlights(IReadOnlyList<string> tokens) => Matched.SelectMany(term =>
+            tokens.Select(token => LibrarySearch.Highlight(SearchFieldDto.Instrument, term.FoldedLabel, token, term.Label)).OfType<HighlightDto>());
+
         /// <summary>The class of search word <paramref name="index"/>.</summary>
         /// <param name="index">Word index.</param>
         /// <returns>0..2 or -1.</returns>
@@ -30,18 +38,8 @@ public static class InstrumentMatcher
         ArgumentNullException.ThrowIfNull(terms);
         ArgumentNullException.ThrowIfNull(tokens);
         var classes = Enumerable.Repeat(-1, tokens.Count).ToArray();
-        var labels = new List<string>();
-        var highlights = new List<HighlightDto>();
-        foreach (var term in terms)
-        {
-            if (MatchTerm(term, tokens, classes))
-            {
-                labels.Add(term.Label);
-                highlights.AddRange(tokens.Select(token => LibrarySearch.Highlight(SearchFieldDto.Instrument, term.FoldedLabel, token, term.Label)).OfType<HighlightDto>());
-            }
-        }
-
-        return new Result(classes, labels, highlights);
+        var matched = terms.Where(term => MatchTerm(term, tokens, classes)).ToList();
+        return new Result(classes, matched);
     }
 
     private static bool MatchTerm(InstrumentTerm term, IReadOnlyList<string> tokens, int[] classes)
@@ -49,8 +47,10 @@ public static class InstrumentMatcher
         var matched = false;
         for (var i = 0; i < tokens.Count; i++)
         {
-            var best = term.Words.Select(word => LibrarySearch.ClassOf(word, tokens[i])).Where(value => value >= 0).DefaultIfEmpty(-1).Min();
-            matched |= Keep(classes, i, best);
+            foreach (var word in term.Words)
+            {
+                matched |= Keep(classes, i, LibrarySearch.ClassOf(word, tokens[i]));
+            }
         }
 
         foreach (var alias in term.Aliases)

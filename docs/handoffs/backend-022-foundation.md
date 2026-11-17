@@ -7,8 +7,8 @@
   `PlacementResolver` (R-01 per level), `LibraryFilingRules`; `Asset.Library.cs` (`Placement`, `LibraryInfo`,
   `FiledVersion`, `FiledAt`, `IsFiled`, `File`, `SetLibraryInfo`), `Track.Library.cs`.
 - Persistence: placement and library info as EF 10 **complex types** on plain columns (data-model 3.1/3.2 names),
-  migration `20261117095226_AddLibraryFolders` (columns + `IX_Assets_Folder` + `IX_Assets_FiledVersion`; regenerated
-  snapshot committed), `Repositories/LibraryRepository.cs` (registered in `LibraryRegistration`).
+  migration `AddLibraryFolders` (columns + `IX_Assets_Folder` + `IX_Assets_FiledVersion`; regenerated snapshot
+  committed; re-generated in the polish checkpoint as `20261117111150_AddLibraryFolders` with two more indexes), `Repositories/LibraryRepository.cs` (registered in `LibraryRegistration`).
 - API `src/StemStudio.Api/Library/`: `LibraryFiler` (+ `FileAllAsync` for the backfill), `LibraryFilingBackfill`
   (hosted service + `ILibraryFilingTrigger`, `StemStudio:LibraryBackfillBatchSize`, required `LibraryGate`),
   `LibraryMapper`; hooks in `ExportService`, `StemPackService`, `ScoreService`, `GeneratedAudioLibrary`,

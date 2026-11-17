@@ -5,13 +5,13 @@ using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Repositories;
 
-/// <summary>The values the library revision is computed from (feature 022, data-model 4 <c>LibraryRevision</c>).</summary>
-/// <param name="Items">Number of items.</param>
-/// <param name="ItemsUpdatedAt">Newest item change.</param>
-/// <param name="ItemsFiledAt">Newest filing.</param>
-/// <param name="Tracks">Number of tracks (a deleted track changes art and links).</param>
-/// <param name="TracksUpdatedAt">Newest track change.</param>
-public sealed record LibraryStamp(int Items, DateTime? ItemsUpdatedAt, DateTime? ItemsFiledAt, int Tracks, DateTime? TracksUpdatedAt);
+/// <summary>
+/// The values the library revision is computed from (feature 022, data-model 4 <c>LibraryRevision</c>), read in one
+/// query: item count, newest item change, newest filing, track count (a deleted track changes art and links), newest
+/// track change, joined by <c>|</c> (<c>-</c> for none).
+/// </summary>
+/// <param name="Value">The joined values.</param>
+public sealed record LibraryStamp(string Value);
 
 /// <summary>The picture facts of a track used for folder art (research R-05).</summary>
 /// <param name="TrackId">Track.</param>
@@ -82,6 +82,13 @@ public interface ILibraryRepository
 /// <param name="context">The database context.</param>
 public sealed class LibraryRepository(StemStudioDbContext context) : ILibraryRepository
 {
+    // Constant SQL without any input (one round trip per folder view or search instead of five).
+    private static readonly FormattableString StampSql = $"""
+        SELECT (SELECT COUNT(*) FROM "Assets") || '|' || IFNULL((SELECT MAX("UpdatedAt") FROM "Assets"), '-') || '|'
+            || IFNULL((SELECT MAX("FiledAt") FROM "Assets"), '-') || '|' || (SELECT COUNT(*) FROM "Tracks") || '|'
+            || IFNULL((SELECT MAX("UpdatedAt") FROM "Tracks"), '-') AS "Value"
+        """;
+
     /// <inheritdoc />
     public async Task<Track?> FindTrackAsync(Guid trackId, CancellationToken cancellationToken) =>
         await context.Tracks.FindAsync([trackId], cancellationToken);
@@ -108,12 +115,8 @@ public sealed class LibraryRepository(StemStudioDbContext context) : ILibraryRep
             .OrderBy(asset => asset.CreatedAt).ThenBy(asset => asset.Id).Take(limit).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
-    public async Task<LibraryStamp> StampAsync(CancellationToken cancellationToken) => new(
-        await context.Assets.CountAsync(cancellationToken),
-        await context.Assets.MaxAsync(asset => (DateTime?)asset.UpdatedAt, cancellationToken),
-        await context.Assets.MaxAsync(asset => asset.FiledAt, cancellationToken),
-        await context.Tracks.CountAsync(cancellationToken),
-        await context.Tracks.MaxAsync(track => (DateTime?)track.UpdatedAt, cancellationToken));
+    public async Task<LibraryStamp> StampAsync(CancellationToken cancellationToken) =>
+        new(await context.Database.SqlQuery<string>(StampSql).SingleAsync(cancellationToken));
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Asset>> AllItemsAsync(CancellationToken cancellationToken) =>

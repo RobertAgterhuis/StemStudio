@@ -142,7 +142,7 @@ public sealed class LibraryFolderEndpointTests : ApiTestBase
 
         var view = await response.BodyAsync<LibraryFolderViewDto>();
         (view.PendingFiling, view.Children.Single().Name).ShouldBe((1, "Rick Astley"));
-        await Eventually.WaitUntilAsync(async () => (await Factory.FindAssetAsync(item.Id))!.IsFiled);
+        await WaitUntilAsync(async () => (await Factory.FindAssetAsync(item.Id))!.IsFiled, Factory);
     }
 
     [Fact]

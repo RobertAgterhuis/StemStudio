@@ -76,5 +76,26 @@ internal static class LibraryTestData
     public static Task<Asset?> FindAssetAsync(this ApiFactory factory, Guid id) =>
         factory.WithScopeAsync(sp => sp.GetRequiredService<IAssetRepository>().FindAsync(id, CancellationToken.None));
 
+    /// <summary>Waits up to 30 s for background work (the full suite runs many hosts in parallel).</summary>
+    public static async Task WaitUntilAsync(Func<Task<bool>> condition, ApiFactory? factory = null)
+    {
+        for (var attempt = 0; attempt < 600; attempt++)
+        {
+            if (await condition())
+            {
+                return;
+            }
+
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+        }
+
+        var logs = factory is null ? [] : factory.Logs.Entries.Where(entry => entry.Category.EndsWith("LibraryFilingBackfill", StringComparison.Ordinal)).Select(entry => entry.ToString());
+        throw new TimeoutException("Condition not met within 30 s. " + string.Join(" | ", logs));
+    }
+
+    /// <summary>True when coverlet instrumented the API (timings are then not representative).</summary>
+    public static bool Instrumented { get; } =
+        typeof(StemStudio.Api.Library.LibrarySearch).Assembly.GetTypes().Any(type => type.Namespace?.StartsWith("Coverlet", StringComparison.Ordinal) == true);
+
     public static (string Name, PlacementSource Source) Level(PlacementLevel level) => (level.Name, level.Source);
 }

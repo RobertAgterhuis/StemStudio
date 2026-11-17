@@ -33,9 +33,13 @@ public sealed class LibraryPerfTests
 
         var watch = Stopwatch.StartNew();
         var filed = await backfill.RunOnceAsync(Ct);
+        TestContext.Current.TestOutputHelper?.WriteLine($"backfill 5,000 items {watch.Elapsed.TotalMilliseconds:F0} ms, instrumented {Instrumented}");
 
-        watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
         filed.ShouldBe(5000);
+        if (!Instrumented)
+        {
+            watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
+        }
     }
 
     [Fact]
@@ -57,9 +61,13 @@ public sealed class LibraryPerfTests
             }
         }
 
+        var searches = await SearchTimesAsync(client);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"folder view p95 {Percentile(times, 0.95):F1} ms, rebuild median {Percentile(rebuilds, 0.5):F1} ms, search p95 {Percentile(searches, 0.95):F1} ms, instrumented {Instrumented}");
+        Assert.SkipWhen(Instrumented, "Timings are asserted only without coverage instrumentation.");
         Percentile(times, 0.95).ShouldBeLessThan(100);
         Percentile(rebuilds, 0.5).ShouldBeLessThan(200);
-        Percentile(await SearchTimesAsync(client), 0.95).ShouldBeLessThan(50);
+        Percentile(searches, 0.95).ShouldBeLessThan(50);
     }
 
     private static async Task<List<double>> SearchTimesAsync(HttpClient client)

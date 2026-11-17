@@ -19,11 +19,11 @@ public sealed class PlacementResolverTests
         SourceAssetIds = sources ?? [],
     };
 
-    public static TrackFacts Found(string artist = "Metallica", string album = "Metallica", string song = "Enter Sandman", int? year = 1991, Guid? mbid = null) => new(
+    public static TrackFacts Found(string artist = "Metallica", string album = "Metallica", string song = "Enter Sandman", int? year = 1991) => new(
         "Enter Sandman (Official Video)",
         "MetallicaTV",
         new TrackMetadata { Status = MetadataStatus.Found, ArtistName = artist, Album = album, RecordingTitle = song, Year = year, LookupTitle = "Enter Sandman", LookupArtist = "Metallica", LookupAlbum = "Black Album" },
-        mbid);
+        null);
 
     public static TrackFacts Imported(MetadataStatus status = MetadataStatus.NotFound, string? lookupAlbum = null) => new(
         "Enter Sandman (Official Video)",
@@ -117,7 +117,7 @@ public sealed class PlacementResolverTests
     [Fact]
     public void VariousArtists_IsIgnoredByMbid()
     {
-        var placement = Resolve(new PlacementInput { Provenance = Provenance(TrackId), Track = Found(artist: "VA", mbid: LibraryKey.VariousArtistsMbid) });
+        var placement = Resolve(new PlacementInput { Provenance = Provenance(TrackId), Track = Found(artist: "VA") with { ArtistMbid = LibraryKey.VariousArtistsMbid } });
 
         placement.Artist.Source.ShouldBe(PlacementSource.Import);
     }

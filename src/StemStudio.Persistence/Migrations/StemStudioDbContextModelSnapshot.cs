@@ -273,11 +273,15 @@ namespace StemStudio.Persistence.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("FiledAt");
+
                     b.HasIndex("FiledVersion");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("TrackId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("Assets", (string)null);
                 });

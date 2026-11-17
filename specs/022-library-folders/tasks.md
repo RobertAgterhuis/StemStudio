@@ -178,7 +178,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T084 [P] [frontend] Help topics `library-folders`, `library-search`, `library-info`, `library-art` (help-content 1.0.0 format; test first: `HelpCatalogueTests` lists them and every `data-help-id` resolves) (FR-035)
 - [ ] T085 [P] [devops] **Conditional**: only if qa (T023/T039/T071) cannot copy the database fixtures into the API volume from the spec's global setup without a compose change - add an opt-in fixture mount to the fake stack (check-first test in the task). Otherwise not executed.
-- [ ] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
+- [x] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
 - [ ] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
 - [ ] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
 - [ ] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)

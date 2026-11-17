@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using StemStudio.Persistence.Repositories;
@@ -14,11 +13,8 @@ public static class LibraryRevision
     public static string Of(LibraryStamp stamp)
     {
         ArgumentNullException.ThrowIfNull(stamp);
-        var text = string.Join('|', stamp.Items, Ticks(stamp.ItemsUpdatedAt), Ticks(stamp.ItemsFiledAt), stamp.Tracks, Ticks(stamp.TracksUpdatedAt));
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)).AsSpan(0, 8));
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(stamp.Value)).AsSpan(0, 8));
     }
-
-    private static string Ticks(DateTime? value) => value?.Ticks.ToString(CultureInfo.InvariantCulture) ?? "-";
 }
 
 /// <summary>

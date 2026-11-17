@@ -13,7 +13,7 @@ public sealed class LibraryRepositoryTests
         await using var db = await SqliteTestDatabase.CreateAsync();
         await using var context = db.NewContext();
 
-        (await new LibraryRepository(context).StampAsync(Ct)).ShouldBe(new LibraryStamp(0, null, null, 0, null));
+        (await new LibraryRepository(context).StampAsync(Ct)).ShouldBe(new LibraryStamp("0|-|-|0|-"));
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class LibraryRepositoryTests
         (await library.FindAssetAsync(older.Id, Ct)).ShouldNotBeNull();
         (await library.AllItemsAsync(Ct)).Count.ShouldBe(2);
         (await library.TrackArtAsync(Ct)).Single().TrackId.ShouldBe(track.Id);
-        var stamp = await library.StampAsync(Ct);
-        (stamp.Items, stamp.Tracks, stamp.ItemsFiledAt).ShouldBe((2, 1, TestData.T0));
+        var stamp = (await library.StampAsync(Ct)).Value.Split('|');
+        (stamp[0], stamp[3], stamp[2].StartsWith("2026-11-14 12:00:00", StringComparison.Ordinal)).ShouldBe(("2", "1", true));
     }
 }

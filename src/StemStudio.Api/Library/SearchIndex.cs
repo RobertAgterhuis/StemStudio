@@ -15,11 +15,25 @@ public sealed record FolderNode(string Id, FolderLevel Level, string Name, Folde
     public string SortName { get; } = LibraryKey.SortKey(Level, Name);
 }
 
-/// <summary>An item of the search index with its folded name and artist credit.</summary>
+/// <summary>An item of the search index with its folded name, artist credit, folders and all its searchable text.</summary>
 /// <param name="Entry">The item.</param>
 /// <param name="Name">Folded item name.</param>
 /// <param name="Credit">Folded full artist credit of its track (provenance snapshot), or empty.</param>
-public sealed record ItemNode(LibraryEntry Entry, FoldedText Name, string Credit);
+/// <param name="Path">Its artist, album and song folders.</param>
+public sealed record ItemNode(LibraryEntry Entry, FoldedText Name, string Credit, IReadOnlyList<FolderNode> Path)
+{
+    /// <summary>Its folded text fields: artist, album and song folder names, item name, artist credit.</summary>
+    public IReadOnlyList<string> Fields { get; } = [.. Path.Select(node => node.Folded.Value), Name.Value, Credit];
+
+    /// <summary>
+    /// Every searchable text of the item joined by a separator: a word that is not part of it cannot match any field, so
+    /// most items are rejected with one substring test.
+    /// </summary>
+    public string Haystack { get; } = string.Join(
+        '\u001f',
+        Path.Select(node => node.Folded.Value).Append(Name.Value).Append(Credit)
+            .Concat(Entry.Terms.Terms.SelectMany(term => term.Words.Concat(term.Aliases.Select(alias => string.Join(' ', alias))))));
+}
 
 /// <summary>
 /// The folded search fields of a snapshot (feature 022, research R-07), built once per snapshot on the first search:
@@ -49,7 +63,8 @@ public sealed class SearchIndex
             AddFolders(snapshot, folders, entry);
         }
 
-        var items = snapshot.Entries.Select(entry => new ItemNode(entry, LibraryKey.Fold(entry.Asset.Name), LibraryKey.Fold(entry.Asset.Provenance.TrackArtist ?? string.Empty).Value));
+        var items = snapshot.Entries.Select(entry => new ItemNode(
+            entry, LibraryKey.Fold(entry.Asset.Name), LibraryKey.Fold(entry.Asset.Provenance.TrackArtist ?? string.Empty).Value, [folders[entry.ArtistId], folders[entry.AlbumId], folders[entry.SongId]]));
         return new SearchIndex(folders, [.. items]);
     }
 

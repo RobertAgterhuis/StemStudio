@@ -43,6 +43,8 @@ public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         });
         builder.ComplexProperty(asset => asset.LibraryInfo, TrackConfiguration.LibraryInfoColumns);
         builder.HasIndex(asset => asset.FiledVersion);
+        builder.HasIndex(asset => asset.UpdatedAt);
+        builder.HasIndex(asset => asset.FiledAt);
     }
 
     private static void Level(ComplexPropertyBuilder<PlacementLevel> level, string name)

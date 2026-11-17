@@ -12,7 +12,7 @@ using StemStudio.Persistence;
 namespace StemStudio.Persistence.Migrations
 {
     [DbContext(typeof(StemStudioDbContext))]
-    [Migration("20261117095226_AddLibraryFolders")]
+    [Migration("20261117111150_AddLibraryFolders")]
     partial class AddLibraryFolders
     {
         /// <inheritdoc />
@@ -276,11 +276,15 @@ namespace StemStudio.Persistence.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("FiledAt");
+
                     b.HasIndex("FiledVersion");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("TrackId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("Assets", (string)null);
                 });
