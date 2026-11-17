@@ -181,3 +181,33 @@
   min-height: var(--ss-target-min);
   text-decoration: none;
 }
+
+/* Practice log (US6): totals and bar charts (outline plus fill, the table view carries the numbers). */
+.ss-practice-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-4);
+  margin: 0;
+}
+
+.ss-practice-totals dd {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.ss-chart {
+  width: 100%;
+  height: 6rem;
+  border-block-end: 1px solid var(--ss-color-divider);
+}
+
+.ss-chart-bar {
+  fill: var(--ss-color-primary);
+  stroke: var(--ss-color-ink);
+  stroke-width: 0.3;
+}
+
+.ss-chart-bar-tempo {
+  fill: var(--ss-color-success);
+}

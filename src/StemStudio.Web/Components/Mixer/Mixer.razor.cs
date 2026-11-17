@@ -73,6 +73,7 @@ public sealed partial class Mixer : IAsyncDisposable
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
         ReleasePractice();
         ReleaseAgentTools();
+        await CloseRecorderAsync();
         await ReleaseKeysAsync();
         await Engine.DisposeAsync();
     }
@@ -104,6 +105,7 @@ public sealed partial class Mixer : IAsyncDisposable
         await RegisterKeysAsync();
         SubscribeEngine();
         await StartEngineAsync(State);
+        await StartRecorderAsync();
         RegisterAgentTools();
         StateHasChanged();
     }
@@ -159,6 +161,8 @@ public sealed partial class Mixer : IAsyncDisposable
         _ = InvokeAsync(() =>
         {
             Position = seconds;
+            RecordContext();
+            RecordPosition(seconds);
             StateHasChanged();
         });
 
@@ -166,6 +170,7 @@ public sealed partial class Mixer : IAsyncDisposable
         _ = InvokeAsync(() =>
         {
             Playback = state;
+            RecordPlayback(state);
             StateHasChanged();
         });
 

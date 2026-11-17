@@ -107,7 +107,14 @@ else
         <div class="ss-section-nav">
             <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(ShowScore ? ButtonStyle.Primary : ButtonStyle.Light)"
                           aria-expanded="@(ShowScore ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
+            <RadzenButton Text="Practice log" Icon="timer" Size="ButtonSize.Small" ButtonStyle="@(ShowPracticeLog ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(ShowPracticeLog ? "true" : "false")" Click="TogglePracticeLog" data-testid="practice-log-panel-toggle"
+                          data-help-id="practice-log-panel" />
         </div>
+        @if (ShowPracticeLog)
+        {
+            <PracticeLogPanel TrackId="Id" OnSettingsChanged="OnLogSettingsChanged" />
+        }
         @if (ShowScore)
         {
             <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"

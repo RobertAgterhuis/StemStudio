@@ -1,0 +1,68 @@
+@page "/practice"
+@* Practice page (014 US6, FR-026..FR-028; ui-test-ids 1.13.0 practice-*): totals per song, the log switch, delete all,
+   and the sessions list (Expert). Practice data stays on this computer. *@
+@using StemStudio.Web.Practice
+
+<PageTitle>Practice - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide" data-testid="practice-page" data-help-id="practice-page">
+    <header class="ss-page-head">
+        <h1>Practice <HelpHint HelpId="practice-privacy" /></h1>
+        <p class="ss-help">How long you practised each song. This log stays on this computer; it is never sent anywhere.</p>
+    </header>
+    @if (Error is not null)
+    {
+        <ErrorState TestId="practice-error" Message="@Error" />
+    }
+    @if (Settings is { } settings)
+    {
+        <div class="ss-section-nav">
+            <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(settings.Enabled ? "true" : "false")"
+                    @onclick="ToggleAsync" data-testid="practice-enabled">Practice log</button>
+            <RadzenButton Text="Delete the whole log" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(settings.Sessions == 0)"
+                          Click="() => ConfirmDeleteAll = true" data-testid="practice-delete-all" />
+        </div>
+    }
+    @if (Overview is { Count: > 0 } overview)
+    {
+        <table class="ss-table" data-testid="practice-overview-table">
+            <caption>Practice per song</caption>
+            <thead><tr><th scope="col">Song</th><th scope="col">Last 7 days</th><th scope="col">Total</th><th scope="col">Last practised</th></tr></thead>
+            <tbody>
+                @foreach (var row in overview)
+                {
+                    <tr data-testid="@($"practice-overview-row-{row.TrackId}")">
+                        <th scope="row"><a href="@($"tracks/{row.TrackId}/mixer")">@row.Title</a> <span class="ss-muted">@row.Artist</span></th>
+                        <td>@PracticeLogText.Duration(row.Last7DaysSeconds)</td>
+                        <td>@PracticeLogText.Duration(row.TotalSeconds)</td>
+                        <td><time datetime="@Iso(row.LastPractisedAt)">@Date(row.LastPractisedAt)</time></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Overview is not null)
+    {
+        <EmptyState TestId="practice-empty" Text="Nothing practised yet. Play a song in the mixer and the time shows up here." />
+    }
+    <LevelGate Feature="practice.sessions">
+        @if (Sessions is { Count: > 0 } sessions)
+        {
+            <ul class="ss-practice-sessions" data-testid="practice-sessions" aria-label="Sessions">
+                @foreach (var session in sessions)
+                {
+                    <li data-testid="@($"practice-session-{session.Id}")">
+                        @TitleOf(session.TrackId): @When(session.StartedAt), @PracticeLogText.Duration(session.PlayedSeconds)
+                        <RadzenButton Text="Delete session" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => DeleteSessionAsync(session.Id)"
+                                      data-testid="@($"practice-session-delete-{session.Id}")" />
+                    </li>
+                }
+            </ul>
+        }
+    </LevelGate>
+    @if (ConfirmDeleteAll)
+    {
+        <ConfirmModal Title="Delete the whole practice log" Message="Delete every practice session of every song? This cannot be undone."
+                      TestIdPrefix="practice-delete-all" OnConfirm="DeleteAllAsync" OnCancel="() => ConfirmDeleteAll = false" />
+    }
+</div>

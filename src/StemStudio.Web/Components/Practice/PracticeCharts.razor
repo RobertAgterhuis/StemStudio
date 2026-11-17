@@ -1,0 +1,77 @@
+@* Practice charts (014 US6, FR-027): minutes per day and (Advanced) the best trainer speed per section over time, as SVG
+   bars with a text summary; "Show as table" swaps each chart for an accessible table (ui-test-ids 1.13.0). *@
+@using StemStudio.Contracts.Practice
+@using StemStudio.Web.Practice
+
+<div class="ss-practice-charts">
+    <RadzenButton Text="@(AsTable ? "Show as chart" : "Show as table")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                  aria-pressed="@(AsTable ? "true" : "false")" Click="() => AsTable = !AsTable" data-testid="practice-log-chart-as-table" />
+    <figure class="ss-practice-chart">
+        <figcaption>Minutes per day. @PracticeLogText.DaysSummary(Summary.Days)</figcaption>
+        @if (AsTable)
+        {
+            <table class="ss-table" data-testid="practice-log-chart-days-table">
+                <thead><tr><th scope="col">Day</th><th scope="col">Practice</th></tr></thead>
+                <tbody>
+                    @foreach (var day in Summary.Days)
+                    {
+                        <tr><td>@PracticeLogText.Day(day.Date)</td><td>@PracticeLogText.Duration(day.Seconds)</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <svg class="ss-chart" viewBox="@($"0 0 {Math.Max(1, Summary.Days.Count) * 10} 100")" preserveAspectRatio="none" aria-hidden="true"
+                 data-testid="practice-log-chart-days">
+                @for (var i = 0; i < Summary.Days.Count; i++)
+                {
+                    var height = BarHeight(Summary.Days[i].Seconds, MaxDay);
+                    <rect class="ss-chart-bar" x="@(i * 10 + 1)" y="@(100 - height)" width="8" height="@height" />
+                }
+            </svg>
+        }
+    </figure>
+    <LevelGate Feature="practice.log-tempo">
+        <figure class="ss-practice-chart">
+            <figcaption>Best speed with the trainer. @PracticeLogText.TempoSummary(Summary.Tempo)</figcaption>
+            @if (AsTable)
+            {
+                <table class="ss-table" data-testid="practice-log-chart-tempo-table">
+                    <thead><tr><th scope="col">Day</th><th scope="col">Section</th><th scope="col">Speed</th></tr></thead>
+                    <tbody>
+                        @foreach (var point in Summary.Tempo)
+                        {
+                            <tr><td>@PracticeLogText.Day(point.Date)</td><td>@point.Label</td><td>@Percent(point.Percent)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <svg class="ss-chart" viewBox="@($"0 0 {Math.Max(1, Summary.Tempo.Count) * 10} 100")" preserveAspectRatio="none" aria-hidden="true"
+                     data-testid="practice-log-chart-tempo">
+                    @for (var i = 0; i < Summary.Tempo.Count; i++)
+                    {
+                        var height = BarHeight(Summary.Tempo[i].Percent - 40, 80);
+                        <rect class="ss-chart-bar ss-chart-bar-tempo" x="@(i * 10 + 1)" y="@(100 - height)" width="8" height="@height" />
+                    }
+                </svg>
+            }
+        </figure>
+    </LevelGate>
+</div>
+
+@code {
+    /// <summary>The summary to chart.</summary>
+    [Parameter, EditorRequired]
+    public PracticeSummaryDto Summary { get; set; } = default!;
+
+    private bool AsTable { get; set; }
+
+    private double MaxDay => Math.Max(60, Summary.Days.Select(d => d.Seconds).DefaultIfEmpty(0).Max());
+
+    private static double BarHeight(double value, double max) => Math.Round(Math.Clamp(value / max, 0, 1) * 100, 1);
+
+    private static string Percent(double percent) => percent.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " %";
+}

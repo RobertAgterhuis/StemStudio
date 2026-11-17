@@ -81,6 +81,9 @@ public sealed class FeatureCatalogTests
         { "shortcuts.settings", [A, E], "shortcuts-custom" },
         { "sections.edit", [A, E], "mixer-sections-edit" },
         { "setlists.notes", [A, E], "setlists" },
+        { "practice.log-sections", [A, E], "mixer-practice-log" },
+        { "practice.log-tempo", [A, E], "mixer-practice-log" },
+        { "practice.sessions", [E], "practice-privacy" },
         { "setlists.pdf-options", [A, E], "setlist-pdf" },
         { "sections.detect-again", [E], "mixer-sections-detection" },
         { "sections.confidence", [E], "mixer-sections-detection" },
@@ -154,7 +157,7 @@ public sealed class FeatureCatalogTests
                 "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
                 "care.track-table", "care.worker-entries", "care.restore-merge",
                 "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
-                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions", "shortcuts.settings", "sections.edit", "sections.detect-again", "sections.confidence", "setlists.notes", "setlists.pdf-options",
+                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions", "shortcuts.settings", "sections.edit", "sections.detect-again", "sections.confidence", "setlists.notes", "setlists.pdf-options", "practice.log-sections", "practice.log-tempo", "practice.sessions",
                 "recording.input-mode", "recording.monitoring-volume", "recording.manual-latency", "recording.loop", "recording.take-pan", "recording.export-options", "recording.latency-samples", "recording.timing-adjust", "recording.diagnostics"], ignoreOrder: true);
     }
 
