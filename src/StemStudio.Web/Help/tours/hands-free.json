@@ -18,6 +18,12 @@
       "topic": "foot-pedals",
       "title": "Your keys and pedals",
       "text": "Preferences, then Change shortcuts and foot pedals: choose your own keys and set up a two-pedal page turner."
+    },
+    {
+      "target": "score-panel",
+      "topic": "mixer-score-follow",
+      "title": "Hands off the page",
+      "text": "Score shows the sheet music; the bar you hear is marked and the page turns by itself."
     }
   ]
 }

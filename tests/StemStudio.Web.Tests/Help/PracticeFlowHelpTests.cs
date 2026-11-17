@@ -19,6 +19,7 @@ public sealed class PracticeFlowHelpTests
     [InlineData("foot-pedals", "start", "pedal-setup")]
     [InlineData("mixer-sections-edit", "mixer", "section-editor")]
     [InlineData("mixer-sections-detection", "mixer", "section-status")]
+    [InlineData("mixer-score-follow", "mixer", "score-panel")]
     public void Topics_Exist_ReviewedFor014_WithTheirAnchors(string id, string area, string? anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
