@@ -23,10 +23,14 @@ test('a pre-022 library is filed after start: the pending note shows, then every
   swap = LibraryDatabaseSwap.start(fixture);
   const started = Date.now();
   await page.goto('/library');
+  // Wait until the view has loaded: before that the note is absent too, and the count of 0 would
+  // pass at once while the backfill has not even started (r22 integration).
+  await expect(folders.counts).toBeVisible();
   const pending = folders.filingPending;
   const sawPending = await pending.isVisible();
-  await expect(pending).toHaveCount(0, { timeout: targets.filingSeconds * 1000 + 5_000 });
+  await libraryApi.waitUntilFiled(targets.filingSeconds * 1000 + 5_000);
   const elapsedMs = Date.now() - started;
+  await expect(pending).toHaveCount(0);
 
   const root = await libraryApi.root();
   expect(root.pendingFiling).toBe(0);

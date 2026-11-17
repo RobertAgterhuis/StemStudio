@@ -18,6 +18,20 @@ export const apiDatabasePath = '/data/stemstudio.db';
 
 const stateDir = path.resolve(__dirname, '..', '.state', 'library-db');
 
+/** uid:gid of the api's `app` user (the api image runs as 1654, the .NET default). */
+const apiOwner = '1654:1654';
+
+/**
+ * Gives the database files back to the api user. `docker compose cp` creates the files it copies
+ * in as root (0:0, 0755/0644), and the api then fails at start with "attempt to write a readonly
+ * database" (r22 integration). The api is stopped, so a one-off root container of the api service
+ * (same volumes, no dependencies) does the chown.
+ */
+function ownDatabaseByApi(): void {
+  const files = ['', '-wal', '-shm'].map((side) => `${apiDatabasePath}${side}`);
+  compose(['run', '--rm', '--no-deps', '-T', '--user', '0', '--entrypoint', 'chown', 'api', apiOwner, ...files]);
+}
+
 /** Absolute path of a database fixture, skipping the test when it has not been generated. */
 export function requireDatabaseFixture(relative: string): string {
   const file = path.join(libraryFixtureDir, relative);
@@ -64,6 +78,7 @@ export class LibraryDatabaseSwap {
     saveWal(backup);
     compose(['cp', fixture, `api:${apiDatabasePath}`]);
     emptySideFiles();
+    ownDatabaseByApi();
     startService('api');
     return new LibraryDatabaseSwap(backup);
   }
@@ -76,6 +91,7 @@ export class LibraryDatabaseSwap {
     if (existsSync(`${this.backup}-wal`)) {
       compose(['cp', `${this.backup}-wal`, `api:${apiDatabasePath}-wal`]);
     }
+    ownDatabaseByApi();
     startService('api');
   }
 }

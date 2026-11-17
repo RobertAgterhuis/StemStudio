@@ -20,11 +20,15 @@ test.afterAll(() => {
   swap?.restore();
 });
 
-/** 30 queries: prefixes of artist names on the root (3-6 letters) and instrument words. */
+/**
+ * 30 queries: instrument words, prefixes of artist names on the root (3-6 letters), then whole
+ * artist names. The seeder's names share their prefixes ("Artist 000".."Artist 149", some with
+ * "The"), so the prefixes alone give only 8 distinct queries; the whole names fill up to 30.
+ */
 async function queries(libraryApi: LibraryApi): Promise<string[]> {
   const names = (await libraryApi.root()).children.map((folder) => folder.name.toLowerCase());
   const prefixes = names.map((name, index) => name.slice(0, 3 + (index % 4)));
-  return [...new Set([...instrumentWords, ...prefixes])].filter((query) => query.trim().length > 0).slice(0, searchQueries);
+  return [...new Set([...instrumentWords, ...prefixes, ...names])].filter((query) => query.trim().length > 0).slice(0, searchQueries);
 }
 
 /**
