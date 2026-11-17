@@ -42,9 +42,12 @@ internal sealed class FakeAssistantFactory : ILyricAssistantFactory
 
     public List<LyricAssistModelContext> Contexts { get; } = [];
 
+    public Action? OnResolve { get; set; }
+
     public ValueTask<LyricAssistantResolution> ResolveAsync(LyricAssistModelContext context, CancellationToken cancellationToken)
     {
         Contexts.Add(context);
+        OnResolve?.Invoke();
         return ValueTask.FromResult(Assistant is { } assistant ? LyricAssistantResolution.Of(assistant) : LyricAssistantResolution.Unavailable(Fix));
     }
 }

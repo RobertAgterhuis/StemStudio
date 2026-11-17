@@ -12,7 +12,7 @@ using StemStudio.Persistence;
 namespace StemStudio.Persistence.Migrations
 {
     [DbContext(typeof(StemStudioDbContext))]
-    [Migration("20261117113802_AddLyricAssist")]
+    [Migration("20261117115929_AddLyricAssist")]
     partial class AddLyricAssist
     {
         /// <inheritdoc />
@@ -712,6 +712,7 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(1);

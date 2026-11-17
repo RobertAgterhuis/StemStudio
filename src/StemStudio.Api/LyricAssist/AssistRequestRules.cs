@@ -19,6 +19,11 @@ public static class AssistRequestRules
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(sheet);
+        if (!Enum.IsDefined(request.Kind) || request.Categories?.Any(c => !Enum.IsDefined(c)) == true || (request.Origin is { } origin && !Enum.IsDefined(origin)))
+        {
+            return [new DomainError("kind", "Use the kinds, categories and origins of the API contract.")];
+        }
+
         var kind = LyricAssistMapper.Map<AssistKind>(request.Kind);
         var errors = new List<DomainError>();
         Check(errors, CategoriesValid(kind, request.Categories), "categories", "These categories do not belong to this kind of help.");

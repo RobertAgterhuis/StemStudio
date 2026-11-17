@@ -107,7 +107,7 @@ public static class SuggestionEndpoints
         try
         {
             value = JsonSerializer.Deserialize<T>($"\"{text}\"");
-            return true;
+            return Enum.IsDefined(value);
         }
         catch (JsonException)
         {

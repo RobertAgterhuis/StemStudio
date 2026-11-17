@@ -59,6 +59,7 @@ public sealed class LyricAssistService(LyricAssistServiceDeps deps)
             return ApiProblems.Validation("kind", "Send the kind of help and the expected revision.");
         }
 
+        using var admission = await deps.Runner.AdmitAsync(cancellationToken);
         var refusal = await RefusalAsync(sheet, request, cancellationToken);
         return refusal ?? await StartAsync(sheet, AssistRequestRules.ToDomain(request, sheet), cancellationToken);
     }

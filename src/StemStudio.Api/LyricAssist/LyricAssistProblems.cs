@@ -9,11 +9,14 @@ namespace StemStudio.Api.LyricAssist;
 /// </summary>
 public static class LyricAssistProblems
 {
+    /// <summary>Title of <c>revision-conflict</c>.</summary>
+    public const string RevisionConflictTitle = "The lyrics changed since you loaded them. Reload and try again.";
+
     /// <summary>409 <c>revision-conflict</c> with the current revision.</summary>
     /// <param name="currentRevision">The stored revision.</param>
     /// <returns>The result.</returns>
     public static IResult RevisionConflict(int currentRevision) => Problem(
-        StatusCodes.Status409Conflict, LyricAssistProblemTypes.RevisionConflict, "The lyrics changed since you loaded them. Reload and try again.",
+        StatusCodes.Status409Conflict, LyricAssistProblemTypes.RevisionConflict, RevisionConflictTitle,
         new() { [LyricAssistProblemMembers.CurrentRevision] = currentRevision });
 
     /// <summary>409 <c>language-unsupported</c>.</summary>

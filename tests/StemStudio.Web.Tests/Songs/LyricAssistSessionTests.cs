@@ -11,8 +11,10 @@ using static StemStudio.Web.Tests.Fakes.LyricAssistData;
 namespace StemStudio.Web.Tests.Songs;
 
 /// <summary>The assistant session of one sheet (023 US1, US5, US6): explicit start, save first, Claude notice, refusals, the stream.</summary>
-public sealed class LyricAssistSessionTests
+public sealed class LyricAssistSessionTests : IDisposable
 {
+    public void Dispose() => _session.Dispose();
+
     private readonly IStemStudioApiClient _api = Substitute.For<IStemStudioApiClient>();
     private readonly LyricAssistSession _session;
 
@@ -46,6 +48,19 @@ public sealed class LyricAssistSessionTests
         await _api.DidNotReceive().UpdateLyricsSheetAsync(Arg.Any<Guid>(), Arg.Any<LyricsInput>(), Arg.Any<CancellationToken>());
         _session.Live.ShouldBe("Checking 3 lines");
         _session.Board.Open.ShouldHaveSingleItem().SuggestionId.ShouldBe(Spelling);
+    }
+
+    [Fact]
+    public async Task Dispose_EndsTheEventStream_WithoutAnotherRequest()
+    {
+        _api.StreamLyricAssistEventsAsync(AssistId, Arg.Any<int?>(), Arg.Any<CancellationToken>()).Returns(call => Until(call.ArgAt<CancellationToken>(2)));
+        await _session.LoadStatusAsync();
+        await _session.StartAsync(Check);
+
+        _session.Dispose();
+        await _session.Following.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        await _api.DidNotReceive().GetLyricAssistAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -309,6 +324,12 @@ public sealed class LyricAssistSessionTests
 #pragma warning disable CS0162 // An iterator needs a yield.
         yield break;
 #pragma warning restore CS0162
+    }
+
+    private static async IAsyncEnumerable<LyricAssistEvent> Until([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        yield break;
     }
 
     private static async IAsyncEnumerable<LyricAssistEvent> Never()

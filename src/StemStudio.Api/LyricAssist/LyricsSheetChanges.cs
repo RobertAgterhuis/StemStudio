@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Lyrics.Assist;
@@ -54,7 +55,16 @@ public sealed class LyricsSheetChanges(ILyricsSheetRepository sheets, ILyricsRev
             open.Reanchor(oldLanguage == sheet.Language ? resolver.Resolve(open.Anchor) : null);
         }
 
-        await sheets.SaveAsync(cancellationToken);
+        try
+        {
+            await sheets.SaveAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException race)
+        {
+            // Revision is a concurrency token: another change of the same revision was saved first; nothing of this change is stored.
+            var stored = race.Entries.FirstOrDefault(entry => entry.Entity is LyricsSheet) is { } entry ? await entry.GetDatabaseValuesAsync(cancellationToken) : null;
+            throw new LyricsRevisionConflictException(stored?.GetValue<int>(nameof(LyricsSheet.Revision)) ?? 0);
+        }
     }
 
     /// <summary>The assistant state of a sheet for its responses.</summary>

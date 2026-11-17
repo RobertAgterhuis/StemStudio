@@ -50,6 +50,7 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
     {
         var poll = TimeSpan.FromMilliseconds(Math.Max(options.StreamPollMilliseconds, 10));
         var timer = new StreamTimer();
+        var first = true;
         while (true)
         {
             var (written, ended) = await WriteStoredAsync(response, assistId, last, cancellationToken);
@@ -57,6 +58,14 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
             {
                 return;
             }
+
+            if (first && written == last && await EndedAsync(assistId, cancellationToken))
+            {
+                await WriteStoredAsync(response, assistId, last, cancellationToken);
+                return;
+            }
+
+            first = false;
 
             if (written > last)
             {
@@ -70,6 +79,10 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
             await Task.Delay(poll, cancellationToken);
         }
     }
+
+    // A reconnect after the terminal event (EventSource sends its Last-Event-ID) ends at once instead of polling until the idle timeout.
+    private async Task<bool> EndedAsync(Guid assistId, CancellationToken cancellationToken) =>
+        await assists.FindAsync(assistId, cancellationToken) is not { } assist || assist.Status.IsTerminal();
 
     // The stored events after the position; the last written seq and whether a terminal event was written.
     private async Task<(int Last, bool Ended)> WriteStoredAsync(HttpResponse response, Guid assistId, int last, CancellationToken cancellationToken)

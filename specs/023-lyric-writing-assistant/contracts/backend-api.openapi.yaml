@@ -3817,6 +3817,8 @@ paths:
               schema:
                 type: string
                 description: Framed events; each `data` line is a `LyricAssistEvent` payload.
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
         '404':
           $ref: '#/components/responses/NotFound'
   /api/lyric-assists/{assistId}/cancel:
@@ -3862,6 +3864,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuggestionList'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
         '404':
           $ref: '#/components/responses/NotFound'
   /api/lyrics/{lyricsId}/suggestions/accept:

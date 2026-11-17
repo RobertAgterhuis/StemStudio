@@ -27,7 +27,7 @@ public sealed class LyricsSheetConfiguration : IEntityTypeConfiguration<LyricsSh
     {
         builder.Ignore(sheet => sheet.AssistLanguage);
         builder.Ignore(sheet => sheet.CanUndo);
-        builder.Property(sheet => sheet.Revision).HasDefaultValue(1);
+        builder.Property(sheet => sheet.Revision).HasDefaultValue(1).IsConcurrencyToken();
         builder.Property(sheet => sheet.LastCause).HasConversion<string>().HasMaxLength(16).HasDefaultValue(RevisionCause.Created);
         builder.Property(sheet => sheet.Sensitivity).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Sensitivity.Balanced).HasSentinel((Sensitivity)(-1));
         builder.Property(sheet => sheet.RhythmTarget).HasConversion(JsonColumn<RhythmTarget>.Converter!, JsonColumn<RhythmTarget>.Comparer!);

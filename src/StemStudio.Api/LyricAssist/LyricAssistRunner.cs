@@ -15,6 +15,7 @@ public sealed class LyricAssistRunner(IServiceScopeFactory scopes, ILogger<Lyric
     public const string InternalMessage = "The assistant stopped because of an internal error.";
 
     private readonly Lock _lock = new();
+    private readonly SemaphoreSlim _admission = new(1, 1);
     private (Guid Id, CancellationTokenSource Cancel, Task Run)? _current;
 
     /// <summary>The id of the running assist, if any.</summary>
@@ -29,12 +30,31 @@ public sealed class LyricAssistRunner(IServiceScopeFactory scopes, ILogger<Lyric
         }
     }
 
+    /// <summary>
+    /// Serialises "is an assist active? -> store -> start" across requests (one assist globally, also for concurrent editor and agent
+    /// requests). Dispose the result to release.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The admission; dispose it.</returns>
+    public async Task<IDisposable> AdmitAsync(CancellationToken cancellationToken)
+    {
+        await _admission.WaitAsync(cancellationToken);
+        return new Admission(_admission);
+    }
+
     /// <summary>Starts an assist in the background.</summary>
     /// <param name="assistId">The queued assist.</param>
+    /// <exception cref="InvalidOperationException">Another assist is still running (callers hold <see cref="AdmitAsync"/>).</exception>
     public void Start(Guid assistId)
     {
         lock (_lock)
         {
+            if (_current is { Run.IsCompleted: false })
+            {
+                throw new InvalidOperationException("Another lyric assist is still running.");
+            }
+
+            _current?.Cancel.Dispose();
             var cancel = new CancellationTokenSource();
             _current = (assistId, cancel, Task.Run(() => RunAsync(assistId, cancel.Token)));
         }
@@ -79,6 +99,21 @@ public sealed class LyricAssistRunner(IServiceScopeFactory scopes, ILogger<Lyric
             _current?.Cancel.Cancel();
             _current?.Cancel.Dispose();
         }
+
+        _admission.Dispose();
+    }
+
+    private sealed class Admission(SemaphoreSlim gate) : IDisposable
+    {
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                gate.Release();
+            }
+        }
     }
 
     private async Task RunAsync(Guid assistId, CancellationToken cancellationToken)
@@ -88,10 +123,24 @@ public sealed class LyricAssistRunner(IServiceScopeFactory scopes, ILogger<Lyric
             await using var scope = scopes.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<LyricAssistExecutor>().ExecuteAsync(assistId, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await CancelledAsync(assistId);
+        }
+        catch (Exception exception)
         {
             logger.LogError("Lyric assist {AssistId} failed: {ErrorType}", assistId, exception.GetType().Name);
             await FailAsync(assistId);
+        }
+    }
+
+    // A cancel that arrives before the executor took the assist over (first read) still ends it, so no queued assist is left behind.
+    private async Task CancelledAsync(Guid assistId)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await scope.ServiceProvider.GetRequiredService<ILyricAssistRepository>().FindAsync(assistId, CancellationToken.None) is { } assist && !assist.Status.IsTerminal())
+        {
+            await scope.ServiceProvider.GetRequiredService<LyricAssistExecutor>().CancelledAsync(assist);
         }
     }
 

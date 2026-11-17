@@ -10,8 +10,10 @@ using static StemStudio.Web.Tests.Fakes.LyricAssistData;
 namespace StemStudio.Web.Tests.Songs;
 
 /// <summary>Decisions and sheet settings of the assistant session (023 US1, US3, US6; FR-006 - FR-012, FR-031).</summary>
-public sealed class LyricAssistDecisionTests
+public sealed class LyricAssistDecisionTests : IDisposable
 {
+    public void Dispose() => _session.Dispose();
+
     private const string Fixed = "[verse]\nIk weet niet waar de wind gaat\nDe nacht zijn warm en stil";
     private readonly IStemStudioApiClient _api = Substitute.For<IStemStudioApiClient>();
     private readonly LyricAssistSession _session;

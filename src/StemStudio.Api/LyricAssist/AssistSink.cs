@@ -33,6 +33,9 @@ public sealed record AssistRunContext
 
     /// <summary>Clock.</summary>
     public required TimeProvider Clock { get; init; }
+
+    /// <summary>Reads the sheet's stored text now (a save or accept during the run moves later suggestions with the text); null = not read.</summary>
+    public Func<CancellationToken, Task<string?>>? CurrentText { get; init; }
 }
 
 /// <summary>
@@ -72,7 +75,13 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
             return;
         }
 
-        var suggestion = LyricSuggestion.Create(Guid.NewGuid(), Assist, draft, Now);
+        if (await FollowTextAsync(draft, cancellationToken) is not { } current)
+        {
+            Assist.CountDiscarded(new DiscardedCounts { InvalidAnchor = 1 });
+            return;
+        }
+
+        var suggestion = LyricSuggestion.Create(Guid.NewGuid(), Assist, current, Now);
         run.Suggestions.AddRange([suggestion]);
         Assist.CountShown(suggestion.Category);
         await run.Events.AppendAsync(Assist.Id, LyricAssistEventTypes.SuggestionAdded, LyricAssistMapper.ToDto(suggestion), cancellationToken);
@@ -175,6 +184,17 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
         SyllablesAfter = suggestion.SyllablesAfter,
         RhymeWith = suggestion.RhymeWith is { } rhyme ? new RhymePartner(rhyme.Line, rhyme.Word) : null,
     };
+
+    // The anchor in the sheet's current text (the checked text may have been saved over during the run); null when it no longer holds.
+    private async Task<SuggestionDraft?> FollowTextAsync(SuggestionDraft draft, CancellationToken cancellationToken)
+    {
+        if (draft.Anchor.IsTitle || run.CurrentText is null || await run.CurrentText(cancellationToken) is not { } current || current == run.Filter.Text)
+        {
+            return draft;
+        }
+
+        return new AnchorResolver(run.Filter.Text, current).Resolve(draft.Anchor) is { } moved ? draft with { Anchor = moved } : null;
+    }
 
     // Defence in depth after the assistant's validation: model output is untrusted, so the anchor must hold in the checked text.
     private bool AnchorHolds(Anchor anchor)

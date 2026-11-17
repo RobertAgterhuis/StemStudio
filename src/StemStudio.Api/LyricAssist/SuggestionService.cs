@@ -106,7 +106,9 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
     private async Task<IResult> MarkAsync(LyricsSheet sheet, LyricSuggestion suggestion, MarkSuggestionIntentionalRequest request, CancellationToken cancellationToken)
     {
         var scope = LyricAssistMapper.Map<IntentionalScope>(request.Scope);
-        var text = scope == IntentionalScope.Line ? SheetText.Lines(sheet.Text)[suggestion.Anchor.Line - 1] : suggestion.Anchor.Original;
+        var lines = SheetText.Lines(sheet.Text);
+        var line = suggestion.Anchor.Line;
+        var text = scope == IntentionalScope.Line && line >= 1 && line <= lines.Length ? lines[line - 1] : suggestion.Anchor.Original;
         IntentionalMark mark;
         try
         {

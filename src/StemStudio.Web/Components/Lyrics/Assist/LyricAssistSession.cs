@@ -17,8 +17,24 @@ public sealed record AssistRequest(AssistKindDto Kind, int? LineFrom = null, int
 /// changes first, asks for the Claude notice before anything is sent (FR-026), follows the event stream and keeps the
 /// suggestions, the refusals and the live-region text. Components render it and call its actions; it holds no markup.
 /// </summary>
-public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorDocument document)
+public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorDocument document) : IDisposable
 {
+    private readonly CancellationTokenSource _life = new();
+    private bool _disposed;
+
+    /// <summary>Ends the event stream of a followed assist (the page went away; the server run is not cancelled).</summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _life.Cancel();
+        _life.Dispose();
+    }
+
     /// <summary>The open sheet.</summary>
     public EditorDocument Document { get; } = document;
 
@@ -192,10 +208,14 @@ public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorD
     {
         try
         {
-            await foreach (var e in api.StreamLyricAssistEventsAsync(run.AssistId))
+            await foreach (var e in api.StreamLyricAssistEventsAsync(run.AssistId, cancellationToken: _life.Token))
             {
                 ApplyEvent(run, e);
             }
+        }
+        catch (OperationCanceledException) when (_life.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception ex) when (ex is ApiException or System.Text.Json.JsonException or IOException or HttpRequestException)
         {

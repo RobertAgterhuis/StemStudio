@@ -1,5 +1,6 @@
 using StemStudio.Agent.LyricAssist;
 using StemStudio.Api.LibraryCare.Gate;
+using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Lyrics.Assist;
@@ -61,13 +62,31 @@ public sealed class LyricAssistExecutor(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            assist.Cancel(Now);
-            await events.AppendAsync(assist.Id, LyricAssistEventTypes.Cancelled, new LyricAssistCancelledEventDto { AssistId = assist.Id }, CancellationToken.None);
+            await CancelledAsync(assist);
         }
         catch (LyricAssistException failure)
         {
             await FailAsync(assist, LyricAssistMapper.Map<AssistFailureCode>(failure.Code), failure.Message, failure.Fix);
         }
+    }
+
+    /// <summary>Failure message when Claude was selected after the assist was created and its lyric notice is not acknowledged.</summary>
+    public const string ClaudeNoticeMessage = "Claude was selected after the assist started; nothing was sent. Acknowledge the lyric-assistant notice first.";
+
+    /// <summary>Fix of <see cref="ClaudeNoticeMessage"/>.</summary>
+    public const string ClaudeNoticeFix = "Open the assistant, read the Claude notice and confirm it, then run the assist again.";
+
+    /// <summary>Failure message when a save before the run made the sheet match library lyrics.</summary>
+    public const string NotOwnMessage = "The saved sheet now matches lyrics in your library; the assistant only works on your own lyrics.";
+
+    /// <summary>Ends an assist as cancelled with its event.</summary>
+    /// <param name="assist">The tracked assist.</param>
+    /// <returns>A task.</returns>
+    public async Task CancelledAsync(AssistRun assist)
+    {
+        ArgumentNullException.ThrowIfNull(assist);
+        assist.Cancel(Now);
+        await events.AppendAsync(assist.Id, LyricAssistEventTypes.Cancelled, new LyricAssistCancelledEventDto { AssistId = assist.Id }, CancellationToken.None);
     }
 
     /// <summary>Ends an assist as failed with its event.</summary>
@@ -89,6 +108,7 @@ public sealed class LyricAssistExecutor(
     {
         var sheet = await stores.Sheets.FindAsync(assist.SheetId, cancellationToken) ?? throw new OperationCanceledException(cancellationToken);
         var model = await modelLayer.ResolveAsync(sheet.Title, assist.Kind, cancellationToken);
+        await RunTimeChecksAsync(assist, sheet, model, cancellationToken);
         var blocks = model.Available ? SheetBlocks.Split(sheet.Text, options.BlockLines, assist.LineFrom, assist.LineTo) : [];
         assist.Start([.. LyricModelLayer.Deterministic(assist.Language), model.Layer()], blocks.Count, Now);
         await events.AppendAsync(assist.Id, LyricAssistEventTypes.Started, Started(assist, model), cancellationToken);
@@ -106,6 +126,21 @@ public sealed class LyricAssistExecutor(
 
         assist.Complete(Now);
         await events.AppendAsync(assist.Id, LyricAssistEventTypes.Completed, Completed(assist), CancellationToken.None);
+    }
+
+    // The create-time guards again at run time (security review): the backend may have switched to Claude, or the sheet may have been
+    // saved, between the create request and the start of the run (queue, library maintenance).
+    private async Task RunTimeChecksAsync(AssistRun assist, LyricsSheet sheet, ModelLayerState model, CancellationToken cancellationToken)
+    {
+        if (model.Available && model.Backend == AgentBackendDto.Claude && !(await stores.Words.SettingsAsync(cancellationToken)).HasAcknowledged(LyricAssistLimits.ClaudeNoticeVersion))
+        {
+            throw new LyricAssistException(AssistFailureCodeDto.BackendUnavailable, ClaudeNoticeMessage, ClaudeNoticeFix);
+        }
+
+        if (sheet.Revision != assist.SheetRevision && VerbatimGuard.RefusingTrack(sheet.Text, await corpus.RefreshAsync(cancellationToken), sheet.OwnWorkOverride?.MatchedTrackId) is not null)
+        {
+            throw new LyricAssistException(AssistFailureCodeDto.Refusal, NotOwnMessage);
+        }
     }
 
     private async Task<IReadOnlyList<WordMiss>> DictionaryAsync(AssistRun assist, LyricsSheet sheet, CancellationToken cancellationToken)
@@ -134,6 +169,7 @@ public sealed class LyricAssistExecutor(
             Gate = Gate,
             Clock = clock,
             Corpus = await corpus.RefreshAsync(cancellationToken),
+            CurrentText = ct => stores.Sheets.CurrentTextAsync(sheet.Id, ct),
         };
     }
 

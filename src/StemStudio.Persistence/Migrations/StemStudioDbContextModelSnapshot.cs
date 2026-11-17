@@ -709,6 +709,7 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(1);

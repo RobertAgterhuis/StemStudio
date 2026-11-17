@@ -55,12 +55,7 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (Host is not null)
-        {
-            Host.Session.Changed -= OnChanged;
-        }
-
-        _counter?.Dispose();
+        ReleaseHost();
         if (_keys is not null)
         {
             await _keys.DisposeAsync();
@@ -91,11 +86,24 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
         LoadError = error;
         if (sheet is not null)
         {
+            ReleaseHost();
             _counter = new SyllableCounter(Api, Time);
             Host = new EditorHost(new LyricAssistSession(Api, new EditorDocument(sheet)), () => Editor.GetSelectionAsync(_text)) { Syllables = _counter };
             Host.Session.Changed += OnChanged;
             await StartSessionAsync(Host.Session);
         }
+    }
+
+    // Another sheet on the same page instance (/lyrics/A -> /lyrics/B) or the page went away: the old session stops following its stream.
+    private void ReleaseHost()
+    {
+        if (Host is not null)
+        {
+            Host.Session.Changed -= OnChanged;
+            Host.Session.Dispose();
+        }
+
+        _counter?.Dispose();
     }
 
     private async Task StartSessionAsync(LyricAssistSession session)

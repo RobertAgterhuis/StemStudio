@@ -32,6 +32,7 @@ public static class LyricAssistRegistration
     // Dictionaries, CMUdict, phonology, corpus, the verification port and the ai-agent seam (singletons, loaded lazily).
     private static void AddLanguageData(IServiceCollection services)
     {
+        services.AddExceptionHandler<LyricsRevisionConflictHandler>();
         services.AddOptions<LyricAssistHostOptions>().BindConfiguration(LyricAssistHostOptions.SectionName);
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<LyricAssistHostOptions>>().Value);
         services.AddSingleton<ISpellChecker>(_ => new HunspellSpellChecker(HunspellSpellChecker.DefaultRoot));
