@@ -237,6 +237,12 @@ public sealed class FolderTextTests
     [InlineData(FolderLevelDto.Song, null)]
     public void ChildLevel_IsTheNextLevel(FolderLevelDto? level, FolderLevelDto? child) => FolderText.ChildLevel(level).ShouldBe(child);
 
+    [Theory]
+    [InlineData(FolderLevelDto.Artist, SearchFieldDto.Artist)]
+    [InlineData(FolderLevelDto.Album, SearchFieldDto.Album)]
+    [InlineData(FolderLevelDto.Song, SearchFieldDto.Song)]
+    public void SearchField_OfAFolderName_IsItsLevel(FolderLevelDto level, SearchFieldDto field) => FolderText.SearchField(level).ShouldBe(field);
+
     [Fact]
     public void Counts_UseSingularForOne() =>
         FolderText.Counts(new FolderCountsDto { Albums = 1, Songs = 4, Items = 1 }).ShouldBe("1 album, 1 item");

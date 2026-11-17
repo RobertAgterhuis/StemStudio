@@ -46,5 +46,5 @@
 
 @code {
     // The label of a hit link: the name with its marks and the level for screen readers.
-    private RenderFragment<FolderHitDto> HitLabel => hit => @<text><MarkedText Text="@hit.Folder.Name" Highlights="hit.Highlights" Field="SearchFieldDto.Name" /><span class="ss-sr-only">, @FolderText.Level(hit.Folder.Level)</span></text>;
+    private RenderFragment<FolderHitDto> HitLabel => hit => @<text><MarkedText Text="@hit.Folder.Name" Highlights="hit.Highlights" Field="FolderText.SearchField(hit.Folder.Level)" /><span class="ss-sr-only">, @FolderText.Level(hit.Folder.Level)</span></text>;
 }

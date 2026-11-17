@@ -11,6 +11,16 @@ public static class FolderText
     /// <returns><c>artist</c>, <c>album</c> or <c>song</c>.</returns>
     public static string Level(FolderLevelDto level) => LibraryFolderRequest.Wire(level);
 
+    /// <summary>The search field under which the API marks a folder's name (its level, as in an item's path).</summary>
+    /// <param name="level">The folder's level.</param>
+    /// <returns><see cref="SearchFieldDto.Artist"/>, <see cref="SearchFieldDto.Album"/> or <see cref="SearchFieldDto.Song"/>.</returns>
+    public static SearchFieldDto SearchField(FolderLevelDto level) => level switch
+    {
+        FolderLevelDto.Artist => SearchFieldDto.Artist,
+        FolderLevelDto.Album => SearchFieldDto.Album,
+        _ => SearchFieldDto.Song,
+    };
+
     /// <summary>The level of the children of a folder (artists at the root).</summary>
     /// <param name="folder">The open folder, or null at the root.</param>
     /// <returns>The child level, or null at song level (items).</returns>
