@@ -36,4 +36,11 @@ public sealed class StoredUploadNameTests
     [InlineData("")]
     [InlineData("   ")]
     public void NoTitle_IsNotAStoredName(string? title) => StoredUploadName.IsStoredName(title, "x.mp3").ShouldBeFalse();
+    [Fact]
+    public void Usable_DropsOnlyAStoredName()
+    {
+        StoredUploadName.Usable(Sha, null).ShouldBeNull();
+        StoredUploadName.Usable("Enter Sandman", Sha + ".mp3").ShouldBe("Enter Sandman");
+        StoredUploadName.Usable(null, null).ShouldBeNull();
+    }
 }

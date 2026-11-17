@@ -13,7 +13,7 @@ public sealed record TrackFacts(string Title, string? Artist, TrackMetadata Meta
 {
     /// <summary>The lookup title for filing: null when it is the stored (hashed) upload name (<see cref="StoredUploadName"/>),
     /// so a library from before the 404c8031 fix does not get hash-named song folders.</summary>
-    public string? LookupTitle => StoredUploadName.IsStoredName(Metadata.LookupTitle, UploadFileName) ? null : Metadata.LookupTitle;
+    public string? LookupTitle => StoredUploadName.Usable(Metadata.LookupTitle, UploadFileName);
 
     /// <summary>The facts of a track.</summary>
     /// <param name="track">The track.</param>

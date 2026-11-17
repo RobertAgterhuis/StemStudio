@@ -54,7 +54,8 @@ public static class MetadataMapper
         return track.SourceType == SourceType.Upload ? source with { Title = null } : source;
     }
 
-    /// <summary>The metadata job request of a pending lookup.</summary>
+    /// <summary>The metadata job request of a pending lookup; a stored hashed upload name as lookup title (tracks from
+    /// before 404c8031) is replaced by the track's own title (<see cref="StoredUploadName"/>).</summary>
     /// <param name="track">A track whose lookup is pending.</param>
     /// <returns>The request.</returns>
     public static WorkerMetadataJobRequest ToRequest(Track track)
@@ -63,7 +64,7 @@ public static class MetadataMapper
         var metadata = track.Metadata;
         return new WorkerMetadataJobRequest
         {
-            Title = metadata.LookupTitle ?? track.Title,
+            Title = StoredUploadName.Usable(metadata.LookupTitle, track.UploadFileName) ?? track.Title,
             Artist = metadata.LookupArtist,
             Album = metadata.LookupAlbum,
             DurationSeconds = metadata.LookupDurationSeconds,

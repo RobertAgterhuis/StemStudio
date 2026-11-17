@@ -41,8 +41,9 @@ already applies the guard.
 
 ## Open items
 
-- `MetadataMapper.ToRequest` (band info lookup retry) and `LyricsMapper` still send a stored hashed `LookupTitle` of an
-  old track to the worker. Out of this task's scope (folder naming only); the same guard can be applied there if wanted.
+- Done (follow-up orchestrator decision): `MetadataMapper.ToRequest` (band info lookup) and
+  `LyricsMapper.ToLookupRequest` use the same guard via `StoredUploadName.Usable`; a stored hashed lookup title falls back
+  to the track's own title. Tests: `MetadataMapperTests.Request_*`, `tests/StemStudio.Api.Tests/Lyrics/LyricsMapperTests.cs`.
 - Libraries that already ran a pre-release 022 build keep their hash-named folders until `LibraryFilingRules.Version`
   is bumped (not needed for the owner's upgrade from before 022).
 

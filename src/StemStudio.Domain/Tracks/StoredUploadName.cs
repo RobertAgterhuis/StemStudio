@@ -28,6 +28,12 @@ public static partial class StoredUploadName
                 || string.Equals(trimmed, Path.GetFileNameWithoutExtension(uploadFileName), StringComparison.OrdinalIgnoreCase)));
     }
 
+    /// <summary>The title itself, or null when it is the stored upload name (<see cref="IsStoredName"/>).</summary>
+    /// <param name="title">A (lookup) title, or null.</param>
+    /// <param name="uploadFileName">The track's stored upload file name, or null (not an upload).</param>
+    /// <returns>The usable title, or null.</returns>
+    public static string? Usable(string? title, string? uploadFileName) => IsStoredName(title, uploadFileName) ? null : title;
+
     [GeneratedRegex(@"\A[0-9a-fA-F]{32,64}(\.[A-Za-z0-9]{1,10})?\z", RegexOptions.CultureInvariant)]
     private static partial Regex HexHash();
 }

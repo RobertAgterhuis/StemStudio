@@ -61,4 +61,24 @@ public sealed class MetadataMapperTests
 
         query.ShouldBe(new LookupQuery("Never Gonna Give You Up", "Rick Astley", null, 213));
     }
+    /// <summary>A track imported before 404c8031 that stores the hashed upload name as lookup title.</summary>
+    internal static Track HashTitledUpload(string lookupTitle)
+    {
+        var hash = new string('e', 64);
+        var track = Track.FromUpload(Guid.NewGuid(), SourceKey.ForUpload(hash), new UploadedFile("Kettle Song.wav", hash + ".wav"), T0);
+        track.ScheduleLookup(new LookupQuery(lookupTitle, null), T0);
+        return track;
+    }
+
+    [Theory]
+    [InlineData("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")]
+    [InlineData("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.wav")]
+    public void Request_OfAStoredHashedLookupTitle_UsesTheTracksOwnTitle(string lookupTitle) =>
+        MetadataMapper.ToRequest(HashTitledUpload(lookupTitle)).Title.ShouldBe("Kettle Song");
+
+    [Theory]
+    [InlineData("Real Title")]
+    [InlineData("deadbeef")]
+    public void Request_KeepsARealLookupTitle(string lookupTitle) =>
+        MetadataMapper.ToRequest(HashTitledUpload(lookupTitle)).Title.ShouldBe(lookupTitle);
 }
