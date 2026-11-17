@@ -34,14 +34,21 @@ public static class AgentServiceCollectionExtensions
     public static IServiceCollection AddStemStudioAgent(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        AddModelBackends(services);
+        AddTools(services);
+        AddRuntime(services);
+        return services;
+    }
+
+    /// <summary>The environment, clock, GPU state and the Ollama and Claude clients (shared with the lyric assistant).</summary>
+    /// <param name="services">The service collection.</param>
+    internal static void AddModelBackends(IServiceCollection services)
+    {
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IGpuActivity, IdleGpuActivity>();
         AddOllama(services);
         AddChat(services);
-        AddTools(services);
-        AddRuntime(services);
-        return services;
     }
 
     private static void AddOllama(IServiceCollection services)

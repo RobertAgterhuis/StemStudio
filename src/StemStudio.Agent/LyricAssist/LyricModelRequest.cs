@@ -19,4 +19,7 @@ public sealed record LyricModelRequest
 
     /// <summary>Sampling temperature (0.2 for checks, 0.8 for writing help).</summary>
     public required double Temperature { get; init; }
+
+    /// <summary>Output token cap of this call (Claude: what is left of the per-assist budget); null = the default.</summary>
+    public int? MaxOutputTokens { get; init; }
 }
