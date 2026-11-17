@@ -112,18 +112,39 @@ migration, 9 quality gates, 11 operations); README, website (out of "Coming soon
 
 ## Open issues / requests
 
-- **frontend (owner decision)**: the practice panel pushes the channel strips below the fold on ~900 px screens; at
-  Beginner with help docked the `-5 %` button sits partly under the sticky karaoke + transport dock (axe target-size,
-  2 a11y cases). Proposal: a collapsible practice panel (collapsed at neutral settings) or a two-column panel row.
-- **audio-engine**: the count-in indicator skips "1" when the 4th click coincides with the music start (grid without
-  the song's first beat); consider showing each number for its beat interval.
-- **frontend**: rapid repeated +1 / +5 % clicks within one render round trip can be dropped (seen only with
-  automated clicks).
+- Resolved in the follow-up (see "Follow-up 2026-11-17" below): collapsible practice panel and the a11y
+  target-size cases, focus under the sticky dock (WCAG 2.4.11), the count-in "1", rapid +5 % / +1 clicks.
 - **qa / devops**: pre-existing flakes: first `tracks--beginner--dark` visual (row order right after seeding),
   claude-key local-only save race, `ClaudeKeyLeakTests` WAL timing.
 - **owner (T071)**: listening notes at 85/70/50 % and +-7 st (vocals, guitar, drums soloed) and replacing the module
   with an own rebuild by hand.
 - Backlog: agent tools that change the practice tempo (later catalogue minor); "export at practice tempo" with 015.
+
+## Follow-up 2026-11-17 (open items fixed, test-first)
+
+| Item | Fix | Tests |
+|---|---|---|
+| Practice panel pushes the strips below the fold; `-5 %` partly under the dock (axe target-size, 2 cases) | Owner decision: collapsible panel. Title = disclosure button (`practice-panel-toggle`, `aria-expanded`, `aria-controls` -> `practice-panel-body`, hidden body stays in the DOM); choice per browser in `localStorage["stemstudio.practice-panel"]`; without a choice open exactly while something is not neutral; closed title shows `practice-panel-summary` ("75 %, +2 st, count-in"). Tours point their practice step at the toggle (help marker `practice-panel`). ui-test-ids 1.11.0 extended editorially | bUnit `PracticePanelDisclosureTests` (13), `BrowserStorageTests` (8); e2e disclosure cases in `practice-levels.spec.ts`; a11y red (2 failed) -> green |
+| Focused controls under the sticky karaoke + transport dock (dock 240-370 px, scroll padding 216 px) | `wwwroot/js/dock-inset.js` keeps `--ss-dock-inset` (sticky offset + dock height); `scroll-padding-bottom` uses it; small screens: console ends 3.5rem higher (dock sticks above the bottom bar and covered the last strip controls) | new `e2e/a11y/focus-not-obscured.a11y.spec.ts` (red on the old image, green now); `MixerDesignTests` |
+| Count-in indicator skipped "1" | engine: indicator active until `max(T0, last click + d / r)`; contract 2.3.0 clarified editorially; e2e expects 4..1 | engine unit test (red -> green) |
+| Rapid +5 % / +1 clicks dropped | cause: `RadzenButton` ignores clicks while its handler runs and the mixer awaited the engine call; the mixer no longer awaits it | bUnit `RapidStepClicks_...` (red: 105 instead of 115 -> green) |
+
+Results: engine 489 (100 % statements 1815/1815, branches 753/753); Web 2084 (99.6 % line / 93.71 % branch);
+web-interop 293 (99.71 / 98.19); Release build 0 warnings, `dotnet format` clean; `run_all.py` 0 errors; e2e lint +
+typecheck clean. E2E project `e2e012b` (18080/18081, own images/volumes, fake separator, unreachable Ollama):
+a11y 156 passed / 6 skipped / 0 failed; `@practice` 114/116 then the 2 failing tab-order cases fixed (start of the
+tab walk) -> `practice-levels.spec.ts` 22/22; related UX specs (tours, help, journeys, feature levels, karaoke,
+expert keyboard, theme flash, preferences self-test) 144 passed / 5 skipped / 1 failed: Firefox karaoke "50 A-B
+loops" landed at 52 ms (limit 50); with the dock observer made O(1) per DOM change it passed 3/3 on rerun. Final
+a11y on the last image: 156 passed / 6 skipped / 0 failed.
+Visual (Playwright container, fresh stack): 28 baselines regenerated and inspected - `mixer--*` (6), `mixer--768--*`
+(2), `mixer-expanded--*` (6), `export-dialog--*` (6), `help-panel--mixer--*` (2): panel closed at neutral settings,
+strips move up; `mixer-practice--*` (6): opened panel with its chevron. Compare 116 passed / 6 skipped. Manual PDFs
+rebuilt (user manual 5 "Practice tempo"), `tools/docs/check.mjs` passed. Teardown: `down -v` of `e2e012b`, images
+`e2e012b/*` removed; owner stack `stemstudio` unchanged (same containers, images, volumes).
+
+Still open: the full default `npm test` (all tags) was not rerun after the follow-up, only `@practice`, a11y,
+visual and the related UX specs above; the Firefox karaoke A-B timing case is close to its 50 ms limit (watch in CI).
 
 ## Next owner
 
