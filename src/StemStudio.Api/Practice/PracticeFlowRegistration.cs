@@ -1,3 +1,5 @@
+using StemStudio.Api.SongSections;
+using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 
 namespace StemStudio.Api.Practice;
@@ -33,11 +35,15 @@ public static class PracticeFlowRegistration
         services.AddOptions<PracticeFlowOptions>().Bind(configuration.GetSection(PracticeFlowOptions.SectionName));
         services.AddServiceClient<IWorkerPracticeClient, WorkerClient>(
             configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
+        services.AddSingleton<SectionDetectionGate>();
+        services.AddScoped<SectionService>();
+        services.AddScoped<SectionJobApplier>();
+        services.AddScoped<ITrackCompletionHook, SectionDetectTrigger>();
         return services;
     }
 
     /// <summary>Maps the 014 endpoints (tags <c>sections</c>, <c>score-follow</c>, <c>setlists</c>, <c>practice</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app;
+    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app.MapSectionEndpoints();
 }

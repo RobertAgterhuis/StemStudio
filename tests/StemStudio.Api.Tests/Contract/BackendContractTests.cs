@@ -211,7 +211,7 @@ public sealed partial class BackendContractTests : IDisposable
                 "getLibraryCareStatus", "listBackups", "createBackup", "estimateBackup", "getBackup", "deleteBackup", "downloadBackup",
                 "verifyBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "restoreBackup", "getPreviousLibrary", "revertRestore",
                 "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup", .. PendingLibraryCareOperations,
-                .. LibraryContractTests.LibraryOperations, .. PendingPracticeFlowOperations, .. PendingRecordingOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations,
+                .. LibraryContractTests.LibraryOperations, .. PracticeFlowOperations, .. PendingPracticeFlowOperations, .. PendingRecordingOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations,
                 .. PendingAgentOperations, .. LyricAssistOperations], ignoreOrder: true);
     }
 

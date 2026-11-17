@@ -14,7 +14,7 @@ public interface ISectionRepository
     /// <returns>The set, or null when never created.</returns>
     Task<TrackSections?> FindAsync(Guid trackId, CancellationToken cancellationToken);
 
-    /// <summary>The sets with a queued or running detection (tracked).</summary>
+    /// <summary>The sets with a queued or running detection, with their sections (tracked).</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The sets.</returns>
     Task<IReadOnlyList<TrackSections>> ActiveAsync(CancellationToken cancellationToken);
@@ -49,7 +49,7 @@ public sealed class SectionRepository(StemStudioDbContext context) : ISectionRep
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<TrackSections>> ActiveAsync(CancellationToken cancellationToken) =>
-        await context.TrackSections.Where(set => Active.Contains(set.Status)).OrderBy(set => set.UpdatedAt).ToListAsync(cancellationToken);
+        await context.TrackSections.Include(set => set.Sections).AsSplitQuery().Where(set => Active.Contains(set.Status)).OrderBy(set => set.UpdatedAt).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyDictionary<Guid, int>> CountsAsync(IReadOnlyCollection<Guid> trackIds, CancellationToken cancellationToken) =>

@@ -9,11 +9,16 @@ public sealed partial class BackendContractTests
     // Feature 014 (backend 1.13.0, staged in the 014 Phase 0 part 2, T003): the backend removes each id when it serves it -
     // T055 (getSections, detectSections), T071 (replaceSections), T079 (listTrackScores, getScoreView, createScoreView,
     // getScoreViewPage), T089 (setlist CRUD, replaceSetlistEntries), T091 (getSetlistPdf), T097 (practice log).
-    private static readonly string[] PendingPracticeFlowOperations =
+    // Feature 014 operations the backend serves (moved here from the pending list as each task lands).
+    private static readonly string[] PracticeFlowOperations =
     [
         "getSections",
         "replaceSections",
         "detectSections",
+    ];
+
+    private static readonly string[] PendingPracticeFlowOperations =
+    [
         "listTrackScores",
         "getScoreView",
         "createScoreView",
