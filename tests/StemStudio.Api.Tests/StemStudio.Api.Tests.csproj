@@ -24,7 +24,14 @@
     <None Include="..\..\specs\008-sheet-music\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 012 Phase 0 (T004, agreed one-time edit): the current full backend document is 012's 1.11.0 (= 1.21.0 + 012);
          the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
-    <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 022 Phase 0 (T002, agreed one-time edit): the current full backend document is 022's 1.22.0 (= 1.11.0 + 022; the
+         CTO re-merges it onto 013's 1.12.0 with merge_full.py when main is merged in); 012's 1.11.0 stays linked as Contract/012
+         so PracticeContractTests and LibraryContractTests prove both merges. -->
+    <None Include="..\..\specs\022-library-folders\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\022-library-folders\contracts\backend-api.library-folders.openapi.yaml" Link="Contract\022\backend-api.library-folders.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\022-library-folders\contracts\ui-test-ids.md" Link="Contract\022\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\022-library-folders\contracts\ui-test-ids.delta.md" Link="Contract\022\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\011-ai-composer-agent\followups\claude-key\contracts\backend-api.openapi.yaml" Link="Contract\011-claude-key\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.md" Link="Contract\012\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.delta.md" Link="Contract\012\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />

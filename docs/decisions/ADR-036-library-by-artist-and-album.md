@@ -1,6 +1,7 @@
 # ADR-036: Library by artist and album (derived folders, folder art, live search)
 
-- **Status**: Accepted (CTO, 2026-11-16; number may be renumbered at merge)
+- **Status**: Accepted (CTO, 2026-11-16). Number confirmed in Phase 0 part 2 (2026-11-17): ADR-036 is used only by
+  feature 022 on `main`, on `013-library-care` (013 = ADR-022) and on the 023 design branch (023 = ADR-037); no renumbering.
 - **Date**: 2026-11-16
 - **Decider**: Architect (autonomous mode), to be confirmed by the CTO
 - **Feature**: [specs/022-library-folders](../../specs/022-library-folders/spec.md)
@@ -81,3 +82,23 @@ generator, audio engine, backup archive unchanged.
   Beginner; the track list (`/tracks`) stays ungrouped; no folder archive download.
 - Follow-ups (not planned): licensed artist photos as first choice of artist art; renaming a whole
   folder in one action. Downloading a folder as an archive is out of scope (owner, 2026-11-16).
+
+## Phase 0 part 2 outcome (architect, 2026-11-17)
+
+- Contracts merged: backend-api **1.22.0** = 1.11.0 (012, newest full document on `main`) + the delta
+  (`specs/022-library-folders/contracts/merge_full.py`, textual merge, base bytes unchanged); the six
+  `Asset` examples of the base gain a `placement` so they stay valid. UI test ids **1.22.0**, tool
+  catalogue **1.1.0** (= 1.3.0 + the 022 delta, labels by containment). The CTO re-runs the merge onto
+  013's 1.12.0 when `main` is merged into the round branch.
+- 013 as built (branch `013-library-care`, read-only) confirms D4/D5 with two refinements, binding for
+  the backend lane (research R-11 "Re-check against 013 as built"):
+  1. A restore (replace or merge) runs **without an app restart**, and a pre-022 archive arrives with
+     `FiledVersion = 0` (013 rebuilds the archived database at its own migration level, then
+     migrates forward). The filing backfill therefore also starts when a library read sees
+     `pendingFiling > 0` (single-flight), not only at start-up.
+  2. The backfill pauses while the 013 write gate is in `Maintenance`
+     (`LibraryGate.WaitWhileMaintenanceAsync`, as `AgentRunExecutor` does), resolved optionally
+     (`GetService<LibraryGate>()`) until 013 is on the round branch.
+  The library-info endpoints stay outside the 013 `backupRunning` write gate (013 lets renames and
+  other metadata edits through); the maintenance middleware answers `503` for the `library` routes
+  like any `/api/*` route during a restore switch.

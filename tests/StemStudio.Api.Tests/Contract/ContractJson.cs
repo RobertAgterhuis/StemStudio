@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key and 012).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012 and 022).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -23,6 +23,11 @@ internal static class ContractJson
     private static readonly Lazy<OpenApiContract> LazyBackend011 = new(() => Backend("011"));
 
     private static readonly Lazy<OpenApiContract> LazyBackend1210 = new(() => Backend("011-claude-key"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend012 = new(() => Backend("012"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend022Delta =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "022", "backend-api.library-folders.openapi.yaml")));
 
     private static readonly Lazy<OpenApiContract> LazyGenerator =
         new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "generator-api.openapi.yaml")));
@@ -52,6 +57,12 @@ internal static class ContractJson
 
     /// <summary>The 011 follow-up claude-key backend document (1.21.0), linked as <c>Contract/011-claude-key/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend1210 => LazyBackend1210.Value;
+
+    /// <summary>The 012 backend document (1.11.0), linked as <c>Contract/012/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend012 => LazyBackend012.Value;
+
+    /// <summary>The standalone 022 delta (1.22.0-delta.1), linked as <c>Contract/022/backend-api.library-folders.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend022Delta => LazyBackend022Delta.Value;
 
     /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
     public static OpenApiContract GeneratorContract => LazyGenerator.Value;
