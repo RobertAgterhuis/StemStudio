@@ -11,7 +11,8 @@ namespace StemStudio.Api.Mixes;
 /// <param name="tracks">Track repository.</param>
 /// <param name="mixes">Mix repository.</param>
 /// <param name="clock">Clock.</param>
-public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, TimeProvider clock)
+/// <param name="references">Drops section and take ids the track does not have (014 FR-005, 015 data-model 2.6).</param>
+public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, TimeProvider clock, MixReferences references)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -42,7 +43,7 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
     public async Task<IResult> GetAsync(Guid id, CancellationToken cancellationToken)
     {
         var mix = await mixes.FindAsync(id, cancellationToken);
-        return mix is null ? NotFound(id) : TypedResults.Ok(MixMapper.ToDto(mix));
+        return mix is null ? NotFound(id) : TypedResults.Ok(await ToDtoAsync(mix, cancellationToken));
     }
 
     /// <summary>Creates a mix ("save" and "save as").</summary>
@@ -68,9 +69,13 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
     private async Task<IResult> CreateForTrackAsync(Guid trackId, MixSettings settings, CancellationToken cancellationToken)
     {
         var track = await tracks.FindAsync(trackId, cancellationToken);
-        return track is null
-            ? TrackService.NotFound(trackId)
-            : await AddAsync(() => Mix.Create(Guid.NewGuid(), track, settings, Now), cancellationToken);
+        if (track is null)
+        {
+            return TrackService.NotFound(trackId);
+        }
+
+        var clean = await references.CleanAsync(trackId, settings, cancellationToken);
+        return await AddAsync(() => Mix.Create(Guid.NewGuid(), track, clean, Now), cancellationToken);
     }
 
     /// <summary>Replaces name and settings of a mix.</summary>
@@ -92,7 +97,9 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
         }
 
         var (settings, errors) = MixValidator.ToDomain(dto);
-        return settings is null ? MixValidator.Problem(errors, string.Empty) : await UpdateAsync(mix, settings, cancellationToken);
+        return settings is null
+            ? MixValidator.Problem(errors, string.Empty)
+            : await UpdateAsync(mix, await references.CleanAsync(mix.TrackId, settings, cancellationToken), cancellationToken);
     }
 
     /// <summary>Deletes a mix; the track and its stems remain.</summary>
@@ -126,6 +133,10 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
         var names = await mixes.NamesForTrackAsync(mix.TrackId, cancellationToken);
         return await AddAsync(() => mix.Duplicate(Guid.NewGuid(), names, Now), cancellationToken);
     }
+
+    /// <summary>Maps a stored mix, dropping references its track no longer has (the stored row is not changed).</summary>
+    private async Task<MixDto> ToDtoAsync(Mix mix, CancellationToken cancellationToken) =>
+        MixMapper.ToDto(mix) with { Settings = MixMapper.ToDto(await references.CleanAsync(mix.TrackId, mix.Settings, cancellationToken)) };
 
     private static IResult NotFound(Guid id) => ApiProblems.NotFound($"Mix {id} does not exist.");
 

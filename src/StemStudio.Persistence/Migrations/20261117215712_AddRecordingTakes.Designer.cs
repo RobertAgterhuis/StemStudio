@@ -12,7 +12,7 @@ using StemStudio.Persistence;
 namespace StemStudio.Persistence.Migrations
 {
     [DbContext(typeof(StemStudioDbContext))]
-    [Migration("20261117214321_AddRecordingTakes")]
+    [Migration("20261117215712_AddRecordingTakes")]
     partial class AddRecordingTakes
     {
         /// <inheritdoc />
@@ -828,6 +828,8 @@ namespace StemStudio.Persistence.Migrations
                             b1.Property<bool>("Enabled");
 
                             b1.Property<double>("End");
+
+                            b1.Property<Guid?>("SectionId");
 
                             b1.Property<double>("Start");
 

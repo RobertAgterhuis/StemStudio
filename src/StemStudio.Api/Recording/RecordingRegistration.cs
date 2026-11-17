@@ -30,6 +30,7 @@ public static class RecordingRegistration
         services.AddScoped<ITrackTakesCleanup>(sp => sp.GetRequiredService<TakeDeletion>());
         services.AddScoped<TakeAssetFinisher>();
         services.AddScoped<CalibrationService>();
+        services.AddScoped<Mixes.MixReferences>();
         return services;
     }
 

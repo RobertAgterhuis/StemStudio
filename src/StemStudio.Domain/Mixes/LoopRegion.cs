@@ -6,6 +6,9 @@ namespace StemStudio.Domain.Mixes;
 /// <param name="Enabled">Whether looping is active.</param>
 public sealed record LoopRegion(double Start, double End, bool Enabled)
 {
+    /// <summary>The section the loop was set from (feature 014 FR-005), or null; the caller drops an id the track no longer has.</summary>
+    public Guid? SectionId { get; init; }
+
     /// <summary>Writes the violations into a collector.</summary>
     /// <param name="errors">Collector positioned at the loop.</param>
     /// <param name="durationSeconds">Track duration.</param>

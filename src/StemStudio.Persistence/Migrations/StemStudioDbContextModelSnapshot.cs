@@ -826,6 +826,8 @@ namespace StemStudio.Persistence.Migrations
 
                             b1.Property<double>("End");
 
+                            b1.Property<Guid?>("SectionId");
+
                             b1.Property<double>("Start");
 
                             b1

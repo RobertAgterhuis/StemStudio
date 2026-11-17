@@ -1,5 +1,6 @@
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Recording;
 using StemStudio.Domain.Mixes;
 using StemStudio.Persistence.Repositories;
 
@@ -37,11 +38,12 @@ public static class MixMapper
             settings.MasterVolume,
             settings.Channels.Select(c => new ChannelSettingsDto(c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
             ToDto(settings.Metronome),
-            settings.Loop is { } loop ? new LoopRegionDto(loop.Start, loop.End, loop.Enabled) : null)
+            settings.Loop is { } loop ? new LoopRegionDto(loop.Start, loop.End, loop.Enabled, loop.SectionId) : null)
         {
             Expanded = settings.Expanded.ToList(),
             DetailChannels = settings.DetailChannels.Select(c => new DetailChannelSettingsDto(c.Parent, c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
             Practice = ToDto(settings.Practice),
+            Take = settings.Take is { } take ? new TakeChannelSettingsDto { TakeId = take.TakeId, Volume = take.Volume, Pan = take.Pan, Mute = take.Mute, Solo = take.Solo } : null,
         };
     }
 
@@ -60,10 +62,11 @@ public static class MixMapper
             MasterVolume = dto.MasterVolume,
             Channels = dto.Channels.Select(ToDomain).ToList(),
             Metronome = ToDomain(dto.Metronome),
-            Loop = dto.Loop is { } loop ? new LoopRegion(loop.Start, loop.End, loop.Enabled) : null,
+            Loop = dto.Loop is { } loop ? new LoopRegion(loop.Start, loop.End, loop.Enabled) { SectionId = loop.SectionId } : null,
             Expanded = (dto.Expanded ?? []).ToList(),
             DetailChannels = (dto.DetailChannels ?? []).Select(ToDomain).ToList(),
             Practice = dto.Practice is { } practice ? ToDomain(practice) : PracticeSettings.Default,
+            Take = dto.Take is { } take ? new TakeChannelSettings { TakeId = take.TakeId, Volume = take.Volume, Pan = take.Pan, Mute = take.Mute, Solo = take.Solo } : null,
         };
     }
 
