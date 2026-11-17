@@ -2,6 +2,10 @@
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import UUID
+
+import numpy as np
+import soundfile as sf
 
 from stemstudio_worker.jobs.detail_store import DetailJobStore, StoredDetailJob
 from stemstudio_worker.jobs.lyrics_store import LyricsJobStore, StoredLyricsJob
@@ -18,6 +22,7 @@ from stemstudio_worker.schemas import (
     LyricsJob,
     LyricsJobState,
     SourceType,
+    StemName,
 )
 
 T0 = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
@@ -106,3 +111,15 @@ def save_lookup(paths: DataPaths, lyrics_id: str, standard_id: str) -> None:
     )  # fmt: skip
     request = LookupLyricsRequest(title="Song", duration_seconds=10, standard_job_id=standard_id)
     LyricsJobStore(paths).save(StoredLyricsJob(job=job, request=request))
+
+
+def library_stems(library: Path, track: UUID, stems: list[StemName]) -> dict[StemName, bytes]:
+    """Write a short FLAC per stem below ``library/tracks/<track>/stems/``; their bytes."""
+    folder = library / "tracks" / str(track) / "stems"
+    folder.mkdir(parents=True, exist_ok=True)
+    written: dict[StemName, bytes] = {}
+    for index, stem in enumerate(stems):
+        frames = np.full((4410, 2), index / 10, dtype=np.float32)
+        sf.write(folder / f"{stem}.flac", frames, 44100, format="FLAC")
+        written[stem] = (folder / f"{stem}.flac").read_bytes()
+    return written
