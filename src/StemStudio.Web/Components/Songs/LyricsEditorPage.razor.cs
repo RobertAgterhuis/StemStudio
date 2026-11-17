@@ -34,7 +34,7 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
 
     /// <summary>The sheet.</summary>
     [Parameter]
-    public Guid LyricsId { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary><c>?assist=</c>: opens the pane on that assist (<c>open_lyrics_editor</c>).</summary>
     [SupplyParameterFromQuery(Name = "assist")]
@@ -70,7 +70,7 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
-        if (Document?.Id != LyricsId)
+        if (Document?.Id != Id)
         {
             await LoadAsync();
         }
@@ -87,7 +87,7 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
 
     private async Task LoadAsync()
     {
-        var (sheet, error) = await ApiCall.TryAsync(() => Api.GetLyricsSheetAsync(LyricsId));
+        var (sheet, error) = await ApiCall.TryAsync(() => Api.GetLyricsSheetAsync(Id));
         LoadError = error;
         if (sheet is not null)
         {

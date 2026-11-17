@@ -2,6 +2,7 @@
 id: lyric-assist
 title: "The lyric assistant"
 area: mixes
+route: "/lyrics/{id}"
 summary: "Checks your own Dutch or English lyrics for spelling, grammar and flow and helps you write, only when you ask."
 anchors: ["lyric-assist"]
 keywords: ["lyric assistant", "check lyrics", "spelling", "grammar", "flow", "alternatives", "continue", "title ideas", "suggestions", "accept", "undo"]

@@ -60,7 +60,7 @@ public abstract class LyricEditorTestContext : PageTestContext
             Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().NavigateTo($"lyrics/{LyricsId}?assist={id}");
         }
 
-        var page = RenderAtLevel<LyricsEditorPage>(level, p => p.Add(x => x.LyricsId, LyricsId));
+        var page = RenderAtLevel<LyricsEditorPage>(level, p => p.Add(x => x.Id, LyricsId));
         if (assist is null)
         {
             page.WaitForElement("[data-testid=lyric-assist-toggle]").Click();

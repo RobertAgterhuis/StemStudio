@@ -3,23 +3,23 @@
 @inherits AssistPart
 
 <RhymeFinder Host="Host" OnInsert="OnInsert" />
-<LevelGate Feature="lyric-assist.rhythm">
+<LevelGate Feature="lyrics.assist-rhythm">
     <RhythmPanel Host="Host" />
 </LevelGate>
-<LevelGate Feature="lyric-assist.marks">
+<LevelGate Feature="lyrics.assist-marks">
     <MarksPanel Host="Host" />
     <WordsPanel Host="Host" />
 </LevelGate>
-<LevelGate Feature="lyric-assist.usage">
+<LevelGate Feature="lyrics.assist-usage">
     @if (Session.Run?.Usage is { } usage)
     {
         <p class="ss-small ss-num" data-help-id="lyric-assist-privacy">Usage of the last assist: @usage.InputTokens input and @usage.OutputTokens output tokens</p>
     }
 </LevelGate>
-<LevelGate Feature="lyric-assist.log">
+<LevelGate Feature="lyrics.assist-log">
     <AssistLog Host="Host" />
 </LevelGate>
-<LevelGate Feature="lyric-assist.revisions">
+<LevelGate Feature="lyrics.assist-revisions">
     <RevisionPanel Host="Host" />
 </LevelGate>
 

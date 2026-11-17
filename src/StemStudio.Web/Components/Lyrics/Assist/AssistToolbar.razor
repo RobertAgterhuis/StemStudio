@@ -11,7 +11,7 @@
                   Click="() => Request(AssistKindDto.Devices)" data-testid="lyric-assist-devices" data-help-id="lyric-assist-devices" />
     <RadzenButton Text="Alternatives" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
                   Click="() => Request(AssistKindDto.Alternatives, _count)" data-testid="lyric-assist-alternatives" />
-    <LevelGate Feature="lyric-assist.count">
+    <LevelGate Feature="lyrics.assist-count">
         <label class="ss-field ss-field-inline">
             <span class="ss-small">How many</span>
             <select class="rz-dropdown ss-select" @onchange="e => _count = int.Parse((string)e.Value!, System.Globalization.CultureInfo.InvariantCulture)"
@@ -25,7 +25,7 @@
     </LevelGate>
     <RadzenButton Text="Continue" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
                   Click="() => Request(AssistKindDto.Continue)" data-testid="lyric-assist-continue" />
-    <LevelGate Feature="lyric-assist.titles">
+    <LevelGate Feature="lyrics.assist-titles">
         <RadzenButton Text="Title ideas" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
                       Click="() => Request(AssistKindDto.Titles)" data-testid="lyric-assist-titles" />
     </LevelGate>

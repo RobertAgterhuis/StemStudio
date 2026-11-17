@@ -13,7 +13,7 @@
         <RadzenButton Text="Mark as intentional" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" tabindex="-1"
                       Click="() => RunAsync(s => s.MarkIntentionalAsync(Id, Scope))" title="Mark as intentional (Alt+I)"
                       data-testid="@($"lyric-suggestion-intentional-{Id}")" data-help-id="lyric-assist-licence" />
-        <LevelGate Feature="lyric-assist.marks">
+        <LevelGate Feature="lyrics.assist-marks">
             <select class="rz-dropdown ss-select ss-select-small" tabindex="-1" aria-label="Mark as intentional: scope" @onclick:stopPropagation="true"
                     @onchange="e => _scope = Enum.Parse<IntentionalScopeDto>((string)e.Value!)" data-testid="@($"lyric-suggestion-intentional-scope-{Id}")">
                 @foreach (var scope in Enum.GetValues<IntentionalScopeDto>())
@@ -25,7 +25,7 @@
     }
     @if (Suggestion.Category == SuggestionCategoryDto.Spelling)
     {
-        <LevelGate Feature="lyric-assist.marks">
+        <LevelGate Feature="lyrics.assist-marks">
             <RadzenButton Text="Add to my words" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" tabindex="-1"
                           Click="() => RunAsync(s => s.AddWordAsync(Id))" data-testid="@($"lyric-suggestion-add-word-{Id}")" />
         </LevelGate>

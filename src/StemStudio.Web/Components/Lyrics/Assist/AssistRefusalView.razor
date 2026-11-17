@@ -18,7 +18,7 @@
 }
 else if (Session.Refusal is { } refusal)
 {
-    <p class="ss-notice" role="alert" data-testid="lyric-assist-refusal" data-code="@refusal.Code">@refusal.Message @refusal.Fix</p>
+    <p class="ss-notice" role="alert" data-testid="@(refusal.Code == LyricAssistProblemTypes.Imitation ? "lyric-assist-imitation-refusal" : "lyric-assist-refusal")" data-code="@refusal.Code">@refusal.Message @refusal.Fix</p>
 }
 @if (Session.Document.Assist.OwnWorkOverride is { } confirmed)
 {

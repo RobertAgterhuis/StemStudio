@@ -2,7 +2,7 @@
 @using StemStudio.Contracts.LyricAssist
 @inherits AssistPart
 
-<LevelGate Feature="lyric-assist.sensitivity">
+<LevelGate Feature="lyrics.assist-sensitivity">
     <fieldset class="ss-fieldset ss-assist-sensitivity" data-testid="lyric-assist-sensitivity" data-help-id="lyric-assist-licence">
         <legend class="ss-small">Sensitivity</legend>
         @foreach (var level in Levels)
@@ -15,7 +15,7 @@
         }
     </fieldset>
 </LevelGate>
-<LevelGate Feature="lyric-assist.filters">
+<LevelGate Feature="lyrics.assist-filters">
     <div class="ss-assist-filters" role="group" aria-label="Show categories">
         <button type="button" class="ss-chip" aria-pressed="@(Session.Board.Filter.Count == 0 ? "true" : "false")" @onclick="() => Toggle(null)"
                 data-testid="lyric-assist-filter-all">All</button>

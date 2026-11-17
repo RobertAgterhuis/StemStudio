@@ -15,7 +15,7 @@ public sealed class LyricAssistPaneTests : LyricEditorTestContext
     [Fact]
     public void Page_ShowsThe010Fields_AndThePaneIsClosedUntilToggled()
     {
-        var page = RenderAtLevel<LyricsEditorPage>(ExperienceLevel.Beginner, p => p.Add(x => x.LyricsId, LyricsId));
+        var page = RenderAtLevel<LyricsEditorPage>(ExperienceLevel.Beginner, p => p.Add(x => x.Id, LyricsId));
 
         page.WaitForElement(Id("lyrics-text-input")).GetAttribute("value").ShouldBe(Text);
         page.Find(Id("lyrics-title-input")).GetAttribute("value").ShouldBe("Zomeravond");
@@ -186,7 +186,7 @@ public sealed class LyricAssistPaneTests : LyricEditorTestContext
     {
         Api.GetLyricsSheetAsync(LyricsId, Arg.Any<CancellationToken>()).Returns<Task<LyricsSheetDto>>(_ => throw Problem(System.Net.HttpStatusCode.NotFound, "Not found"));
 
-        var page = RenderAtLevel<LyricsEditorPage>(ExperienceLevel.Beginner, p => p.Add(x => x.LyricsId, LyricsId));
+        var page = RenderAtLevel<LyricsEditorPage>(ExperienceLevel.Beginner, p => p.Add(x => x.Id, LyricsId));
 
         page.WaitForElement(Id("lyrics-load-error"));
         page.FindAll(Id("lyric-assist-toggle")).ShouldBeEmpty();
