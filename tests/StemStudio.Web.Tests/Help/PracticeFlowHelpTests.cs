@@ -14,6 +14,9 @@ public sealed class PracticeFlowHelpTests
     [InlineData("mixer-sections", "mixer", "section-lane")]
     [InlineData("section", "glossary", null)]
     [InlineData("speed-trainer-region", "glossary", "speed-trainer-region")]
+    [InlineData("shortcuts", "start", "shortcut-overlay")]
+    [InlineData("shortcuts-custom", "start", "shortcut-settings")]
+    [InlineData("foot-pedals", "start", "pedal-setup")]
     public void Topics_Exist_ReviewedFor014_WithTheirAnchors(string id, string area, string? anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
@@ -28,6 +31,7 @@ public sealed class PracticeFlowHelpTests
 
     [Theory]
     [InlineData("practice-section", "beginner", "section-lane")]
+    [InlineData("hands-free", "advanced", "section-loop-current")]
     public void Tours_Exist_ForTheirLevel(string id, string level, string firstTarget)
     {
         var tour = Catalog.Tours.Single(t => t.Id == id);
@@ -35,6 +39,16 @@ public sealed class PracticeFlowHelpTests
         tour.Version.ShouldBe(1);
         tour.Levels.Select(l => l.ToString().ToLowerInvariant()).ShouldContain(level);
         tour.Steps[0].Target.ShouldBe(firstTarget);
+    }
+
+    [Fact]
+    public void ShortcutTopics_NameTheMovedKeys_TheSingleKeySwitch_AndTheReservedKeys()
+    {
+        Catalog.Topic("shortcuts")!.Markdown.ShouldContain("| 0 | Original speed and key |");
+        Catalog.Topic("shortcuts")!.Markdown.ShouldContain("| Shift+K | Count-in on or off |");
+        Catalog.Topic("shortcuts-custom")!.Markdown.ShouldContain("Single-key shortcuts");
+        Catalog.Topic("shortcuts-custom")!.Route.ShouldBe("/settings/shortcuts");
+        Catalog.Topic("foot-pedals")!.Markdown.ShouldContain("PageDown");
     }
 
     [Fact]
