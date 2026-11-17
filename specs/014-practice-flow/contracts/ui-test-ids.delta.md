@@ -1,6 +1,6 @@
 # Contract delta: UI test ids for feature 014 (draft, additive)
 
-Status: **binding names, draft delta** (014 planning, 2026-11-16). Base: the full document of
+Status: **binding names** (014 planning, 2026-11-16; Phase 0 part 2, 2026-11-17: the practice log panel ids are `practice-log-*` because 012's 1.11.0 already has `practice-panel` and `practice-panel-toggle` for the speed and key panel; `trainer-region-label` added; merged into `ui-test-ids.md` 1.13.0). Base: the full document of
 feature 013 (expected **1.12.0**; 011 is 1.10.0, 012 is 1.11.0). In Phase 0 part 2 the architect
 merges this delta unchanged into `specs/014-practice-flow/contracts/ui-test-ids.md` **1.13.0**.
 Nothing below renames, removes or changes an existing id; every existing rule applies
@@ -27,6 +27,7 @@ command id of data-model 5.2 with `:` and `.` replaced by `-` (e.g. `mixer-seek-
 | Mixer | `section-status` | status text ("Detecting sections...", "Detected automatically - check and edit", "Tempo grid uncertain - boundaries may be off", failure reason) | all |
 | Mixer | `section-retry` | exists when status is `failed` | all |
 | Mixer | `section-previous`, `section-next`, `section-restart`, `section-loop-current` | transport-row buttons | all |
+| Mixer | `trainer-region-label` | text in the 012 trainer panel naming the loop region: "Region: Guitar solo (0:40-0:56)" with a section loop, "Region: A-B loop (0:40-0:56)" otherwise (DELTA R-4: 012 has no such id) | advanced, expert |
 | Mixer | `section-edit` | opens the section editor | advanced, expert |
 | Mixer | `section-detect-again` | re-detect (confirmation when edited) | expert |
 | Mixer | `section-confidence-<sectionId>` | confidence text ("82 %") | expert |
@@ -45,13 +46,13 @@ command id of data-model 5.2 with `:` and `.` replaced by `-` (e.g. `mixer-seek-
 | Score panel | `score-transpose-note` | exists while transpose is not 0 | all |
 | Score panel | `score-tempo-note` | exists for scores made with a manual tempo | all |
 | Score panel | `score-bar-label` | visually hidden live text "Bar 17 of 64" (updated at most once per second, `aria-live="off"` by default; a "Read bar" button `score-read-bar` announces it once) | all |
-| Mixer | `practice-panel-toggle`, `practice-panel` | Practice panel (`aria-label="Practice"`) | all |
-| Practice panel | `practice-today`, `practice-week`, `practice-total` | durations as text ("12 min") | all |
-| Practice panel | `practice-sections-table` | table of time per section, trainer best | advanced, expert |
-| Practice panel | `practice-chart-days`, `practice-chart-tempo` | charts; each has a sibling `practice-chart-days-table` / `practice-chart-tempo-table` toggled by `practice-chart-as-table` | all (tempo chart: advanced, expert) |
-| Practice panel | `practice-off-note` | "Practice log is off" with `practice-turn-on` | all |
-| Practice panel | `practice-notice`, `practice-notice-ok`, `practice-notice-turn-off` | first-use notice | all |
-| Practice panel | `practice-delete-track`, `practice-delete-confirm` | delete this song's log | all |
+| Mixer | `practice-log-panel-toggle`, `practice-log-panel` | Practice log panel (`aria-label="Practice log"`; 012's `practice-panel` is the speed and key panel) | all |
+| Practice log panel | `practice-log-today`, `practice-log-week`, `practice-log-total` | durations as text ("12 min") | all |
+| Practice log panel | `practice-log-sections-table` | table of time per section, trainer best | advanced, expert |
+| Practice log panel | `practice-log-chart-days`, `practice-log-chart-tempo` | charts; each has a sibling `practice-log-chart-days-table` / `practice-log-chart-tempo-table` toggled by `practice-log-chart-as-table` | all (tempo chart: advanced, expert) |
+| Practice log panel | `practice-log-off-note` | "Practice log is off" with `practice-log-turn-on` | all |
+| Practice log panel | `practice-log-notice`, `practice-log-notice-ok`, `practice-log-notice-turn-off` | first-use notice | all |
+| Practice log panel | `practice-log-delete-track`, `practice-log-delete-confirm` | delete this song's log | all |
 | Practice page (`/practice`) | `practice-page`, `practice-enabled` (switch), `practice-delete-all`, `practice-overview-table`, `practice-overview-row-<trackId>`, `practice-sessions` (Expert list), `practice-session-<sessionId>`, `practice-session-delete-<sessionId>` | | all (sessions: expert) |
 | Shell | `nav-setlists`, `nav-practice` | rail links to `/setlists`, `/practice` | all |
 | Setlists page (`/setlists`) | `setlists-page`, `setlist-create`, `setlist-create-name`, `setlist-create-confirm`, `setlist-row-<setlistId>`, `setlist-open-<setlistId>`, `setlist-play-<setlistId>`, `setlist-delete-<setlistId>`, `setlists-empty` | | all |

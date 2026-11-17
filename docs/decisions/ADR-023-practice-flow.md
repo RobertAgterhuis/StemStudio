@@ -1,10 +1,10 @@
 # ADR-023: Practice flow: song sections, score follow, setlists, shortcuts and pedals, practice log (feature 014)
 
-- **Status**: Proposed (architect, 014 planning, 2026-11-16). Becomes Accepted in 014 Phase 0
-  part 2, after features 012 (practice tempo) and 013 (library care) have fixed their contract
-  minors. The number 023 is provisional: features 012-016 are planned in parallel; if another
-  feature merges an ADR-023 first, the CTO renumbers this file at the merge (no content depends
-  on the number).
+- **Status**: Accepted (architect, 014 Phase 0 part 2, 2026-11-17; proposed 2026-11-16). Number
+  checked: ADR-023 is unique on `main`, on the 022/023 round and on the 015 design branch (015 holds
+  ADR-024, 022 ADR-036, 023 ADR-037). Amendments from the reconciliation with 012/013 and the Phase 0
+  part 2 measurements are in the section "Phase 0 part 2 amendments" at the end; none changes a
+  decision.
 - **Context documents**: `specs/014-practice-flow/{spec.md, research.md, data-model.md,
   plan.md, contracts/DELTA.md}`, `docs/MoSCoW.md` (S2, S5, S6, S7, S8; principle "every
   instrument counts equally"), `docs/ROADMAP.md` (contract allocation backend 1.13.0, worker
@@ -230,3 +230,40 @@ separations. `Health.lanes.practice` reports it.
   `<img>` SVG (Phase 0 verifies the `data:` font in Chromium and Firefox; fallback: drop the text
   tempo glyph from the view and show the tempo in the panel header); 012 contract drift
   (reconciliation list in DELTA.md).
+
+## Phase 0 part 2 amendments (2026-11-17)
+
+- **D1 constants (spike T010, research.md R-10)**: checkerboard half size **6 bars** (was 4), novelty
+  peaks with `delta = 0`, `wait = 3`; vocal activity `RMS > 0.1 x p95`, active when > 30 % of a bar,
+  switch held >= 2 bars; merge < 4 bars (first/last < 2); clustering threshold **0.25**; the solo rule
+  compares the source's **share** of the non-drum energy with its own median share over the song
+  (>= 0.4 and >= 1.3 x median share) instead of its absolute RMS (a guitar or bass that plays all song
+  long is only slightly louder in its solo). On the 6-form synthetic set: boundary recall 0.97,
+  precision 0.97 within one bar, solo/bridge/break kind right 6/6, labels 41/42, 1.9 s for a 5-minute
+  song.
+- **D3 font (check T011, research.md R-11)**: Verovio 6.4.0 already writes the full Leipzig WOFF2 as an
+  `@font-face` `<style>` into every SVG page (58.6 KB per page); as an `<img>` the tempo glyph renders in
+  Chromium 159 and Firefox 159. The worker keeps that style and checks it is present (it does not add a
+  second copy); the fallback (strip the Leipzig text) stays unused.
+- **D5 key map (reconciliation R-1/R-2)**: the catalogue `wwwroot/js/keymap-defaults.json` uses 012's
+  shipped command ids for the practice tempo (`mixer.speed:-5`, `mixer.speed:5`, `mixer.transpose:-1`,
+  `mixer.transpose:1`, `mixer.practice.reset`, `mixer.countin.toggle`, `mixer.trainer.toggle`); 012's
+  keys `r` (reset) and `c` (count-in) move to `0` and `Shift+K` (CTO decision 2026-11-16) and `r`/`c`
+  are held for 015. 022's `/` (scope `library`, web-interop 1.2.0) and 023's lyrics editor keys
+  (Ctrl+Alt+C, F8, Shift+F8, Alt+Enter, Alt+Backspace, Alt+I) are in the catalogue as owned or external
+  chords, so no default or user binding can take them. The "G then X" sequences stay fixed.
+- **D6 naming**: the practice log switch is `PracticeLogSettings` (operation ids
+  `getPracticeLogSettings`/`updatePracticeLogSettings`, table `PracticeLogSettings`) because 012's
+  backend 1.11.0 already defines `PracticeSettings` for the speed of a mix; the practice log panel's
+  UI test ids are `practice-log-*` because 012's `practice-panel` is the speed and key panel.
+- **D7**: 012's engine 2.3.0 has no loop-pass callback with region and speed (`OnPracticeChanged`
+  reports only the trainer's pass), so `OnLoopPass` stays (R-3). The follower reads the transport's
+  heard anchor exactly as the karaoke clock does (A-012-1 holds).
+- **Library gate (013)**: no 014 operation deletes or replaces library files, so none carries the 013
+  write gate; the two new job appliers skip their ticks during maintenance like every synchroniser.
+  Full restore copies the new tables (rebuild from migrations copies every table). **Merge restore
+  does not plan the new tables yet** (013's planner has fixed categories): open item for the CTO
+  (hand-off `architect-014-phase0.md`).
+- **Worker allow-list**: `assets/<uuid>/score.musicxml` joins `LIBRARY_PATH_PATTERNS`; section jobs
+  additionally require the stem/detail patterns per field and score-view jobs the MusicXML pattern
+  (named patterns in `ports.py`).

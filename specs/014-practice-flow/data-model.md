@@ -49,16 +49,16 @@ restart" after a worker restart.
 3. Features per frame: chroma CQT (12), MFCC (20, normalised per coefficient), mix RMS, vocal
    activity ratio, per-stem RMS share; `stack_memory(n_steps=2)`; L2-normalised columns.
 4. Self-similarity `S = F^T F`; Foote novelty with a Gaussian-tapered checkerboard kernel of half
-   size 4 frames (frames = bars); peak picking `pre_max = post_max = 3`, `pre_avg = post_avg = 2`,
-   `delta = 0`, `wait = 3` (>= 4 bars apart). Thresholds are tuned in Phase 0 part 2 (T010) on
-   the synthetic set and frozen as constants with tests.
+   size **6 frames** (frames = bars; frozen by spike T010, research.md R-10), normalised to 0..1; peak
+   picking `pre_max = post_max = 3`, `pre_avg = post_avg = 2`, `delta = 0`, `wait = 3` (>= 4 bars
+   apart).
 5. Vocal switches: per frame `active = mean(vocals RMS > 0.1 x p95(vocals RMS)) > 0.3`; a switch
    that holds >= 2 frames is a boundary.
 6. Boundaries = union (dedupe within 1 frame, the novelty one wins), then merge segments shorter
    than 4 frames (first/last: 2) into the more similar neighbour (cosine of mean features); then,
    while more than `maxSections`, merge the shortest (`merged-to-limit`).
 7. Clusters: agglomerative clustering (average linkage, cosine) on segment means with distance
-   threshold 0.35 -> letters in order of first appearance.
+   threshold **0.25** (T010) -> letters in order of first appearance.
 8. Kinds and labels: section 2.3. Confidence = 0.5 x normalised novelty peak (1.0 for a vocal
    switch) + 0.5 x cluster margin (distance to the second-nearest cluster).
 9. Times: frame boundaries -> seconds (downbeat/beat times or frame x 2 s, rounded to 0.1 s); the
@@ -74,7 +74,7 @@ restart" after a worker restart.
 | chorus | vocal, cluster count >= 2, highest mean mix RMS among such clusters (ties: later first occurrence loses) |
 | verse | vocal, cluster count >= 2, not chorus; also the default for vocal segments |
 | bridge | vocal, cluster count = 1, starts after the first chorus |
-| solo | low-vocal, not first/last, one non-drum source >= 40 % of non-drum energy and >= 1.5 x its song median; sources: standard stems except drums and vocals, plus detail stems (instrument = detail channel when a detail stem wins inside its parent) |
+| solo | low-vocal, not first/last, one non-drum source holds >= 40 % of the non-drum energy of the segment **and** that share is >= 1.3 x the source's median share over the song's bars (T010: an absolute-RMS rule missed guitar and bass solos); sources: standard stems except drums and vocals; the instrument is the detail channel when a kept detail stem of the winning parent holds >= 50 % of the parent's energy in the segment |
 | instrumental | other low-vocal middle segments |
 | other | `few-repetitions` (no cluster occurs twice) for non-intro/outro segments, labelled "Part A", "Part B" by cluster |
 | `no-vocals` warning | p95 of the vocals RMS < 0.01 of the mix's p95; then rule "vocal" is never true |
@@ -108,8 +108,9 @@ Processing (audio-ingest, `engraving/score_view.py`):
    when present, number 0) starts at its downbeat in the grid; the pickup starts at
    `downbeats[0] - pickupBeats x beatPeriod`; the last bar ends at `durationSeconds`. Manual tempo:
    generated grid as in 008. Result times are relative to the input start (the API shifts).
-4. Font: insert `<style>@font-face{font-family:'Leipzig';src:url(data:font/woff2;base64,...)}</style>`
-   as the first child of the outer `<svg>` (font from Verovio's `data/Leipzig.css`).
+4. Font: Verovio 6.4.0 already writes the Leipzig `@font-face` (WOFF2 data URI, 58.6 KB) into a
+   `<style>` of every page; keep it and verify that each page contains it (`ScoreViewError` when not).
+   Do not add a second copy (check T011, research.md R-11: renders as `<img>` in Chromium and Firefox).
 5. Output files `page-001.svg` ... (max 200 pages), `bars.json`.
 
 Result `ScoreViewResult`: `pages [{index, file, widthPx 840, heightPx 1188}]`, `bars [{index,
@@ -141,21 +142,32 @@ Result: one file `setlist.pdf` (`application/pdf`), `pages` count.
 
 ### 2.7 Ports (architect, Phase 0 part 2)
 
+Binding code: `worker/src/stemstudio_worker/ports.py` and `schemas.py` 1.8.0 (Phase 0 part 2, T002).
+
 ```python
 class StructureAnalyzer(Protocol):
-    name: str; version: str
-    def analyze(self, request: SectionJobRequest, progress: RenderProgress) -> SectionResult: ...
+    name: StructureAnalyzerName; version: str
+    def analyze(self, request: SectionJobRequest, files: StemFiles, progress: SectionProgress) -> SectionResult: ...
+    # files: channel ("vocals" ... "other", detail channels) -> path resolved by the path guard
 
 class ScoreViewRenderer(Protocol):
     def render(self, musicxml: bytes, grid: TempoGrid, duration_seconds: float) -> ScoreView: ...
-    # ScoreView(pages: tuple[str, ...], bars: tuple[BarBox, ...], engine_version: str)
+    # ScoreView(pages: tuple[str, ...], bars: tuple[BarBox, ...], engine_version: str,
+    #           page_width_px: int = 840, page_height_px: int = 1188)
 
 class SetlistDocumentRenderer(Protocol):
-    def render(self, request: SetlistDocumentRequest) -> bytes: ...
+    def render(self, request: SetlistDocumentRequest) -> SetlistDocument: ...
+    # SetlistDocument(pdf: bytes, pages: int)
 ```
 
-Errors: `StructureError` (readable message, job `failed`), `ScoreViewError` ("The score view could
-not be made."), `DocumentError`.
+Refinements against the Phase 0 part 1 draft: the analyser gets the resolved files (the job service
+runs the path guard first: `STEM_PATH_PATTERN` per standard stem, `DETAIL_PATH_PATTERN` per detail; a
+score-view job only `SCORE_MUSICXML_PATTERN`), and the document renderer returns the page count with the
+bytes (`SetlistDocumentJob.pages`). Errors: `StructureError` (readable message, job `failed`),
+`ScoreViewError` (default `SCORE_VIEW_FAILED_TEXT` "The score view could not be made."), `DocumentError`
+(default `DOCUMENT_FAILED_TEXT` "The setlist PDF could not be made."); warning texts
+`SECTION_WARNING_TEXTS`; settings `WorkerSettings.structure_analyzer`. The contract schema `Warning`
+is the Python model `SectionWarning`.
 
 ### 2.8 Lane and stores
 
@@ -263,8 +275,9 @@ whole ordered list (0..100 entries).
 
 ### 3.7 Practice tables
 
-`PracticeSettings` (single row, Id = 1): `Enabled` bool (default true), `NoticeAcknowledged`
-bool (default false), `UpdatedAt`.
+`PracticeLogSettings` (single row, Id = 1; not 012's mix `PracticeSettings`): `Enabled` bool (default
+true), `NoticeAcknowledged` bool (default false), `UpdatedAt`. Contract: `PracticeLogSettings` /
+`PracticeLogSettingsUpdate`, `getPracticeLogSettings` / `updatePracticeLogSettings` (backend 1.13.0).
 
 `PracticeSessions`:
 
@@ -309,17 +322,18 @@ last-7-days seconds, last practised, sorted by last practised.
 ### 3.9 Migrations
 
 One EF Core migration `AddPracticeFlow` (backend): `TrackSections`, `Sections`, `ScoreViews`,
-`Setlists`, `SetlistEntries`, `PracticeSettings` (seeded), `PracticeSessions`,
+`Setlists`, `SetlistEntries`, `PracticeLogSettings` (seeded), `PracticeSessions`,
 `PracticeSectionTimes`; the mix loop `sectionId` lives in the existing mix settings JSON (no
 column). 013's backup covers the database file, so no 013 change is needed; the restore version
 check accepts the new migration (013 compares migration ids).
 
 ## 4. Engine (audio-engine 2.4.0, summary)
 
-`ScoreViewMap {pages: [{url, widthPx, heightPx}], bars: [{number, page, x, y, width, height,
-startSeconds, endSeconds}]}`; `ScoreFollowOptions {follow: bool, reducedMotion?, scrollPauseMs
-(default 4000), leadInSeconds (default 0)}`; `LoopPassInfo {start, end, pass, speedPercent}`.
-Full rules: [contracts/audio-engine.delta.md](contracts/audio-engine.delta.md).
+`ScoreViewMap {pages: [{page, url, widthPx, heightPx}], bars: [{index, number, page, x, y, width,
+height, startSeconds, endSeconds}]}`; `ScoreFollowOptions {follow: bool, reducedMotion?, scrollPauseMs?
+(default 4000)}`; `LoopPassInfo {start, end, pass, speedPercent}`. Binding: `src/audio-engine/src/types.ts`
+2.4.0 and [contracts/audio-engine.md](contracts/audio-engine.md) 2.4.0 (the draft's `leadInSeconds` was
+dropped in the delta: the karaoke clock already compensates the output latency).
 
 ## 5. Frontend state
 
@@ -350,17 +364,20 @@ Full rules: [contracts/audio-engine.delta.md](contracts/audio-engine.delta.md).
 
 `mixer.play-pause`, `mixer.stop`, `mixer.seek:-5`, `mixer.seek:5`, `mixer.seek:-1`, `mixer.seek:1`,
 `mixer.loop.a`, `mixer.loop.b`, `mixer.loop.toggle`, `mixer.loop.section`, `mixer.section.next`,
-`mixer.section.previous`, `mixer.section.restart`, `mixer.speed.down`, `mixer.speed.up`,
-`mixer.speed.reset`, `mixer.transpose.down`, `mixer.transpose.up`, `mixer.trainer.toggle`,
-`mixer.count-in.toggle`, `mixer.metronome.toggle`, `mixer.channel.select:1..9`,
+`mixer.section.previous`, `mixer.section.restart`, `mixer.speed:-5`, `mixer.speed:5`,
+`mixer.practice.reset`, `mixer.transpose:-1`, `mixer.transpose:1`, `mixer.trainer.toggle`,
+`mixer.countin.toggle`, `mixer.metronome.toggle`, `mixer.channel.select:1..9`,
 `mixer.channel.mute`, `mixer.channel.solo`, `mixer.score.toggle`, `mixer.score.follow`,
 `mixer.save`, `mixer.save-as`, `setlist.next`, `setlist.previous`, `help.open`, `palette.open`,
-`shortcuts.open`, `go.import`, `go.tracks`, `go.mixes`, and the 015 commands `mixer.record.toggle`
-(R) and `mixer.compare.cycle` (C). The 004 ids keep their meaning. `mixer.speed.reset` resets
-speed **and** transpose (012 decision).
+`shortcuts.open`, `go.import`, `go.tracks`, `go.mixes`, 022's `library.search.focus` (scope `library`),
+and the 015 commands `mixer.record.toggle` (R) and `mixer.compare.cycle` (C). The 004 ids keep their
+meaning; the practice tempo ids are 012's shipped ids (ui-test-ids 1.11.0 "Shortcut commands"; DELTA
+R-1, Phase 0 part 2). `mixer.practice.reset` resets speed **and** transpose (012 decision).
 
-Catalogue entry (`keymap-defaults.json`, the single source for C# and TS): `{command, scope,
-owner: "001"|"004"|"012"|"014"|"015", group, defaults: [chord], reserved: bool}`. `reserved: true`
+Catalogue entry (`src/StemStudio.Web/wwwroot/js/keymap-defaults.json`, the single source for C# and
+TS, written in Phase 0 part 2 T006; format in web-interop 1.1.0 section 5.4): `{command, scope,
+owner: "001"|"004"|"012"|"014"|"015"|"022", group, label, defaults: [chord], reserved: bool,
+anywhere?: bool}`; plus `sequences`, `pedal`, `reservedChords`, `externalChords`. `reserved: true`
 (015 commands until 015 ships) keeps the default chords out of reach of other bindings and of
 overrides, and hides the row in the overview and settings. A command whose owner feature has not
 registered a handler is never dispatched. 016 adds its commands to the same file.
@@ -392,7 +409,7 @@ on the next flush.
 | mixer | `mixer-sections-edit` | advanced, expert | `section-editor*` |
 | mixer | `mixer-sections-detection` | advanced, expert | `section-status` (how detection works, limits, re-detect) |
 | mixer | `mixer-score-follow` | all | `score-panel*` |
-| mixer | `mixer-practice-log` | all | `practice-panel*` |
+| mixer | `mixer-practice-log` | all | `practice-log-panel*` |
 | mixes | `setlists` (screen topic `/setlists`) | all | `setlist-*` |
 | mixes | `setlist-play` | all | `setlist-bar*` |
 | mixes | `setlist-pdf` | advanced, expert | `setlist-pdf*` |
@@ -402,5 +419,5 @@ on the next flush.
 | start | `practice-privacy` (screen topic `/practice`) | all | `practice-page*` |
 | glossary | `section`, `speed-trainer-region` | all | |
 
-Tours: `practice-section` v1 (Beginner, mixer: `section-lane`, `section-loop`, `practice-panel`),
+Tours: `practice-section` v1 (Beginner, mixer: `section-lane`, `section-loop-current`, `practice-log-panel`),
 `hands-free` v1 (Advanced, mixer: `shortcut-overlay`, `pedal-setup`, `score-panel`).
