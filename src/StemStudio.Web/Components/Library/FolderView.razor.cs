@@ -109,6 +109,10 @@ public sealed partial class FolderView
         {
             Fail(ex.Error);
         }
+        catch (OperationCanceledException) when (Stopping.IsCancellationRequested)
+        {
+            // Removed while loading (search results replaced the folder view): nothing to show.
+        }
     }
 
     private Task<LibraryFolderViewDto?> FetchAsync(string? knownRevision)

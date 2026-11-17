@@ -22,7 +22,8 @@ public sealed class LibrarySearchTests : LibraryTestContext
     private static FolderHitDto ArtistHit() => new()
     {
         Folder = LibraryData.Folder(LibraryData.MetallicaId, "Metallica", LibraryData.Cover(2), items: 7),
-        Highlights = [new HighlightDto { Field = SearchFieldDto.Name, Start = 0, Length = 3 }],
+        // The API marks a folder hit's name with the folder's level as the field (backend LibrarySearch.FieldOf).
+        Highlights = [new HighlightDto { Field = SearchFieldDto.Artist, Start = 0, Length = 3 }],
     };
 
     private static FolderHitDto SongHit() => new()
@@ -194,6 +195,24 @@ public sealed class LibrarySearchTests : LibraryTestContext
         page.Find("[data-testid=library-folder-title]").TextContent.ShouldBe("Battery");
         page.FindAll("[data-testid=library-search-clear]").ShouldBeEmpty();
         JSInterop.VerifyFocusAsyncInvoke();
+    }
+
+    [Fact]
+    public async Task TypingWhileTheFolderStillLoads_DisposesItWithoutBreakingThePage_AndClearShowsItAgain()
+    {
+        // The folder view is removed while it waits for the stored layout and comes back after Clear (E2E 022 run 1:
+        // the late continuation read a disposed cancellation source, see PollingComponentTests).
+        Folder(LibraryData.SongId, LibraryData.SongView());
+        var stored = JSInterop.Setup<string?>("localStorage.getItem", LibraryViewPreferences.StorageKey);
+        var page = RenderFolder(LibraryData.SongId);
+        await page.Find("[data-testid=library-search]").InputAsync(new ChangeEventArgs { Value = "bass" });
+        page.FindAll("[data-testid=library-folders]").ShouldBeEmpty();
+
+        stored.SetResult(null);
+        await page.Find("[data-testid=library-search-clear]").ClickAsync(new());
+        stored.SetResult(null);
+
+        page.WaitForAssertion(() => page.Find("[data-testid=library-folder-title]").TextContent.ShouldBe("Battery"));
     }
 
     [Fact]
