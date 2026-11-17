@@ -205,7 +205,7 @@ public sealed class PreferencesStateTests : IAsyncDisposable
 
     [Theory]
     [InlineData("{not json")]
-    [InlineData("""{"schemaVersion":2,"level":"expert"}""")]
+    [InlineData("""{"schemaVersion":3,"level":"expert"}""")]
     [InlineData("[]")]
     public async Task CrossTab_InvalidRecord_IsIgnored(string json)
     {
