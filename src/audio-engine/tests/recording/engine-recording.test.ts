@@ -286,6 +286,19 @@ describe('take channel', () => {
     await expect(rig.engine.loadTake({ takeId: 'y', source: { url: '/missing', startSample: 0, lengthSamples: 10, channels: 2 }, part: 'none' })).rejects.toThrow('Failed to load stem "take": HTTP 404');
   });
 
+  it.each([
+    [{ startSample: -1, lengthSamples: 10, channels: 1 }, 'startSample'],
+    [{ startSample: 0.5, lengthSamples: 10, channels: 1 }, 'startSample'],
+    [{ startSample: 0, lengthSamples: 0, channels: 1 }, 'lengthSamples'],
+    [{ startSample: 0, lengthSamples: 1800 * SR + 1, channels: 1 }, 'lengthSamples'],
+    [{ startSample: 0, lengthSamples: 10, channels: 3 }, 'channels'],
+  ])('loadTake refuses a hostile source %o before fetching', async (slice, field) => {
+    const rig = await loaded();
+    const source = { url: '/take.flac', ...slice } as { url: string; startSample: number; lengthSamples: number; channels: 1 | 2 };
+    await expect(rig.engine.loadTake({ takeId: 't', source, part: 'none' })).rejects.toThrow(`Invalid take source: ${field}`);
+    expect(rig.stub.requested).not.toContain('/take.flac');
+  });
+
   it('setChannel and attachMeter work for the take before loadTake; unloadTake silences it', async () => {
     const rig = await loaded();
     expect(() => {
