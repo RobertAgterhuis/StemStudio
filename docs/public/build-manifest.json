@@ -1,27 +1,27 @@
 {
   "schema": 1,
   "builtAt": "2026-11-17",
-  "sourceHash": "6ec57d9f590f817ea47f8264339f6970acc5dd5802a35df1070a4f6e659d8148",
+  "sourceHash": "4fb8644bf11452d4140e0a572f37e06b3b5e8d246458ef6ba98f91bf6bfcba1e",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
-      "pages": 41,
-      "bytes": 1440000
+      "pages": 50,
+      "bytes": 1837705
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
-      "pages": 49,
-      "bytes": 1665311
+      "pages": 59,
+      "bytes": 1824925
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "a0658709995ab663d221c5d3bb013fadb560cdac566cb9fcaa064604ea6eb852"
+      "sha256": "98198249996ede80ed8e7dfbaf9b7505032f0c6ecee22bda328698d7b76ee747"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "35e2be4ab8887b0e5853dbe94442122a25c2d71a9f0a13f4dc387ce0710588a6"
+      "sha256": "fb5a9f5ff0c39f0f53a7a9f8623debf92f0fc15a4185836dbdb2c987503e2fd0"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -57,39 +57,39 @@
     },
     {
       "path": "docs/public/src/technical-manual/01-about.md",
-      "sha256": "72d7597399b1fe34f011f367091e09adda9ae3a1707094b3b80850ebe9d6cd5f"
+      "sha256": "520e40e7b195208b931b1dc3d444d3ee6d5ca012a5b5e42aac5ada6fe4a0fcaf"
     },
     {
       "path": "docs/public/src/technical-manual/02-architecture.md",
-      "sha256": "33e6dd1b216b018740ce07ca486ece486ccaf528d36fdb27080d276bc7974a3f"
+      "sha256": "79e9b6a631b130f18de2695ae3128b56fd92ae508b58712935eead946dee093d"
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "7c3e80f8e9456c4684c2b3cdc3e6b46f73040a1fe8135d1c56b0245a2d33cd14"
+      "sha256": "6b5ae20c48f30be6876d76b1b7460c93e4d39f7c3aece3f4b8b46aba36f8dd3b"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
-      "sha256": "1a12a7e4c8d1f98b529708b4848039a820d937c921cbd2661900cffdfedcfc5e"
+      "sha256": "5c0be545ef3477dd4ea587cb6839c8023782014a09d77ae38afd29931a9f13c5"
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
-      "sha256": "dcaefa57d2c1b61da2c79cc2b77f84c46b4b8e13205d26c94408bac2e2f037a4"
+      "sha256": "07ec55da046c24114f2cd7ac9378e954e21cd87887a277efa78aafd694484d55"
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "786f5b6763c70c9f012f90d9dad21a7ad0f4dfdc87643a6e031908d6dd6543b9"
+      "sha256": "a64e266e1cb7ba9b92aa1dd1649001a1c4b240b2e5065469b0a094276bf5e675"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
-      "sha256": "781bdf4547d573d5fdb54ff4a23ac371a8d8747de20e096eb45fa5f94ecd3174"
+      "sha256": "02f5bb401be726b2bcd649fa4bd6772d9500aa3d5d1c55bb0d02fa572336fe55"
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
-      "sha256": "9a15399e496dc39a2810efdc7bdf2ed0c6fc024a5e7fd8aa197775cdcd5c281f"
+      "sha256": "837a2ff94ba77c292a9d010a0f0ec47aaf5fcb51ff60ae50472fddfc3a9581a5"
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
-      "sha256": "bafbfaaea9423c69006512835e171bd25f0d2f9350a167301fae185aedfec4a9"
+      "sha256": "d63be83bab980194e7a2de02772e2b4c0b81410e023956d47cef43026f05ca5f"
     },
     {
       "path": "docs/public/src/technical-manual/10-development-workflow.md",
@@ -97,7 +97,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/11-operations.md",
-      "sha256": "34ec6da1c8323543596cf1defe17c399857411891258af24547704e91194451c"
+      "sha256": "ee77b2bded3d5c72d9e917f1ad4bdf9535f394eae253dee6fb9fb442afd3920b"
     },
     {
       "path": "docs/public/src/technical-manual/12-documentation.md",
@@ -109,15 +109,15 @@
     },
     {
       "path": "docs/public/src/user-manual/01-about.md",
-      "sha256": "40b4f32eec12f5f215d5e62c389ddce4e1a4860073bb6267511007b7a50f4e40"
+      "sha256": "64097293056bd9343ffaaa68d6d025402edb30ba41bb5f63567bf5e683bd4efe"
     },
     {
       "path": "docs/public/src/user-manual/02-getting-started.md",
-      "sha256": "ce1f63f0069688516cade0965f41fead42f820470dffda93c87c5e3cd9b50d5f"
+      "sha256": "36dc59a07180b323b5cc18bc0f7e0819c2f721b158c2c30c8b35447e922bca61"
     },
     {
       "path": "docs/public/src/user-manual/03-journey-levels.md",
-      "sha256": "b01070f8ce91c9bf8ac93386598e75956069b96853f18ab447bb2bfd114082ad"
+      "sha256": "6a3e92824e5c3cb021879a2ecc61d304e9c6c79e1d92c3cc6a3ae082edf10c08"
     },
     {
       "path": "docs/public/src/user-manual/04-importing.md",
@@ -125,7 +125,7 @@
     },
     {
       "path": "docs/public/src/user-manual/05-stems-and-mixer.md",
-      "sha256": "1221b0bacbe8616bfccd66a8da5cf95dffafa717bb550702dae3c34e1d8e7ff0"
+      "sha256": "c07b913297c00672f446af50a8a54ee17681d90e2285d71c0c1d475a684c9f95"
     },
     {
       "path": "docs/public/src/user-manual/06-mixes.md",
@@ -141,42 +141,50 @@
     },
     {
       "path": "docs/public/src/user-manual/09-export-library.md",
-      "sha256": "6d1c1a25a90d939a1865d7154783347237daae40effa2e3d47ff3a4cce9cebd3"
+      "sha256": "43036e4a4facc59bf64984106dafac73fb2978858ab2a43ff0111e89272f8bbd"
     },
     {
-      "path": "docs/public/src/user-manual/10-sheet-music.md",
+      "path": "docs/public/src/user-manual/10-library-folders.md",
+      "sha256": "7b71b5ab9e913bf83847b33da13b1465b47ab66e7f2b1d5ac16bee62ec81d86a"
+    },
+    {
+      "path": "docs/public/src/user-manual/11-sheet-music.md",
       "sha256": "ac883b72f1af891be16198cd959d395006a2c5ef8ed14613dcec61a97de05e9d"
     },
     {
-      "path": "docs/public/src/user-manual/11-style-transfer.md",
+      "path": "docs/public/src/user-manual/12-style-transfer.md",
       "sha256": "69b9ae0963b26387d80e3588d7adb5687ed7d2c3f73dbc7cf354d884e312b12f"
     },
     {
-      "path": "docs/public/src/user-manual/12-lyrics-to-song.md",
-      "sha256": "e33e5fce2d7b8efb2371950a9b1706f42b4f22f491e892aef238b64fe764cc72"
+      "path": "docs/public/src/user-manual/13-lyrics-to-song.md",
+      "sha256": "4c693a72d899ce1ad53419b4dcf4030f9013f59da08b52246cb61c9faf64b544"
     },
     {
-      "path": "docs/public/src/user-manual/13-ai-composer-agent.md",
-      "sha256": "895a4bf8a434395fd42178e2e03f92f11ea261a60ea1f84bab5856632748e4ae"
+      "path": "docs/public/src/user-manual/14-lyric-assistant.md",
+      "sha256": "f20ce2f0b70a69d3967c67558a16036fea101bdabe84abe454134c845684733f"
     },
     {
-      "path": "docs/public/src/user-manual/14-library-care.md",
+      "path": "docs/public/src/user-manual/15-ai-composer-agent.md",
+      "sha256": "4ec790304792a1e97624f3c116f8ac75ddb5e51dfab6be0c8ac1f7aecdac4099"
+    },
+    {
+      "path": "docs/public/src/user-manual/16-library-care.md",
       "sha256": "a8a11e57f7b1a3bbdecbc5dff98ed9bc9575a99cc34b5b9b48c63eb3d6e79836"
     },
     {
-      "path": "docs/public/src/user-manual/15-keyboard-shortcuts.md",
-      "sha256": "4530eb5bc989c9cc6dfb70edf3282802ed8816034ee2e70029307e9a4a8a4a2d"
+      "path": "docs/public/src/user-manual/17-keyboard-shortcuts.md",
+      "sha256": "b20d94a94efe61ef428b0392f307eaf80cf9a2a8042ec5075c33a8178f234767"
     },
     {
-      "path": "docs/public/src/user-manual/16-help-and-tours.md",
+      "path": "docs/public/src/user-manual/18-help-and-tours.md",
       "sha256": "9b8dd4faef6df92e58eab9fe48953f4f9499ea324a1dd147ba00667c892df235"
     },
     {
-      "path": "docs/public/src/user-manual/17-troubleshooting-faq.md",
-      "sha256": "6505fa0aa4ed2bf8bb2ce3d5fc0cac5e0fdb6d6ec06f1be022ae793f24362e19"
+      "path": "docs/public/src/user-manual/19-troubleshooting-faq.md",
+      "sha256": "a60eed7c350f453d19e1db8700e1c0d2f1858e21526c199dbadce8ddce36fb81"
     },
     {
-      "path": "docs/public/src/user-manual/18-legal-notice.md",
+      "path": "docs/public/src/user-manual/20-legal-notice.md",
       "sha256": "9bec7068dba08c23d4a785cf8f9f111d8cf7540c3298ad81190843bba124856a"
     },
     {
