@@ -40,6 +40,10 @@ a later agent-tool-catalogue minor version.
 | 022 | **Library by artist and album**: saved items filed automatically in Artist > Album > Song folders (in the app only) with folder art, live search over artist, album, song and stem/instrument, library info to correct names | S13 (owner request 2026-11-16) | 005, 007 (013/014 overlaps resolved in the 022 research) |
 | 023 | **Lyric writing assistant**: on-demand help writing own lyrics (continue, alternatives, rhymes, syllables vs rhythm, titles) and spelling/grammar/flow checks in Dutch and English that always allow poetic licence and propose it; local dictionaries + the 011 agent backends | S13 | 010, 011 (+ claude-key) |
 
+**Delivery status (2026-11-17):** 002-012 are on `main`. 013 Library care is integrated and verified on branch
+`013-library-care` (see `docs/STATUS.md`), waiting for the merge to `main`; open for the owner: V9 throughput with a
+~20 GB library on the reference machine. 022/023 are in progress.
+
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.
 

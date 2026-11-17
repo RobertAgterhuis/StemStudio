@@ -169,18 +169,18 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ## Phase 8: Polish (inside the wave, per owner)
 
-- [ ] T066 [P] [backend] [stem-separation] [frontend] [qa] [devops] [quality-gate] Each owner: refactor to SIG limits, XML docs / docstrings, accessibility review of every new dialog (frontend: keyboard-only and screen-reader walk-through of backup, restore, discard and clean-up), traceability FR/SC -> tests (qa), compose and CI validation with the backups mount (devops), `run_all.py` (quality-gate); HO:polish per owner (one task id, one hand-off per owner)
+- [x] T066 [P] [backend] [stem-separation] [frontend] [qa] [devops] [quality-gate] Each owner: refactor to SIG limits, XML docs / docstrings, accessibility review of every new dialog (frontend: keyboard-only and screen-reader walk-through of backup, restore, discard and clean-up), traceability FR/SC -> tests (qa), compose and CI validation with the backups mount (devops), `run_all.py` (quality-gate); HO:polish per owner (one task id, one hand-off per owner)
 
 ---
 
 ## Integration wave (CTO)
 
-- [ ] T067 [CTO] Merge (after 012); T005 contract merge confirmed; full build, lint, unit + coverage gates; Playwright default suite + the five library-care specs on the fake stack, retries 0
-- [ ] T068 [CTO] Quickstart V1-V8 and V10 on the fake stack (V3 with `docker compose down -v`)
-- [ ] T069 [CTO] Security review against plan.md "Security review points" 1-10 (hostile corpus, banned APIs, stored paths, consent, secrets grep, download CORS, limits, maintenance, permissions); record findings in `docs/STATUS.md`
-- [ ] T070 [CTO] Real-stack validation on the reference machine: V9 throughput (SC-002) for backup, verify and restore of a ~20 GB library to the bind-mounted folder; restore on a fresh set of volumes; record in `docs/STATUS.md`
-- [ ] T071 [CTO] Docs: user manual chapter "Library care" (backups folder, backup options, restore modes, previous library, storage, clean-up, what is never removed, not encrypted, recordings once 015 lands), technical manual (03-deployment: backups mount and Linux owner; 07-data-model: `library-care/` and the archive format; 08-security: hostile archives, consent proofs; 11-operations: backup/restore runbook); README; `docs/THIRD-PARTY-LICENSES.md` unchanged (no new dependency); run `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes (constitution 1.4.0, FR-036)
-- [ ] T072 [CTO] `/speckit-analyze`; `docs/STATUS.md`; PR
+- [x] T067 [CTO] Merge (after 012); T005 contract merge confirmed; full build, lint, unit + coverage gates; Playwright default suite + the five library-care specs on the fake stack, retries 0
+- [x] T068 [CTO] Quickstart V1-V8 and V10 on the fake stack (V3 with `docker compose down -v`)
+- [x] T069 [CTO] Security review against plan.md "Security review points" 1-10 (hostile corpus, banned APIs, stored paths, consent, secrets grep, download CORS, limits, maintenance, permissions); record findings in `docs/STATUS.md`
+- [ ] T070 [CTO] Real-stack validation on the reference machine: V9 throughput (SC-002) for backup, verify and restore of a ~20 GB library to the bind-mounted folder; restore on a fresh set of volumes; record in `docs/STATUS.md` **(2026-11-17: scaled down on the fake stack only, 327 MB archive at 127-155 MB/s; V9 with ~20 GB on the reference machine open for the owner, see STATUS)**
+- [x] T071 [CTO] Docs: user manual chapter "Library care" (backups folder, backup options, restore modes, previous library, storage, clean-up, what is never removed, not encrypted, recordings once 015 lands), technical manual (03-deployment: backups mount and Linux owner; 07-data-model: `library-care/` and the archive format; 08-security: hostile archives, consent proofs; 11-operations: backup/restore runbook); README; `docs/THIRD-PARTY-LICENSES.md` unchanged (no new dependency); run `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes (constitution 1.4.0, FR-036)
+- [x] T072 [CTO] `/speckit-analyze`; `docs/STATUS.md`; PR
 
 ---
 
