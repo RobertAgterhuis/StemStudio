@@ -302,22 +302,21 @@ test('a mix the agent saves from the open mixer keeps its practice tempo', { tag
   expect((await api.getMix(saved?.id ?? '')).settings.practice).toEqual(practiceWith({ speedPercent: 75, transposeSemitones: -2 }));
 });
 
-test('renaming a mix with practice settings keeps them', { tag: ['@agent', '@us5-practice-rename'] }, async ({
+test('updating a mix from the mixer keeps its practice settings', { tag: ['@agent', '@us5-practice-update'] }, async ({
   api,
   agent,
   mixer,
 }, testInfo) => {
-  const track = await freshTrack(api, `us5-practice-rename-${testInfo.project.name}`);
+  const track = await freshTrack(api, `us5-practice-update-${testInfo.project.name}`);
   const practice = practiceWith({ speedPercent: 80, transposeSemitones: 3, trainer: { enabled: true, startPercent: 60, targetPercent: 90 }, countIn: { bars: 2, everyPass: true } });
   const loop = { start: 2, end: 6, enabled: true };
   const mix = await api.createMix(track.id, mixSettings({ name: `Agent practice ${runId()} ${testInfo.project.name}`, practice, loop }));
   await openMixer(mixer, track.id, mix.id);
   await agent.openNewConversation();
 
-  await agent.sendCommand('Rename this mix to Agent practice renamed');
-  await agent.expectAnswer(finalText('us5-practice-rename'));
-  await agent.expectStep('rename_mix', 'succeeded');
-  await expect.poll(async () => (await api.getMix(mix.id)).settings.name).toBe('Agent practice renamed');
+  await agent.sendCommand('Save the changes in this mix');
+  await agent.expectAnswer(finalText('us5-practice-update'));
+  await agent.expectStep('update_mix', 'succeeded');
   expect((await api.getMix(mix.id)).settings.practice).toEqual(practice);
 });
 

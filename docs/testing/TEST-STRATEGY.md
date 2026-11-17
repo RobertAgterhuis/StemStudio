@@ -1565,7 +1565,7 @@ sources (alignment probe of 002), <= 1 ms.
 | Stack | Runs |
 |---|---|
 | fake stack (compose default: `STEMSTUDIO_SEPARATOR=fake`, `STEMSTUDIO_FAKE_LYRICS=word`, `cpu`), web image with `soundtouch.wasm` | `npm test` (all `@practice` specs are part of the default suite; the module is built inside the web image, so no new service, variable or profile is needed) or `npm run test:practice` alone; `npm run test:a11y` (`practice.a11y.spec.ts` + screen `mixer-practice`); `npm run test:visual` in the Playwright container (screen `mixer-practice`, new baselines) |
-| fake stack + `scripts/agent-e2e.{sh,ps1} fake` | `agent.spec.ts` `@us5-practice-save`, `@us5-practice-rename` (one api start per script, TEST-STRATEGY 17.4) |
+| fake stack + `scripts/agent-e2e.{sh,ps1} fake` | `agent.spec.ts` `@us5-practice-save`, `@us5-practice-update` (one api start per script, TEST-STRATEGY 17.4) |
 | other `STEMSTUDIO_FAKE_LYRICS` modes | the karaoke-at-speed cases skip (they need `word`), everything else runs |
 
 `npm run test:legacy` excludes `@practice`. The karaoke-at-speed cases carry `@karaoke` too, so
@@ -1609,7 +1609,7 @@ use `music_100bpm_20s.flac`; the detail sync case uses `detail_10s_band.wav`.
 | FR-017 accessibility (keyboard, spoken values, live regions, contrast, reduced motion) | bUnit a11y pass (frontend T064) | `practice-levels.spec.ts` spoken values, slider keys, Tab walk with `:focus-visible`; `a11y/screens.a11y.spec.ts` screen `mixer-practice` (3 levels x 2 themes); `a11y/practice.a11y.spec.ts` count-in running (and no animation with reduced motion), trainer running, unavailable notice |
 | FR-018 audible timing on the audio clock | engine tests (mock clock) | click probe: click and pass times exact within 1 ms / 5 ms |
 | SC-004 20 channels at 50 % for 10 min, CPU budget | P0-2 (architect), `test:wasm` throughput | - (reference machine, CTO R1) |
-| Agent keeps practice (011 tools round-trip `practice`) | `LoopbackMixPracticeTests.cs` (backend) | `agent.spec.ts` `@us5-practice-save` (save_mix_as from the open mixer at 75 % / -2 st), `@us5-practice-rename` (rename keeps speed, transpose, trainer, count-in) |
+| Agent keeps practice (011 tools round-trip `practice`) | `LoopbackMixPracticeTests.cs` (backend) | `agent.spec.ts` `@us5-practice-save` (save_mix_as from the open mixer at 75 % / -2 st), `@us5-practice-update` (update_mix from the open mixer keeps speed, transpose, trainer, count-in; rename is not offered in the mixer context and is covered by `PracticeToolProjectionTests` / `LoopbackMixPracticeTests`) |
 
 **Every instrument family (SC-008).** `practice-families.spec.ts` (P14) has one case per family:
 vocals, guitar, bass, keys (stem `piano`), drums and other. Each solos that stem, sets 80 % and
