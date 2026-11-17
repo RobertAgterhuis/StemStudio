@@ -50,3 +50,25 @@ public sealed class DetailFilesRemovedTests
     [Fact]
     public void HasDetailFiles_IsFalseWithoutACompletedPhase() => DetailTestData.Requested().HasDetailFiles.ShouldBeFalse();
 }
+
+/// <summary>013 T050: a rehydrated worker job replaces the standard job of a completed track (FR-019).</summary>
+public sealed class RehydratedWorkerJobTests
+{
+    [Fact]
+    public void RehydrateWorkerJob_ReplacesTheJobOfACompletedTrack()
+    {
+        var track = DetailTestData.CompletedTrack();
+
+        track.RehydrateWorkerJob("5d4c3b2a1f0e4d9c8b7a6f5e4d3c2b1a", DetailTestData.T0.AddDays(1));
+
+        (track.WorkerJobId, track.UpdatedAt).ShouldBe(("5d4c3b2a1f0e4d9c8b7a6f5e4d3c2b1a", DetailTestData.T0.AddDays(1)));
+    }
+
+    [Fact]
+    public void RehydrateWorkerJob_RefusesInvalidIdsAndTracksThatAreNotCompleted()
+    {
+        Should.Throw<ArgumentException>(() => DetailTestData.CompletedTrack().RehydrateWorkerJob("nope", DetailTestData.T0));
+        var queued = StemStudio.Domain.Tracks.Track.FromUrl(Guid.NewGuid(), StemStudio.Domain.Tracks.SourceKey.FromStored("youtube:dQw4w9WgXcQ"), "https://youtu.be/dQw4w9WgXcQ", DetailTestData.T0);
+        Should.Throw<InvalidOperationException>(() => queued.RehydrateWorkerJob("5d4c3b2a1f0e4d9c8b7a6f5e4d3c2b1a", DetailTestData.T0));
+    }
+}
