@@ -126,8 +126,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 4: User Story 2 - Calibrate latency (P1)
 
-- [ ] T045 [P] [US2] [audio-engine] Failing tests `tests/recording/calibrate-engine.test.ts`: refuses while playing, forces monitoring off and mutes the mix, clicks scheduled on the destination, capture window, result object incl. `outputLatencySamples`, `testInput: 'loopback'` wiring (FR-007)
-- [ ] T046 [US2] [audio-engine] Implement `calibrateLatency` and the loopback test input to pass T045
+- [x] T045 [P] [US2] [audio-engine] Failing tests `tests/recording/calibrate-engine.test.ts`: refuses while playing, forces monitoring off and mutes the mix, clicks scheduled on the destination, capture window, result object incl. `outputLatencySamples`, `testInput: 'loopback'` wiring (FR-007)
+- [x] T046 [US2] [audio-engine] Implement `calibrateLatency` and the loopback test input to pass T045
 - [ ] T047 [P] [US2] [backend] Failing tests `CalibrationEndpointTests.cs`: list, upsert by label (create/replace), validation, delete (takes keep their latency, `calibrationId` set null)
 - [ ] T048 [US2] [backend] Implement `Recording/CalibrationEndpoints.cs` to pass T047
 - [ ] T049 [P] [US2] [frontend] Failing bUnit tests `CalibrationDialogTests.cs`: instructions, running state (`aria-busy`), success and every failure reason with its tip, manual entry (0-1000, 0.1 step, rounding), save -> upsert, Expert samples, `rec-latency-status` per method, `rec-setup-changed` (> 220 samples) (FR-007, FR-020)

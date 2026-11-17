@@ -38,12 +38,6 @@ describe('recording contract 2.5.0 (skeleton)', () => {
   });
 
   it.each([
-    ['calibrateLatency', (e: AudioEngine) => e.calibrateLatency({ clicks: 8, seed: 1 })],
-  ] as const)('%s rejects with "not implemented" until its user story (US2)', async (name, call) => {
-    await expect(call(engine())).rejects.toThrow(`not implemented: ${name}`);
-  });
-
-  it.each([
     ['setTakeAdjustment', (e: AudioEngine) => { e.setTakeAdjustment(441); }],
     ['setTakeCompare', (e: AudioEngine) => { e.setTakeCompare('original'); }],
   ] as const)('%s throws "not implemented" until its user story (US4, US7)', (name, call) => {

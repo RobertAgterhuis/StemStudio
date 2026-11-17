@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEngine, type AudioEngine, type CalibrationResult } from '../../src/index';
 import { CALIBRATION_LEAD_SECONDS } from '../../src/recording/calibrate-run';
 import { CALIBRATION_TAIL_SECONDS, chirpTemplate, clickSchedule } from '../../src/recording/calibration';
-import type { MockAudioBufferSourceNode, MockGainNode } from '../mocks/audio-context';
+import type { MockAudioBufferSourceNode } from '../mocks/audio-context';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 import { FetchStub } from '../mocks/fetch';
 import { FakeMediaDevices, RecordingContext } from '../mocks/media';
@@ -58,29 +58,23 @@ function feed(rig: Rig): void {
   }
 }
 
-/** Runs the calibration with the clock advancing in 25 ms steps until it resolves. */
-async function calibrate(rig: Rig, options: { clicks?: number; seed?: number } = { seed: SEED }): Promise<CalibrationResult> {
-  const box: { result?: CalibrationResult; error?: unknown } = {};
-  rig.engine.calibrateLatency(options).then(
-    (result) => {
-      box.result = result;
-    },
-    (error: unknown) => {
-      box.error = error;
-    },
-  );
-  for (let i = 0; i < 600 && box.result === undefined && box.error === undefined; i++) {
+/** Advances the clock, the capture and the timers by `steps` x 25 ms, or until `done()`. */
+async function advance(rig: Rig, steps: number, done: () => boolean = () => false): Promise<void> {
+  for (let i = 0; i < steps && !done(); i++) {
     rig.ctx.currentTime += 0.025;
     feed(rig);
     await vi.advanceTimersByTimeAsync(25);
   }
-  if (box.error !== undefined) {
-    throw box.error;
-  }
-  if (box.result === undefined) {
-    throw new Error('calibration never finished');
-  }
-  return box.result;
+}
+
+/** Runs the calibration with the clock advancing in 25 ms steps until it settles. */
+async function calibrate(rig: Rig, options: { clicks?: number; seed?: number } = { seed: SEED }): Promise<CalibrationResult> {
+  const box: { settled: boolean } = { settled: false };
+  const running = rig.engine.calibrateLatency(options).finally(() => {
+    box.settled = true;
+  });
+  await advance(rig, 600, () => box.settled);
+  return running;
 }
 
 /** Click sources: buffer sources whose buffer is the chirp. */
@@ -127,18 +121,14 @@ describe('calibrateLatency', () => {
   it('forces monitoring off and mutes the mix while it runs, and restores both', async () => {
     const rig = await makeRig();
     rig.engine.setMonitoring({ enabled: true, volume: 0.6 });
-    const monitor = rig.ctx.gains.find((g) => g.connections.includes(rig.ctx.destination) && g.gain.value === 0.6) as MockGainNode;
-    const stem = rig.ctx.gains.find((g) => g.connections.some((n) => n.kind === 'panner')) as MockGainNode;
+    const monitor = rig.ctx.gains.find((g) => g.connections.includes(rig.ctx.destination) && g.gain.value === 0.6);
+    const stem = rig.ctx.gains.find((g) => g.connections.some((n) => n.kind === 'panner'));
     loopback(rig, 300);
     const running = rig.engine.calibrateLatency({ seed: SEED });
-    expect([monitor.gain.value, stem.gain.value]).toEqual([0, 0]);
-    for (let i = 0; i < 400; i++) {
-      rig.ctx.currentTime += 0.025;
-      feed(rig);
-      await vi.advanceTimersByTimeAsync(25);
-    }
+    expect([monitor?.gain.value, stem?.gain.value]).toEqual([0, 0]);
+    await advance(rig, 400);
     await running;
-    expect([monitor.gain.value, stem.gain.value]).toEqual([0.6, 1]);
+    expect([monitor?.gain.value, stem?.gain.value]).toEqual([0.6, 1]);
   });
 
   it('returns ok: false with a reason for a silent input (never throws for a failed measurement)', async () => {
@@ -177,11 +167,7 @@ describe('calibrateLatency', () => {
     expect(() => {
       rig.engine.closeInput();
     }).toThrow('A calibration is running');
-    for (let i = 0; i < 400; i++) {
-      rig.ctx.currentTime += 0.025;
-      feed(rig);
-      await vi.advanceTimersByTimeAsync(25);
-    }
+    await advance(rig, 400);
     await running;
     expect(() => {
       rig.engine.closeInput();

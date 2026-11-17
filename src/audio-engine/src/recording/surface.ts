@@ -9,7 +9,9 @@ import type { Mixer } from '../mixer';
 import { loadStems } from '../stem-loader';
 import type { Transport } from '../transport';
 import type {
+  CalibrationOptions,
   CalibrationResult,
+  ChannelId,
   CapturedTake,
   DotNetObjectReference,
   EngineOptions,
@@ -24,10 +26,12 @@ import type {
   TakeCompareMode,
   TakeSource,
 } from '../types';
+import { runCalibration } from './calibrate-run';
+import { validateCalibrationOptions } from './calibration';
 import { CaptureReceiver } from './capture';
 import { takeGates, type RecordingGating } from './compare';
 import { browserEnvironment, type MediaEnvironment } from './environment';
-import { InputPort } from './input';
+import { InputPort, outputLatencySeconds } from './input';
 import { Monitor } from './monitoring';
 import { notImplemented, type RecordingSurface } from './pending';
 import { Recorder, type RecorderPractice } from './recorder';
@@ -39,6 +43,8 @@ import { CaptureStore } from './takes';
 export const MAX_ADJUSTMENT_SAMPLES = 8820;
 /** Message of the calls refused while a session runs. */
 export const LOCKED_MESSAGE = 'Stop the recording first';
+/** Message of the calls refused while a calibration runs. */
+export const CALIBRATING_MESSAGE = 'A calibration is running';
 
 /** Engine parts of the recording. */
 export interface RecordingHost {
@@ -100,13 +106,16 @@ export class Recording implements RecordingSurface {
   private part: RecordingPart = 'none';
   private mode: TakeCompareMode = 'both';
   private gating: RecordingGating | null = null;
+  private calibrating = false;
+  private loopback: MediaStreamAudioDestinationNode | null = null;
 
   /** @param host - Engine parts. */
   public constructor(private readonly host: RecordingHost) {
     const { context, transport, mixer, options } = host;
     this.env = browserEnvironment(options);
     this.notify = recordingNotifier(host.ref);
-    this.input = new InputPort({ context, env: this.env, onLost: this.lost, onDevicesChanged: this.devicesChanged });
+    const loopback = options.testInput === 'loopback' ? { loopback: () => this.loopbackStream() } : {};
+    this.input = new InputPort({ context, env: this.env, onLost: this.lost, onDevicesChanged: this.devicesChanged, ...loopback });
     this.monitor = new Monitor(context);
     this.capture = new CaptureReceiver({ context, env: this.env, ...(options.captureWorkletUrl === undefined ? {} : { workletUrl: options.captureWorkletUrl }), onLimit: this.limited, onError: this.failed });
     this.recorder = this.createRecorder();
@@ -127,6 +136,9 @@ export class Recording implements RecordingSurface {
 
   /** @throws Error `Stop the recording first` while a session runs. */
   public assertIdle(): void {
+    if (this.calibrating) {
+      throw new Error(CALIBRATING_MESSAGE);
+    }
     if (this.busy) {
       throw new Error(LOCKED_MESSAGE);
     }
@@ -169,12 +181,28 @@ export class Recording implements RecordingSurface {
     this.monitor.set(settings);
   }
 
-  /** {@inheritDoc AudioEngine.calibrateLatency} (015 US2, T046). */
-  public readonly calibrateLatency: RecordingSurface['calibrateLatency'] = (): Promise<CalibrationResult> => Promise.reject(notImplemented('calibrateLatency'));
+  /** {@inheritDoc AudioEngine.calibrateLatency} */
+  public async calibrateLatency(options?: CalibrationOptions): Promise<CalibrationResult> {
+    this.assertCanCalibrate();
+    validateCalibrationOptions(options);
+    this.calibrating = true;
+    this.monitor.suppress(true);
+    this.applyGates();
+    try {
+      return await runCalibration(this.calibrationHost(), options);
+    } finally {
+      this.calibrating = false;
+      this.monitor.suppress(false);
+      this.applyGates();
+    }
+  }
 
   /** {@inheritDoc AudioEngine.startRecording} */
-  public startRecording(options: RecordOptions): Promise<void> {
-    return this.recorder.start(options);
+  public async startRecording(options: RecordOptions): Promise<void> {
+    if (this.calibrating) {
+      throw new Error(CALIBRATING_MESSAGE);
+    }
+    await this.recorder.start(options);
   }
 
   /** {@inheritDoc AudioEngine.stopRecording} */
@@ -253,6 +281,35 @@ export class Recording implements RecordingSurface {
     });
   }
 
+  private assertCanCalibrate(): void {
+    this.assertIdle();
+    if (!this.input.isOpen) {
+      throw new Error('Open an input first');
+    }
+    if (this.host.transport.state === 'playing') {
+      throw new Error('Pause playback to calibrate');
+    }
+  }
+
+  private calibrationHost(): Parameters<typeof runCalibration>[0] {
+    const { context } = this.host;
+    return {
+      context,
+      capture: this.capture,
+      clickOutputs: () => (this.loopback === null ? [] : [this.loopback]),
+      outputLatencySamples: () => Math.round(outputLatencySeconds(context) * context.sampleRate),
+    };
+  }
+
+  /** The engine's own output as a stream (E2E `testInput: 'loopback'`, research R-13), created once. */
+  private loopbackStream(): MediaStream {
+    if (this.loopback === null) {
+      this.loopback = this.host.context.createMediaStreamDestination();
+      this.host.mixer.tap().connect(this.loopback);
+    }
+    return this.loopback.stream;
+  }
+
   private selected(): AudioNode {
     const node = this.input.node;
     if (node === null) {
@@ -292,8 +349,8 @@ export class Recording implements RecordingSurface {
   }
 
   private applyGates(): void {
-    const neutral = this.mode === 'both' && this.gating === null;
-    const gate = neutral ? null : takeGates({ mode: this.mode, part: this.part, recording: this.gating });
+    const neutral = this.mode === 'both' && this.gating === null && !this.calibrating;
+    const gate = neutral ? null : this.extraGate();
     this.host.mixer.setExtraGate(gate, this.host.context.currentTime);
   }
 
@@ -302,6 +359,11 @@ export class Recording implements RecordingSurface {
     this.release();
     this.notify.inputLost(reason);
   };
+
+  /** Calibration mutes every channel; otherwise compare and recording decide. */
+  private extraGate(): (id: ChannelId) => number {
+    return this.calibrating ? (): number => 0 : takeGates({ mode: this.mode, part: this.part, recording: this.gating });
+  }
 
   private readonly devicesChanged = (): void => {
     this.notify.devicesChanged();

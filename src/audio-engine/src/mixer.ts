@@ -130,6 +130,11 @@ export class Mixer {
     this.applyGates(at);
   }
 
+  /** @returns The post-master node feeding the destination (the E2E loopback input taps it, contract 2.5.0). */
+  public tap(): AudioNode {
+    return this.masterAnalyser;
+  }
+
   /** @param volume - Master gain 0..1 (clamped). */
   public setMaster(volume: number): void {
     rampTo(this.master.gain, checkedVolume(volume), this.context.currentTime);
