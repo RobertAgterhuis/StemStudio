@@ -39,7 +39,9 @@ Lane L1, branch `014-015-round-lane-l1-engine`, 2026-11-17. Contract 2.4.0 "Loop
 ## Decisions
 
 - D1: the same region sent again with `setLoop` is not a "loop change" (Blazor re-sends the region on unrelated
-  updates). The contract reads "a seek or loop change resets", so this narrows it. Flagged here for the CTO.
+  updates). The contract reads "a seek or loop change resets", so this narrows it. **Approved by the orchestrator
+  (2026-11-17). Contract text to clarify at integration:** the CTO updates `audio-engine.md` "Loop passes" to say
+  "a seek or a change of the loop region (start, end or enabled)".
 - D2: a pause has a small window: a wrap between the last observation and the pause (at most one frame or tick) is
   not reported. This is accepted. The contract only promises "never twice".
 
