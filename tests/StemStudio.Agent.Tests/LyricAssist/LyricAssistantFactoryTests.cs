@@ -14,6 +14,8 @@ public sealed class LyricAssistantFactoryTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("lyric-scripts-").FullName;
 
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
     private static AgentSettings Settings(AgentBackendDto backend, bool notice = true) =>
@@ -40,9 +42,9 @@ public sealed class LyricAssistantFactoryTests : IDisposable
     }
 
     [Fact]
-    public void Ollama_GetsTheRealModelClient()
+    public async Task Ollama_GetsTheRealModelClient()
     {
-        var resolution = Factory(Settings(AgentBackendDto.Ollama)).Resolve(new LyricAssistModelContext("Zomeravond", AssistKindDto.Check));
+        var resolution = await Factory(Settings(AgentBackendDto.Ollama)).ResolveAsync(new LyricAssistModelContext("Zomeravond", AssistKindDto.Check), Token);
 
         resolution.Assistant.ShouldBeOfType<LyricAssistant>();
         resolution.UnavailableReason.ShouldBeNull();
@@ -50,13 +52,13 @@ public sealed class LyricAssistantFactoryTests : IDisposable
     }
 
     [Fact]
-    public void Claude_NeedsAUsableKeyAndTheNotice()
+    public async Task Claude_NeedsAUsableKeyAndTheNotice()
     {
         var context = new LyricAssistModelContext("Zomeravond", AssistKindDto.Check);
 
-        Factory(Settings(AgentBackendDto.Claude), FakeEnvironment.WithKey()).Resolve(context).Assistant.ShouldNotBeNull();
-        var noKey = Factory(Settings(AgentBackendDto.Claude)).Resolve(context);
-        var noNotice = Factory(Settings(AgentBackendDto.Claude, notice: false), FakeEnvironment.WithKey()).Resolve(context);
+        (await Factory(Settings(AgentBackendDto.Claude), FakeEnvironment.WithKey()).ResolveAsync(context, Token)).Assistant.ShouldNotBeNull();
+        var noKey = await Factory(Settings(AgentBackendDto.Claude)).ResolveAsync(context, Token);
+        var noNotice = await Factory(Settings(AgentBackendDto.Claude, notice: false), FakeEnvironment.WithKey()).ResolveAsync(context, Token);
 
         noKey.Assistant.ShouldBeNull();
         noKey.UnavailableReason.ShouldBe(LyricAssistProblemTypes.ModelUnavailable);
@@ -68,9 +70,9 @@ public sealed class LyricAssistantFactoryTests : IDisposable
 
     [Theory]
     [InlineData(AgentBackendDto.None)]
-    public void NoBackend_IsModelUnavailable(AgentBackendDto backend)
+    public async Task NoBackend_IsModelUnavailable(AgentBackendDto backend)
     {
-        var resolution = Factory(Settings(backend)).Resolve(new LyricAssistModelContext("x", AssistKindDto.Check));
+        var resolution = await Factory(Settings(backend)).ResolveAsync(new LyricAssistModelContext("x", AssistKindDto.Check), Token);
 
         resolution.ShouldBe(new LyricAssistantResolution(null, "model-unavailable", LyricAssistantFactory.ChooseBackendFix));
     }
@@ -82,7 +84,7 @@ public sealed class LyricAssistantFactoryTests : IDisposable
             {"version":1,"blocks":[{"items":[{"type":"grammar.verb-form","severity":"error","line":10,"original":"word","proposal":"wordt","explanation":"Derde persoon."}]}]}
             """, TestContext.Current.CancellationToken);
         var environment = new FakeEnvironment((LyricAssistantFactory.FakeScriptVariable, _folder));
-        var resolution = Factory(Settings(AgentBackendDto.Fake), environment).Resolve(new LyricAssistModelContext("Zomeravond", AssistKindDto.Check));
+        var resolution = await Factory(Settings(AgentBackendDto.Fake), environment).ResolveAsync(new LyricAssistModelContext("Zomeravond", AssistKindDto.Check), Token);
         var sink = new RecordingLyricSink();
 
         await resolution.Assistant!.RunAsync(LyricFixtures.Job() with { Blocks = [LyricFixtures.Block1 with { Index = 0 }] }, sink, TestContext.Current.CancellationToken);
@@ -95,7 +97,7 @@ public sealed class LyricAssistantFactoryTests : IDisposable
     public async Task Fake_WithoutAMatchingScript_AnswersEmptyBlocks()
     {
         var environment = new FakeEnvironment((LyricAssistantFactory.FakeScriptVariable, _folder));
-        var resolution = Factory(Settings(AgentBackendDto.Fake), environment).Resolve(new LyricAssistModelContext("Unknown", AssistKindDto.Titles));
+        var resolution = await Factory(Settings(AgentBackendDto.Fake), environment).ResolveAsync(new LyricAssistModelContext("Unknown", AssistKindDto.Titles), Token);
         var sink = new RecordingLyricSink();
 
         await resolution.Assistant!.RunAsync(LyricFixtures.Job(AssistKindDto.Titles) with { Blocks = [LyricFixtures.Block0] }, sink, TestContext.Current.CancellationToken);
@@ -110,13 +112,13 @@ public sealed class LyricAssistantFactoryTests : IDisposable
         await File.WriteAllTextAsync(broken, "{", TestContext.Current.CancellationToken);
         var context = new LyricAssistModelContext("x", AssistKindDto.Check);
 
-        Factory(Settings(AgentBackendDto.Fake)).Resolve(context).Fix.ShouldBe(LyricAssistantFactory.FakeScriptFix);
-        Factory(Settings(AgentBackendDto.Fake), new FakeEnvironment((LyricAssistantFactory.FakeScriptVariable, broken))).Resolve(context).UnavailableReason.ShouldBe("model-unavailable");
-        Should.Throw<ArgumentNullException>(() => Factory(Settings(AgentBackendDto.Ollama)).Resolve(null!));
+        (await Factory(Settings(AgentBackendDto.Fake)).ResolveAsync(context, Token)).Fix.ShouldBe(LyricAssistantFactory.FakeScriptFix);
+        (await Factory(Settings(AgentBackendDto.Fake), new FakeEnvironment((LyricAssistantFactory.FakeScriptVariable, broken))).ResolveAsync(context, Token)).UnavailableReason.ShouldBe("model-unavailable");
+        await Should.ThrowAsync<ArgumentNullException>(async () => await Factory(Settings(AgentBackendDto.Ollama)).ResolveAsync(null!, Token));
     }
 
     [Fact]
-    public void AddLyricAssistAgent_RegistersTheFactory_WithTheHostsVerificationAndSettings()
+    public async Task AddLyricAssistAgent_RegistersTheFactory_WithTheHostsVerificationAndSettings()
     {
         var services = new ServiceCollection();
         services.AddSingleton<IAgentSettingsStore>(new InMemorySettingsStore(Settings(AgentBackendDto.Ollama)));
@@ -126,7 +128,7 @@ public sealed class LyricAssistantFactoryTests : IDisposable
 
         using var provider = services.AddLyricAssistAgent().AddLyricAssistAgent().BuildServiceProvider();
 
-        provider.GetRequiredService<ILyricAssistantFactory>().Resolve(new LyricAssistModelContext("x", AssistKindDto.Check)).Assistant.ShouldNotBeNull();
+        (await provider.GetRequiredService<ILyricAssistantFactory>().ResolveAsync(new LyricAssistModelContext("x", AssistKindDto.Check), Token)).Assistant.ShouldNotBeNull();
         var options = provider.GetRequiredService<LyricAssistOptions>();
         options.MaxInputTokensPerAssist.ShouldBe(5000);
         options.MaxOutputTokensPerAssist.ShouldBe(LyricAssistLimits.DefaultMaxOutputTokensPerAssist);

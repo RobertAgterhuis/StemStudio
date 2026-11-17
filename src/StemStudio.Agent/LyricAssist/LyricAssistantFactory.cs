@@ -33,8 +33,9 @@ public interface ILyricAssistantFactory
 {
     /// <summary>The assistant for an assist, or the reason there is none.</summary>
     /// <param name="context">Sheet title and kind.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The resolution.</returns>
-    LyricAssistantResolution Resolve(LyricAssistModelContext context);
+    ValueTask<LyricAssistantResolution> ResolveAsync(LyricAssistModelContext context, CancellationToken cancellationToken);
 }
 
 /// <summary>Dependencies of <see cref="LyricAssistantFactory"/> (one parameter object keeps the constructor small).</summary>
@@ -83,12 +84,10 @@ public sealed class LyricAssistantFactory(LyricAssistantServices services) : ILy
     private const string EmptyScript = """{"version":1,"blocks":[]}""";
 
     /// <inheritdoc />
-    public LyricAssistantResolution Resolve(LyricAssistModelContext context)
+    public async ValueTask<LyricAssistantResolution> ResolveAsync(LyricAssistModelContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-
-        // The interface is synchronous (seam decision); the settings store has no synchronization context to deadlock on.
-        var settings = services.Settings.GetAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var settings = await services.Settings.GetAsync(cancellationToken);
         return settings.Backend switch
         {
             AgentBackendDto.Ollama => Real(),
