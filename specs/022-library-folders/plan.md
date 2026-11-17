@@ -173,7 +173,8 @@ tools/quality/                                    # quality-gate: dependency rul
    -> items with non-`item` sources recomputed -> revision changes -> next poll shows new folders.
 5. **Library info**: dialog -> `PUT /api/tracks/{id}/library-info` -> `track.SetLibraryInfo` ->
    refile -> `LibraryInfoState {movedItems}` -> UI navigates to the new song folder id.
-6. **Start-up**: `LibraryFilingBackfill` -> batches of 500 -> `pendingFiling` in folder views drops
+6. **Start-up and after a 013 restore**: `LibraryFilingBackfill` (also triggered by a library read with
+   `pendingFiling > 0`; paused during 013 maintenance) -> batches of 500 -> `pendingFiling` in folder views drops
    to 0 -> UI hides `library-filing-pending`.
 7. **Agent**: `search_library_items` -> `IStemStudioActions.SearchLibraryAsync` -> loopback `GET
    /api/library/search` -> projection with `untrusted_text` -> taint; `set_library_info` -> GET
@@ -183,7 +184,8 @@ tools/quality/                                    # quality-gate: dependency rul
 
 - **Phase 0 part 1 (done in this round)**: spec, research with spike S-01, ADR-036, data-model,
   contract deltas (Redocly valid), quickstart, tasks, checklist, MoSCoW/ROADMAP rows.
-- **Phase 0 part 2 (architect, when 022 is scheduled; after the base contracts it builds on are
+- **Phase 0 part 2 (done 2026-11-17, round {022, 023}; see tasks.md T002-T005 and the hand-off
+  `docs/handoffs/architect-022-phase0.md`)** - was: (architect, when 022 is scheduled; after the base contracts it builds on are
   merged)**: full backend-api 1.22.0, ui-test-ids 1.22.0, catalogue 1.1.0; Contracts DTOs, routes,
   limits, `InstrumentLabels`; `IStemStudioActions` stubs; skeleton green.
 - **Wave (parallel owners, max 4 agents)**: backend, frontend, ai-agent, qa (tasks.md).

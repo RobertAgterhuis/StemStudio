@@ -33,4 +33,7 @@ public interface IStemStudioActions
 
     /// <summary>Own-voice profiles (read only) and voice conversions (010).</summary>
     IVoiceActions Voices { get; }
+
+    /// <summary>Library folders, live search and library info (022, tool catalogue 1.1.0).</summary>
+    ILibraryActions Library { get; }
 }

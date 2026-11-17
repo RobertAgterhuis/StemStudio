@@ -8,7 +8,9 @@ namespace StemStudio.Api.Tests.Contract;
 /// <summary>
 /// Skeleton tests (architect, 012 Phase 0, T003/T004): backend-api 1.11.0
 /// (<c>specs/012-practice-tempo/contracts/backend-api.openapi.yaml</c>) is the full 1.21.0 of the 011 follow-up plus exactly the
-/// 012 additions (DELTA.md section 1), and the practice DTOs, defaults and limits match it.
+/// 012 additions (DELTA.md section 1), and the practice DTOs, defaults and limits match it. Since 013 Phase 0 the merge facts are
+/// checked on the linked 1.11.0 document (<c>Contract/012</c>); schemas and examples come from the current full document (1.12.0
+/// with 013, 1.22.0 with 022), which keeps every practice entry unchanged.
 /// </summary>
 public sealed class PracticeContractTests
 {
@@ -28,7 +30,7 @@ public sealed class PracticeContractTests
     [Fact]
     public void Backend_IsLabelled1110AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Backend012.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.11.0");
         Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0"]);
@@ -38,19 +40,19 @@ public sealed class PracticeContractTests
     [MemberData(nameof(Changed1210Entries))]
     public void Backend1110_Contains1210UnchangedExceptThePracticeEntries(string section, string[] changed)
     {
-        ChangedEntries(Backend1210, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend1210, Backend012, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Fact]
     public void Backend1110_AddsOnlyThePracticeSchemasAndExampleAndNoOperation()
     {
         static IEnumerable<string> Added(string section) =>
-            Section(OpenApiContract.Backend.Root, section).Select(e => e.Key).Except(Section(Backend1210.Root, section).Select(e => e.Key));
+            Section(Backend012.Root, section).Select(e => e.Key).Except(Section(Backend1210.Root, section).Select(e => e.Key));
 
         Added("components/schemas").ShouldBe(AddedSchemas, ignoreOrder: true);
         Added("components/examples").ShouldBe(["MixSettingsWithPractice"]);
         Added("paths").ShouldBeEmpty();
-        OpenApiContract.Backend.Operations.Count().ShouldBe(Backend1210.Operations.Count());
+        Backend012.Operations.Count().ShouldBe(Backend1210.Operations.Count());
     }
 
     [Fact]

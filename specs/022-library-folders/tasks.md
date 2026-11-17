@@ -12,8 +12,13 @@ constitution 1.4.0, ADR-036.
 **Status**: **Phase 0 part 1 done** (2026-11-16, design round): spec, checklist, research with spike
 S-01, ADR-036 (Proposed), data-model, standalone contract deltas (backend `1.22.0-delta.1`,
 Redocly valid with 0 warnings; UI ids 1.22.0; tool catalogue 1.1.0), quickstart, this task list.
-**Phase 0 part 2 waits until 022 is scheduled and its base contracts (the newest full backend-api and
-ui-test-ids) are merged.** The wave starts after T005.
+**Phase 0 part 2 done** (2026-11-17, combined round {022, 023}, branch `r22-p0-022`): full backend-api
+1.22.0 (= 1.11.0 + delta, `contracts/merge_full.py`), ui-test-ids 1.22.0, tool catalogue 1.1.0 (= 1.3.0 +
+delta), Contracts DTOs/routes/limits/`InstrumentLabels`, `ILibraryActions` port with skeletons, contract
+tests, ADR-036 number confirmed; 013 overlaps re-checked against 013 as built (research R-11, two
+backfill refinements in T032/T033). Hand-off: `docs/handoffs/architect-022-phase0.md`. The wave starts
+from the design-phase head; when 013 lands on `main` the CTO merges `main` in and re-runs
+`merge_full.py --base specs/013-library-care/contracts/backend-api.openapi.yaml` (DELTA.md section 4).
 
 **Tests**: REQUIRED (constitution I). Within every owner sequence the test task comes before the
 implementation task it covers (red -> green -> refactor); every owner reports >= 90 % line AND
@@ -56,10 +61,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### Part 2 (when 022 is scheduled)
 
-- [ ] T002 [architect] Full `contracts/backend-api.openapi.yaml` **1.22.0** = newest full base + delta (DELTA.md section 1); Redocly lint; contract test `LibraryContractTests` (superset proof; `PendingLibraryOperations` lists the 9 new operation ids until the endpoints exist)
-- [ ] T003 [P] [architect] `src/StemStudio.Contracts/Library/*` DTOs and enums (data-model 5), `AssetDto.Placement`, `ApiRoutes.Library*`, `ContractLimits` additions (data-model 6), `InstrumentLabels` catalogue (research R-08, one entry per family, XML docs); `IStemStudioActions` additions `BrowseLibraryFolderAsync`, `SearchLibraryAsync`, `GetLibraryInfoAsync`, `SetLibraryInfoAsync` (stubs); contract unit tests (`InstrumentLabelsTests`: every `StemNames`/`DetailNames` id has a label; every family has aliases)
-- [ ] T004 [P] [architect] Full `contracts/ui-test-ids.md` **1.22.0** = base + delta (changelog line, changed-behaviour table, help topics); `tool-catalogue.md` **1.1.0** = 1.0.0 + delta (groups, page contexts, counts, evaluation rows)
-- [ ] T005 [architect] Skeleton green: `dotnet build` (0 warnings), `dotnet test`, `dotnet format --verify-no-changes`; hand-off `docs/handoffs/architect-022-phase0.md` (HO:phase0)
+- [x] T002 [architect] Full `contracts/backend-api.openapi.yaml` **1.22.0** = newest full base + delta (DELTA.md section 1); Redocly lint; contract test `LibraryContractTests` (superset proof; `PendingLibraryOperations` lists the 9 new operation ids until the endpoints exist)
+- [x] T003 [P] [architect] `src/StemStudio.Contracts/Library/*` DTOs and enums (data-model 5), `AssetDto.Placement`, `ApiRoutes.Library*`, `ContractLimits` additions (data-model 6), `InstrumentLabels` catalogue (research R-08, one entry per family, XML docs); `IStemStudioActions` additions `BrowseLibraryFolderAsync`, `SearchLibraryAsync`, `GetLibraryInfoAsync`, `SetLibraryInfoAsync` (stubs); contract unit tests (`InstrumentLabelsTests`: every `StemNames`/`DetailNames` id has a label; every family has aliases)
+- [x] T004 [P] [architect] Full `contracts/ui-test-ids.md` **1.22.0** = base + delta (changelog line, changed-behaviour table, help topics); `tool-catalogue.md` **1.1.0** = 1.0.0 + delta (groups, page contexts, counts, evaluation rows)
+- [x] T005 [architect] Skeleton green: `dotnet build` (0 warnings), `dotnet test`, `dotnet format --verify-no-changes`; hand-off `docs/handoffs/architect-022-phase0.md` (HO:phase0)
 
 ---
 
@@ -89,8 +94,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T030 [P] [US1] [backend] Tests (red) `LibraryFilerTests`: filing in the same save for exports (stem, detail, what I hear, selected channels, range), stem packs, scores (track and asset sources), generated takes (009 with source track, 010 without); `RefileTrackAsync` after `CompleteLookup` found/not-found and after track metadata applied; item-source levels untouched; deleted track never re-filed; `UpdatedAt` unchanged when the placement is unchanged (FR-002, FR-008, FR-009)
 - [ ] T031 [US1] [backend] `src/StemStudio.Api/Library/LibraryFiler.cs` + hooks in `ExportService`, `StemPackService`, `ScoreService`, `GeneratedAudioLibrary`, `MetadataJobApplier`, `TrackSynchronizer` (green)
-- [ ] T032 [P] [US1] [backend] Tests (red) `LibraryFilingBackfillTests`: files `FiledVersion < Version` in batches, idempotent across restarts, skips recordings, `Pending` count, 5,000 items <= 10 s on SQLite file (SC-003, FR-010)
-- [ ] T033 [US1] [backend] `LibraryFilingBackfill.cs` (hosted service), `StemStudio:LibraryBackfillBatchSize` option (green)
+- [ ] T032 [P] [US1] [backend] Tests (red) `LibraryFilingBackfillTests`: files `FiledVersion < Version` in batches, idempotent across restarts, skips recordings, `Pending` count, 5,000 items <= 10 s on SQLite file; **also started by a library read with `pendingFiling > 0` (single-flight; a 013 restore switches the library without a restart) and paused while the 013 gate is in `Maintenance`** (Phase 0 part 2, research R-11 re-check) (SC-003, FR-010)
+- [ ] T033 [US1] [backend] `LibraryFilingBackfill.cs` (hosted service + `ILibraryFilingTrigger`), `StemStudio:LibraryBackfillBatchSize` option; optional `LibraryGate` (`GetService`, until 013 is merged in) (green)
 - [ ] T034 [P] [US1] [backend] Tests (red) `AssetMapperTests`: `placement` on every asset response (get, list, create, rename, retry, stem pack, score, generation import), `filed = false` preview before backfill, null for recordings
 - [ ] T035 [US1] [backend] `AssetMapper`/`LibraryMapper` placement mapping (green)
 - [ ] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
@@ -209,6 +214,25 @@ This PC runs at most **4 agents at once**. Lanes per wave:
 | D (integration) | quality-gate: T089 | qa: T092 | CTO: T091, T093 | - |
 
 ai-agent is idle in wave B (nothing to do before the endpoints exist); quality-gate takes its slot.
+
+### Lane split for the combined round {022, 023} (Phase 0 part 2 suggestion, up to 6 agents)
+
+The round runs up to 6 agents (orchestrator brief for this round; at most 1-2 heavy processes per
+agent). 022's backend (29 tasks) and frontend (24 tasks) lanes are the heaviest of the round, so they
+stay feature-pure; the small 022 ai-agent (6) and qa (10) lanes are shared with 023. The CTO decides.
+
+| Agent | 022 tasks | 023 tasks | Why |
+|---|---|---|---|
+| backend-022 | T010-T017, T030-T035, T040-T045, T060-T063, T072-T073, T079-T080, T086 | - | heaviest lane; domain + API + migration |
+| frontend-022 | T018-T019, T036-T037, T046-T053, T064-T069, T074-T075, T081-T082, T084, T087 | - | second heaviest; `/library` page |
+| backend-023 | - | 023 backend lane (023 tasks.md) | disjoint paths (`Api/Lyrics*`) |
+| frontend-023 | - | 023 frontend lane | disjoint pages |
+| ai-agent (shared) | T020-T021 (wave A), T077-T078, T083, T088 (wave C) | 023 ai-agent lane (fills 022's idle wave B) | both change the catalogue: 1.1.0 + 1.2.0 merged by containment; one owner avoids conflicts in `AgentToolRegistry`/`AgentPageContexts`/`Catalogue.cs` |
+| qa (shared) | T022-T023, T038-T039, T054, T070-T071, T076, T090, T092 | 023 qa lane | one E2E stack at a time; shared page objects |
+
+quality-gate (T024, T089) and the conditional devops T085 (and 023's devops/quality tasks) run in a
+second short wave or are bundled into the qa agent's slot when it is idle. CI additions for 022 (Redocly
+lint of the 022 documents, `merge_full.py --check`) belong to the devops/CTO bundle (hand-off note).
 
 ## Task counts
 
