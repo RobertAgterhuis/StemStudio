@@ -226,3 +226,21 @@ public sealed class FolderArtModelTests
     public void PlaceholderKind_WithImages_StaysAPlaceholder() =>
         FolderArtModel.From(LibraryData.Cover() with { Kind = FolderArtKindDto.Placeholder }, Base).Kind.ShouldBe(FolderArtKindDto.Placeholder);
 }
+
+/// <summary><see cref="FolderText"/> and <see cref="FolderSortOptions"/> (022 T049, T053).</summary>
+public sealed class FolderTextTests
+{
+    [Theory]
+    [InlineData(null, FolderLevelDto.Artist)]
+    [InlineData(FolderLevelDto.Artist, FolderLevelDto.Album)]
+    [InlineData(FolderLevelDto.Album, FolderLevelDto.Song)]
+    [InlineData(FolderLevelDto.Song, null)]
+    public void ChildLevel_IsTheNextLevel(FolderLevelDto? level, FolderLevelDto? child) => FolderText.ChildLevel(level).ShouldBe(child);
+
+    [Fact]
+    public void Counts_UseSingularForOne() =>
+        FolderText.Counts(new FolderCountsDto { Albums = 1, Songs = 4, Items = 1 }).ShouldBe("1 album, 1 item");
+
+    [Fact]
+    public void SongLevel_HasNoSortOptions() => FolderSortOptions.For(null).ShouldBeEmpty();
+}

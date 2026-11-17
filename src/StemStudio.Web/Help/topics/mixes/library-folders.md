@@ -6,7 +6,7 @@ summary: "Saved items are filed by artist, album and song automatically. Open a 
 route: "/library/{folderid}"
 anchors: ["library-folders"]
 keywords: ["library", "folders", "artist", "album", "song", "band", "unknown artist", "unknown album", "my songs", "breadcrumb", "grid", "list", "all items"]
-related: [library, library-search, library-art]
+related: [library, library-search, library-info, library-art]
 reviewed: "022"
 ---
 

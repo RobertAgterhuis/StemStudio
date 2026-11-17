@@ -28,6 +28,10 @@ public sealed partial class AssetRow
     [Parameter]
     public StemStudio.Contracts.Library.ItemHitDto? Hit { get; set; }
 
+    /// <summary>"Library info" pressed (feature 022, every level); the button exists only when this is bound.</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnLibraryInfo { get; set; }
+
     /// <summary>Rename pressed.</summary>
     [Parameter]
     public EventCallback<AssetDto> OnRename { get; set; }

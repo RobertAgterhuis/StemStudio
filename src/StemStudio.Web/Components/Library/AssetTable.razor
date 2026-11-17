@@ -19,7 +19,7 @@
         @foreach (var asset in Items)
         {
             <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" ShowPath="ShowPath" Hit="HitOf(asset)" OnRename="OpenRename" OnDelete="DeleteAsync"
-                      OnRetry="RetryAsync" OnScore="OpenScore" />
+                      OnRetry="RetryAsync" OnScore="OpenScore" OnLibraryInfo="OpenLibraryInfo" />
         }
     </tbody>
 </table>
@@ -32,4 +32,9 @@
 @if (Scoring is not null)
 {
     <ScoreDialog Target="Scoring" OnClose="CloseScore" OnSaved="OnScoreSavedAsync" />
+}
+
+@if (Filing is not null)
+{
+    <LibraryInfoDialog Target="Filing" OnClose="CloseLibraryInfo" OnSaved="OnLibraryInfoSavedAsync" />
 }

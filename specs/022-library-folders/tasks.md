@@ -152,8 +152,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
 - [ ] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
-- [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
-- [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
+- [x] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
+- [x] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
 - [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
 
 **Checkpoint**: HO:us4 (backend, frontend, qa).
@@ -176,10 +176,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 7: Polish and cross-cutting
 
-- [ ] T084 [P] [frontend] Help topics `library-folders`, `library-search`, `library-info`, `library-art` (help-content 1.0.0 format; test first: `HelpCatalogueTests` lists them and every `data-help-id` resolves) (FR-035)
+- [x] T084 [P] [frontend] Help topics `library-folders`, `library-search`, `library-info`, `library-art` (help-content 1.0.0 format; test first: `HelpCatalogueTests` lists them and every `data-help-id` resolves) (FR-035)
 - [ ] T085 [P] [devops] **Conditional**: only if qa (T023/T039/T071) cannot copy the database fixtures into the API volume from the spec's global setup without a compose change - add an opt-in fixture mount to the fake stack (check-first test in the task). Otherwise not executed.
 - [ ] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
-- [ ] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
+- [x] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
 - [ ] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
 - [ ] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)
 - [ ] T090 [qa] Audit the owners' tests and coverage evidence (HO:polish)

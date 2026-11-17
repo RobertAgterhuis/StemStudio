@@ -13,5 +13,5 @@ public sealed partial class AssetTable
 
     private void CloseScore() => Scoring = null;
 
-    private Task OnScoreSavedAsync(AssetDto asset) => OnCreated.InvokeAsync(asset);
+    private Task OnScoreSavedAsync(AssetDto asset) => OnReload.InvokeAsync();
 }

@@ -7,6 +7,8 @@
     <div class="ss-song-links">
         <a class="ss-row-action" href="@($"tracks/{trackId}")" data-testid="song-open-track">Open the track</a>
         <a class="ss-row-action" href="@($"tracks/{trackId}/mixer")" data-testid="song-open-mixer">Open in the mixer</a>
+        <RadzenButton Text="Edit library info" Icon="folder_open" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="() => OnEditInfo.InvokeAsync(trackId)"
+                      data-testid="library-info-edit" />
     </div>
 }
 
@@ -16,7 +18,7 @@
 }
 else
 {
-    <AssetTable Items="Items" ShowPath="true" Caption="@($"Items of {Folder.Name}")" OnReplaced="OnReplaced" OnDeleted="OnDeleted" OnCreated="OnCreated" />
+    <AssetTable Items="Items" ShowPath="true" Caption="@($"Items of {Folder.Name}")" OnReplaced="OnReplaced" OnDeleted="OnDeleted" OnReload="OnReload" />
 }
 
 @code {
@@ -28,6 +30,10 @@ else
     [Parameter, EditorRequired]
     public IReadOnlyList<AssetDto> Items { get; set; } = [];
 
+    /// <summary>"Edit library info" pressed for the song's (first) track.</summary>
+    [Parameter]
+    public EventCallback<Guid> OnEditInfo { get; set; }
+
     /// <summary>An item changed.</summary>
     [Parameter]
     public EventCallback<AssetDto> OnReplaced { get; set; }
@@ -38,5 +44,5 @@ else
 
     /// <summary>A new item was made (sheet music).</summary>
     [Parameter]
-    public EventCallback<AssetDto> OnCreated { get; set; }
+    public EventCallback OnReload { get; set; }
 }

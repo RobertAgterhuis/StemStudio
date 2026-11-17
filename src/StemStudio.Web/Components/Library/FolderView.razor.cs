@@ -154,7 +154,7 @@ public sealed partial class FolderView
         }
     }
 
-    private async Task ReloadAsync(AssetDto created)
+    private async Task ReloadAsync()
     {
         await LoadAsync(null);
         StartPolling();

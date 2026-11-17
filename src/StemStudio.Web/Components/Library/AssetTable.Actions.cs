@@ -44,9 +44,9 @@ public sealed partial class AssetTable
     [Parameter]
     public EventCallback<AssetDto> OnDeleted { get; set; }
 
-    /// <summary>A new item was created (sheet music): the owner reloads and polls it.</summary>
+    /// <summary>The list changed elsewhere (sheet music made, an item moved by library info): the owner reloads and polls.</summary>
     [Parameter]
-    public EventCallback<AssetDto> OnCreated { get; set; }
+    public EventCallback OnReload { get; set; }
 
     /// <summary>The item being renamed, or null.</summary>
     private AssetDto? Renaming { get; set; }

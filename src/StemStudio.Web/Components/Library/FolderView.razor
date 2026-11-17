@@ -84,7 +84,7 @@
 
         @if (View.Folder is { Level: FolderLevelDto.Song } song)
         {
-            <SongFolder Folder="song" Items="View.Items" OnReplaced="Replace" OnDeleted="RemoveAsync" OnCreated="ReloadAsync" />
+            <SongFolder Folder="song" Items="View.Items" OnReplaced="Replace" OnDeleted="RemoveAsync" OnReload="ReloadAsync" OnEditInfo="EditTrackInfo" />
         }
         else if (View.Children.Count == 0)
         {
@@ -96,3 +96,8 @@
         }
     }
 </section>
+
+@if (Filing is not null)
+{
+    <LibraryInfoDialog Target="Filing" OnClose="CloseFiling" OnSaved="OnFiledAsync" />
+}

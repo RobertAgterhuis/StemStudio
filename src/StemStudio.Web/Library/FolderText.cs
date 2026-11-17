@@ -42,14 +42,6 @@ public static class FolderText
         return string.Join(", ", parts);
     }
 
-    /// <summary>The accessible name of a tile: "Metallica, artist, 3 albums, 12 items" (album year included when known).</summary>
-    /// <param name="folder">The folder.</param>
-    /// <returns>The name.</returns>
-    public static string TileName(LibraryFolderDto folder) =>
-        folder.Year is { } year
-            ? $"{folder.Name}, {Level(folder.Level)}, {year}, {Counts(folder.Counts)}"
-            : $"{folder.Name}, {Level(folder.Level)}, {Counts(folder.Counts)}";
-
     /// <summary>Counts and size of a folder header.</summary>
     /// <param name="folder">The folder.</param>
     /// <returns>For example "3 albums, 12 items, 205 MB".</returns>

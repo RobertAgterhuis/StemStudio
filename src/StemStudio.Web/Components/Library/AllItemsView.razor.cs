@@ -67,7 +67,7 @@ public sealed partial class AllItemsView
         TotalSize = Math.Max(0, TotalSize - asset.SizeBytes);
     }
 
-    private async Task OnCreatedAsync(AssetDto asset)
+    private async Task OnReloadAsync()
     {
         await LoadAsync();
         StartPolling();

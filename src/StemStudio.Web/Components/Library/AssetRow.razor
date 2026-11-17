@@ -71,6 +71,11 @@
                 <RadzenButton Text="Retry" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Retry {Asset.Name}")"
                               Click="() => OnRetry.InvokeAsync(Asset)" data-testid="@($"asset-retry-{Asset.Id}")" />
             }
+            @if (OnLibraryInfo.HasDelegate)
+            {
+                <RadzenButton Text="Library info" Icon="folder_open" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Library info of {Asset.Name}")"
+                              Click="() => OnLibraryInfo.InvokeAsync(Asset)" data-testid="@($"asset-library-info-{Asset.Id}")" />
+            }
             <RadzenButton Text="Rename" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Rename {Asset.Name}")"
                           Click="() => OnRename.InvokeAsync(Asset)" data-testid="@($"asset-rename-{Asset.Id}")" />
             <RadzenButton Text="Delete" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"

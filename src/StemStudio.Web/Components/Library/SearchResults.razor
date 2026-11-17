@@ -38,7 +38,7 @@
         {
             <section class="ss-search-group" data-testid="search-group-items" aria-labelledby="search-heading-items">
                 <h2 id="search-heading-items" class="ss-search-heading">Items <span class="ss-muted ss-num">(@Result.Totals.Items)</span></h2>
-                <AssetTable @ref="_items" Items="ShownItems" Hits="ItemHits" ShowPath="true" Caption="Items found" OnReplaced="Changed" OnDeleted="Changed" OnCreated="Changed" />
+                <AssetTable @ref="_items" Items="ShownItems" Hits="ItemHits" ShowPath="true" Caption="Items found" OnReplaced="Changed" OnDeleted="Changed" OnReload="OnChanged" />
                 @if (Result.Totals.Items > ShownItems.Count)
                 {
                     <button type="button" class="ss-link-button" data-testid="search-show-all-items" @onclick="() => ShowAllAsync(ItemsGroup)">Show all @Result.Totals.Items items</button>
