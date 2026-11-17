@@ -89,6 +89,7 @@ public static class AgentServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, ScoreToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, StyleToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, SongToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LibraryToolProvider>());
     }
 
     private static void AddRuntime(IServiceCollection services)

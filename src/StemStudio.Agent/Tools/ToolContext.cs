@@ -40,6 +40,9 @@ public sealed record ToolContext
     /// <summary>Voice service state (010).</summary>
     public required ServiceAvailability Voice { get; init; }
 
+    /// <summary>Model layer of the lyric assistant (023, <c>+service lyricModel</c>); unknown (not offered) until read.</summary>
+    public ServiceAvailability LyricModel { get; init; } = ServiceAvailability.Unknown;
+
     /// <summary>Builds the context of a message's page context.</summary>
     /// <param name="page">Page context sent with the message.</param>
     /// <param name="generation">Generation service state.</param>

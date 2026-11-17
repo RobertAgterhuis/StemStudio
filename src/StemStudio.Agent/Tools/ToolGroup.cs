@@ -17,6 +17,9 @@ public enum ToolGroup
 
     /// <summary>Styles, generations, songs and own voice (009/010).</summary>
     Create,
+
+    /// <summary>The lyric writing assistant (023, tool catalogue 1.2.0 group <c>lyric-assist</c>).</summary>
+    LyricAssist,
 }
 
 /// <summary>When a tool can be offered (tool catalogue 1.0.0 "Availability").</summary>
@@ -33,4 +36,7 @@ public enum ToolAvailability
 
     /// <summary>Only while the generation status reports the voice service <c>ready</c>.</summary>
     VoiceService,
+
+    /// <summary>Only while the lyric assistant's model layer is ready (<c>+service lyricModel</c>, tool catalogue 1.2.0).</summary>
+    LyricModelService,
 }

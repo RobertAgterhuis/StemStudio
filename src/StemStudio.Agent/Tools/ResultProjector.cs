@@ -96,12 +96,19 @@ public static class ResultProjector
     {
         foreach (var item in Nodes(node).OfType<JsonObject>().ToList())
         {
-            foreach (var key in item.Select(property => property.Key).Where(Forbidden.Contains).ToList())
+            foreach (var key in item.Where(property => Forbidden.Contains(property.Key) && !IsRowList(property.Value)).Select(property => property.Key).ToList())
             {
                 item.Remove(key);
             }
         }
     }
+
+    /// <summary>
+    /// A list of objects (e.g. the folder <c>path</c> of 022, the per-line numbers of <c>count_syllables</c>) is a projection of rows,
+    /// not a text, file path or URL: it stays, and its rows are stripped like every other object. Text values and lists of texts
+    /// under a forbidden name are always removed.
+    /// </summary>
+    private static bool IsRowList(JsonNode? value) => value is JsonArray rows && rows.All(row => row is JsonObject);
 
     private static JsonNode Shrink(JsonNode node)
     {
