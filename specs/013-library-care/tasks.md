@@ -136,8 +136,8 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ## Phase 5: User Story 3 - See where my disk space goes (P2)
 
-- [ ] T054 [P] [US3] [backend] Failing tests `StorageOverviewServiceTests.cs`: sums per category equal the fixture bytes (0 deviation, SC-006), per-track rows incl. `recordingsBytes`, source attribution (pending upload + worker entry by `WorkerJobId`), unattached items, worker unavailable -> reasons, shared volumes grouping, 30 s cache and `refresh`, 500-track library under 2 s (FR-020, FR-021)
-- [ ] T055 [US3] [backend] Implement `Storage/{StorageOverviewService,LibraryWalker,WorkerStorageAttribution}.cs`, `StorageEndpoints.getStorageOverview` to pass T054
+- [x] T054 [P] [US3] [backend] Failing tests `StorageOverviewServiceTests.cs`: sums per category equal the fixture bytes (0 deviation, SC-006), per-track rows incl. `recordingsBytes`, source attribution (pending upload + worker entry by `WorkerJobId`), unattached items, worker unavailable -> reasons, shared volumes grouping, 30 s cache and `refresh`, 500-track library under 2 s (FR-020, FR-021)
+- [x] T055 [US3] [backend] Implement `Storage/{StorageOverviewService,LibraryWalker,WorkerStorageAttribution}.cs`, `StorageEndpoints.getStorageOverview` to pass T054
 - [ ] T056 [US3] [frontend] bUnit tests first, then: Storage tab (volumes as meters, categories with class badges and "how to regenerate", manage links for originals, per-track table with sortable headers and `aria-sort` at Advanced+, top-5 list at Beginner, unattached, model caches without delete, Expert worker entries, backups and previous library rows); help topics `storage-overview`, `storage-regenerable`
 - [ ] T057 [US3] [qa] E2E `library-care-storage.spec.ts`: numbers equal `du -sb` inside the containers (helper via `docker compose exec`), worker stopped -> reason shown, sorting, links
 
@@ -147,8 +147,8 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ## Phase 6: User Story 4 - Free space safely (P2)
 
-- [ ] T058 [P] [US4] [backend] Failing tests `CleanupPlannerTests.cs`, `CleanupExecutorTests.cs`: plans contain only regenerable items (property test with stems, exports, scores, takes, recordings and voice samples present: none planned, SC-007, SC-010), skips with reasons (`detail-active`, `export-active`, `job-active`, `worker-unavailable`), fingerprint and `plan-stale`, expiry `plan-expired`, refused during backup/restore, detail removal sets `FilesRemovedAt`, worker clean-up call, leftovers, storage cache invalidated (FR-022-FR-026)
-- [ ] T059 [US4] [backend] Implement `Cleanup/*`, `previewCleanup`, `executeCleanup` to pass T058
+- [x] T058 [P] [US4] [backend] Failing tests `CleanupPlannerTests.cs`, `CleanupExecutorTests.cs`: plans contain only regenerable items (property test with stems, exports, scores, takes, recordings and voice samples present: none planned, SC-007, SC-010), skips with reasons (`detail-active`, `export-active`, `job-active`, `worker-unavailable`), fingerprint and `plan-stale`, expiry `plan-expired`, refused during backup/restore, detail removal sets `FilesRemovedAt`, worker clean-up call, leftovers, storage cache invalidated (FR-022-FR-026)
+- [x] T059 [US4] [backend] Implement `Cleanup/*`, `previewCleanup`, `executeCleanup` to pass T058
 - [ ] T060 [US4] [frontend] bUnit tests first, then: clean-up buttons and per-row action, clean-up dialog (items, skipped, total, confirm, result, stale/expired error with "Preview again"), `detail-files-removed` on the track page, `mixer-detail-removed` in the mixer (detail channels not loaded, parents play, settings kept); help topic `storage-cleanup`
 - [ ] T061 [US4] [qa] E2E `library-care-cleanup.spec.ts`: remove detail stems -> freed bytes equal preview -> notices -> mixer plays parents -> Split further restores; clear worker cache -> Split further on another track works (rehydration); a stale plan is refused
 
