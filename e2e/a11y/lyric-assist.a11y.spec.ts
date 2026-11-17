@@ -90,8 +90,9 @@ for (const theme of matrixThemes) {
         await assistPane.goto(sheet.id);
         await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
         expect(await horizontalOverflow(page), 'horizontal page scroll').toBe(0);
+        // axe first (soft, so the walk still reports): the walk scrolls targets under the sticky top bar.
+        expect.soft(await axeViolations(page), 'axe at 320 px').toEqual([]);
         expect(await hiddenPaneStops(page), 'pane controls hidden at 320 px').toEqual([]);
-        expect(await axeViolations(page), 'axe at 320 px').toEqual([]);
       });
 
       test('the pane at 720 px high keeps every control visible', async ({ lyricAssistApi, assistPane, page }) => {
@@ -109,11 +110,14 @@ for (const theme of matrixThemes) {
         const sheet = await createFixtureSheet(lyricAssistApi, 'zomeravond');
         await assistPane.goto(sheet.id);
         await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-        await new HelpPanel(page).open('button');
+        const help = new HelpPanel(page);
+        await help.open('button');
+        // The panel moves focus to its heading after it opened; walk the pane only after that.
+        await expect(help.panel.locator(':focus')).toHaveCount(1);
         await expect(assistPane.pane).toBeVisible();
         expect(await horizontalOverflow(page), 'horizontal page scroll with help').toBe(0);
+        expect.soft(await axeViolations(page), 'axe with help').toEqual([]);
         expect(await hiddenPaneStops(page), 'pane controls hidden with help').toEqual([]);
-        expect(await axeViolations(page), 'axe with help').toEqual([]);
       });
     });
   }
