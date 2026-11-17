@@ -86,12 +86,12 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ### stem-separation (worker, tests first)
 
-- [ ] T025 [P] [stem-separation] Failing tests `worker/tests/storage/test_meter.py`: walk of a temp data dir and model dir (no link following), cache entries with standard/detail/partial/artwork bytes, job-id attribution from job JSON, `in_use` for non-terminal jobs, model catalogue ids, free space via a fake `disk_usage`, 30 s cache
-- [ ] T026 [stem-separation] Implement `storage/meter.py`, `storage/model_catalog.py`, `DataPaths.library_stem` to pass T025
-- [ ] T027 [P] [stem-separation] Failing tests `test_janitor.py`: queue lock held, `in_use` entries skipped, `["*"]`, `by-source` pointers removed, `cacheEvicted` flag on referencing jobs, scratch and old job files (7 days, fake clock), freed bytes exact
-- [ ] T028 [stem-separation] Implement `storage/janitor.py` to pass T027
-- [ ] T029 [P] [stem-separation] Failing tests `test_rehydrate.py` and API tests `test_storage_routes.py`: stems copied from a temp library, cache key rule, completed job file, idempotent 200, stem set must equal the model's (422), missing stem 404 with `stem`, missing mount 409, path built only from UUID + enum, `/result` and `/stems` 404 for rehydrated jobs, detail job accepts the rehydrated `standardJobId`; contract examples
-- [ ] T030 [stem-separation] Implement `storage/rehydrate.py`, `api/storage.py` (`/v1/storage`, `/v1/storage/cleanup`, `/v1/jobs/rehydrate`) to pass T029
+- [x] T025 [P] [stem-separation] Failing tests `worker/tests/storage/test_meter.py`: walk of a temp data dir and model dir (no link following), cache entries with standard/detail/partial/artwork bytes, job-id attribution from job JSON, `in_use` for non-terminal jobs, model catalogue ids, free space via a fake `disk_usage`, 30 s cache
+- [x] T026 [stem-separation] Implement `storage/meter.py`, `storage/model_catalog.py`, `DataPaths.library_stem` to pass T025
+- [x] T027 [P] [stem-separation] Failing tests `test_janitor.py`: queue lock held, `in_use` entries skipped, `["*"]`, `by-source` pointers removed, `cacheEvicted` flag on referencing jobs, scratch and old job files (7 days, fake clock), freed bytes exact
+- [x] T028 [stem-separation] Implement `storage/janitor.py` to pass T027
+- [x] T029 [P] [stem-separation] Failing tests `test_rehydrate.py` and API tests `test_storage_routes.py`: stems copied from a temp library, cache key rule, completed job file, idempotent 200, stem set must equal the model's (422), missing stem 404 with `stem`, missing mount 409, path built only from UUID + enum, `/result` and `/stems` 404 for rehydrated jobs, detail job accepts the rehydrated `standardJobId`; contract examples
+- [x] T030 [stem-separation] Implement `storage/rehydrate.py`, `api/storage.py` (`/v1/storage`, `/v1/storage/cleanup`, `/v1/jobs/rehydrate`) to pass T029
 
 **Checkpoint**: HO:foundational for backend and stem-separation.
 
