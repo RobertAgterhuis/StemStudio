@@ -28,6 +28,7 @@
     "**/third_party/soundtouch/build/**",
     "**/wwwroot/js/time-stretch-processor.js",
     "**/wwwroot/js/soundtouch/**",
-    "**/wwwroot/third-party/**"
+    "**/wwwroot/third-party/**",
+    "**/LyricAssist/Dictionaries/**"
   ]
 }
