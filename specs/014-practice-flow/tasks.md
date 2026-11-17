@@ -127,8 +127,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### audio-engine (tests first)
 
-- [ ] T042 [P] [audio-engine] Failing tests `src/audio-engine/tests/loop-pass.test.ts`: `OnLoopPass` fires once per heard wrap with region, pass number and speed; seek or loop change resets; disabled loop never fires; at 50 % and 120 % speed (A-012-1) (FR-025)
-- [ ] T043 [audio-engine] Implement `src/audio-engine/src/loop-pass.ts` and wire it into the transport/frame loop to pass T042
+- [x] T042 [P] [audio-engine] Failing tests `src/audio-engine/tests/loop-pass.test.ts`: `OnLoopPass` fires once per heard wrap with region, pass number and speed; seek or loop change resets; disabled loop never fires; at 50 % and 120 % speed (A-012-1) (FR-025)
+- [x] T043 [audio-engine] Implement `src/audio-engine/src/loop-pass.ts` and wire it into the transport/frame loop to pass T042
 
 ### frontend (tests first)
 

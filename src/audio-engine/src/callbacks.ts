@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { TransportListener } from './transport';
-import type { DotNetCallbacks, DotNetObjectReference, PlaybackState, PracticeStatus } from './types';
+import type { DotNetCallbacks, DotNetObjectReference, LoopPassInfo, PlaybackState, PracticeStatus } from './types';
 
 /** Interval of position reports while playing (10 Hz). UI feedback only, never audible timing. */
 export const POSITION_REPORT_INTERVAL_MS = 100;
@@ -108,4 +108,17 @@ export class PracticeNotifier {
     // A disconnected circuit rejects; the engine must keep working regardless.
     this.ref.invokeMethodAsync('OnPracticeChanged', this.status()).catch(() => undefined);
   }
+}
+
+/**
+ * Sends `OnLoopPass` (contract 2.4.0): at most one call per completed loop pass, so no rate limit is needed.
+ *
+ * @param ref - .NET object implementing the callbacks.
+ * @returns The report function handed to the loop-pass tracker.
+ */
+export function loopPassNotifier(ref: DotNetObjectReference): (info: LoopPassInfo) => void {
+  return (info) => {
+    // A disconnected circuit rejects; the engine must keep working regardless.
+    ref.invokeMethodAsync('OnLoopPass', info).catch(() => undefined);
+  };
 }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loopPassNotifier } from '../src/callbacks';
 import { FrameLoop } from '../src/frame-loop';
 import { LoopPassTracker, wrapsAt } from '../src/loop-pass';
 import type { LoopPassInfo } from '../src/types';
@@ -319,7 +320,14 @@ describe('engine OnLoopPass', () => {
     expect(passes(rig)).toHaveLength(2);
   });
 
-  it('stop resets the count; loading a track resets it', async () => {
+  it('a disconnected circuit (rejecting callback) does not break the engine', async () => {
+    const ref = { invokeMethodAsync: vi.fn(() => Promise.reject(new Error('circuit gone'))) };
+    loopPassNotifier(ref)({ start: A, end: B, pass: 1, speedPercent: 100 });
+    await Promise.resolve();
+    expect(ref.invokeMethodAsync).toHaveBeenCalledWith('OnLoopPass', { start: A, end: B, pass: 1, speedPercent: 100 });
+  });
+
+  it('stop resets the count', async () => {
     const rig = await loadedPracticeRig();
     rig.engine.setLoop({ start: A, end: B, enabled: true });
     await rig.engine.play();

@@ -52,6 +52,15 @@ export function outputLatency(context: AudioContext): number {
 }
 
 /**
+ * @param context - AudioContext.
+ * @param perfNow - Current `performance.now()` (ms).
+ * @returns Context time heard at the output now: {@link audioNow} minus {@link outputLatency} (s).
+ */
+export function heardTime(context: AudioContext, perfNow: number): number {
+  return audioNow(context, perfNow) - outputLatency(context);
+}
+
+/**
  * @param offsetMs - Requested user offset.
  * @returns The offset when it is a number in -5000..5000.
  * @throws Error `Karaoke offset out of range: <value>` otherwise.
@@ -86,7 +95,6 @@ export class KaraokeClock {
   /** @returns `round(1000 * heard transport position) - offsetMs`. */
   public positionMs(): number {
     const { context, transport } = this.options;
-    const heard = audioNow(context, this.now()) - outputLatency(context);
-    return Math.round(1000 * transport.positionAt(heard)) - this.offset;
+    return Math.round(1000 * transport.positionAt(heardTime(context, this.now()))) - this.offset;
   }
 }
