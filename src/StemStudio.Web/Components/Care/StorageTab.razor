@@ -1,0 +1,154 @@
+@* Storage tab of Library care (013 US3/US4, FR-020-FR-024; ui-test-ids 1.12.0 storage-*, cleanup-*): areas as meters,
+   parts of the library with their class, tracks (table at Advanced+, top five at Beginner), items without a track, model
+   caches (no delete), worker details (Expert), backups and the previous library. *@
+
+<div class="ss-care-tab ss-stack">
+    <div class="ss-care-new">
+        <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Light" Disabled="Loading" Click="RefreshAsync" data-testid="storage-refresh" />
+        @if (Overview is { } measured)
+        {
+            <span class="ss-help" data-testid="storage-measured-at">Measured @CareText.When(measured.MeasuredAt)</span>
+        }
+    </div>
+
+    @if (Error is { } error)
+    {
+        <ErrorState TestId="storage-error" Message="@error" Hint="Check that StemStudio is running, then press Refresh." />
+    }
+    else if (Overview is not { } overview)
+    {
+        <Skeleton Lines="4" />
+    }
+    else
+    {
+        <section aria-labelledby="storage-areas-title">
+            <h2 id="storage-areas-title" class="ss-heading">Storage areas <HelpHint HelpId="care-tab-storage" /></h2>
+            @if (!overview.Worker.Available)
+            {
+                <p class="ss-notice" data-testid="storage-worker-unavailable">Worker part not available: @((overview.Worker.Reason ?? "the worker cannot be reached").TrimEnd('.')).</p>
+            }
+            <div class="ss-stack">
+                @foreach (var line in StorageView.Lines(overview.Volumes))
+                {
+                    var id = $"storage-volume-{StorageView.VolumeId(line.Volume.Id)}";
+                    var label = StorageView.LineLabel(line, overview.Volumes);
+                    <div class="ss-care-meter" @key="line.Volume.Id" data-testid="@id" data-help-id="@id" data-free-bytes="@line.Volume.FreeBytes"
+                         data-total-bytes="@line.Volume.TotalBytes" data-shared-with="@(line.SharedWith.Count == 0 ? null : string.Join(",", line.SharedWith))"
+                         @attributes="StorageView.MeterAttributes(line, label)">
+                        <span class="ss-label">@label</span>
+                        @if (line.UsedPercent is { } used)
+                        {
+                            <span class="ss-care-meter-bar" aria-hidden="true"><span class="ss-care-meter-fill" style="@($"width: {used}%")"></span></span>
+                        }
+                        <span class="ss-small">@StorageView.FreeText(line)</span>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section aria-labelledby="storage-cleanup-title">
+            <h2 id="storage-cleanup-title" class="ss-heading">Free space</h2>
+            <p class="ss-help">Remove files StemStudio can make again. You see what goes before anything is removed.</p>
+            <div class="ss-care-actions">
+                <RadzenButton Text="Remove detail stems" Icon="call_merge" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.DetailStems)" data-testid="cleanup-detail-stems" />
+                <RadzenButton Text="Clear worker cache" Icon="cached" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.WorkerCache)" data-testid="cleanup-worker-cache" />
+                <RadzenButton Text="Remove leftovers" Icon="cleaning_services" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.Leftovers)" data-testid="cleanup-leftovers" />
+            </div>
+            @if (CleanupBlocked is { } blocked)
+            {
+                <p id="cleanup-blocked-reason" class="ss-help">@blocked</p>
+            }
+        </section>
+
+        <section aria-labelledby="storage-parts-title">
+            <h2 id="storage-parts-title" class="ss-heading">Parts of the library</h2>
+            <div class="ss-care-scroll" tabindex="0" role="region" aria-labelledby="storage-parts-title">
+                <table class="ss-table ss-care-storage-table">
+                    <thead><tr><th scope="col">Part</th><th scope="col">Size</th><th scope="col">Files</th><th scope="col">Class</th><th scope="col">How to get it back</th></tr></thead>
+                    <tbody>
+                        @foreach (var part in overview.Categories)
+                        {
+                            var id = $"storage-category-{CareText.Kebab(part.Category)}";
+                            var cls = WireName.Of(part.Regenerability);
+                            <tr @key="part.Category" data-testid="@id" data-help-id="@id" data-bytes="@part.Bytes" data-class="@cls">
+                                <th scope="row">@CareText.Category(part.Category)</th>
+                                <td class="ss-num">@StorageView.Size(part.Bytes)</td>
+                                <td class="ss-num">@(part.Files?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-")</td>
+                                <td><span class="ss-care-badge" data-class="@cls">@CareText.Class(part.Regenerability)</span></td>
+                                <td>
+                                    @if (part.Regenerability == RegenerabilityDto.Regenerable)
+                                    {
+                                        <span>@(part.HowToRegenerate ?? "StemStudio makes it again when needed")@(part.CostHint is { } cost ? $" ({cost})" : string.Empty)</span>
+                                    }
+                                    else if (StorageView.ManageLink(part.Category) is { } href)
+                                    {
+                                        <a href="@href" data-testid="@($"storage-manage-{CareText.Kebab(part.Category)}")">Manage</a>
+                                    }
+                                    else
+                                    {
+                                        <span>Only from a backup</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <LevelGate Feature="care.worker-entries">
+                <WorkerEntriesTable Categories="overview.Categories" />
+            </LevelGate>
+        </section>
+
+        <section aria-labelledby="storage-tracks-title">
+            <h2 id="storage-tracks-title" class="ss-heading">Tracks</h2>
+            <LevelGate Feature="care.track-table">
+                <StorageTracksTable Tracks="overview.Tracks">
+                    <Actions Context="track">
+                        @if (track.DetailStemsBytes > 0 && !track.DetailFilesRemoved)
+                        {
+                            <button type="button" class="ss-text-button" disabled="@(CleanupBlocked is not null)" aria-label="@($"Remove the detail stems of {track.Title}")"
+                                    @onclick="() => OpenCleanup(CleanupKindDto.DetailStems, track.TrackId)"
+                                    data-testid="@($"cleanup-track-detail-{track.TrackId}")">Remove detail stems</button>
+                        }
+                    </Actions>
+                </StorageTracksTable>
+            </LevelGate>
+            <LevelGate Feature="care.top-tracks">
+                <ol class="ss-care-list" data-testid="storage-top-tracks">
+                    @foreach (var track in StorageView.Top(overview.Tracks))
+                    {
+                        <li @key="track.TrackId"><a href="@($"tracks/{track.TrackId}")">@track.Title</a>: @ByteSize.Format(track.TotalBytes)</li>
+                    }
+                </ol>
+            </LevelGate>
+        </section>
+
+        <section aria-labelledby="storage-other-title">
+            <h2 id="storage-other-title" class="ss-heading">Other items</h2>
+            <p data-testid="storage-unattached">Without a track: @UnattachedText(overview.Unattached)</p>
+            @foreach (var cache in overview.ModelCaches)
+            {
+                <p @key="cache.Id" data-testid="@($"storage-model-cache-{cache.Id}")">
+                    Model cache @cache.Id: @ByteSize.Format(cache.Bytes)@(cache.Models.Count > 0 ? $" ({string.Join(", ", cache.Models)})" : string.Empty).
+                    Downloaded again at first use; it cannot be removed here.
+                </p>
+            }
+            <p data-testid="storage-backups">
+                Backups: @CareText.Count(overview.Backups.Count, "archive"), @ByteSize.Format(overview.Backups.Bytes)@(overview.Backups.FolderAvailable ? "." : $" (folder not available: {overview.Backups.Reason}).")
+                <a href="care">Open Backups</a>
+            </p>
+            @if (Status?.PreviousLibrary is { } previous)
+            {
+                <p data-testid="storage-previous-library">Previous library: @ByteSize.Format(previous.SizeBytes). <a href="care">Undo or discard it on the Backups tab</a></p>
+            }
+        </section>
+    }
+</div>
+
+@if (CleanupRequest is { } request)
+{
+    <CleanupDialog Request="request" OnClose="OnCleanupClosedAsync" />
+}

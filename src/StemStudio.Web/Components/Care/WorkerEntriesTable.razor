@@ -1,0 +1,23 @@
+@* Worker details at Expert (013 US3; ui-test-ids 1.12.0 storage-worker-entries): the worker's caches, job files and
+   scratch space. Backend API 1.12.0 reports them per category, not per cache entry, so the table lists the categories. *@
+
+<table class="ss-table ss-care-storage-table" data-testid="storage-worker-entries">
+    <caption class="ss-label">Worker data</caption>
+    <thead><tr><th scope="col">Part</th><th scope="col">Size</th><th scope="col">Files</th></tr></thead>
+    <tbody>
+        @foreach (var part in Categories.Where(c => WireName.Of(c.Category).StartsWith("worker", StringComparison.Ordinal)))
+        {
+            <tr @key="part.Category">
+                <th scope="row">@CareText.Category(part.Category)</th>
+                <td class="ss-num">@StorageView.Size(part.Bytes)</td>
+                <td class="ss-num">@(part.Files?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    /// <summary>Every category of the overview; only the worker ones are listed.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<StorageCategoryUsageDto> Categories { get; set; } = [];
+}

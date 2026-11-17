@@ -37,5 +37,8 @@ public sealed partial class DetailSection
 
     private bool Active => DetailPhaseText.IsActive(Detail.Status);
 
+    // The clean-up removed the detail files (013 FR-025); Split further makes them again.
+    private bool Removed => Detail.FilesRemovedAt is not null;
+
     private string? Notice => DetailPhaseText.Notice(Track);
 }

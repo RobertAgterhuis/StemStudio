@@ -22,6 +22,7 @@ public sealed partial class MixerState
         _loopEnd = settings.Loop?.End;
         LoopError = null;
         ApplyPractice(settings.Practice);
+        KeepRemovedDetail(settings);
         MarkSaved(mix);
     }
 
@@ -53,8 +54,8 @@ public sealed partial class MixerState
     public MixSettingsDto ToSettings(string name) =>
         new(name.Trim(), MasterVolume, Channels.Select(c => c.ToDto()).ToList(), Metronome, Loop)
         {
-            Expanded = Groups.Where(g => g.Expanded).Select(g => g.Parent).ToList(),
-            DetailChannels = Groups.SelectMany(g => g.Stems).Select(s => s.ToDto()).ToList(),
+            Expanded = DetailRemoved ? _keptExpanded : Groups.Where(g => g.Expanded).Select(g => g.Parent).ToList(),
+            DetailChannels = DetailRemoved ? _keptDetailChannels : Groups.SelectMany(g => g.Stems).Select(s => s.ToDto()).ToList(),
             Practice = Practice,
         };
 }

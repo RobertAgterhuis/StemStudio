@@ -1,0 +1,47 @@
+@* Per-track storage table (013 US3, FR-020, FR-032; ui-test-ids 1.12.0 storage-tracks-table, storage-sort-*, storage-track-row-*):
+   a sort button in every size header, aria-sort on the sorted header; the title links to the track page. *@
+
+<div class="ss-care-scroll" tabindex="0" role="region" aria-label="Tracks by size">
+    <table class="ss-table ss-care-storage-table" data-testid="storage-tracks-table">
+        <caption class="ss-sr-only">Disk use per track; press a column heading to sort</caption>
+        <thead>
+            <tr>
+                <th scope="col">Track</th>
+                @foreach (var column in StorageView.Columns)
+                {
+                    <th scope="col" @key="column.Id" aria-sort="@AriaSort(column.Id)">
+                        <button type="button" class="ss-care-sort" @onclick="() => SortBy(column.Id)" data-testid="@($"storage-sort-{column.Id}")">
+                            @column.Label<span class="rzi" aria-hidden="true">@SortIcon(column.Id)</span>
+                        </button>
+                    </th>
+                }
+                @if (Actions is not null)
+                {
+                    <th scope="col"><span class="ss-sr-only">Actions</span></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var track in Sorted)
+            {
+                <tr @key="track.TrackId" data-testid="@($"storage-track-row-{track.TrackId}")" data-total-bytes="@track.TotalBytes"
+                    data-detail-removed="@(track.DetailFilesRemoved ? "true" : "false")">
+                    <th scope="row"><a href="@($"tracks/{track.TrackId}")">@track.Title</a>
+                        @if (track.Artist is { } artist)
+                        {
+                            <span class="ss-small ss-muted">@artist</span>
+                        }
+                    </th>
+                    @foreach (var column in StorageView.Columns)
+                    {
+                        <td class="ss-num" @key="column.Id">@StorageView.Size(column.Bytes(track))</td>
+                    }
+                    @if (Actions is not null)
+                    {
+                        <td>@Actions(track)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

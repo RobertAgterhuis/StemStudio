@@ -1,0 +1,22 @@
+@* Keeps Tab and Shift+Tab inside a modal dialog (013 FR-032, WCAG 2.4.3): Tab past the last control returns to the
+   dialog's title (OnWrap); Shift+Tab before the first control lands on an anchor after the last one, so the next
+   Shift+Tab reaches the last control. The sentinels are empty and invisible. *@
+
+<span class="ss-focus-sentinel" tabindex="0" data-focus-sentinel="start" @onfocus="ToEndAsync"></span>
+@ChildContent
+<span class="ss-focus-sentinel" tabindex="-1" data-focus-sentinel="end-anchor" @ref="_end"></span>
+<span class="ss-focus-sentinel" tabindex="0" data-focus-sentinel="end" @onfocus="OnWrap"></span>
+
+@code {
+    private ElementReference _end;
+
+    /// <summary>The dialog content.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Tab left the last control: the dialog moves the focus to its first element (title).</summary>
+    [Parameter]
+    public EventCallback OnWrap { get; set; }
+
+    private async Task ToEndAsync() => await _end.FocusAsync();
+}

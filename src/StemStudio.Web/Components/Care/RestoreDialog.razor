@@ -1,0 +1,93 @@
+@* Restore a backup (013 US2, FR-010-FR-018; ui-test-ids 1.12.0 restore-*): empty library text or the mode, voice
+   profiles, needed and free space, active jobs with links, the typed REPLACE and the readable reasons. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-care-dialog" role="dialog" aria-modal="true" aria-labelledby="restore-dialog-title" aria-describedby="restore-dialog-subject"
+         data-testid="restore-dialog" data-help-id="restore-dialog" @onkeydown="OnKeyAsync">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <div class="ss-label-row">
+                <h2 id="restore-dialog-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Restore backup</h2>
+                <HelpHint HelpId="restore-dialog" />
+            </div>
+            <p id="restore-dialog-subject" class="ss-help">@Archive.FileName - @CareText.ArchiveStatus(Archive). The whole archive is checked before anything in your library changes.</p>
+
+            @if (Form.Empty)
+            {
+                <p data-testid="restore-empty">Your library is empty; the backup will be restored.</p>
+            }
+            else
+            {
+                <fieldset class="ss-care-fieldset">
+                    <legend class="ss-label">How to restore</legend>
+                    <label class="ss-check"><input type="radio" name="restore-mode" checked="@(Form.Mode == RestoreModeDto.Replace)"
+                                                   @onchange="() => Form.Mode = RestoreModeDto.Replace" data-testid="restore-mode-replace" />
+                        Replace my library (it is kept aside and can come back with Undo restore)</label>
+                    <LevelGate Feature="care.restore-merge">
+                        <label class="ss-check"><input type="radio" name="restore-mode" checked="@(Form.Mode == RestoreModeDto.Merge)"
+                                                       @onchange="() => Form.Mode = RestoreModeDto.Merge" data-testid="restore-mode-merge" />
+                            Add what is missing (keep everything I have)</label>
+                    </LevelGate>
+                </fieldset>
+            }
+
+            @if (Form.HasVoiceProfiles)
+            {
+                <label class="ss-check" data-help-id="restore-voice-profiles">
+                    <input type="checkbox" checked="@Form.VoiceProfiles" @onchange="e => Form.VoiceProfiles = e.Value is true" data-testid="restore-voice-profiles" />
+                    Restore voice profiles (only those with a valid consent record)
+                </label>
+            }
+
+            <p class="ss-small" role="status" data-testid="restore-space" data-enough="@(Form.Enough ? "true" : "false")">@Form.SpaceText</p>
+
+            @if (Form.Blockers.Count > 0)
+            {
+                <div class="ss-notice" data-testid="restore-blockers">
+                    <p>These jobs are still busy. Wait for them or cancel them, then restore:</p>
+                    <ul class="ss-care-list">
+                        @foreach (var work in Form.Blockers)
+                        {
+                            var label = $"{RestoreForm.BlockerKind(work.Kind)}: {work.Title}";
+                            <li @key="(work.Kind, work.Id)" data-testid="@($"restore-blocker-{CareText.Kebab(work.Kind)}-{work.Id}")">
+                                @if (RestoreForm.BlockerLink(work) is { } href)
+                                {
+                                    <a href="@href">@label</a>
+                                }
+                                else
+                                {
+                                    <span>@label (stop it in the composer panel)</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Form.PreviousBlocked is { } previousBlocked)
+            {
+                <p class="ss-notice">@previousBlocked</p>
+            }
+
+            @if (Form.NeedsConfirmation)
+            {
+                <div class="ss-field">
+                    <label class="ss-label" for="restore-confirm-input">Type REPLACE to replace your library</label>
+                    <input id="restore-confirm-input" class="rz-textbox ss-wide" autocomplete="off" maxlength="16" value="@Form.Confirmation"
+                           @oninput="e => Form.Confirmation = e.Value?.ToString() ?? string.Empty" data-testid="restore-confirm-input" />
+                </div>
+            }
+
+            @if (Error is { } error)
+            {
+                <div class="ss-error" role="alert" data-testid="restore-error" data-code="@ErrorCode">@error</div>
+            }
+
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="restore-dialog-cancel" />
+                <RadzenButton Text="Restore" Icon="settings_backup_restore" ButtonStyle="ButtonStyle.Danger" Disabled="@(!Form.CanStart || Busy)" IsBusy="Busy"
+                              BusyText="Starting..." Click="StartAsync" data-testid="restore-start" />
+            </div>
+        </FocusTrap>
+    </div>
+</div>

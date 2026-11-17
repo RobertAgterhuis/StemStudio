@@ -62,6 +62,14 @@ public static class FeatureCatalog
         new("agent.tool-log", Expert, null, "agent-panel"),
         new("agent.models", Advanced, null, "agent-backends"),
         new("agent.claude-options", Expert, null, "agent-backends"),
+        new("care.backup-options", Advanced, null, "backup-contents"),
+        new("care.job-bytes", Advanced, null, "library-care"),
+        new("care.verify", Advanced, null, "backup-compatibility"),
+        new("care.manifest", Expert, null, "backup-contents"),
+        new("care.track-table", Advanced, null, "storage-overview"),
+        new("care.top-tracks", Beginner, Beginner, "storage-overview"),
+        new("care.worker-entries", Expert, null, "storage-regenerable"),
+        new("care.restore-merge", Advanced, null, "backup-restore"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

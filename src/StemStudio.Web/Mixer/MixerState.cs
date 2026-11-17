@@ -24,6 +24,7 @@ public sealed partial class MixerState
         var present = track.Stems.Select(s => s.Name).ToHashSet(StringComparer.Ordinal);
         Channels = StemNames.SixStem.Where(present.Contains).Select(name => new ChannelState(name)).ToList();
         Groups = BuildGroups(track);
+        _detailFilesRemovedAt = track.Detail.FilesRemovedAt;
         _byStem = AllChannels.ToDictionary(c => c.Stem, StringComparer.Ordinal);
         Metronome = new MetronomeSettingsDto(track.BeatGrid?.Reliable ?? false, ContractLimits.DefaultMetronomeVolume, null, 0, DetectedBeatsPerBar);
     }

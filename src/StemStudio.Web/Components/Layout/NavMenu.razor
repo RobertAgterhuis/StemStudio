@@ -1,5 +1,5 @@
 @* Navigation rail (design-spec.md 4.1): brand mark, Import, Tracks, Mixes, Library (007), then the generative pages
-   (009/010) after a divider; Help at the bottom. Under 768 px it becomes a bottom bar that scrolls sideways. The nav-* ids
+   (009/010) after a divider, then Library care (013) and Settings; Help at the bottom. Under 768 px it becomes a bottom bar that scrolls sideways. The nav-* ids
    stay on the links (ui-test-ids 1.3.0 adopted ids, 1.8.0/1.9.0). *@
 
 <nav class="ss-rail" aria-label="Main navigation">
@@ -31,6 +31,9 @@
     </NavLink>
     <NavLink class="ss-rail-link" href="voices" data-testid="nav-voices">
         <span class="rzi" aria-hidden="true">record_voice_over</span><span class="ss-rail-label">Voices</span>
+    </NavLink>
+    <NavLink class="ss-rail-link" href="care" data-testid="nav-care">
+        <span class="rzi" aria-hidden="true">backup</span><span class="ss-rail-label">Library care</span>
     </NavLink>
     <NavLink class="ss-rail-link" href="settings" data-testid="nav-settings">
         <span class="rzi" aria-hidden="true">settings</span><span class="ss-rail-label">Settings</span>

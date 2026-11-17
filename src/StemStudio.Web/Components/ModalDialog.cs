@@ -36,6 +36,10 @@ public abstract class ModalDialog : ComponentBase, IAsyncDisposable
     protected static Task CloseOnEscapeAsync(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, EventCallback close) =>
         args.Key == "Escape" ? close.InvokeAsync() : Task.CompletedTask;
 
+    /// <summary>Moves the focus back to <see cref="InitialFocus"/> (the end sentinel of a <c>FocusTrap</c>, WCAG 2.4.3).</summary>
+    /// <returns>A task.</returns>
+    protected async Task WrapFocusAsync() => await InitialFocus.FocusAsync();
+
     /// <summary>Remembers the opener; derived dialogs call it first from their own override.</summary>
     /// <returns>A task.</returns>
     protected override async Task OnInitializedAsync() => _returnFocus = await Web.CaptureFocusAsync();
