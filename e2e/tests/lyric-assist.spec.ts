@@ -169,3 +169,28 @@ test('rhyme finder: nacht and night answer within 500 ms without a model call', 
   await expect(assistPane.byId('lyric-rhymes-panel').locator('[data-testid^="lyric-rhymes-result-"]').first()).toBeVisible({ timeout: 500 });
   expect(await lyricAssistApi.assists(sheet.id)).toHaveLength(assistsBefore);
 });
+
+test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter accepts, Alt+Backspace rejects, Escape returns to the text', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane, page }) => {
+  await requireModelBackend(lyricAssistApi, 'fake');
+  const sheet = await createFixtureSheet(lyricAssistApi, 'zomeravond');
+  await assistPane.goto(sheet.id);
+  await assistPane.text.focus();
+  await page.keyboard.press('Control+Alt+C');
+  await expect.poll(async () => (await lyricAssistApi.assists(sheet.id)).length).toBe(1);
+  await lyricAssistApi.waitForEnd((await lyricAssistApi.assists(sheet.id))[0]?.assistId ?? '');
+  await expect(assistPane.live).toContainText(/Check finished/u);
+
+  await page.keyboard.press('F8');
+  const focused = assistPane.list.locator('[role="option"]:focus, [aria-selected="true"]').first();
+  await expect(focused).toBeVisible();
+  await expect(assistPane.live).toContainText(/Line \d+/u);
+  const firstId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  await page.keyboard.press('Alt+Enter');
+  await expect(assistPane.entry(firstId)).toHaveAttribute('data-status', 'accepted');
+  await page.keyboard.press('F8');
+  const secondId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  await page.keyboard.press('Alt+Backspace');
+  await expect(assistPane.entry(secondId)).toHaveAttribute('data-status', 'rejected');
+  await page.keyboard.press('Escape');
+  await expect(assistPane.text).toBeFocused();
+});

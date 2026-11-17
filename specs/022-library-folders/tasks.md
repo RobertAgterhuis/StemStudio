@@ -82,8 +82,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
 - [ ] T020 [P] [ai-agent] Tests (red) descriptors and JSON schemas of the 4 tools (names, kinds, risk, undo, `additionalProperties: false`, folder id pattern, xor of `trackId`/`assetId`), registry groups and the 32-tool cap per page context (library = 32, others unchanged) (catalogue 1.1.0)
 - [ ] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
-- [ ] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
-- [ ] T023 [P] [qa] Fixtures `tests/fixtures/library/`: tagged upload files and fake-online scenarios for artists with diacritics, "The", featuring, unknown artist/album, a compilation, the same song on two albums, and items of every instrument family and detail group; seeding helpers over the public API; a seeding plan for 5,000 items (database fixture produced by T044's seeder, copied into the API volume by the spec's global setup)
+- [x] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
+- [x] T023 [P] [qa] Fixtures `tests/fixtures/library/`: tagged upload files and fake-online scenarios for artists with diacritics, "The", featuring, unknown artist/album, a compilation, the same song on two albums, and items of every instrument family and detail group; seeding helpers over the public API; a seeding plan for 5,000 items (database fixture produced by T044's seeder, copied into the API volume by the spec's global setup)
 - [ ] T024 [P] [quality-gate] Dependency rules in `tools/quality/` (Domain.Library depends on nothing outside Domain; Api.Library -> Domain, Persistence, Contracts; Web.Library -> Contracts only; Agent tools -> Ports only) - test first (rule fixture fails), then the rule (FR: constitution II)
 
 **Checkpoint**: HO:foundational for backend, frontend, ai-agent, qa, quality-gate.
@@ -100,8 +100,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T035 [US1] [backend] `AssetMapper`/`LibraryMapper` placement mapping (green)
 - [ ] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
 - [ ] T037 [US1] [frontend] Confirmation changes in the export and score dialogs (green)
-- [ ] T038 [P] [US1] [qa] E2E `e2e/tests/library-filing.spec.ts`: save each item kind, check folder path and confirmation; two spellings of one artist -> one folder; unknown artist/album; deleted track keeps items; last item deleted -> folders gone (US1 scenarios 1-5, 7-9; SC-001)
-- [ ] T039 [P] [US1] [qa] E2E `e2e/tests/library-migration.spec.ts`: start on a pre-022 database fixture, `library-filing-pending` visible then gone, every item filed (US1 scenario 6, SC-003)
+- [x] T038 [P] [US1] [qa] E2E `e2e/tests/library-filing.spec.ts`: save each item kind, check folder path and confirmation; two spellings of one artist -> one folder; unknown artist/album; deleted track keeps items; last item deleted -> folders gone (US1 scenarios 1-5, 7-9; SC-001)
+- [x] T039 [P] [US1] [qa] E2E `e2e/tests/library-migration.spec.ts`: start on a pre-022 database fixture, `library-filing-pending` visible then gone, every item filed (US1 scenario 6, SC-003)
 
 **Checkpoint**: HO:us1 (backend, frontend, qa).
 
@@ -123,7 +123,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T051 [US2] [frontend] `SongFolder`, `AssetPath` (also in "All items" rows) (green)
 - [ ] T052 [P] [US2] [frontend] Tests (red) level visibility R7-R9 for every 022 id (Beginner hides `library-sort`, `library-view-all`, scope; library info ids render at every level, owner decision 2026-11-16), Advanced sort select per level (FR-018, FR-035)
 - [ ] T053 [US2] [frontend] Level rules and sort select (green)
-- [ ] T054 [P] [US2] [qa] E2E `e2e/tests/library-browse.spec.ts` + `e2e/a11y/library.spec.ts` + visual snapshots: art kinds (cover, mosaic 2/3/4, placeholder, broken image), breadcrumb and keyboard path, grid/list, sorts at Advanced, Beginner path, axe in both themes and densities (US2 scenarios 1-9; SC-005, SC-008)
+- [x] T054 [P] [US2] [qa] E2E `e2e/tests/library-browse.spec.ts` + `e2e/a11y/library.spec.ts` + visual snapshots: art kinds (cover, mosaic 2/3/4, placeholder, broken image), breadcrumb and keyboard path, grid/list, sorts at Advanced, Beginner path, axe in both themes and densities (US2 scenarios 1-9; SC-005, SC-008)
 
 **Checkpoint**: HO:us2 (backend, frontend, qa).
 
@@ -141,8 +141,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T067 [US3] [frontend] Search components and `LibraryAnnouncer` (green)
 - [ ] T068 [P] [US3] [frontend] Tests (red) `/` shortcut focuses the search on library pages (014 catalogue row when present, else 004 key map registration; no conflict with Ctrl+K and Ctrl+/)
 - [ ] T069 [US3] [frontend] Shortcut registration (green)
-- [ ] T070 [P] [US3] [qa] E2E `e2e/tests/library-search.spec.ts`: one character at a time, accents ("motorhead"), two words, **one query per instrument family and per detail group**, highlights, paths, item actions in results, Escape restores the folder, empty state, keyboard and live-region text (US3 scenarios 1-10; SC-006)
-- [ ] T071 [P] [US3] [qa] E2E `e2e/tests/library-search-perf.spec.ts` on the 5,000-item fixture: p95 last-key-to-results <= 400 ms over 30 typed queries; no stale result flicker (SC-004)
+- [x] T070 [P] [US3] [qa] E2E `e2e/tests/library-search.spec.ts`: one character at a time, accents ("motorhead"), two words, **one query per instrument family and per detail group**, highlights, paths, item actions in results, Escape restores the folder, empty state, keyboard and live-region text (US3 scenarios 1-10; SC-006)
+- [x] T071 [P] [US3] [qa] E2E `e2e/tests/library-search-perf.spec.ts` on the 5,000-item fixture: p95 last-key-to-results <= 400 ms over 30 typed queries; no stale result flicker (SC-004)
 
 **Checkpoint**: HO:us3 (backend, frontend, qa).
 
@@ -154,7 +154,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
 - [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
 - [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
-- [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
+- [x] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
 
 **Checkpoint**: HO:us4 (backend, frontend, qa).
 
