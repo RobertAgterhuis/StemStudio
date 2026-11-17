@@ -71,8 +71,8 @@ and `polish`, with real test and coverage output.
 
 ### audio-engine (tests first)
 
-- [ ] T012 [P] [audio-engine] Failing tests `tests/recording/wav.test.ts`: `encodeWav24` header fields, quantisation `clamp(round(x*2^23))` incl. +-1.0 and NaN -> 0, mono/stereo interleave, length, little-endian vectors (FR-011)
-- [ ] T013 [audio-engine] Implement `src/recording/wav.ts` to pass T012
+- [x] T012 [P] [audio-engine] Failing tests `tests/recording/wav.test.ts`: `encodeWav24` header fields, quantisation `clamp(round(x*2^23))` incl. +-1.0 and NaN -> 0, mono/stereo interleave, length, little-endian vectors (FR-011)
+- [x] T013 [audio-engine] Implement `src/recording/wav.ts` to pass T012
 - [ ] T014 [P] [audio-engine] Failing tests `tests/recording/mapping.test.ts`: `mapCaptureToTakes` without loop, with loop passes, with count-in gaps, negative start dropped, end of track, partial pass >= 1 s kept / < 1 s dropped, frame gaps filled and counted, compensation `L + P` (data-model 3.2, FR-008, FR-010)
 - [ ] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment log (T001 found the anchors pruned; tempo-stage latency is already in the heard anchors, P0-8) with its own unit tests (no public API change)
 - [ ] T016 [P] [audio-engine] Failing tests `tests/recording/calibration.test.ts`: seeded click schedule, chirp template, `estimateLatency` vectors of research R-04 (exact delays 0/128/1,000/4,410/20,000, noise -20/-40 dB, echo, missing clicks, clipping warning, jitter, every failure reason) (FR-007)
