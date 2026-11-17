@@ -11,6 +11,8 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - Do not cut scope or deviate from a contract on your own: message the orchestrator and wait for
   the decision. (013: backend cut merge-restore while frontend and qa had built it)
 - Run tests quietly, write full logs to a file and read only summaries and failures. (token cost)
+- Run `dotnet format StemStudio.slnx --verify-no-changes` on the whole solution before a hand-off, not
+  per project: 197 whitespace findings of one lane reached the integration. (022/023)
 
 ## frontend
 
@@ -30,6 +32,10 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - A database or archive from outside is untrusted: rebuild from our own migrations and copy only
   row data, instead of validating its DDL. Validators kept leaking. (013: three security rounds)
 - Every stored or archived path is checked for containment in its own root before use. (013 F1)
+- The live SQLite database must be in WAL mode: `LiveDatabaseFile.UseWal` at every start and in the
+  library switcher before the gate opens after a restore/undo. (022/023 flakes2: `database is locked`)
+- "Only one X at a time" needs one lock around check, insert and start; a database check alone lets
+  two concurrent requests both start (023 review: two assists, the first one uncancellable).
 
 ## qa
 
@@ -50,3 +56,8 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   locally afterwards; an edit to STATUS after the PDF build turned `main` red. (012)
 - Run heavy suites one after the other; `test-all` in parallel with E2E gave timing flakes. (013)
 - Make visual baselines only in the environment of the CI visual job. (013)
+- A lane must not report SIG green when jscpd errored: `run_all.py` now fails when jscpd cannot run;
+  check the duplication step's own output at every hand-off. (022/023: 9 clones found only at integration)
+- Several lanes ticking one `tasks.md` gives a conflict on every merge; resolve by keeping every tick
+  (union per row), or let lanes tick only in their hand-off. (022/023)
+
