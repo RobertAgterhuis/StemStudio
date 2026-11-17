@@ -225,6 +225,11 @@ export class StemStudioApi {
     return (await this.request.delete(`/api/tracks/${id}`)).status();
   }
 
+  /** `DELETE /api/tracks/{id}`; the raw response (feature 013 reads the `409 backup-running` problem). */
+  async deleteTrackResponse(id: string): Promise<APIResponse> {
+    return this.request.delete(`/api/tracks/${id}`);
+  }
+
   /** Polls `GET /api/tracks/{id}` until the track is completed or failed. */
   async waitForTerminal(id: string, timeoutMs: number): Promise<TrackDto> {
     const status = (): Promise<string> => this.getTrack(id).then((track) => track.status);
