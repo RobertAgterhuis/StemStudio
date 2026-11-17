@@ -67,10 +67,9 @@ Still open: hook 5 rest (shortcut overview rows `shortcut-record` / `shortcut-co
 - `dotnet format --verify-no-changes`: clean for my files; 3 WHITESPACE findings in L6's
   `tests/StemStudio.Web.Tests/Recording/RecordingApiClientTests.cs:103` (reported to the orchestrator; L6 fixes).
 - web-interop `eslint --max-warnings 0` and `tsc --noEmit`: clean.
-- `tools/quality/run_all.py`: jscpd ran (367 clones, none mine as errors after the stub fix); **1 error open**:
-  `src/web-interop/src/catalogue.ts:7 forbidden dependency web-interop -> StemStudio.Web`, the build-time JSON import of
-  `keymap-defaults.json` that contract 5.4 prescribes; rule exception requested from L2 (quality-gate) via the
-  orchestrator. SIG warnings (no errors) in my code: `Mixer::RegisterCommands` 17 NLOC, `KeyMapValidator::Accept` 19,
+- `tools/quality/run_all.py`: PASS (0 errors, jscpd ran: 367 clones, none of mine) after merging the round's rule
+  a3074617 (`TS_DATA_IMPORTS_ALLOWED`: the build-time import of `keymap-defaults.json`). SIG warnings (no errors) in my
+  code: `Mixer::RegisterCommands` 17 NLOC, `KeyMapValidator::Accept` 19,
   `PedalPresets::Choose` 16, `PracticeRecorder::FlushAsync` 24 NLOC / CCN 6, `ShortcutJson::ReadChord` CCN 6,
   `ShortcutJson::ChordNode` 18.
 - Security self-review: the only untrusted input is the browser preferences record (validated field by field on both
