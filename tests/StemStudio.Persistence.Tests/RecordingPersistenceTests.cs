@@ -123,6 +123,15 @@ public sealed class RecordingPersistenceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Migration_AddRecordingTakes_IsApplied_AndLeavesNoPendingChanges()
+    {
+        await using var context = NewContext();
+
+        (await context.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken)).ShouldContain(id => id.EndsWith("_AddRecordingTakes", StringComparison.Ordinal));
+        context.Database.HasPendingModelChanges().ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Indexes_Exist()
     {
         var indexes = await ScalarAsync("SELECT group_concat(name, ',') FROM sqlite_master WHERE type = 'index' AND tbl_name = 'RecordingTakes'");

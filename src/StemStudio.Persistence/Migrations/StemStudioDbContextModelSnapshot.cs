@@ -930,6 +930,23 @@ namespace StemStudio.Persistence.Migrations
                                 .HasColumnType("TEXT");
                         });
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "_take", "StemStudio.Domain.Mixes.Mix._take#TakeChannelSettings", b1 =>
+                        {
+                            b1.Property<bool>("Mute");
+
+                            b1.Property<double>("Pan");
+
+                            b1.Property<bool>("Solo");
+
+                            b1.Property<Guid>("TakeId");
+
+                            b1.Property<double>("Volume");
+
+                            b1
+                                .ToJson("TakeChannel")
+                                .HasColumnType("TEXT");
+                        });
+
                     b.HasKey("Id");
 
                     b.HasIndex("UpdatedAt");
@@ -1049,6 +1066,160 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("ScoreViews", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Recording.InputCalibration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DetectedClicks")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeviceIdHint")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LatencySamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("MeasuredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OutputLatencySamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SpreadSamples")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceLabel")
+                        .IsUnique();
+
+                    b.ToTable("InputCalibrations", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Recording.RecordingTake", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AdjustmentSamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AlignmentRevision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CalibrationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ClippedSamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Dropouts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Favorite")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("InputChannels")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("InputMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LatencyMethod")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LatencySamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LengthSamples")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("MixId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Part")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Partial")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PassIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("PeakDbfs")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("StartSample")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId")
+                        .IsUnique();
+
+                    b.HasIndex("CalibrationId");
+
+                    b.HasIndex("MixId");
+
+                    b.HasIndex("TrackId", "CreatedAt")
+                        .IsDescending(false, true);
+
+                    b.HasIndex("TrackId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("TrackId", "SessionId");
+
+                    b.ToTable("RecordingTakes", (string)null);
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Sections.Section", b =>
@@ -2191,6 +2362,31 @@ namespace StemStudio.Persistence.Migrations
                     b.HasOne("StemStudio.Domain.Assets.Asset", null)
                         .WithOne()
                         .HasForeignKey("StemStudio.Domain.Practice.ScoreView", "AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Recording.RecordingTake", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Assets.Asset", null)
+                        .WithOne()
+                        .HasForeignKey("StemStudio.Domain.Recording.RecordingTake", "AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StemStudio.Domain.Recording.InputCalibration", null)
+                        .WithMany()
+                        .HasForeignKey("CalibrationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StemStudio.Domain.Mixes.Mix", null)
+                        .WithMany()
+                        .HasForeignKey("MixId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithMany()
+                        .HasForeignKey("TrackId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
