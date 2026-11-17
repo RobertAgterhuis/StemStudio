@@ -1,0 +1,70 @@
+@* Backups tab of Library care (013 US1/US2; ui-test-ids 1.12.0): backups folder, New backup, the library job panel,
+   the previous library, the archive list with details, and the backup, restore and delete dialogs. *@
+
+<div class="ss-care-tab ss-stack">
+    @if (Folder is { } folder)
+    {
+        <div class="ss-care-folder" data-help-id="backup-folder-state">
+            <p class="ss-small" data-testid="backup-folder-state" data-available="@Flag(folder.Available)" data-writable="@Flag(folder.Writable)">
+                @FolderText(folder)
+                <HelpHint HelpId="backup-folder-state" />
+            </p>
+            @if (FolderProblem(folder) is { } problem)
+            {
+                <div class="ss-error" role="alert" data-testid="backup-folder-error" data-help-id="backup-folder-error">@problem</div>
+            }
+        </div>
+    }
+
+    <div class="ss-care-new">
+        <RadzenButton Text="New backup" Icon="archive" Disabled="@(NewBlocked is not null)" Click="OpenBackupDialog"
+                      aria-describedby="@(NewBlocked is null ? null : "backup-new-reason")" data-testid="backup-new" />
+        @if (NewBlocked is { } reason)
+        {
+            <span id="backup-new-reason" class="ss-help">@reason</span>
+        }
+    </div>
+
+    @if (ShownJob is { } job)
+    {
+        <LibraryJobPanel Job="job" OnCancel="CancelJobAsync" CancelError="@CancelError" CancelErrorCode="@CancelErrorCode" />
+    }
+
+    @if (ActionError is { } actionError)
+    {
+        <div class="ss-error" role="alert" data-testid="backup-error" data-code="@ActionErrorCode">@actionError</div>
+    }
+
+    <section aria-labelledby="backup-list-title">
+        <h2 id="backup-list-title" class="ss-heading">Backups</h2>
+        @if (ListError is { } listError)
+        {
+            <ErrorState TestId="backup-list-error" Message="@listError" Hint="Check that StemStudio is running, then reload the page." />
+        }
+        else if (List is not { } list)
+        {
+            <Skeleton Lines="3" />
+        }
+        else
+        {
+            <BackupList Archives="list.Archives" FolderHint="@list.Folder.HostPathHint" JobRunning="JobRunning"
+                        OnDetails="ShowDetails" OnVerify="VerifyAsync" OnRestore="OpenRestore" OnDelete="AskDelete" />
+        }
+    </section>
+
+    @if (DetailsFor is { } detailsFor)
+    {
+        <BackupDetailsPanel FileName="@detailsFor" OnClose="() => DetailsFor = null" />
+    }
+</div>
+
+@if (BackupDialogOpen)
+{
+    <BackupDialog OnStarted="OnBackupStartedAsync" OnClose="() => BackupDialogOpen = false" />
+}
+
+@if (DeleteFor is { } deleteFor)
+{
+    <ConfirmModal Title="Delete backup" TestIdPrefix="backup-delete" OnConfirm="DeleteAsync" OnCancel="() => DeleteFor = null"
+                  Message="@($"Delete \"{deleteFor.FileName}\" from the backups folder? This cannot be undone.")" />
+}

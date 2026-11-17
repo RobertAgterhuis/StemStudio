@@ -1,0 +1,95 @@
+@* Details of one archive (013 US1/US2; ui-test-ids 1.12.0 backup-details*): included and excluded parts, counts,
+   the consent proof per voice profile and (Expert) the manifest facts. *@
+@inject ILibraryCareClient Client
+
+<section class="ss-panel ss-care-details" aria-labelledby="backup-details-title" data-testid="backup-details">
+    <div class="ss-page-head-row">
+        <h2 id="backup-details-title" class="ss-panel-title" tabindex="-1" @ref="_title">Details of @FileName</h2>
+        <button type="button" class="ss-text-button" @onclick="OnClose" data-testid="backup-details-close">Close</button>
+    </div>
+    @if (Error is { } error)
+    {
+        <ErrorState TestId="backup-details-error" Message="@error" />
+    }
+    else if (Details is not { } details)
+    {
+        <Skeleton Lines="3" />
+    }
+    else
+    {
+        <dl class="ss-care-facts" data-testid="backup-details-contents">
+            <dt>Included</dt><dd>@Join(details.Included)</dd>
+            <dt>Left out</dt><dd>@(details.Excluded.Count == 0 ? "Nothing" : Join(details.Excluded))</dd>
+            <dt>Status</dt><dd>@CareText.ArchiveStatus(details)</dd>
+        </dl>
+        @if (details.Counts is { } counts)
+        {
+            <p data-testid="backup-details-counts">@CareText.Counts(counts)</p>
+        }
+        @if (details.VoiceProfiles.Count > 0)
+        {
+            <h3 class="ss-label">Voice profiles and their consent</h3>
+            <ul class="ss-care-list">
+                @foreach (var proof in details.VoiceProfiles)
+                {
+                    <li @key="proof.Id" data-testid="@($"backup-details-voice-{proof.Id}")" data-help-id="@($"backup-details-voice-{proof.Id}")"
+                        data-valid="@(proof.Valid ? "true" : "false")">@ProofText(proof)</li>
+                }
+            </ul>
+        }
+        <LevelGate Feature="care.manifest">
+            <dl class="ss-care-facts ss-small" data-testid="backup-details-manifest">
+                <dt>Format</dt><dd>@(details.FormatVersion ?? "-")</dd>
+                <dt>StemStudio</dt><dd>@(details.AppVersion ?? "-") (API @(details.BackendApi ?? "-"))</dd>
+                <dt>Last migration</dt><dd>@details.SchemaLastMigration</dd>
+                <dt>Files</dt><dd class="ss-num">@details.Entries</dd>
+                <dt>Unpacked size</dt><dd class="ss-num">@ByteSize.Format(details.TotalBytes)</dd>
+                <dt>Warnings</dt><dd>@(details.Warnings.Count == 0 ? "None" : string.Join("; ", details.Warnings.Select(w => w.Message)))</dd>
+            </dl>
+        </LevelGate>
+    }
+</section>
+
+@code {
+    private ElementReference _title;
+    private string? _loaded;
+
+    /// <summary>The archive.</summary>
+    [Parameter, EditorRequired]
+    public string FileName { get; set; } = string.Empty;
+
+    /// <summary>Close pressed.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private BackupDetailsDto? Details { get; set; }
+
+    private string? Error { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded != FileName)
+        {
+            (_loaded, Details) = (FileName, null);
+            (Details, Error) = await ApiCall.TryAsync(() => Client.GetBackupAsync(FileName));
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _title.FocusAsync();
+        }
+    }
+
+    private static string Join(IEnumerable<BackupCategoryDto> categories) => string.Join(", ", categories.Select(CareText.Category));
+
+    private static string ProofText(VoiceProfileProofDto proof)
+    {
+        var consent = $"{proof.DisplayName}: agreed by {proof.PersonName} on {proof.ConsentedAt.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture)} (statement {proof.StatementVersion})";
+        return proof.Valid ? consent : $"{consent} - not valid: {proof.Reason ?? "the consent record does not match"}; it will not be restored";
+    }
+}

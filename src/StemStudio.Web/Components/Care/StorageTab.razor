@@ -1,0 +1,11 @@
+@* Storage tab of Library care (013 US3/US4); filled in by T056. *@
+
+<div class="ss-care-tab ss-stack">
+    <p class="ss-help">The storage overview follows.</p>
+</div>
+
+@code {
+    /// <summary>The library care status (null before the first answer).</summary>
+    [Parameter]
+    public LibraryCareStatusDto? Status { get; set; }
+}

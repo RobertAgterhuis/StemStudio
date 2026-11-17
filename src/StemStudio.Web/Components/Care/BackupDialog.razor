@@ -1,0 +1,87 @@
+@* New backup (013 US1, FR-001-FR-009; ui-test-ids 1.12.0 backup-*): profile, optional categories (Advanced+), estimate
+   per category (Advanced+) against the free space, the voice notice, start and the readable 409 reasons. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-care-dialog" role="dialog" aria-modal="true" aria-labelledby="backup-dialog-title" data-testid="backup-dialog"
+         data-help-id="backup-dialog" @onkeydown="OnKeyAsync">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <div class="ss-label-row">
+                <h2 id="backup-dialog-title" class="ss-title" tabindex="-1" @ref="InitialFocus">New backup</h2>
+                <HelpHint HelpId="backup-dialog" />
+            </div>
+            <p class="ss-help">One archive file with your library, written to the backups folder.</p>
+
+            <fieldset class="ss-care-fieldset">
+                <legend class="ss-label">What to include</legend>
+                <label class="ss-check"><input type="radio" name="backup-profile" checked="@(Form.Profile == BackupProfile.Complete)"
+                                               @onchange="() => ChooseAsync(BackupProfile.Complete)" data-testid="backup-profile-complete" /> Complete</label>
+                <label class="ss-check"><input type="radio" name="backup-profile" checked="@(Form.Profile == BackupProfile.Compact)"
+                                               @onchange="() => ChooseAsync(BackupProfile.Compact)" data-testid="backup-profile-compact" /> Smaller: without detail stems</label>
+                <LevelGate Feature="care.backup-options">
+                    <label class="ss-check"><input type="radio" name="backup-profile" checked="@(Form.Profile == BackupProfile.Custom)"
+                                                   @onchange="() => ChooseAsync(BackupProfile.Custom)" data-testid="backup-profile-custom" /> Custom</label>
+                </LevelGate>
+            </fieldset>
+
+            <LevelGate Feature="care.backup-options">
+                <fieldset class="ss-care-fieldset">
+                    <legend class="ss-label">Optional parts</legend>
+                    @foreach (var category in BackupForm.OptionalCategories)
+                    {
+                        <label class="ss-check" @key="category"><input type="checkbox" checked="@Form.Includes(category)"
+                                                                       @onchange="e => SetAsync(category, e.Value is true)"
+                                                                       data-testid="@($"backup-option-{CareText.Kebab(category)}")" /> @BackupForm.Label(category)</label>
+                    }
+                </fieldset>
+            </LevelGate>
+
+            @if (Estimate is { } estimate)
+            {
+                <p class="ss-care-estimate" role="status" data-testid="backup-estimate" data-help-id="backup-estimate"
+                   data-total-bytes="@estimate.TotalBytes" data-free-bytes="@estimate.Folder.FreeBytes" data-enough="@Flag(estimate.Enough)">
+                    @EstimateText(estimate)
+                </p>
+                <LevelGate Feature="care.backup-options">
+                    <table class="ss-table ss-care-estimate-table">
+                        <caption class="ss-sr-only">Estimated size per part</caption>
+                        <thead><tr><th scope="col">Part</th><th scope="col">Size</th><th scope="col">Files</th><th scope="col">Class</th><th scope="col">Included</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in estimate.Categories)
+                            {
+                                <tr @key="row.Category" data-testid="@($"backup-estimate-{CareText.Kebab(row.Category)}")" data-bytes="@row.Bytes" data-included="@Flag(row.Included)">
+                                    <th scope="row">@CareText.Category(row.Category)</th>
+                                    <td class="ss-num">@ByteSize.Format(row.Bytes)</td>
+                                    <td class="ss-num">@row.Files</td>
+                                    <td>@CareText.Class(row.Regenerability)</td>
+                                    <td>@(row.Included ? "Yes" : "No")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </LevelGate>
+            }
+            else if (EstimateError is null)
+            {
+                <p class="ss-help" role="status">Estimating the size...</p>
+            }
+
+            @if (Form.ShowsVoiceNotice(Estimate))
+            {
+                <p class="ss-notice" data-testid="backup-voice-notice" data-help-id="backup-voice-notice">
+                    This backup contains voice samples of your voice profiles. It is not encrypted: keep it on a protected drive.
+                </p>
+            }
+
+            @if (Error is { } error)
+            {
+                <div class="ss-error" role="alert" data-testid="backup-error" data-code="@ErrorCode">@error</div>
+            }
+
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="backup-dialog-cancel" />
+                <RadzenButton Text="Start backup" Icon="archive" Disabled="@(!CanStart)" IsBusy="Busy" BusyText="Starting..." Click="StartAsync" data-testid="backup-start" />
+            </div>
+        </FocusTrap>
+    </div>
+</div>

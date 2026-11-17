@@ -8,6 +8,7 @@ using StemStudio.Web.Components;
 using StemStudio.Web.Generation;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
@@ -54,6 +55,11 @@ builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
 // covers each request's headers only.
 builder.Services.AddHttpClient<IAgentApiClient, AgentApiClient>(
     (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
+
+// Library care (013): its own typed client and one status poller per circuit (shell indicator, maintenance overlay, /care).
+builder.Services.AddHttpClient<ILibraryCareClient, LibraryCareClient>(
+    (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
+builder.Services.AddScoped<LibraryCareStatusSource>();
 
 // Claude key entry only on the computer itself (011 follow-up claude-key, CK-FR-012): the circuit's host-name guard.
 builder.Services.AddScoped<PageOrigin>();
