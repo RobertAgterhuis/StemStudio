@@ -106,14 +106,18 @@ the end and are **not** on the site.
 - Honest note: Sheet music is a practice aid; it can miss or add notes. [README limitations]
 - Screen: Track with cover and band info.
 
-**Your library** (covers: Import, Library and exports)
+**Your library** (covers: Import, Library and exports, Library care, Library by artist and album)
 - Benefit: Every song you practise, ready when you are.
 - Import from a YouTube link, a Spotify track link or your own MP3, WAV or FLAC (up to 200 MB
-  and 15 minutes). [README, manual 16]
+  and 15 minutes). [README, manual 19]
 - Save stems, stem packs and mixes as FLAC, WAV or MP3. [README]
+- Back up the whole library to one file, restore it with undo, and see where your disk space goes
+  before you free it safely. [README feature 013]
+- Saved items are filed by artist, album and song by themselves, with the cover art you already have,
+  and a search that finds a song or a stem such as "snare" while you type. [README feature 022, manual 10]
 - Screens: Import, Tracks, Library.
 
-**Create** (covers: Style transfer, Songs from your own lyrics, AI composer agent)
+**Create** (covers: Style transfer, Songs from your own lyrics, AI composer agent, Lyric writing assistant)
 - Benefit: Optional extras for when you want to play with the song itself.
 - Restyle a song, or part of it, with one of 24 preset styles or your own. Needs an NVIDIA
   graphics card. [README feature 009]
@@ -122,6 +126,9 @@ the end and are **not** on the site.
 - Type a command in English or Dutch, such as "mute the drums and loop the chorus", and a local AI
   model turns it into steps and carries them out with StemStudio's own tools. Heavy and destructive steps ask
   you first. [README feature 011]
+- Write your own lyrics with a helper that checks spelling, grammar and flow in Dutch or English,
+  suggests rhymes and alternatives, counts syllables, and treats poetic licence as a choice, not a
+  mistake. It only helps when you ask. [README feature 023, manual 14]
 - Every generated take is labelled AI-generated. [README]
 - Screen: the style library (cropped to the preset list).
 
@@ -142,11 +149,11 @@ the end and are **not** on the site.
 - **Runs on your own computer.**
 - No account. No cloud. Your songs, stems and mixes stay on your machine. [manual 2]
 - No account or password: StemStudio is made for one person on one computer. [manual 2]
-- Your audio is processed on your computer and never uploaded. [manual 16]
+- Your audio is processed on your computer and never uploaded. [manual 19]
 - Cover art, band info and lyrics are looked up with only the song's title, artist, album,
-  duration and ISRC (a recording's ID code). Switch the lookups off whenever you like. [README, manual 16]
+  duration and ISRC (a recording's ID code). Switch the lookups off whenever you like. [README, manual 19]
 - The optional Claude backend for the agent sends text only, never audio, and only when you
-  choose it. [manual 16]
+  choose it. [manual 19]
 - This website sets no cookies and loads no trackers. [current site]
 - **Personal practice and privacy** (short notice): StemStudio is made for your own practice.
   Import only songs you may use, and respect copyright and the terms of YouTube and Spotify.
@@ -163,7 +170,7 @@ the end and are **not** on the site.
 - Caption: Reference song of 4:22, standard and detail separation, measured on an RTX 5070 Ti. The
   stems are the same either way. [STATUS 003, current site]
 - No NVIDIA card? StemStudio works on the CPU too. The six standard stems of a 4-minute song take
-  several minutes, the detail split about half an hour. [manual 16]
+  several minutes, the detail split about half an hour. [manual 19]
 - If the card is busy with a game or another AI program, StemStudio uses the CPU for that step and
   tells you why. You never lose a job. [manual 2]
 - Button: **Race again**

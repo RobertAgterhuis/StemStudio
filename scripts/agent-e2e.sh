@@ -10,6 +10,7 @@
 #   none  api with STEMSTUDIO_AGENT_BACKEND=none, then the @agent-unavailable tests (SC-005)
 # @agent-unavailable and @generative tests never run in the fake passes (the generative ones need
 # the generator overlay). Passes with a notice while e2e/tests/agent.spec.ts does not exist.
+# The 023 lyric tests need docker-compose.e2e.yml (added with -f when COMPOSE_FILE is empty).
 # Compose project: COMPOSE_PROJECT_NAME (default: the name in docker-compose.yml). Playwright reads
 # E2E_BASE_URL / E2E_API_URL as for npm test. Exits with the first failing step's code, 2 on usage.
 set -euo pipefail
@@ -20,6 +21,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC=tests/agent.spec.ts
 SCRIPTS_DIR="$REPO_ROOT/e2e/agent-scripts"
 EXCLUDED='@agent-unavailable|@generative'
+# The 023 lyric tests of agent.spec.ts need e2e/lyric-scripts/ mounted at /lyric-scripts: that is the e2e override
+# (CI sets COMPOSE_FILE with it); without COMPOSE_FILE it is added with -f.
+COMPOSE_OVERRIDE=()
+if [[ -z "${COMPOSE_FILE:-}" ]]; then COMPOSE_OVERRIDE=(-f docker-compose.yml -f docker-compose.e2e.yml); fi
 
 usage() {
   sed -n '5,12p' "$0" | sed 's/^# \{0,1\}//' >&2
@@ -30,7 +35,7 @@ usage() {
 api_with() {
   echo "=== api: agent backend $1${2:+, script $2} ==="
   (cd "$REPO_ROOT" && STEMSTUDIO_AGENT_BACKEND="$1" STEMSTUDIO_AGENT_FAKE_SCRIPT="${2:-}" \
-    docker compose up -d --no-deps --wait --wait-timeout 180 api)
+    docker compose ${COMPOSE_OVERRIDE[@]+"${COMPOSE_OVERRIDE[@]}"} up -d --no-deps --wait --wait-timeout 180 api)
 }
 
 # playwright <args...>: the agent spec in both browsers (retries 0 from playwright.config.ts).

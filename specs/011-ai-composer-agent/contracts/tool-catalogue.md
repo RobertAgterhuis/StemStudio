@@ -1,4 +1,8 @@
-# Contract: Agent tool catalogue (v1.3.0)
+# Contract: Agent tool catalogue (v1.2.0)
+
+Contains the catalogue deltas 1.0.0, 1.3.0 (012), 1.1.0 (022) and 1.2.0 (023); labels identify merged delta
+sets, not an order (docs/ROADMAP.md). 022's 1.1.0 was merged first in the 022+023 round, 023's 1.2.0 on top of it
+(`specs/023-lyric-writing-assistant/contracts/DELTA.md` section 5), so the document carries 1.2.0.
 
 Binding for the **ai-agent** agent (tool descriptors, schemas, projections, policy), the
 **backend** agent (loopback client `IStemStudioActions`, GPU release hook) and the **frontend**
@@ -38,6 +42,21 @@ projections add a read-only `practice` object `{speedPercent, transposeSemitones
 startPercent, stepPercent, targetPercent, passesPerStep}, countIn{bars, everyPass}}` (numbers and
 flags only, no text); `save_mix_as`, `update_mix` and the `restore_mix` undo carry `settings.practice`
 unchanged. Practice-changing tools stay backlog.
+**1.1.0** (additive, feature 022; merged from `specs/022-library-folders/contracts/tool-catalogue.delta.md`
+by the architect, 022 Phase 0 T004, 2026-11-17) - library folders: `browse_library_folder`,
+`search_library_items`, `open_library_folder`, `set_library_info` (backend API 1.22.0, UI test ids
+1.22.0). Group `library` 5 -> 9 tools; the `library` page context drops `retry_track`,
+`delete_mix`, `rename_mix`, `duplicate_mix` to keep the cap of 32. No tool renamed or removed.
+Merge order: this document is 1.3.0 plus the 022 delta and carries 022's allocated label 1.1.0
+(labels identify the merged deltas, not an order; docs/ROADMAP.md). Contains: 1.0.0, 1.3.0, 1.1.0.
+**1.2.0** (feature 023, 2026-11-16, merged in 023 Phase 0 T004; additive) - lyric writing assistant
+(backend API 1.23.0): 8 tools (`check_lyrics`, `suggest_lyric_lines`, `list_lyric_suggestions`,
+`apply_lyric_suggestions`, `mark_lyrics_intentional`, `find_rhymes`, `count_syllables`,
+`open_lyrics_editor`), group `lyric-assist`, page context `lyrics` gets its own selection (28 tools),
+decision reason `lyrics-edit`, `wait_for_job` phase `lyricAssist`, `PageContext.lyricsId`. No 1.0.0 or
+1.3.0 tool changes in name, kind, risk, undo, arguments or projection. Merged onto 1.1.0 (022) at the
+022+023 round start: no 1.1.0 tool changes either; counts 69 tools, 14 with approval always. Contains: 1.0.0,
+1.3.0, 1.1.0, 1.2.0.
 
 ## Rules
 
@@ -75,7 +94,7 @@ unchanged. Practice-changing tools stay backlog.
 | Tool | Kind | Risk | Undo | Arguments | Result | Notes |
 |---|---|---|---|---|---|---|
 | `set_plan` | meta | read | none | `steps: [{title: string<=120, tool?: string}]` (1-10) | `{accepted: n}` | publishes / replaces the plan (FR-007); calling it again replaces not-yet-started steps |
-| `wait_for_job` | meta | read | none | `phase: standard\|detail\|lyrics\|export\|transcription\|restyle\|generation` (`JobPhase`), `trackId?`, `jobId?` (one of them required; `jobId` for export/transcription/restyle/generation) | `{status, progress, error?}` | runner polls the API every 2 s (track: `GET /api/tracks/{id}`; asset: `GET /api/assets/{id}`; generation: `GET /api/generations/{id}`, `waitingForStems`/`waitingForGpu`/`downloadingModel` count as running), max `MaxJobWaitMinutes`, without a model turn (FR-009) |
+| `wait_for_job` | meta | read | none | `phase: standard\|detail\|lyrics\|export\|transcription\|restyle\|generation\|lyricAssist` (`lyricAssist` since 1.2.0: polls `GET /api/lyric-assists/{id}`) (`JobPhase`), `trackId?`, `jobId?` (one of them required; `jobId` for export/transcription/restyle/generation) | `{status, progress, error?}` | runner polls the API every 2 s (track: `GET /api/tracks/{id}`; asset: `GET /api/assets/{id}`; generation: `GET /api/generations/{id}`, `waitingForStems`/`waitingForGpu`/`downloadingModel` count as running), max `MaxJobWaitMinutes`, without a model turn (FR-009) |
 
 ## Feature 001 - MVP (always)
 
@@ -232,13 +251,75 @@ profile's display name and the take), and the backend's consent check (409) is a
 Requests to make a song "sung by" or "in the voice of" a real artist are refused like
 `artist-imitation` (no tool call; eval case 30, supplementary case S3).
 
+## Feature 022 - Library by artist and album (always)
+
+| Tool | Kind | Risk | Undo | HTTP / UI | Arguments | Result projection |
+|---|---|---|---|---|---|---|
+| `browse_library_folder` | server | read | none | `GET /api/library/folders` or `GET /api/library/folders/{folderId}` (`limit=20`) | `folderId?: string` (pattern `^(ar|al|so)[0-9a-f]{16}$`), `sort?: name\|year\|recent\|size\|items`, `kind?: audio\|score` | `{folder: {folderId, level, untrusted_text: name} \| null, path: [{folderId, level, untrusted_text: name}], children: [{folderId, level, untrusted_text: name, year, items, sizeBytes}] <= 20, childrenTotal, items: [{assetId, kind, status, untrusted_text: name, channels: [ChannelId] <= 8, format, sizeBytes}] <= 20, itemsTotal}` - **taints the run** |
+| `search_library_items` | server | read | none | `GET /api/library/search?q=&within=&limit=10` | `query: string 1..100`, `folderId?` | `{artists: [{folderId, untrusted_text: name, items}] <= 10, albums: [{folderId, untrusted_text: "album - artist", items}] <= 10, songs: [{folderId, untrusted_text: "song - album - artist", items}] <= 10, items: [{assetId, kind, status, untrusted_text: "name (artist > album > song)", matchedInstruments}] <= 10, totals}` - **taints the run** |
+| `open_library_folder` | ui | read | none | navigate to `/library/{folderId}` or `/library?q=<query>` (unsaved-changes guard applies) | `folderId?`, `query?: string 1..100` (exactly one) | `{opened, reason?}` |
+| `set_library_info` | server | change | inverse | `GET` then `PUT /api/tracks/{trackId}/library-info` or `PUT /api/assets/{assetId}/library-info` | `trackId?` xor `assetId?`, `artist?: string 1..200 \| null`, `album?: ... \| null`, `song?: ... \| null` (omitted = keep the current value, `null` = automatic) | `{scope: track\|item, movedItems, placement?: {artistFolderId, albumFolderId, songFolderId}}`; inverse: `PUT` with the values read by the `GET` before the change |
+
+Rules for 022 (binding against backend API 1.22.0):
+
+- Folder and item names are imported metadata or user text; they reach the model only in
+  `untrusted_text` (011 FR-013). Counts, ids, sizes, kinds, statuses, channel ids and instrument
+  labels (closed catalogue, `InstrumentLabels`) are trusted.
+- `set_library_info` is `change`: approval is required in a tainted run or when a provenance check
+  fails (011 ADR-020 D5). The approval card shows scope, target and every new name verbatim. The
+  merged arguments are sent (omitted values are filled from the `GET`), so the request is always a
+  complete `LibraryInfoRequest`.
+- Recorded takes (015) are never returned; `set_library_info` on one fails with the backend's
+  `409 not-fileable` reason.
+- With the Claude backend nothing extra is withheld (no biographies or lyrics are involved).
+
+## Feature 023 - Lyric writing assistant (always; `suggest_lyric_lines` +service `lyricModel`)
+
+Availability: `always` for the deterministic tools; `+service lyricModel` for
+`suggest_lyric_lines` (hidden while `GET /api/lyric-assist/status` reports `model.ready = false`;
+`check_lyrics` stays available because the dictionary layer runs without a model).
+
+| Tool | Kind | Risk | Undo | HTTP / UI mapping | Arguments | Result projection |
+|---|---|---|---|---|---|---|
+| `check_lyrics` | server | job | none | `POST /api/lyrics/{lyricsId}/assists` (`kind: check` or `devices`) with the sheet's current revision (read first with `GET /api/lyrics/{id}`) | `lyricsId`, `mode?: check\|devices` (default `check`), `categories?: [spelling\|grammar\|flow\|licence\|device]`, `lineFrom?`, `lineTo?` (1..4096), `instruction?: <=200` (devices only; guardrail) | `{assistId, status, language, layers: [{layer, name, available}], jobRef{phase: lyricAssist, jobId}}`; after `wait_for_job`: use `list_lyric_suggestions` for counts. 409 problems become tool errors with the readable title (`not-own-lyrics`, `language-unsupported`, `assist-active`, `claude-notice-required` -> "Acknowledge the Claude notice in the lyrics editor first") |
+| `suggest_lyric_lines` | server | job | none | `POST /api/lyrics/{lyricsId}/assists` (`kind: alternatives\|continue\|titles`) | `lyricsId`, `mode: alternatives\|continue\|titles`, `line?: 1..4096` (required for `alternatives` and `continue`), `count?: 1..5`, `instruction?: <=200` (guardrail) | as `check_lyrics` |
+| `list_lyric_suggestions` | server | read | none | `GET /api/lyrics/{lyricsId}/suggestions` (`status`, `category`) | `lyricsId`, `status?: open\|accepted\|rejected\|intentional\|stale\|superseded` (default `open`), `category?` | `{revision, counts: {<category>: n}, items: [{suggestionId, category, type, severity, line, status, source}] max 50}` - **no original, proposal or explanation text** |
+| `apply_lyric_suggestions` | server | change | inverse (`POST /api/lyrics/{id}/undo` with the resulting revision) | `POST /api/lyrics/{lyricsId}/suggestions/accept` | `lyricsId`, `suggestionIds: [uuid] 1..50` | `{revision, applied: n, stale: n}`; **approval always** (`lyrics-edit`) |
+| `mark_lyrics_intentional` | server | change | inverse (`DELETE .../intentional-marks/{markId}`) | `POST /api/lyrics/{lyricsId}/suggestions/{suggestionId}/intentional` | `lyricsId`, `suggestionId`, `scope: word\|phrase\|line` | `{markId, scope}` |
+| `find_rhymes` | server | read | none | `GET /api/lyric-assist/rhymes` | `word: 1..40` (must appear in a user message of the conversation; otherwise tool error "Name the word you want rhymes for"), `language: nl\|en`, `limit?: 1..30` | `{rhymes: [{word, kind, syllables}] max 30, source}` (dictionary words are not lyrics; no taint) |
+| `count_syllables` | server | read | none | `GET /api/lyrics/{lyricsId}/syllables` | `lyricsId` | `{lines: [{line, syllables, target?, deviates}] max 120, sectionMedians: {<section>: n}, wordsPerSecond?}` - numbers only |
+| `open_lyrics_editor` | ui | read | none | layout handler: navigate to `/lyrics/{lyricsId}` (`?assist=<assistId>` opens the pane on that assist) | `lyricsId`, `assistId?` | `{opened: true}` |
+
+Rules for 023 (in addition to the rules above):
+
+- **No lyric text in results** (FR-019): results of the 023 tools carry ids, line numbers,
+  categories, types, counts and statuses only. Sheet text and suggestion text never enter the
+  agent's model context; the user reviews suggestions in the editor pane. Sheet titles stay
+  `untrusted_text` as in `list_lyrics_sheets` (they taint the run, 011 rule).
+- **Apply needs the user** (FR-018, FR-020): `apply_lyric_suggestions` always gets the decision
+  reason `lyrics-edit` -> approval required, never covered by a `plan_heavy` grant, never fresh.
+  The approval card renders every change as before -> after from the **stored** suggestions
+  (`GET /api/lyrics/{id}/suggestions`), never from the model's arguments; the arguments are ids
+  only. The policy pre-check refuses ids that are not open suggestions of that sheet (tool error).
+- **Own lyrics only**: every tool takes a `lyricsId` of a 010 sheet (from `PageContext.lyricsId`
+  or `list_lyrics_sheets`). There is no tool that accepts lyric text or a track id.
+- **Own-work override** (owner decision Q1): no tool creates, revokes or reads the override
+  (`PUT/DELETE /api/lyrics/{id}/own-work-override` are not tools); a `not-own-lyrics` tool error says
+  "If this is your own text, confirm it in the lyrics editor".
+- **Guardrails**: `suggest_lyric_lines.instruction` and `check_lyrics.instruction` pass the
+  `artist-imitation` pre-check (denied, like 009/010); the backend's 400 `imitation` stays
+  authoritative. `lyrics-not-from-user` is unchanged for `save_lyrics_sheet` / `generate_song`.
+- **Job**: `check_lyrics` and `suggest_lyric_lines` start an assist and return a `jobRef`
+  (`phase: lyricAssist`, `jobId` = assist id) that `wait_for_job` accepts (polls
+  `GET /api/lyric-assists/{id}`; `queued`/`running` count as running).
+
 ## Undo (011)
 
 Undo is not a model tool: the panel's Undo button and the phrase "undo"/"maak ongedaan" call
 `POST /api/agent/conversations/{id}/undo` (backend API 1.10.0); the runner executes the
 recorded inverse/compensating calls (compensating deletes need approval unless "fresh").
 
-## Counts (1.0.0)
+## Counts (1.0.0, 1.1.0, 1.2.0)
 
 | Feature | Tools | of which approval always (heavy/destructive) | Group (cap rule) |
 |---|---|---|---|
@@ -253,11 +334,13 @@ recorded inverse/compensating calls (compensating deletes need approval unless "
 | 008 | 3 | 2 (`transcribe_stem`, `delete_score`) | tracks 1 (`transcribe_stem`), library 2 |
 | 009 | 10 | 4 (`restyle_track`, `retry_generation`, `delete_style`, `delete_generation`) | create |
 | 010 | 5 | 2 (`generate_song`, `convert_take_voice`) | create |
-| **Total** | **57** | **13 (+ large exports)** | |
+| 022 (1.1.0) | 4 | 0 | library 4 |
+| 023 (1.2.0) | 8 | 1 (`apply_lyric_suggestions`, reason `lyrics-edit`) | lyric-assist |
+| **Total** | **69** | **14 (+ large exports)** | |
 
 ### Selection per request (cap 32, research section 4)
 
-All 57 tools are registered; `AgentToolRegistry.For(context)` offers the **core** group plus the
+All 69 tools are registered (57 in 1.0.0, 61 with 1.1.0); `AgentToolRegistry.For(context)` offers the **core** group plus the
 groups of the page context, then drops the unavailable ones (`+service`, `+mixer`), sorted by name
 (stable for prompt caching). The ai-agent proves the cap per context in `RegistryTests` (T012).
 
@@ -266,15 +349,30 @@ groups of the page context, then drops the unavailable ones (`+service`, `+mixer
 | core (14) | `set_plan`, `wait_for_job`, `search_library`, `get_track`, `import_from_url`, `delete_track`, `list_mixes`, `get_mix`, `open_track`, `open_mixer`, `get_processing_device`, `search_help`, `open_help`, `navigate` |
 | mixer (10, `+mixer`) | `mixer_get_state`, `mixer_set_channel`, `mixer_set_master`, `mixer_reset`, `transport`, `set_loop`, `set_metronome`, `show_karaoke`, `save_mix_as`, `update_mix` |
 | tracks (13) | `retry_track`, `duplicate_mix`, `rename_mix`, `delete_mix`, `start_detail_separation`, `cancel_detail_separation`, `get_artist_info`, `refresh_artwork`, `get_lyrics_status`, `fetch_lyrics`, `align_lyrics`, `export_audio`, `transcribe_stem` |
-| library (5) | `export_stem_pack`, `list_exports`, `delete_export`, `list_scores`, `delete_score` |
+| library (9) | `export_stem_pack`, `list_exports`, `delete_export`, `list_scores`, `delete_score`, `browse_library_folder`, `search_library_items`, `open_library_folder`, `set_library_info` (022) |
 | create (15) | the 10 tools of 009 and the 5 tools of 010 |
+| lyric-assist (8, 1.2.0) | `check_lyrics`, `suggest_lyric_lines` (`+service lyricModel`), `list_lyric_suggestions`, `apply_lyric_suggestions`, `mark_lyrics_intentional`, `find_rhymes`, `count_syllables`, `open_lyrics_editor` |
 
 | Page context (`PageContext.page`) | Groups offered | Count |
 |---|---|---|
 | `import`, `tracks`, `track`, `mixes`, `settings`, `help`, unknown | core + tracks + `list_styles`, `restyle_track`, `generate_song`, `get_generation_status`, `list_generations` | 14 + 13 + 5 = **32** |
 | `mixer` (mixer open) | core + mixer + `start_detail_separation`, `export_audio`, `transcribe_stem`, `get_lyrics_status`, `fetch_lyrics`, `align_lyrics`, `list_styles`, `restyle_track` | 14 + 10 + 8 = **32** |
-| `library` | core + library + `export_audio`, `transcribe_stem`, `retry_track`, `delete_mix`, `rename_mix`, `duplicate_mix`, `get_lyrics_status` + `get_generation_status`, `list_generations`, `import_take`, `cancel_generation`, `retry_generation`, `delete_generation` | 14 + 5 + 7 + 6 = **32** |
-| `styles`, `generations`, `lyrics`, `songs`, `voices` (009/010 pages) | core + create | 14 + 15 = **29** |
+| `library` (`/library`, `/library/{folderId}`; 1.1.0) | core + library + `export_audio`, `transcribe_stem`, `get_lyrics_status` + `get_generation_status`, `list_generations`, `import_take`, `cancel_generation`, `retry_generation`, `delete_generation` | 14 + 9 + 3 + 6 = **32** (1.0.0: library 5 + `retry_track`, `delete_mix`, `rename_mix`, `duplicate_mix` too) |
+| `styles`, `generations`, `songs`, `voices` (009/010 pages) | core + create | 14 + 15 = **29** |
+| `lyrics` (1.2.0: lyrics list or editor; `PageContext.lyricsId` set in the editor) | core + lyric-assist + `list_lyrics_sheets`, `save_lyrics_sheet`, `generate_song`, `list_styles`, `get_generation_status`, `list_generations` | 14 + 8 + 6 = **28** |
 
 Outside its context a tool is reached with `navigate` (the next turn's context changes) or, on a
 mixer page, by first answering from the offered tools; the evaluation set measures the selection.
+
+Every other context is unchanged by 1.1.0 (the 022 tools are reached from them with `navigate` to
+`library`); `navigate`'s `library` page is unchanged; `AgentPageContexts` maps `/library/{folderId}` to `library`.
+
+### Evaluation cases of 022 (added to the 011 evaluation set, 1.1.0)
+
+| Id | Prompt (en / nl) | Expected tools | Check |
+|---|---|---|---|
+| LIB-01 | "Which stems do I have of Metallica?" / "Welke stems heb ik van Metallica?" | `search_library_items` (or `browse_library_folder`) | answer lists the items of the artist folder |
+| LIB-02 | "Find all my snare stems" | `search_library_items` with an instrument word | every snare item, no others |
+| LIB-03 | "Open the Ace of Spades folder" | `search_library_items` -> `open_library_folder` | the UI shows the song folder |
+| LIB-04 | "Put the Ace of Spades song on the album Ace of Spades" | `search_library_items` -> `set_library_info` | approval card (tainted run), items moved; Undo restores |
+| LIB-05 | "Which bass stems are in Unknown artist?" | `browse_library_folder` | items of the fallback folder |

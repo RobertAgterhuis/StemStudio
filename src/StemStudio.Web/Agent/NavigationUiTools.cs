@@ -5,7 +5,8 @@ namespace StemStudio.Web.Agent;
 
 /// <summary>
 /// The layout's UI tools (tool catalogue 1.0.0, features 001 and 004): <c>open_track</c>, <c>open_mixer</c>,
-/// <c>navigate</c>, <c>open_help</c> and <c>search_help</c>. Navigation goes through <see cref="NavigationManager"/>,
+/// <c>navigate</c>, <c>open_help</c> and <c>search_help</c>; <c>open_library_folder</c> (1.1.0, feature 022) and
+/// <c>open_lyrics_editor</c> (1.2.0, feature 023). Navigation goes through <see cref="NavigationManager"/>,
 /// so the mixer's unsaved-changes guard asks the user exactly as for a click.
 /// </summary>
 /// <param name="navigation">Navigates.</param>
@@ -32,7 +33,9 @@ public sealed class NavigationUiTools(NavigationManager navigation, HelpContext 
     };
 
     /// <summary>The tool names this handler owns.</summary>
-    public static IReadOnlySet<string> Names { get; } = new HashSet<string>(StringComparer.Ordinal) { "open_track", "open_mixer", "navigate", "open_help", "search_help" };
+    public static IReadOnlySet<string> Names { get; } = new HashSet<string>(StringComparer.Ordinal) {
+        "open_track", "open_mixer", "navigate", "open_help", "search_help", "open_library_folder", "open_lyrics_editor",
+    };
 
     /// <inheritdoc />
     public bool CanRun(string tool) => Names.Contains(tool);
@@ -42,20 +45,24 @@ public sealed class NavigationUiTools(NavigationManager navigation, HelpContext 
     {
         try
         {
-            return UiToolResult.Done(tool switch
-            {
-                "open_track" => Go($"tracks/{arguments.RequiredId("trackId")}"),
-                "open_mixer" => OpenMixer(arguments.RequiredId("trackId"), arguments.Id("mixId")),
-                "navigate" => Navigate(arguments.RequiredText("page")),
-                "open_help" => await OpenHelpAsync(arguments.RequiredText("topicId")),
-                _ => SearchHelp(arguments.RequiredText("query")),
-            });
+            return UiToolResult.Done(await RunAsync(tool, arguments));
         }
         catch (UiToolException ex)
         {
             return UiToolResult.Fail(ex.Message);
         }
     }
+
+    private async Task<object> RunAsync(string tool, UiToolArguments arguments) => tool switch
+    {
+        "open_track" => Go($"tracks/{arguments.RequiredId("trackId")}"),
+        "open_mixer" => OpenMixer(arguments.RequiredId("trackId"), arguments.Id("mixId")),
+        "navigate" => Navigate(arguments.RequiredText("page")),
+        "open_help" => await OpenHelpAsync(arguments.RequiredText("topicId")),
+        "open_library_folder" => OpenFolder(EditorRoutes.LibraryFolder(arguments.Text("folderId"), arguments.Text("query"))),
+        "open_lyrics_editor" => Go(EditorRoutes.LyricsEditor(arguments.RequiredId("lyricsId"), arguments.Id("assistId"))),
+        _ => SearchHelp(arguments.RequiredText("query")),
+    };
 
     private object Go(string path)
     {
@@ -73,6 +80,9 @@ public sealed class NavigationUiTools(NavigationManager navigation, HelpContext 
         navigation.NavigateTo($"tracks/{trackId}/mixer?mixId={mix}");
         return new { opened = true, mixLoaded = true };
     }
+
+    private object OpenFolder((string? Path, string? Reason) route) =>
+        route.Path is { } path ? Go(path) : new { opened = false, reason = route.Reason };
 
     private object Navigate(string page) => Pages.TryGetValue(page, out var path)
         ? Go(path)

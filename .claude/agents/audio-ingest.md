@@ -25,3 +25,7 @@ Ingest implementations behind the protocols, with fake-based unit tests (no netw
 - Public API documented; new dependencies and licences listed in the hand-off.
 - Subprocesses use argument lists; hosts allow-listed; playlists rejected; 15-minute duration limit enforced.
 - Hand-off note `docs/handoffs/audio-ingest-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

@@ -94,6 +94,10 @@ function Initialize-AgentEnvironment {
        e.g. <repo>/e2e/agent-scripts/<name>.json. ANTHROPIC_API_KEY passes through unchanged. #>
     $env:StemStudio__Agent__Ollama__BaseUrl = if ($env:STEMSTUDIO_OLLAMA_URL) { $env:STEMSTUDIO_OLLAMA_URL } else { 'http://localhost:11434' }
     $env:StemStudio__Agent__Backend = if ($env:STEMSTUDIO_AGENT_BACKEND) { $env:STEMSTUDIO_AGENT_BACKEND } else { 'ollama' }
+    # Feature 023 (lyric writing assistant, T069): host folder of the fake assistant scripts (a file or a
+    # folder, resolved per assist as <title-slug>-<kind>.json, else <kind>.json); read only with the fake
+    # backend, like the Docker E2E override (/lyric-scripts). An existing value wins.
+    if (-not $env:STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT) { $env:STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT = Join-Path $RepoRoot 'e2e/lyric-scripts' }
     $keyState = if ($env:ANTHROPIC_API_KEY) { 'set' } else { 'unset' }
     Write-Host "Agent: backend $env:StemStudio__Agent__Backend; Ollama $env:StemStudio__Agent__Ollama__BaseUrl; Claude key $keyState"
 }

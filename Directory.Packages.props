@@ -28,6 +28,13 @@
     <PackageVersion Include="OllamaSharp" Version="5.5.0" />
     <PackageVersion Include="Anthropic" Version="13.3.0" />
   </ItemGroup>
+  <ItemGroup Label="LyricAssist">
+    <!-- Feature 023 (ADR-037, research R-02/R-10): managed Hunspell port for the deterministic spelling layer.
+         7.0.1 (2025-11-30, net8.0/net10.0/netstandard2.0, no dependencies on net10.0) is the newest release.
+         Licence: MPL-1.1 / GPL-2.0 / LGPL-2.1 tri-licence inherited from Hunspell (package license.txt);
+         StemStudio uses it under MPL-1.1, unmodified. Dictionaries: src/StemStudio.Api/LyricAssist/Dictionaries/PROVENANCE.md. -->
+    <PackageVersion Include="WeCantSpell.Hunspell" Version="7.0.1" />
+  </ItemGroup>
   <ItemGroup Label="Shared">
     <!-- YAML: help-topic front matter in StemStudio.Web (runtime, feature 004) and OpenAPI parsing in the
          contract tests (JsonSchema.Net excluded: OSMF EULA, not OSI). MIT. -->

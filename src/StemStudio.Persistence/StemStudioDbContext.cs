@@ -3,6 +3,7 @@ using StemStudio.Domain.Artists;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
 using StemStudio.Domain.Lyrics;
+using StemStudio.Domain.Lyrics.Assist;
 using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Styles;
 using StemStudio.Domain.Tracks;
@@ -72,6 +73,24 @@ public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> op
 
     /// <summary>Encrypted agent secrets (011 follow-up claude-key): ciphertext only.</summary>
     public DbSet<AgentSecretEntity> AgentSecrets => Set<AgentSecretEntity>();
+
+    /// <summary>Lyric assists (feature 023).</summary>
+    public DbSet<AssistRun> LyricAssists => Set<AssistRun>();
+
+    /// <summary>Lyric assistant suggestions (feature 023).</summary>
+    public DbSet<LyricSuggestion> LyricSuggestions => Set<LyricSuggestion>();
+
+    /// <summary>Stored sheet revisions (feature 023, the last 50 per sheet).</summary>
+    public DbSet<LyricsSheetRevision> LyricsSheetRevisions => Set<LyricsSheetRevision>();
+
+    /// <summary>Stored assist events (feature 023, SSE replay).</summary>
+    public DbSet<AssistEvent> LyricAssistEvents => Set<AssistEvent>();
+
+    /// <summary>Personal word list (feature 023).</summary>
+    public DbSet<LyricWord> LyricWords => Set<LyricWord>();
+
+    /// <summary>The lyric-assistant settings row (feature 023).</summary>
+    public DbSet<LyricAssistSettings> LyricAssistSettings => Set<LyricAssistSettings>();
 
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

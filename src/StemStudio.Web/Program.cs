@@ -5,9 +5,11 @@ using StemStudio.Web.Agent;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
+using StemStudio.Web.Components.Lyrics.Assist;
 using StemStudio.Web.Generation;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Library;
 using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
@@ -63,6 +65,10 @@ builder.Services.AddScoped<LibraryCareStatusSource>();
 
 // Claude key entry only on the computer itself (011 follow-up claude-key, CK-FR-012): the circuit's host-name guard.
 builder.Services.AddScoped<PageOrigin>();
+
+// Composition hooks of 022 and 023 (one per lane, filled in their own files).
+builder.Services.AddLibraryUi();
+builder.Services.AddLyricAssistUi();
 
 var app = builder.Build();
 

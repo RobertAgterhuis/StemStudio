@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "023 US4 (T060, quickstart Q4 step 1): check the open sheet for spelling, read the counts (no lyric text reaches the model), answer with a pointer to the pane. {{context.lyricsId}} is the 023 placeholder (CTO decision on the T060 gap).",
+  "turns": [
+    { "calls": [{ "name": "check_lyrics", "arguments": { "lyricsId": "{{context.lyricsId}}", "mode": "check", "categories": ["spelling"] } }] },
+    { "calls": [{ "name": "list_lyric_suggestions", "arguments": { "lyricsId": "{{context.lyricsId}}", "status": "open", "category": "spelling" } }] },
+    { "text": "The check is running; the spelling suggestions are in the assistant pane of the editor." }
+  ]
+}

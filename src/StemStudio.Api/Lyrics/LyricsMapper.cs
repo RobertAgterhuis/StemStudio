@@ -9,7 +9,8 @@ namespace StemStudio.Api.Lyrics;
 /// <summary>Maps lyrics between the domain, the worker requests and the contract DTO (feature 006, data-model 3.3).</summary>
 public static class LyricsMapper
 {
-    /// <summary>The lookup request of a track: the 005 cleaned lookup names, else the track's own title and artist.</summary>
+    /// <summary>The lookup request of a track: the 005 cleaned lookup names, else the track's own title and artist; a stored
+    /// hashed upload name as lookup title counts as absent (<see cref="StoredUploadName"/>).</summary>
     /// <param name="track">The track.</param>
     /// <returns>The request.</returns>
     public static WorkerLyricsLookupRequest ToLookupRequest(Track track)
@@ -17,7 +18,7 @@ public static class LyricsMapper
         ArgumentNullException.ThrowIfNull(track);
         return new WorkerLyricsLookupRequest
         {
-            Title = track.Metadata.LookupTitle ?? track.Title,
+            Title = StoredUploadName.Usable(track.Metadata.LookupTitle, track.UploadFileName) ?? track.Title,
             Artist = track.Metadata.LookupArtist ?? track.Artist,
             Album = track.Metadata.LookupAlbum,
             DurationSeconds = track.LyricsDurationSeconds ?? 0,

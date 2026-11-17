@@ -54,3 +54,9 @@ runner with the same policy. The agent (011) asks Ollama to release its model
 (`keep_alive: 0`, 2 s timeout; the job starts anyway) before submitting GPU-heavy jobs, from
 the UI or from the agent, and agent turns use the fallback model `qwen3.5:4b` on the CPU
 (`num_gpu` 0) while such a job runs. Ollama runs outside StemStudio's GPU lease.
+
+The lyric assistant (023) follows the same release rule but **not** the fallback: while such a job
+runs, Ollama would resolve to the CPU model, which produced no valid lyric output within the
+60 s block timeout in the spike (0 of 19 replies). The assistant then answers `model-unavailable`
+("The GPU is busy ... The spelling check still works"); `check` still runs the dictionary layer.
+A GPU job that starts during an assist stops the assist with `backend-unavailable`.

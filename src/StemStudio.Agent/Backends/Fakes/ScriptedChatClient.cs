@@ -106,7 +106,8 @@ public sealed class ScriptedChatClient : IChatClient
         return contents;
     }
 
-    private FunctionCallContent Call(ScriptedCall call, int index) => call.ToContent($"call-{_requests.Count}-{index + 1}");
+    private FunctionCallContent Call(ScriptedCall call, int index) =>
+        (call with { Arguments = ScriptResultPlaceholders.Resolve(call.Arguments, _requests[^1].Messages) }).ToContent($"call-{_requests.Count}-{index + 1}");
 
     private static UsageDetails? Usage(ScriptedTurn turn) => turn.Usage is not { } usage ? null : new UsageDetails
     {

@@ -1,3 +1,4 @@
+using StemStudio.Api.Library;
 using StemStudio.Contracts.Assets;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Rendering;
@@ -14,7 +15,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="submitter">Starts the renders.</param>
 /// <param name="disk">Free-space guard.</param>
 /// <param name="assets">Asset repository.</param>
-public sealed class StemPackService(ITrackRepository tracks, AssetSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets)
+/// <param name="filer">Files new items in the library folders (feature 022).</param>
+public sealed class StemPackService(ITrackRepository tracks, AssetSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets, ILibraryFiler filer)
 {
     /// <summary>Creates the pack.</summary>
     /// <param name="request">The request.</param>
@@ -61,7 +63,12 @@ public sealed class StemPackService(ITrackRepository tracks, AssetSubmitter subm
 
     private async Task<IResult> SaveAsync(List<Asset> items, CancellationToken cancellationToken)
     {
-        items.ForEach(assets.Add);
+        foreach (var item in items)
+        {
+            await filer.FileAsync(item, cancellationToken);
+            assets.Add(item);
+        }
+
         await assets.SaveAsync(cancellationToken);
         return TypedResults.Accepted((string?)null, new StemPackDto(items.Select(asset => AssetMapper.ToDto(asset, trackAvailable: true)).ToList()));
     }

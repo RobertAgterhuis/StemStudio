@@ -63,7 +63,7 @@ public sealed partial class LibraryCareContractTests
     [Fact]
     public void Backend_IsLabelled1120AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Backend013.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.12.0");
         Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0"]);
@@ -73,7 +73,7 @@ public sealed partial class LibraryCareContractTests
     [MemberData(nameof(Changed1110Entries))]
     public void Backend1120_Contains1110UnchangedExceptTheGateAndDetailPhase(string section, string[] changed)
     {
-        ChangedEntries(Backend012, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend012, Backend013, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Theory]
@@ -83,13 +83,13 @@ public sealed partial class LibraryCareContractTests
         var shared = SharedComponents.Where(c => section.EndsWith(c.Split('/')[0], StringComparison.Ordinal)).Select(c => c.Split('/')[1]);
         var present = section.Split('/').Aggregate((JsonNode?)Backend013Delta.Root, (node, part) => node?[part]) is not null;
 
-        (present ? ChangedEntries(Backend013Delta, OpenApiContract.Backend, section).Except(shared) : []).ShouldBeEmpty();
+        (present ? ChangedEntries(Backend013Delta, Backend013, section).Except(shared) : []).ShouldBeEmpty();
     }
 
     [Fact]
     public void Backend1120_AddsTheEighteenLibraryCareOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend012.Operations.Select(Id)).ToList();
+        var added = Backend013.Operations.Select(Id).Except(Backend012.Operations.Select(Id)).ToList();
 
         added.ShouldBe(Backend013Delta.Operations.Select(Id), ignoreOrder: true);
         added.Count.ShouldBe(18);
@@ -101,7 +101,7 @@ public sealed partial class LibraryCareContractTests
         foreach (var (path, method) in GatedOperations)
         {
             var before = Operation(Backend012, path, method);
-            var after = Operation(OpenApiContract.Backend, path, method).DeepClone().AsObject();
+            var after = Operation(Backend013, path, method).DeepClone().AsObject();
 
             after["x-stemstudio-write-gate"]!.GetValue<string>().ShouldBe("backupRunning", path);
             Codes(after).ShouldContain("409", path);
@@ -130,7 +130,7 @@ public sealed partial class LibraryCareContractTests
         var again = JsonSerializer.SerializeToNode(json.Deserialize(type, Web), type, Web)!;
 
         JsonNode.DeepEquals(Canonical(json), Canonical(again)).ShouldBeTrue(again.ToJsonString());
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema(SchemaOf(type)), again).ShouldBeEmpty();
+        SchemaValidator.Validate(Backend013, Schema(SchemaOf(type)), again).ShouldBeEmpty();
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public sealed partial class LibraryCareContractTests
         // Reports are only written through LibraryJob.report (the base type), which adds the `type` discriminator.
         var node = JsonSerializer.SerializeToNode(dto, dto is LibraryJobReportDto ? typeof(LibraryJobReportDto) : dto.GetType(), Web);
 
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), node).ShouldBeEmpty();
+        SchemaValidator.Validate(Backend013, Schema(schema), node).ShouldBeEmpty();
     }
 
     public static TheoryData<string, object> SampleInstances => new()
@@ -206,8 +206,8 @@ public sealed partial class LibraryCareContractTests
     [Fact]
     public void Limits_MatchTheContract()
     {
-        var root = OpenApiContract.Backend.Root["components"]!;
-        var limit = Operation(OpenApiContract.Backend, "/api/library-jobs", "get")["parameters"]![0]!["schema"]!;
+        var root = Backend013.Root["components"]!;
+        var limit = Operation(Backend013, "/api/library-jobs", "get")["parameters"]![0]!["schema"]!;
 
         root["parameters"]!["FileName"]!["schema"]!["pattern"]!.GetValue<string>().ShouldBe(LibraryCareLimits.ArchiveFileNamePattern);
         Schema("BackupSummary")["properties"]!["fileName"]!["pattern"]!.GetValue<string>().ShouldBe(LibraryCareLimits.ArchiveFileNamePattern);
@@ -237,7 +237,7 @@ public sealed partial class LibraryCareContractTests
     {
         var path = route.Split('?')[0];
 
-        OpenApiContract.Backend.Operations.ShouldContain(op => op.Method == method && Template(op.Path).IsMatch(path), route);
+        Backend013.Operations.ShouldContain(op => op.Method == method && Template(op.Path).IsMatch(path), route);
     }
 
     public static TheoryData<string, string> Routes()
@@ -274,7 +274,7 @@ public sealed partial class LibraryCareContractTests
 
         JsonSerializer.SerializeToNode(DetailPhaseDto.None, Web)!.AsObject().ContainsKey("filesRemovedAt").ShouldBeFalse();
         node.Deserialize<DetailPhaseDto>(Web)!.FilesRemovedAt.ShouldBe(removed.FilesRemovedAt);
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("DetailPhase"), node).ShouldBeEmpty();
+        SchemaValidator.Validate(Backend013, Schema("DetailPhase"), node).ShouldBeEmpty();
     }
 
     [Fact]

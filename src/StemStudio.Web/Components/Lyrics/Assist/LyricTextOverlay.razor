@@ -1,0 +1,58 @@
+@* The layer behind the text area (FR-024, FR-028, FR-017): per line the syllable gutter (Advanced, when switched on), the
+   provenance marker of accepted suggestions and the highlights of open suggestions. The underline style tells the category
+   (not colour alone). It repeats the text, so it is hidden from screen readers: the list announces the suggestions. *@
+@using StemStudio.Contracts.LyricAssist
+
+<div class="ss-lyric-overlay" aria-hidden="true">
+    @for (var i = 0; i < Lines.Length; i++)
+    {
+        var n = i + 1;
+        <div class="ss-lyric-row" @key="n">
+            <span class="ss-lyric-gutter ss-num">
+                @if (Host.ShowSyllables && Host.Syllables?.Line(n) is { IsMarker: false } count)
+                {
+                    <span class="@(count.Deviates ? "ss-syllables is-deviating" : "ss-syllables")" data-testid="@($"lyric-syllables-{n}")"
+                          data-deviates="@(count.Deviates ? "true" : "false")" data-target="@count.Target">@count.Syllables</span>
+                }
+                @if (Assisted.Contains(n))
+                {
+                    <span class="ss-provenance" title="Line from an accepted suggestion" data-testid="@($"lyric-line-provenance-{n}")"
+                          data-provenance="accepted-suggestion">AI</span>
+                }
+            </span>
+            <span class="ss-lyric-line">@foreach (var piece in HighlightLayout.Segments(Lines[i], Host.Session.Board.OnLine(n)))
+                {
+                    if (piece.Suggestion is { } s)
+                    {
+                        <mark class="ss-hl @HighlightLayout.StyleClass(s.Category) @(s.SuggestionId == Host.Session.Board.Active ? "is-active" : null)"
+                              data-testid="@($"lyric-highlight-{s.SuggestionId}")" data-category="@AssistText.Wire(s.Category)">@piece.Text</mark>
+                    }
+                    else
+                    {
+                        @piece.Text
+                    }
+                }&#8203;</span>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>The editor link.</summary>
+    [Parameter, EditorRequired]
+    public EditorHost Host { get; set; } = default!;
+
+    /// <summary>The current editor text.</summary>
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    private string[] Lines { get; set; } = [];
+
+    private HashSet<int> Assisted { get; set; } = [];
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        Lines = SheetText.Lines(Text);
+        Assisted = [.. Host.Session.Document.Assist.AssistedLines.Select(l => l.Line)];
+    }
+}

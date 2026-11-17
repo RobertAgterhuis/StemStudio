@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "write.continuation",
+          "severity": "idea",
+          "line": 5,
+          "original": "",
+          "proposal": "en ik blijf nog even staan\nwaar de wilgen buigen",
+          "explanation": "Twee regels die het eerste couplet afronden."
+        }
+      ]
+    }
+  ]
+}

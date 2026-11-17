@@ -1,0 +1,300 @@
+using StemStudio.Api.Styles;
+using StemStudio.Api.Tracks;
+using StemStudio.Contracts.Agent;
+using StemStudio.Contracts.LyricAssist;
+using StemStudio.Domain.Lyrics;
+using StemStudio.Domain.Lyrics.Assist;
+
+namespace StemStudio.Api.LyricAssist;
+
+/// <summary>Maps the 023 domain model to the contract DTOs (enum members share their names, except the languages).</summary>
+public static class LyricAssistMapper
+{
+    /// <summary>Contract language of a domain language.</summary>
+    /// <param name="language">Language.</param>
+    /// <returns>The DTO.</returns>
+    public static AssistLanguageDto ToDto(AssistLanguage language) => language == AssistLanguage.Dutch ? AssistLanguageDto.Nl : AssistLanguageDto.En;
+
+    /// <summary>Domain language of a contract language.</summary>
+    /// <param name="language">Language.</param>
+    /// <returns>The domain value.</returns>
+    public static AssistLanguage ToDomain(AssistLanguageDto language) => language == AssistLanguageDto.Nl ? AssistLanguage.Dutch : AssistLanguage.English;
+
+    /// <summary>Maps an enum by member name.</summary>
+    /// <typeparam name="T">Target enum.</typeparam>
+    /// <param name="value">Value.</param>
+    /// <returns>The mapped value.</returns>
+    public static T Map<T>(Enum value)
+        where T : struct, Enum => StyleMapper.Map<T>(value);
+
+    /// <summary>The JSON wire name of a contract enum value.</summary>
+    /// <typeparam name="T">Enum.</typeparam>
+    /// <param name="value">Value.</param>
+    /// <returns>The name, e.g. <c>backend-unavailable</c>.</returns>
+    public static string Wire<T>(T value)
+        where T : struct, Enum => System.Text.Json.JsonSerializer.Serialize(value).Trim('"');
+
+    /// <summary>The assistant state of a sheet.</summary>
+    /// <param name="sheet">The sheet.</param>
+    /// <param name="openSuggestions">Open suggestions of the sheet.</param>
+    /// <returns>The DTO.</returns>
+    public static SheetAssistInfoDto Info(LyricsSheet sheet, int openSuggestions)
+    {
+        ArgumentNullException.ThrowIfNull(sheet);
+        return new SheetAssistInfoDto
+        {
+            Sensitivity = Map<SensitivityDto>(sheet.Sensitivity),
+            RhythmTarget = sheet.RhythmTarget is { } target ? ToDto(target) : null,
+            OpenSuggestions = openSuggestions,
+            AssistedLines = sheet.AssistedLineNumbers().Select(line => new AssistedLineDto { Line = line.Line, SuggestionId = line.SuggestionId }).ToList(),
+            IntentionalMarkCount = sheet.IntentionalMarks.Count,
+            CanUndo = sheet.CanUndo,
+            OwnWorkOverride = sheet.OwnWorkOverride is { } own ? ToDto(own) : null,
+        };
+    }
+
+    /// <summary>The rhythm target DTO.</summary>
+    /// <param name="target">Target.</param>
+    /// <returns>The DTO.</returns>
+    public static RhythmTargetDto ToDto(RhythmTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        return new RhythmTargetDto { Bpm = target.Bpm, BeatsPerBar = target.BeatsPerBar, BarsPerLine = target.BarsPerLine, SyllablesPerBeat = target.SyllablesPerBeat };
+    }
+
+    /// <summary>The domain rhythm target of an optional DTO, or the 400 problem of an invalid one.</summary>
+    /// <param name="dto">The DTO or null.</param>
+    /// <param name="target">The target (null for no DTO or an invalid one).</param>
+    /// <returns>The problem, or null when valid or absent.</returns>
+    public static IResult? TargetProblem(RhythmTargetDto? dto, out RhythmTarget? target)
+    {
+        target = dto is null ? null : ToDomain(dto);
+        if (target?.Validate() is { Count: > 0 } errors)
+        {
+            target = null;
+            return ApiProblems.Validation(errors, string.Empty);
+        }
+
+        return null;
+    }
+
+    /// <summary>The domain rhythm target.</summary>
+    /// <param name="target">DTO.</param>
+    /// <returns>The target.</returns>
+    public static RhythmTarget ToDomain(RhythmTargetDto target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        return new RhythmTarget(target.Bpm, target.BeatsPerBar, target.BarsPerLine, target.SyllablesPerBeat);
+    }
+
+    /// <summary>The own-work override DTO.</summary>
+    /// <param name="own">Override.</param>
+    /// <returns>The DTO.</returns>
+    public static OwnWorkOverrideDto ToDto(OwnWorkOverride own)
+    {
+        ArgumentNullException.ThrowIfNull(own);
+        return new OwnWorkOverrideDto
+        {
+            StatementVersion = own.StatementVersion,
+            ConfirmedBy = own.ConfirmedBy,
+            ConfirmedAt = TrackMapper.Utc(own.ConfirmedAt),
+            MatchedTrackId = own.MatchedTrackId,
+            MatchedTrackTitle = own.MatchedTrackTitle,
+        };
+    }
+
+    /// <summary>The suggestion DTO.</summary>
+    /// <param name="suggestion">Suggestion.</param>
+    /// <returns>The DTO.</returns>
+    public static LyricSuggestionDto ToDto(LyricSuggestion suggestion)
+    {
+        ArgumentNullException.ThrowIfNull(suggestion);
+        return new LyricSuggestionDto
+        {
+            SuggestionId = suggestion.Id,
+            AssistId = suggestion.AssistId,
+            Category = Map<SuggestionCategoryDto>(suggestion.Category),
+            Type = Map<SuggestionTypeDto>(suggestion.Type),
+            Severity = Map<SuggestionSeverityDto>(suggestion.Severity),
+            Anchor = ToDto(suggestion.Anchor),
+            Operation = Map<SuggestionOperationDto>(suggestion.Operation),
+            Proposal = suggestion.Proposal,
+            GroupId = suggestion.GroupId,
+            Explanation = suggestion.Explanation,
+            Source = Map<SuggestionSourceDto>(suggestion.Source),
+            Model = suggestion.Model,
+            SyllablesBefore = suggestion.SyllablesBefore,
+            SyllablesAfter = suggestion.SyllablesAfter,
+            RhymeWith = suggestion.RhymeWith is { } rhyme ? new RhymePartnerDto { Line = rhyme.Line, Word = rhyme.Word } : null,
+            Status = Map<SuggestionStatusDto>(suggestion.Status),
+            DecidedAt = suggestion.DecidedAt is { } decided ? TrackMapper.Utc(decided) : null,
+        };
+    }
+
+    /// <summary>The anchor DTO.</summary>
+    /// <param name="anchor">Anchor.</param>
+    /// <returns>The DTO.</returns>
+    public static AnchorDto ToDto(Anchor anchor)
+    {
+        ArgumentNullException.ThrowIfNull(anchor);
+        return new AnchorDto { Line = anchor.Line, Start = anchor.Start, Length = anchor.Length, Original = anchor.Original };
+    }
+
+    /// <summary>The domain anchor.</summary>
+    /// <param name="anchor">DTO.</param>
+    /// <returns>The anchor.</returns>
+    public static Anchor ToDomain(AnchorDto anchor)
+    {
+        ArgumentNullException.ThrowIfNull(anchor);
+        return new Anchor(anchor.Line, anchor.Start, anchor.Length, anchor.Original);
+    }
+
+    /// <summary>The assist summary DTO.</summary>
+    /// <param name="assist">Assist.</param>
+    /// <returns>The DTO.</returns>
+    public static LyricAssistSummaryDto ToSummary(AssistRun assist)
+    {
+        ArgumentNullException.ThrowIfNull(assist);
+        return Summary(assist);
+    }
+
+    /// <summary>The assist DTO with its suggestions.</summary>
+    /// <param name="assist">Assist.</param>
+    /// <param name="suggestions">Its suggestions.</param>
+    /// <returns>The DTO.</returns>
+    public static LyricAssistDto ToDto(AssistRun assist, IEnumerable<LyricSuggestion> suggestions)
+    {
+        ArgumentNullException.ThrowIfNull(suggestions);
+        return WithSuggestions(ToSummary(assist), suggestions.Select(ToDto).ToList());
+    }
+
+    /// <summary>The layer DTO.</summary>
+    /// <param name="layer">Layer.</param>
+    /// <returns>The DTO.</returns>
+    public static LayerInfoDto ToDto(AssistLayer layer)
+    {
+        ArgumentNullException.ThrowIfNull(layer);
+        return new LayerInfoDto { Layer = Map<SuggestionSourceDto>(layer.Layer), Name = layer.Name, Available = layer.Available, Reason = layer.Reason, Fix = layer.Fix };
+    }
+
+    /// <summary>The counts DTO.</summary>
+    /// <param name="counts">Counts.</param>
+    /// <returns>The DTO.</returns>
+    public static CategoryCountsDto ToDto(CategoryCounts counts)
+    {
+        ArgumentNullException.ThrowIfNull(counts);
+        return new CategoryCountsDto
+        {
+            Spelling = counts.Spelling,
+            Grammar = counts.Grammar,
+            Flow = counts.Flow,
+            Licence = counts.Licence,
+            Device = counts.Device,
+            Alternative = counts.Alternative,
+            Continuation = counts.Continuation,
+            Title = counts.Title,
+        };
+    }
+
+    /// <summary>The discarded DTO.</summary>
+    /// <param name="discarded">Counts.</param>
+    /// <returns>The DTO.</returns>
+    public static DiscardedCountsDto ToDto(DiscardedCounts discarded)
+    {
+        ArgumentNullException.ThrowIfNull(discarded);
+        return new DiscardedCountsDto
+        {
+            InvalidAnchor = discarded.InvalidAnchor,
+            InvalidSchema = discarded.InvalidSchema,
+            FailedVerification = discarded.FailedVerification,
+            Filtered = discarded.Filtered,
+            Verbatim = discarded.Verbatim,
+        };
+    }
+
+    /// <summary>The domain discarded counts.</summary>
+    /// <param name="discarded">DTO.</param>
+    /// <returns>The counts.</returns>
+    public static DiscardedCounts ToDomain(DiscardedCountsDto discarded)
+    {
+        ArgumentNullException.ThrowIfNull(discarded);
+        return new DiscardedCounts
+        {
+            InvalidAnchor = discarded.InvalidAnchor,
+            InvalidSchema = discarded.InvalidSchema,
+            FailedVerification = discarded.FailedVerification,
+            Filtered = discarded.Filtered,
+            Verbatim = discarded.Verbatim,
+        };
+    }
+
+    private static LyricAssistSummaryDto Summary(AssistRun assist) => new()
+    {
+        AssistId = assist.Id,
+        LyricsId = assist.SheetId,
+        SheetRevision = assist.SheetRevision,
+        Kind = Map<AssistKindDto>(assist.Kind),
+        Status = Map<AssistStatusDto>(assist.Status),
+        Language = ToDto(assist.Language),
+        Sensitivity = Map<SensitivityDto>(assist.Sensitivity),
+        Layers = assist.Layers.Select(ToDto).ToList(),
+        Backend = Backend(assist.Backend),
+        Model = assist.Model,
+        UsingFallback = assist.UsingFallback,
+        BlocksTotal = assist.BlocksTotal,
+        BlocksDone = assist.BlocksDone,
+        BlocksSkipped = assist.BlocksSkipped,
+        Counts = ToDto(assist.Counts),
+        Discarded = ToDto(assist.Discarded),
+        Origin = Map<AssistOriginDto>(assist.Origin),
+        AgentRunId = assist.AgentRunId,
+        Usage = assist.Usage is { } usage ? new TokenUsageDto { InputTokens = usage.InputTokens, OutputTokens = usage.OutputTokens, CachedInputTokens = usage.CachedInputTokens } : null,
+        Failure = Failure(assist),
+        EstimatedSeconds = assist.EstimatedSeconds,
+        CreatedAt = TrackMapper.Utc(assist.CreatedAt),
+        StartedAt = assist.StartedAt is { } started ? TrackMapper.Utc(started) : null,
+        EndedAt = assist.EndedAt is { } ended ? TrackMapper.Utc(ended) : null,
+    };
+
+    // LyricAssist = LyricAssistSummary + suggestions (data-model 10): every summary field is copied.
+    private static LyricAssistDto WithSuggestions(LyricAssistSummaryDto summary, IReadOnlyList<LyricSuggestionDto> suggestions) => new()
+    {
+        AssistId = summary.AssistId,
+        LyricsId = summary.LyricsId,
+        SheetRevision = summary.SheetRevision,
+        Kind = summary.Kind,
+        Status = summary.Status,
+        Language = summary.Language,
+        Sensitivity = summary.Sensitivity,
+        Layers = summary.Layers,
+        Backend = summary.Backend,
+        Model = summary.Model,
+        UsingFallback = summary.UsingFallback,
+        BlocksTotal = summary.BlocksTotal,
+        BlocksDone = summary.BlocksDone,
+        BlocksSkipped = summary.BlocksSkipped,
+        Counts = summary.Counts,
+        Discarded = summary.Discarded,
+        Origin = summary.Origin,
+        AgentRunId = summary.AgentRunId,
+        Usage = summary.Usage,
+        Failure = summary.Failure,
+        EstimatedSeconds = summary.EstimatedSeconds,
+        CreatedAt = summary.CreatedAt,
+        StartedAt = summary.StartedAt,
+        EndedAt = summary.EndedAt,
+        Suggestions = suggestions,
+    };
+
+    private static AssistFailureDto? Failure(AssistRun assist) => assist.FailureCode is { } code
+        ? new AssistFailureDto { Code = Map<AssistFailureCodeDto>(code), Message = assist.FailureMessage ?? code.ToString(), Fix = assist.FailureFix }
+        : null;
+
+    private static AgentBackendDto? Backend(string? backend) => backend switch
+    {
+        "ollama" => AgentBackendDto.Ollama,
+        "claude" => AgentBackendDto.Claude,
+        "fake" => AgentBackendDto.Fake,
+        _ => null,
+    };
+}

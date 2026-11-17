@@ -84,7 +84,7 @@ public sealed class ScorePianoLibraryTests : PageTestContext
         };
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(ScoreData.Asset(facts: facts)));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         page.Find($"[data-testid=asset-attribution-{ScoreData.ScoreId}]").TextContent.ShouldBe(ScoreData.Attribution);
     }

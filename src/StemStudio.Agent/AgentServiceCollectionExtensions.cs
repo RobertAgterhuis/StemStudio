@@ -34,14 +34,21 @@ public static class AgentServiceCollectionExtensions
     public static IServiceCollection AddStemStudioAgent(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        AddModelBackends(services);
+        AddTools(services);
+        AddRuntime(services);
+        return services;
+    }
+
+    /// <summary>The environment, clock, GPU state and the Ollama and Claude clients (shared with the lyric assistant).</summary>
+    /// <param name="services">The service collection.</param>
+    internal static void AddModelBackends(IServiceCollection services)
+    {
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IGpuActivity, IdleGpuActivity>();
         AddOllama(services);
         AddChat(services);
-        AddTools(services);
-        AddRuntime(services);
-        return services;
     }
 
     private static void AddOllama(IServiceCollection services)
@@ -72,7 +79,10 @@ public static class AgentServiceCollectionExtensions
     {
         AddProviders(services);
         services.TryAddSingleton(sp => new AgentToolRegistry(sp.GetServices<IAgentToolProvider>()));
-        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp)));
+        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp))
+        {
+            LyricModel = cancellationToken => ServiceStatusReader.LyricModelAsync(sp.GetRequiredService<IAgentStatusService>(), cancellationToken),
+        });
         services.TryAddSingleton(sp => new ToolCatalog(sp.GetRequiredService<AgentToolRegistry>(), sp.GetRequiredService<ServiceStatusReader>()));
     }
 
@@ -89,6 +99,8 @@ public static class AgentServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, ScoreToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, StyleToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, SongToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LibraryToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LyricAssistToolProvider>());
     }
 
     private static void AddRuntime(IServiceCollection services)
@@ -113,6 +125,7 @@ public static class AgentServiceCollectionExtensions
         Settings = sp.GetRequiredService<IAgentSettingsStore>(),
         Events = sp.GetRequiredService<IRunEventSink>(),
         Actions = sp.GetRequiredService<IStemStudioActions>(),
+        LyricAssist = sp.GetService<ILyricAssistActions>(),
         Ui = sp.GetRequiredService<IUiToolGateway>(),
         Registry = sp.GetRequiredService<AgentToolRegistry>(),
         Chat = sp.GetRequiredService<IAgentChatSession>(),

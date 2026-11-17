@@ -18,6 +18,9 @@ public static class ToolPolicy
     /// <summary>Refusal for lyrics that were not written by the user.</summary>
     public const string LyricsRefusal = "Song lyrics must come from your own message: paste the lyrics in the chat or pick one of your saved lyrics sheets.";
 
+    /// <summary>Refusal when a word argument was not named by the user (find_rhymes, tool catalogue 1.2.0).</summary>
+    public const string WordRefusal = "Name the word you want rhymes for.";
+
     /// <summary>Decides one call.</summary>
     /// <param name="input">The call and its run state.</param>
     /// <returns>The decision.</returns>
@@ -50,8 +53,13 @@ public static class ToolPolicy
         }
 
         var lyrics = Texts(input.Arguments, input.Tool.LyricsArguments);
-        return lyrics.Any(text => !ProvenanceChecker.LyricsFromUser(text, input.UserMessages))
-            ? PolicyDecision.Deny(AgentDecisionReasons.LyricsNotFromUser, LyricsRefusal)
+        if (lyrics.Any(text => !ProvenanceChecker.LyricsFromUser(text, input.UserMessages)))
+        {
+            return PolicyDecision.Deny(AgentDecisionReasons.LyricsNotFromUser, LyricsRefusal);
+        }
+
+        return Texts(input.Arguments, input.Tool.UserWordArguments).Any(word => !ProvenanceChecker.WordFromUser(word, input.UserMessages))
+            ? new PolicyDecision(StepDecisionDto.Denied, [], WordRefusal)
             : null;
     }
 
@@ -61,6 +69,11 @@ public static class ToolPolicy
         if (!(input.IsCompensation && input.Fresh) && RiskReason(input) is { } risk)
         {
             reasons.Add(risk);
+        }
+
+        if (input.Tool.AlwaysApprovalReason is { } always)
+        {
+            reasons.Add(always);
         }
 
         AddIf(reasons, input.Tainted, AgentDecisionReasons.Tainted);

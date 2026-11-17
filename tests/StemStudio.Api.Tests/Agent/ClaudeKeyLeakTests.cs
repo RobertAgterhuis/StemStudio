@@ -27,7 +27,8 @@ public sealed class ClaudeKeyLeakTests
         var dataDir = Directory.CreateTempSubdirectory("stemstudio-leak-").FullName;
         try
         {
-            var bodies = await ExerciseAsync(dataDir);
+            await using var keeper = new WalKeeper(Path.Combine(dataDir, "stemstudio.db"));
+            var bodies = await ExerciseAsync(dataDir, keeper);
             SqliteConnection.ClearAllPools();
 
             await ShouldNotBeInTheDatabaseFilesAsync(dataDir, "after shutdown");
@@ -40,7 +41,7 @@ public sealed class ClaudeKeyLeakTests
         }
     }
 
-    private static async Task<List<string>> ExerciseAsync(string dataDir)
+    private static async Task<List<string>> ExerciseAsync(string dataDir, WalKeeper keeper)
     {
         using var api = new ClaudeKeyApi(new() { DataDir = dataDir, TraceLogs = true });
         var bodies = new List<string>();
@@ -49,6 +50,9 @@ public sealed class ClaudeKeyLeakTests
             stored.StatusCode.ShouldBe(HttpStatusCode.OK);
             bodies.Add(await stored.Content.ReadAsStringAsync(Ct));
         }
+
+        // The database exists now: pin its WAL for the rest of the test (see WalKeeper).
+        await keeper.OpenAsync();
 
         foreach (var route in new[] { ApiRoutes.AgentClaudeKey, ApiRoutes.AgentStatus, ApiRoutes.AgentSettings })
         {
@@ -87,9 +91,12 @@ public sealed class ClaudeKeyLeakTests
             .ForEach(line => ShouldNotContain(Encoding.UTF8.GetBytes(line), "log"));
     }
 
-    // F2: Microsoft.Data.Sqlite keeps SQLite's default rollback journal (no WAL is configured in src), so -wal/-shm never exist and
-    // the -journal file lives only during a write. The test records the mode, requires -wal when WAL is ever enabled, proves the
-    // scanned database holds the key row, and reads every stemstudio.db* file with FileShare.ReadWrite while the host still runs.
+    // F2: EF Core creates the SQLite database in WAL mode (the mode is persistent in the file), so the host's writes land in -wal
+    // first. The test records the mode, requires -wal when WAL is enabled, proves the scanned database holds the key row, and reads
+    // every stemstudio.db* file with FileShare.ReadWrite while the host still runs. Which files exist is only deterministic with
+    // the WalKeeper: without it SQLite deletes -wal when the last connection closes, and the process-wide
+    // SqliteConnection.ClearAllPools() that every other parallel test and ApiFactory.Dispose call closes this host's pooled
+    // connections at any moment (cause of the flake: "files should contain ...-wal" in full parallel runs).
     private static async Task ShouldNotBeInTheDatabaseFilesAsync(string dataDir, string when)
     {
         var database = Path.Combine(dataDir, "stemstudio.db");
@@ -106,11 +113,39 @@ public sealed class ClaudeKeyLeakTests
         files.ShouldContain(database);
         foreach (var file in files)
         {
-            await using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            using var copy = new MemoryStream();
-            await stream.CopyToAsync(copy, Ct);
-            ShouldNotContain(copy.ToArray(), $"{Path.GetFileName(file)} ({when}, journal mode {mode})");
+            ShouldNotContain(await ReadAsync(file), $"{Path.GetFileName(file)} ({when}, journal mode {mode})");
         }
+    }
+
+    // On Windows SQLite byte-range-locks the -shm wal-index while a connection is active, which makes a plain read throw an
+    // IOException. The -shm holds only frame page numbers and hash slots, never page content, so a locked range is skipped for
+    // that file alone; the database, the -wal and the -journal (the files that hold content) are always read completely.
+    private static async Task<byte[]> ReadAsync(string file)
+    {
+        await using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var copy = new MemoryStream();
+        if (!file.EndsWith("-shm", StringComparison.Ordinal))
+        {
+            await stream.CopyToAsync(copy, Ct);
+            return copy.ToArray();
+        }
+
+        var chunk = new byte[4096];
+        while (stream.Position < stream.Length)
+        {
+            var position = stream.Position;
+            try
+            {
+                var read = await stream.ReadAsync(chunk, Ct);
+                copy.Write(chunk, 0, read);
+            }
+            catch (IOException)
+            {
+                stream.Position = position + chunk.Length;
+            }
+        }
+
+        return copy.ToArray();
     }
 
     private static async Task<(string Mode, long Rows)> JournalModeAndKeyRowsAsync(string database)
@@ -132,5 +167,34 @@ public sealed class ClaudeKeyLeakTests
         }
 
         haystack.AsSpan().IndexOf(Encoding.Unicode.GetBytes(ClaudeKeySentinels.Stored)).ShouldBe(-1, $"UTF-16 sentinel found in {where}");
+    }
+}
+
+/// <summary>
+/// Keeps one non-pooled connection open on the database for the whole test. SQLite deletes the <c>-wal</c> (after a checkpoint)
+/// when the last connection closes, and the process-wide <see cref="SqliteConnection.ClearAllPools"/> that parallel tests and
+/// <c>ApiFactory.Dispose</c> call can close the host's pooled connections at any moment; the keeper makes the files that exist
+/// (and the un-checkpointed frames in <c>-wal</c>) deterministic, so the scan always covers the WAL.
+/// </summary>
+internal sealed class WalKeeper(string database) : IAsyncDisposable
+{
+    private SqliteConnection? _connection;
+
+    public async Task OpenAsync()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        _connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database, Pooling = false }.ToString());
+        await _connection.OpenAsync(ct);
+        await using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master;";
+        await command.ExecuteScalarAsync(ct);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_connection is not null)
+        {
+            await _connection.DisposeAsync();
+        }
     }
 }

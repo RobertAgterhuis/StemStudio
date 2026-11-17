@@ -185,6 +185,29 @@ names. (c) Worker `storage` (`PYTHON_ALLOWED`): imports only `jobs`, `ports`, `s
 `config` (never `separation`, `detail` or `api`); `api` may import `storage`; `jobs` and the
 adapters never do. `worker/storage` is its own component row, owned by stem-separation.
 
+Library folders and lyric assistant (features 022/023, `dependency_check.py` folder tables,
+tasks.md 022 T024 and 023 T071; fixtures in `tests/test_library_rules.py` and
+`tests/test_lyric_assist_rules.py`). The project rules stay in force (`Web -> Contracts`,
+`Api -> {Contracts, Domain, Persistence, Agent}`, `Agent -> Contracts`); the folder rules add:
+
+| Folder (below `src/`) | May reference | Forbidden (message `forbidden dependency <folder> -> <name>`) |
+|---|---|---|
+| `StemStudio.Domain` (project) | no NuGet package | any `PackageReference` |
+| `Domain/Library`, `Domain/Lyrics` (incl. `Assist/`) | `StemStudio.Domain.*`, the BCL | every other StemStudio project, `Microsoft.*`, `WeCantSpell`, the sibling feature (`Domain.Lyrics` <-> `Domain.Library`) |
+| `Api/Library` | Domain, Persistence, Contracts, other Api folders | `Web`, `Agent`, `Api.LyricAssist` |
+| `Api/LyricAssist` | Agent, Domain, Persistence, Contracts, other Api folders | `Web`, `Api.Library` |
+| `Web/Library`, `Web/Components/Library` | Contracts, `Web.*` | `Api`, `Domain`, `Persistence`, `Agent`, `HttpClient`, `IHttpClientFactory`, `System.Net.Http*`, `WeCantSpell`, the other feature's UI (`Web.Components.Lyrics.Assist`) |
+| `Web/Components/Lyrics/Assist` | Contracts, `Web.*` | the same, and `Web.Library`, `Web.Components.Library` |
+| `Agent/LyricAssist` | `Agent.*`, Contracts, `Microsoft.Extensions.AI` | `Api`, `Domain`, `Persistence`, `Web`, `WeCantSpell` (the Domain checks arrive through the `ILyricVerification` port) |
+| `Agent/Tools` (allow-list) | `Agent.Model`, `Agent.Ports` and itself | any other `StemStudio.Agent.*` (`Runtime`, `Policy`, `Backends`, `LyricAssist`) |
+
+Web UI code reaches the API only through the API client in `Web/Api` (`Web -> API client -> API`),
+which is why the UI folders may not name `HttpClient`. Folder rules read `*.cs` and `*.razor`
+(`@using`, `@inject`, `@code`; `@* *@` and `<!-- -->` comments, strings and comments are ignored).
+Measurement: `Library (022)` and `Lyric assist (023)` are report rows across the projects (also
+counted in the project rows); `Api/LyricAssist/Dictionaries/` (vendored Hunspell and CMUdict data)
+and `tests/fixtures/lyrics/assist/**` are excluded from SIG, jscpd and Sonar.
+
 ## Commands (repository root)
 
 ```bash
@@ -204,3 +227,13 @@ Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
 `python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
 `python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`,
 `python tools/quality/secret_rules.py`, `python tools/quality/library_care_rules.py`.
+
+Tool errors are failures, not environment notes: exit 2 means duplication was **not measured**,
+and the summary then reads `quality gate FAIL: ... not measured ... 1 errors`. `duplication.py`
+reports a tool error for a missing `npx`, a non-zero jscpd exit (the error names the last line
+jscpd or npm printed, e.g. `Error: path does not exist: ...`), a missing or unreadable report and a
+report that scanned no source file. Relative `paths` are resolved against the current directory
+(as `sig_check.py` does) before jscpd runs in the repository root; before the 022/023 fix a lane
+folder given relative to another directory made jscpd exit 1 without a reason. `python -I` is not
+supported (it drops the script folder from `sys.path`, so the sibling modules do not import); use
+`uv run --project tools/quality python tools/quality/run_all.py`.

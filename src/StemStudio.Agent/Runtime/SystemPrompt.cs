@@ -31,6 +31,7 @@ public static class SystemPrompt
         ArgumentNullException.ThrowIfNull(context);
         var line = $"Current page: {context.Page}";
         line += context.TrackId is { } track ? $"; open track: {track}" : string.Empty;
-        return line + (context.MixId is { } mix ? $"; open mix: {mix}" : string.Empty) + ".";
+        line += context.MixId is { } mix ? $"; open mix: {mix}" : string.Empty;
+        return line + (context.LyricsId is { } lyrics ? $"; open lyrics sheet: {lyrics}" : string.Empty) + ".";
     }
 }

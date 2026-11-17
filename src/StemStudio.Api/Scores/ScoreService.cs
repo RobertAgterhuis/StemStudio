@@ -1,4 +1,5 @@
 using StemStudio.Api.Assets;
+using StemStudio.Api.Library;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Scores;
 using StemStudio.Domain;
@@ -14,7 +15,8 @@ namespace StemStudio.Api.Scores;
 /// <param name="disk">Free-space guard.</param>
 /// <param name="assets">Asset repository.</param>
 /// <param name="reader">Maps items.</param>
-public sealed class ScoreService(ScorePlanner planner, ScoreSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets, AssetService reader)
+/// <param name="filer">Files new items in the library folders (feature 022).</param>
+public sealed class ScoreService(ScorePlanner planner, ScoreSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets, AssetService reader, ILibraryFiler filer)
 {
     /// <summary>Creates a queued score item and submits its transcription.</summary>
     /// <param name="request">The request.</param>
@@ -94,6 +96,7 @@ public sealed class ScoreService(ScorePlanner planner, ScoreSubmitter submitter,
 
         if (added)
         {
+            await filer.FileAsync(asset, cancellationToken);
             assets.Add(asset);
         }
 

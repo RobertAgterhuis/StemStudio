@@ -70,6 +70,43 @@ public sealed class ResultProjectorTests
         result.Json.ShouldContain("keep");
     }
 
+    [Theory]
+    [InlineData("lines")]
+    [InlineData("path")]
+    public void ForbiddenNames_KeepListsOfRows_ButStripTheirTexts(string field)
+    {
+        var projection = new JsonObject
+        {
+            [field] = new JsonArray(new JsonObject { ["line"] = 1, ["syllables"] = 8, ["text"] = "secret" }),
+            ["other"] = new JsonObject { [field] = new JsonArray("secret line", "more") },
+            ["mixed"] = new JsonObject { [field] = new JsonArray(new JsonObject { ["a"] = 1 }, "secret") },
+        };
+
+        var result = ResultProjector.Project(projection);
+
+        result.Json.ShouldBe($$$"""{"{{{field}}}":[{"line":1,"syllables":8}],"other":{},"mixed":{}}""");
+    }
+
+    [Fact]
+    public void RowsWithText_OrRowListsUnderOtherNames_AreRemoved()
+    {
+        var projection = new JsonObject
+        {
+            ["lines"] = new JsonArray(new JsonObject { ["line"] = 1, ["content"] = "de stad word stil als de klok slaat" }),
+            ["lyrics"] = new JsonArray(new JsonObject { ["line"] = 1 }),
+            ["path"] = new JsonArray(new JsonObject { ["folderId"] = "ar0123456789abcdef", ["level"] = "artist", [ResultProjector.UntrustedField] = "Motörhead and more" }),
+            ["nested"] = new JsonObject { ["lines"] = new JsonArray(new JsonObject { ["row"] = new JsonObject { ["a"] = 1 } }) },
+        };
+
+        var result = ResultProjector.Project(projection);
+
+        result.Json.ShouldNotContain("klok");
+        result.Json.ShouldNotContain("lyrics");
+        result.Json.ShouldContain("\"path\":[{\"folderId\":\"ar0123456789abcdef\",\"level\":\"artist\"");
+        result.Json.ShouldContain("\"nested\":{}");
+        result.Tainted.ShouldBeTrue();
+    }
+
     [Fact]
     public void LargeArray_IsCutTo4KbWithAMarker()
     {

@@ -19,6 +19,10 @@
         @if (Generation.Song is { } song)
         {
             <SongFacts Song="song" />
+            @if (song.Lyrics.AssistedLineCount > 0)
+            {
+                <dt>Lyrics help</dt><dd data-testid="take-lyrics-assisted">Lyrics: @song.Lyrics.AssistedLineCount @(song.Lyrics.AssistedLineCount == 1 ? "line" : "lines") AI-assisted</dd>
+            }
         }
         @if (Generation.VoiceConversion is { } conversion)
         {

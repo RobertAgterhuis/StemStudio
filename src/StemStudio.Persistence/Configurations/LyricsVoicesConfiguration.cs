@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Lyrics;
+using StemStudio.Domain.Lyrics.Assist;
 using StemStudio.Domain.Voices;
 
 namespace StemStudio.Persistence.Configurations;
@@ -19,6 +20,38 @@ public sealed class LyricsSheetConfiguration : IEntityTypeConfiguration<LyricsSh
         builder.Property(sheet => sheet.Language).HasMaxLength(8);
         builder.Property(sheet => sheet.Text).HasMaxLength(LyricsRules.MaxTextLength);
         builder.HasIndex(sheet => sheet.UpdatedAt);
+        ConfigureAssist(builder);
+    }
+
+    private static void ConfigureAssist(EntityTypeBuilder<LyricsSheet> builder)
+    {
+        builder.Ignore(sheet => sheet.AssistLanguage);
+        builder.Ignore(sheet => sheet.CanUndo);
+        builder.Property(sheet => sheet.Revision).HasDefaultValue(1).IsConcurrencyToken();
+        builder.Property(sheet => sheet.LastCause).HasConversion<string>().HasMaxLength(16).HasDefaultValue(RevisionCause.Created);
+        builder.Property(sheet => sheet.Sensitivity).HasConversion<string>().HasMaxLength(16).HasDefaultValue(Sensitivity.Balanced).HasSentinel((Sensitivity)(-1));
+        builder.Property(sheet => sheet.RhythmTarget).HasConversion(JsonColumn<RhythmTarget>.Converter!, JsonColumn<RhythmTarget>.Comparer!);
+        builder.Property(sheet => sheet.OwnWorkOverride).HasConversion(JsonColumn<OwnWorkOverride>.Converter!, JsonColumn<OwnWorkOverride>.Comparer!);
+        builder.OwnsMany(sheet => sheet.IntentionalMarks, marks =>
+        {
+            marks.ToTable("LyricsIntentionalMarks");
+            marks.WithOwner().HasForeignKey("SheetId");
+            marks.HasKey(mark => mark.Id);
+            marks.Property(mark => mark.Id).ValueGeneratedNever();
+            marks.Property(mark => mark.Scope).HasConversion<string>().HasMaxLength(8);
+            marks.Property(mark => mark.Text).HasMaxLength(IntentionalMarkMatcher.MaxLineLength);
+            marks.Property(mark => mark.Note).HasMaxLength(IntentionalMark.MaxNoteLength);
+        });
+        builder.Navigation(sheet => sheet.IntentionalMarks).HasField("_marks").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.OwnsMany(sheet => sheet.AssistedLines, lines =>
+        {
+            lines.ToTable("LyricsAssistedLines");
+            lines.WithOwner().HasForeignKey("SheetId");
+            lines.Property<int>("Id").ValueGeneratedOnAdd();
+            lines.HasKey("Id");
+            lines.Property(line => line.LineText).HasMaxLength(AssistedLine.MaxLineTextLength);
+        });
+        builder.Navigation(sheet => sheet.AssistedLines).HasField("_assistedLines").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 

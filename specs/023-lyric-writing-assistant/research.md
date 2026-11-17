@@ -188,3 +188,75 @@ reference machine only (not CI); CI runs the suite's self-test with a scripted f
 | CMU Pronouncing Dictionary | pinned commit at Phase 0 | BSD-2-Clause-style (CMU) | https://github.com/cmusphinx/cmudict |
 
 No new model weights; `qwen3.5:9b`/`4b` are already used by 011.
+
+## Phase 0 results (architect, 2026-11-17)
+
+**R-02 / R-10 pinned (T006).** Retrieved 2026-11-17, every release or commit older than 14 days; files
+byte-identical to upstream (a nested `.gitattributes` keeps the CRLF of OpenTaal and SCOWL), SHA-256 in
+`src/StemStudio.Api/LyricAssist/Dictionaries/{PROVENANCE.md, manifest.json}`, checked by
+`VendoredDictionaryTests` (also loads every dictionary with WeCantSpell.Hunspell). Total 7,740,587 bytes
+(7.4 MiB, below the ~10 MB estimate and the +15 MB image budget of T069).
+
+| Data / package | Version (pin) | Licence (verified from the upstream file) |
+|---|---|---|
+| WeCantSpell.Hunspell | 7.0.1 (NuGet, 2025-11-30; net8.0/net10.0/netstandard2.0, no dependencies on net10.0) | MPL-1.1 chosen from MPL-1.1 / GPL-2.0 / LGPL-2.1; used unmodified |
+| OpenTaal Hunspell nl | 2.20.23, commit `1c22bc3d` (2022-11-29; the later untagged "intermediate" commit is not used) | BSD-3-Clause chosen from "BSD-3-Clause and/or CC BY 3.0" (`nl/LICENSE.txt`) |
+| SCOWL Hunspell en_US, en_GB-ise, en_GB-ize | release `rel-2026.02.25` (SCOWL commit `7e99eda`, size 60; SCOWL-generated, **not** the LibreOffice en_GB) | SCOWL notice (MIT/HPND-style) for the word lists, Kuenning Ispell BSD-style for the affix files (`README_<dict>.txt`) |
+| CMU Pronouncing Dictionary | commit `74790861` (2025-10-24), 135,166 lines | BSD-2-Clause wording (`cmudict/LICENSE`) |
+
+None is copyleft beyond MPL's file-level scope; nothing GPL is bundled (WeCantSpell is used under MPL-1.1).
+
+**R-05 / R-06 spike S-01 (T008): not run in Phase 0.** The reference machine was busy with another
+integration (at most one heavy process; the owner's Docker stack, which hosts Ollama, is off limits). Per
+tasks.md ("T008 may finish during the wave but before T068") the spike moves to the ai-agent lane of the
+wave, run against a natively started Ollama only when the machine is free. Until then SC-004 and
+`BlockLines = 8` stay the design estimates of R-05. Contract impact if the spike changes them: none
+(`BlockLines` is configuration, `LyricAssistLimits.DefaultBlockLines` the default).
+
+**R-05 / R-06 spike S-01 (T008): run in wave 1 (ai-agent, 2026-11-17).** The Ollama was a throwaway container of
+this lane only: `ollama/ollama:0.40.13` on its own port and volume, GPU shared; neither the owner's stack nor the host
+Ollama was used. It was removed afterwards. Tool: `tools/agent-eval --suite lyric --sheet <file>`, which runs the real
+assistant: R-05 prompts with a random boundary, `format` = lyric-assist-output 1.0.0, `think: false`, `num_ctx` 16384.
+Blocks are cut at blank lines and at most 8 lines, an approximation of `SheetBlocks`. The sheets are
+`p1-havenlicht.nl.txt` (49 lines incl. markers, 10 blocks) and `p2-harbour-light.en.txt` (10 blocks).
+
+| Model / sheet | Runs | First block (s) | Full sheet (s) | Per block median (s) | Valid JSON |
+|---|---|---|---|---|---|
+| `qwen3.5:9b` GPU, P1 nl, cold | 1 | 53.8 (model load) | 79.2 | 3.3 | 10/11 (one retry succeeded) |
+| `qwen3.5:9b` GPU, P1 nl, warm | 3 | 1.5 / 1.2 / 5.8 | 24.0 / 31.8 / 25.3 | 1.6-3.7 | 30/30 |
+| `qwen3.5:9b` GPU, P2 en, warm | 3 | 4.7 / 3.9 / 22.4 | 38.8 / 35.9 / 56.2 | 3.4-3.8 | 30/30 |
+| `qwen3.5:4b` CPU (`num_gpu 0`), P1 nl | 1 | 133.0 | 1310.9 (every block skipped) | 126.4 (two attempts) | 0/19 |
+
+- VRAM of `qwen3.5:9b` with `num_ctx` 16384: 6.1 GB (011 F-08: 5.8 GB).
+- JSON validity with `format`: 70/71 replies, and the one invalid reply passed on its retry.
+- **Dutch first look** (N01, N02, N03, N06, N08, N09, N10, N16, N21, N23; model layer only, harness checks, no dictionary
+  layer): recall 0/8, no `error` on the licence traps.
+  - The model reported the typos (`wiet` -> `weet`) as `misses` verdicts, although no dictionary miss was listed.
+    In the product the dictionary layer lists them; `wiet` is itself a Dutch word, so it would not be listed and stays a
+    model task.
+  - A prompt variant that asks for such words as items raised recall to 1/8, but produced `error` on 3 of 3 licence trap
+    spans. It was reverted.
+  - This matches R-06: Dutch grammar and d/t with the local 9b is weak. T068 measures it on the full suite; expect the
+    standing quality note and owner question Q2 (T080).
+
+**Outcome.**
+- **BlockLines = 8 stays.**
+- **SC-004:**
+  - first model suggestion <= 6 s p50: met (nl 1.5 s, en 4.7 s);
+  - full check <= 30 s p50: met for nl (25.3 s), missed for en (38.8 s);
+  - p95 <= 45 s: missed in 1 of 6 warm runs (56.2 s, an outlier while the CPU run was being set up).
+- The en sheet has more and longer explanations: about 3.5 s per block over 10 blocks.
+- **CPU fallback `qwen3.5:4b`**: unusable as configured.
+  - About 60 s per attempt on the CPU, so the 60 s block timeout ends or skips every block.
+  - The replies that came back did not parse (0/19); the cause was not diagnosed in the timebox.
+  - SC-004's "CPU fallback full check <= 180 s" is missed by a wide margin.
+  - Follow-ups for T068 / the CTO: record the raw 4b replies (format support or truncation), raise the block timeout for
+    the fallback (e.g. 180 s), or show "model layer paused while a GPU job runs" instead of running 4b on the CPU.
+- Proposal (configuration, no contract change; CTO decision): let `SheetBlocks` merge consecutive short sections up to
+  8 lines. P1/P2 have about 4 lines per block, so this gives about 6 requests per sheet and brings both under 30 s.
+  Alternatively set the SC-004 en full check to <= 40 s p50.
+
+**Fixtures (T009).** `tests/fixtures/lyrics/assist/` (12 sheets, 4 invented library songs, 300 + 300
+syllable gold words, 51 nl + 40 en rhyme pairs, `expected.json`) and `e2e/lyric-scripts/` (10 scripts,
+validated by `contracts/check_output_schema.py`). All texts are self-written (CC0). Syllable counts are
+hand-checked, not yet against the real counters (backend T038 is the first run).

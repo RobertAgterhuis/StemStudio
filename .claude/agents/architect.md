@@ -26,3 +26,7 @@ plan.md, research.md, data-model.md, quickstart.md, contracts/worker-api.openapi
 - Public API documented; new dependencies and licences listed in the hand-off.
 - Skeleton builds with zero warnings; every OpenAPI contract validates (3.1).
 - Hand-off note `docs/handoffs/architect-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

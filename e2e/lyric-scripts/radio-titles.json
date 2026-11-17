@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "write.title",
+          "severity": "idea",
+          "line": 0,
+          "original": "Radio",
+          "proposal": "The Light Is On",
+          "explanation": "Title idea from the chorus."
+        },
+        {
+          "type": "write.title",
+          "severity": "idea",
+          "line": 0,
+          "original": "Radio",
+          "proposal": "Empty Hallways",
+          "explanation": "Title idea from the chorus."
+        },
+        {
+          "type": "write.title",
+          "severity": "idea",
+          "line": 0,
+          "original": "Radio",
+          "proposal": "Gone Are the Days",
+          "explanation": "Title idea from the chorus."
+        },
+        {
+          "type": "write.title",
+          "severity": "idea",
+          "line": 0,
+          "original": "Radio",
+          "proposal": "Radio in the Hall",
+          "explanation": "Title idea from the chorus."
+        },
+        {
+          "type": "write.title",
+          "severity": "idea",
+          "line": 0,
+          "original": "Radio",
+          "proposal": "Till You Come Home",
+          "explanation": "Title idea from the chorus."
+        }
+      ]
+    }
+  ]
+}

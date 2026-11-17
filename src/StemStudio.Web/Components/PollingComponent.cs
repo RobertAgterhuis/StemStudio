@@ -10,14 +10,22 @@ namespace StemStudio.Web.Components;
 public abstract class PollingComponent : ComponentBase, IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
+    private readonly CancellationToken _stopping;
     private PollLoop? _loop;
+
+    /// <summary>Creates the component; the stop token is taken once so it stays readable after dispose.</summary>
+    protected PollingComponent() => _stopping = _stop.Token;
 
     /// <summary>The polling timer.</summary>
     [Inject]
     protected IPollingTimer Timer { get; set; } = default!;
 
-    /// <summary>Cancelled when the component is disposed; pass it to API calls.</summary>
-    protected CancellationToken Stopping => _stop.Token;
+    /// <summary>
+    /// Cancelled when the component is disposed; pass it to API calls. Readable after dispose (a continuation of a
+    /// component that was removed while it awaited, such as a folder view replaced by search results, gets a cancelled
+    /// token instead of an <see cref="ObjectDisposedException"/> that would end the circuit).
+    /// </summary>
+    protected CancellationToken Stopping => _stopping;
 
     /// <summary>Whether another poll is needed.</summary>
     protected abstract bool NeedsPolling { get; }
@@ -39,7 +47,7 @@ public abstract class PollingComponent : ComponentBase, IDisposable
     protected virtual Task OnSettledAsync() => Task.CompletedTask;
 
     /// <summary>Starts polling unless it is running or not needed.</summary>
-    protected void StartPolling() => (_loop ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollOnceAsync, OnSettledAsync, _stop.Token);
+    protected void StartPolling() => (_loop ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollOnceAsync, OnSettledAsync, _stopping);
 
     /// <summary>Stops polling and releases the cancellation source.</summary>
     /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>

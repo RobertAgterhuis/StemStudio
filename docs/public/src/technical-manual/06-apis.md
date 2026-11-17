@@ -12,6 +12,10 @@ versions:
 Later features add their documents to `specs/NNN-*/contracts/` in their Phase 0; until then
 each folder holds a `DELTA.md` with the planned changes.
 
+The versions above are the first deliveries. The current labels (backend API 1.23.0, UI test ids
+1.23.0, tool catalogue 1.2.0, web interop 1.2.0) are listed in chapter 2, "Contracts and
+versions".
+
 ## Backend API (port 8081)
 
 | Method and path | Purpose |
@@ -106,6 +110,54 @@ allow-list is a `400`). The API key is never returned; problem types are
 Problem codes of library jobs: `archive-invalid`, `archive-incompatible`, `archive-unsafe`,
 `archive-corrupt`, `insufficient-disk-space`, `migration-failed`, `io-error`, `cancelled`.
 
+### Library by artist and album (022, backend API 1.22.0; tag `library`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/library/folders` | The artist folders (root): art, counts, size; query `sort`, `kind`, `status`, `limit` (default 200, at most 500), `offset`; answers with the ETag `"lib-<revision>"` and `304` for `If-None-Match` |
+| `GET /api/library/folders/{folderId}` | An artist, album or song folder: breadcrumb, child folders and, at song level, the items (the 007 asset shape); `sort=year` only on an artist folder |
+| `GET /api/library/search` | Live search: `q` (1-100 characters after trimming, at most 8 words), optional `within=<folderId>` (only what is inside it) and `limit` (1-200 per group, default 20); groups artists, albums, songs and items with the matched ranges |
+| `GET`, `PUT`, `DELETE /api/tracks/{trackId}/library-info` | Names the user set for a track (artist, album, song: 1-200 characters, no control characters), the automatic names with their source and `movedItems` after a change; `DELETE` makes all three automatic |
+| `GET`, `PUT`, `DELETE /api/assets/{assetId}/library-info` | The same for one item (`409 not-fileable` for an item that is not filed; `GET` answers `placement: null` for it) |
+
+Every item response now carries `placement` (names, keys, sources, album year, `filed`). `folderId`
+must match `^(ar|al|so)[0-9a-f]{16}$` before it is used. Problem types: `folder-not-found`
+(404, only when no item is filed in it at all), `library-query-invalid` (422: blank query, no
+letter or digit, more than 100 characters), `not-fileable` (409). A folder that a `kind` or
+`status` filter empties still answers `200` with zero counts. State-changing library info
+requests are covered by the cross-site guard and answer `503 library-maintenance` during a restore
+switch; they carry no backup write-gate mark (like a rename). The tool catalogue 1.1.0 adds four
+library tools to the agent (`browse_library_folder`, `search_library_items`, `open_library_folder`,
+`set_library_info`).
+
+### Lyric writing assistant (023, backend API 1.23.0; tag `lyric-assist`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/lyric-assist/status` | Dictionary and model layers (availability, backend, active model, fallback, reason and fix; mirrors the agent status) and the Claude notice state (always 200) |
+| `GET`, `PUT /api/lyric-assist/settings` | The Claude notice text and statements; acknowledgement of the lyric Claude notice (`claude-notice-required` until then); the `PUT` is never used to read |
+| `POST`, `GET /api/lyrics/{lyricsId}/assists` | Start an assist (`kind` check, devices, alternatives, continue, titles; line range, `count`, `instruction` of at most 200 characters, optional `origin` `editor` or `agent` with `agentRunId`) and list assists, newest first |
+| `GET /api/lyric-assists/{assistId}`, `…/events`, `POST …/cancel` | Assist snapshot; Server-Sent Events (resumable with `after`; 30 minutes idle timeout, keep-alive, closed when the sheet is deleted); cancel |
+| `GET /api/lyrics/{lyricsId}/suggestions` | Open suggestions (filters `status`, `category`) |
+| `POST /api/lyrics/{lyricsId}/suggestions/accept`, `…/reject`, `…/{suggestionId}/intentional` | Accept (one or more ids, as one revision; the server copies the stored proposals), reject, mark intentional |
+| `GET`, `POST /api/lyrics/{lyricsId}/intentional-marks`, `DELETE …/{markId}` | Marks (word, phrase or line; at most 200 per sheet) |
+| `PUT /api/lyrics/{lyricsId}/assist-settings` | Sensitivity (loose, balanced, strict) and rhythm target (BPM 40-220, beats per bar 2-7, bars per line 1-8, syllables per beat 0.5-4) |
+| `PUT`, `DELETE /api/lyrics/{lyricsId}/own-work-override` | Confirm (statement `own-work.v1`, name 1-80 characters) or revoke the own-work override |
+| `POST /api/lyrics/{lyricsId}/undo`; `GET /api/lyrics/{lyricsId}/revisions`, `POST …/revisions/{revision}/restore` | Undo the last accept; revision list (last 50) and restore |
+| `GET /api/lyrics/{lyricsId}/syllables`, `POST /api/lyric-assist/syllables` | Syllable counts of a sheet or of given lines (local, no model) |
+| `GET /api/lyric-assist/rhymes` | Rhyme finder (perfect and near, within 500 ms, local data) |
+| `GET`, `POST /api/lyric-assist/words`, `DELETE …/{wordId}` | The personal word list per language |
+| `POST /api/lyric-assist/language-guess` | Deterministic language guess for a sheet of unknown language |
+
+`PUT /api/lyrics/{id}` (010) gains `expectedRevision` and the sheet responses carry `revision` and
+`assist`; a stale revision answers `409 revision-conflict` with `currentRevision`, a second change of
+the same revision too (`Revision` is a concurrency token). Problem types: `language-unsupported`,
+`not-own-lyrics` (with the matched track), `imitation`, `assist-active`, `model-unavailable` (with
+`reason` and `fix`), `claude-notice-required`, `overlapping-suggestions`, `suggestion-not-open`,
+`nothing-to-undo`, `undo-blocked-by-edit`, `override-not-applicable`, `statement-outdated`,
+`assist-ended`, `too-long`, `mark-limit`, `word-limit`. Problem details never echo sheet text.
+Input limits: raw text 65,536 characters, 100 ids per request, words of at most 40 characters.
+
 ## Worker API (port 8000, internal)
 
 | Method and path | Purpose |
@@ -167,7 +219,7 @@ not run.
 ## Agent tools
 
 The agent's tools are defined in `specs/011-ai-composer-agent/contracts/tool-catalogue.md`
-1.3.0: 57 tools of features 001-011 (library, mixes, navigation, open-mixer control, detail
+1.2.0 (the document also holds 1.0.0, 1.3.0 and 1.1.0): 69 tools. The 57 tools of features 001-011 cover (library, mixes, navigation, open-mixer control, detail
 separation, device, help, artist info, lyrics, export, transcription, styles, songs and
 own-voice conversion). Each tool has a fixed risk class in code (read, change, job, heavy,
 destructive). A request offers at most 32 tools: the core group plus the groups of the page
@@ -176,3 +228,15 @@ transport, loop, metronome, navigation) are executed by the Web app and report b
 `ui-results` within 15 s. From catalogue 1.3.0 (012) `get_mix` and `mixer_get_state` show the
 practice tempo read-only as numbers, and `save_mix_as`, `update_mix` and its `restore_mix`
 undo keep it unchanged; no tool changes the practice tempo yet.
+
+Catalogue 1.1.0 (022) adds four library tools (`browse_library_folder`, `search_library_items`,
+`open_library_folder` and `set_library_info`, the last with an inverse for Undo); folder, album and
+item names reach the model only as `untrusted_text`, so a run that read them is tainted and
+`set_library_info` then asks for approval. Catalogue 1.2.0 (023) adds eight lyric tools
+(`check_lyrics`, `suggest_lyric_lines`, `list_lyric_suggestions`, `apply_lyric_suggestions`,
+`mark_lyrics_intentional`, `find_rhymes`, `count_syllables` and the UI tool `open_lyrics_editor`) in
+the group `lyric-assist`; their results carry ids, line numbers, categories and counts, never lyric
+text, `apply_lyric_suggestions` always asks for approval (reason `lyrics-edit`; the card is built
+from the stored suggestions) and `find_rhymes` accepts only a word the user wrote. The
+page contexts `library` and `lyrics` have their own selections of 32 and 28 tools. The agent starts
+an assist with `origin` = `agent`, which the Expert assist log shows as "Started by".

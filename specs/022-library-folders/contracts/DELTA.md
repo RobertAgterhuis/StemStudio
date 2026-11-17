@@ -5,7 +5,7 @@ required response member on `Asset`, UI test ids and four agent tools. **Worker 
 audio engine, render vectors, web-interop, help-content format, backup-archive and remote-protocol
 are unchanged.**
 
-## Status (design round, 2026-11-16)
+## Status (design round, 2026-11-16; superseded by section 4 "Phase 0 part 2 outcome")
 
 | Contract | Base | Feature document | State |
 |---|---|---|---|
@@ -61,3 +61,43 @@ are unchanged.**
 | 015 | `origin = recording` items are excluded from folders and search; `PUT/DELETE .../library-info` on them answers `409 not-fileable`. |
 | 011 | Catalogue 1.1.0 (tool-catalogue.delta.md); `list_exports`, `list_scores`, `search_library` unchanged. |
 | 012-021 | Any new asset origin is filed by the generic rule (track -> source item -> "My songs"); no 022 change needed. |
+
+## 4. Phase 0 part 2 outcome (architect, 2026-11-17, tasks.md T002-T005)
+
+| Contract | Version | Document | Notes |
+|---|---|---|---|
+| Backend API | **1.22.0** | [backend-api.openapi.yaml](backend-api.openapi.yaml) | = **1.11.0** (012, `specs/012-practice-tempo/contracts/backend-api.openapi.yaml`, the newest full document on `main` at 31d43422) + the delta, built by [merge_full.py](merge_full.py) (textual merge: every base line is kept byte for byte). `x-stemstudio-contains` = the 1.11.0 list + `1.22.0`. Shared `TrackId`, `AssetId`, `NotFound` keep the base definitions (rule 2); `Asset` gains `placement` (rule 3). **Editorial addition**: the six base `Asset` examples (`QueuedAsset`, `RenderingAsset`, `ReadyAsset`, `FailedAsset`, `QueuedScoreAsset`, `ReadyScoreAsset`) gain a `placement` (Rick Astley > Unknown album > Never Gonna Give You Up, sources import/fallback/import, folder ids computed with the R-02/R-03 rules), otherwise they would no longer validate against the required member. Redocly 2.78.0: valid, **9 warnings = the 9 of 1.11.0** (all `operation-4xx-response`); the delta alone: valid, 0 warnings. `merge_full.py --check`: superset of 1.11.0 (only `Asset` and its six examples grow) and of the delta (every non-shared delta entry unchanged) |
+| UI test ids | **1.22.0** | [ui-test-ids.md](ui-test-ids.md) | = 1.11.0 (012) + changelog paragraph + section "Additions in 1.22.0 (feature 022)" = the delta from "Changed behaviour" on (headings one level down), unchanged: 39 id rows, 48 ids, 46 new + 2 reused (`library-search`, `asset-row-<assetId>`) |
+| Agent tool catalogue | **1.1.0** | `specs/011-ai-composer-agent/contracts/tool-catalogue.md` (edited in place, as 012 did for 1.3.0) | = **1.3.0** + the delta (labels by containment, ROADMAP): changelog, section "Feature 022", counts 61, group `library` (9), page context `library` (`/library`, `/library/{folderId}`) 14 + 9 + 3 + 6 = 32, evaluation rows LIB-01..LIB-05 |
+| C# | - | `src/StemStudio.Contracts/Library/*` (5 enums, 17 records, `LibraryProblemTypes`, `InstrumentLabels`, `ApiRoutes.Library.cs`, `ContractLimits.Library.cs`), `AssetDto.Placement` (nullable, always written), `ContractLimits` now `partial` | `LibraryContractTests`, `LibraryUiTestIdsTests`, `InstrumentLabelsTests` |
+| Agent port | - | `src/StemStudio.Agent/Ports/ILibraryActions.cs` (+ `LibraryFolderQuery`, `LibrarySearchQuery`, `LibraryInfoTarget`), `IStemStudioActions.Library` | skeletons: `LoopbackLibraryActions` (throws until T080), eval `FixtureLibraryActions` (501 until T083) |
+
+**When 013 (1.12.0) lands on `main`** and `main` is merged into the round branch, the CTO:
+
+1. re-runs `python -I specs/022-library-folders/contracts/merge_full.py --base specs/013-library-care/contracts/backend-api.openapi.yaml`
+   (013 adds no 022 name and does not change `Asset`; the script fails loudly on any collision) and
+   `--check` afterwards; `x-stemstudio-contains` then ends `..., 1.11.0, 1.12.0, 1.22.0`;
+2. re-merges `ui-test-ids.md` onto 013's 1.12.0 the same way (title, changelog paragraph before
+   "## Rules", the 1.22.0 section at the end; `LibraryUiTestIdsTests.Base` -> `Contract/013`);
+3. resolves the expected conflicts: `tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj` (the
+   `Contract/backend-api.openapi.yaml` link -> 022's document; keep 013's `Contract/012` and
+   `Contract/013` links), `ContractJson.cs` (both add `Backend012`; keep one), the doc comment of
+   `PracticeContractTests`, `BackendContractTests*` (keep both pending lists) and re-points
+   `LibraryContractTests.Base` to the 1.12.0 document (every expectation is relative to it);
+4. 023 (1.23.0, catalogue 1.2.0) is merged on top of the result by the same rule.
+
+Validation commands (repo root):
+
+```text
+python -I specs/022-library-folders/contracts/merge_full.py --check
+npx @redocly/cli@2.78.0 lint --config specs/022-library-folders/contracts/redocly.yaml specs/022-library-folders/contracts/backend-api.library-folders.openapi.yaml specs/022-library-folders/contracts/backend-api.openapi.yaml
+dotnet test tests/StemStudio.Api.Tests --filter "FullyQualifiedName~StemStudio.Api.Tests.Contract"
+```
+
+**Done at the 022+023 round start (2026-11-17, `main` e8d6a5d8 merged)**: steps 1-3 above were run.
+`backend-api.openapi.yaml` 1.22.0 = 013's 1.12.0 + the delta (`x-stemstudio-contains` ends
+`1.11.0, 1.12.0, 1.22.0`; Redocly: valid, 11 warnings = the 11 of 1.12.0; `--check`: superset of
+1.12.0 and of the delta). `ui-test-ids.md` 1.22.0 = 1.12.0 + the 1.22.0 changelog paragraph + the
+1.22.0 section. `LibraryContractTests.Base` and `LibraryUiTestIdsTests.Base` point to `Contract/013`;
+`LibraryCareContractTests` now checks 013's own linked 1.12.0 (`ContractJson.Backend013`), since the
+current full document is 022's.

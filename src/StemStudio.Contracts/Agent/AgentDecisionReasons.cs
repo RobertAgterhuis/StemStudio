@@ -29,4 +29,10 @@ public static class AgentDecisionReasons
     /// approval; never covered by a <c>plan_heavy</c> approval.
     /// </summary>
     public const string RiskCheckFailed = "risk-check-failed";
+
+    /// <summary>
+    /// <c>apply_lyric_suggestions</c> changes a lyrics sheet (1.23.0, feature 023): approval always, never covered by a plan
+    /// approval, never fresh.
+    /// </summary>
+    public const string LyricsEdit = "lyrics-edit";
 }

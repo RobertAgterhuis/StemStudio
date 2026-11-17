@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "licence.archaism",
+          "severity": "idea",
+          "line": 8,
+          "original": "Gij zijt",
+          "proposal": null,
+          "explanation": "Archaïsche vorm, bewust gekozen; standaard zou 'Jij bent' zijn."
+        },
+        {
+          "type": "licence.inversion",
+          "severity": "idea",
+          "line": 9,
+          "original": "Naar huis ik ga",
+          "proposal": null,
+          "explanation": "Omgekeerde woordvolgorde als dichterlijke vrijheid; standaard: 'Ik ga naar huis'."
+        },
+        {
+          "type": "grammar.verb-form",
+          "severity": "error",
+          "line": 10,
+          "original": "word",
+          "proposal": "wordt",
+          "explanation": "Na 'de stad' (derde persoon) is de vorm 'wordt'."
+        },
+        {
+          "type": "flow.awkward",
+          "severity": "improvement",
+          "line": 11,
+          "original": "en het is zo dat ik eigenlijk wel heel erg moe ben",
+          "proposal": "en ik ben eigenlijk heel erg moe",
+          "explanation": "De regel struikelt door veel vulwoorden; korter zingt beter."
+        }
+      ],
+      "misses": [
+        {
+          "line": 3,
+          "word": "fluisterd",
+          "verdict": "typo",
+          "correction": "fluistert",
+          "licenceType": null
+        }
+      ]
+    },
+    {
+      "items": [],
+      "misses": [
+        {
+          "line": 14,
+          "word": "vergeeten",
+          "verdict": "typo",
+          "correction": "vergeten",
+          "licenceType": null
+        }
+      ]
+    }
+  ]
+}

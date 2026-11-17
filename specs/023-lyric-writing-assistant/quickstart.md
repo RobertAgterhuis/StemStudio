@@ -13,7 +13,7 @@ equivalent); Q7-Q10 on the reference machine with Ollama (and optionally Claude,
 
 ## Q1 - Check a Dutch sheet (US1, fake model)
 
-1. Create the sheet "Zomeravond" (language Dutch) from `e2e/fixtures/lyrics/zomeravond.nl.txt`.
+1. Create the sheet "Zomeravond" (language Dutch) from `tests/fixtures/lyrics/assist/sheets/zomeravond.nl.txt` (Phase 0 fixture; facts in `assist/expected.json`).
 2. Press **Check** (`lyric-assist-check`). Expect dictionary suggestions at once, then streamed
    model suggestions; `lyric-assist-layers` names OpenTaal and the fake model.
 3. Expect the planted corrections (2 spelling, 1 grammar, 1 flow) and **no** suggestion on `'k`,
@@ -32,8 +32,9 @@ equivalent); Q7-Q10 on the reference machine with Ollama (and optionally Claude,
 ## Q3 - Devices, writing help, syllables, rhymes (US2/US3)
 
 1. Set the rhythm target 92 BPM, 4 beats, 2 bars, 1.5 syllables per beat; switch on the syllable
-   gutter: line counts appear, line 1 of the fixture is marked as deviating.
-2. **Suggest devices**: a syllable-fit suggestion with "13 -> 12 syllables" and an end-rhyme
+   gutter: line counts appear, line 2 of the fixture (15 syllables against the target 12) is marked as
+   deviating (Phase 0: line 1 is the `[verse]` marker).
+2. **Suggest devices**: a syllable-fit suggestion on line 2 with "15 -> 12 syllables" and an end-rhyme
    suggestion naming the rhyme word; both verified.
 3. **Alternatives** on line 4 (count 3): three options; accepting one supersedes the others.
 4. **Continue** after the first verse: an insertion suggestion; nothing inserted before accept.
@@ -53,13 +54,13 @@ equivalent); Q7-Q10 on the reference machine with Ollama (and optionally Claude,
 
 1. Create a sheet with the text of the fake lyrics of `t-fake-song`: every assistant button shows
    `lyric-assist-not-own` naming the track.
-2. Load `e2e/lyric-scripts/adversarial-verbatim.json`: `lyric-assist-withheld` shows 1; the
+2. Load `e2e/lyric-scripts/alternatives.json`: `lyric-assist-withheld` shows 1; the
    withheld text is nowhere in the page.
 3. Sheet `l-inject` with an injection line: suggestions have valid anchors only; nothing else changes.
 4. Own-work override (US6): on the refused sheet of step 1 press `lyric-assist-own-work-open`; the
    dialog shows the statement and the matched track; confirm stays disabled until name and tick box
    are set; confirm -> `lyric-own-work-badge` shows name, date and track; Check runs.
-5. With the override, load `adversarial-verbatim.json` again: the 9-word run is still withheld.
+5. With the override, load `alternatives.json` again: the 9-word run is still withheld.
 6. With the override, instruction "like Ed Sheeran": still refused (`imitation`).
 7. `lyric-own-work-revoke`: the badge disappears; Check is refused again.
 

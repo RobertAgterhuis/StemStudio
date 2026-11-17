@@ -15,6 +15,7 @@ the E2E specs `e2e/tests/karaoke.spec.ts` and `lyrics.spec.ts`, and the checks i
 | `align-clip.json` | exact word-start annotation of the sung alignment clip (generated, committed) | SC-003 integration test `worker/tests/alignment/test_align_clip.py` (006:T042, run in T066) |
 | `sample-en.txt`, `sample-nl.txt`, `sample.lrc` (feature 010) | self-written own lyrics (CC0): English in four blocks with a repeated chorus (no markers, for the section helper), Dutch with `[verse]`/`[chorus]`, an LRC version with stamps and an empty-stamp break | E2E `song.spec.ts`, quickstart V3; checked by `test_generative_fixtures.py` |
 | `own-lyrics-expected.json` (feature 010) | expected facts of the own lyrics: word count, density, proposed markers, the normalised LRC text | E2E `song.spec.ts`, `generative-support.spec.ts` |
+| `assist/**` (feature 023) | lyric assistant fixtures: sheets with planted mistakes and poetic licences, injection and not-own sheets, invented library lyrics, syllable gold lists, rhyme vectors, `expected.json` (see `assist/README.md`) | 023 backend, ai-agent, frontend and qa tests; `e2e/lyric-scripts/` |
 
 ## Rules the fixtures encode
 

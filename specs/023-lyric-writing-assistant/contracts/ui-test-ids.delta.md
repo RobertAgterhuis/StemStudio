@@ -1,6 +1,6 @@
 # Contract delta: UI test ids 1.23.0 (feature 023, additive)
 
-Adds the lyric assistant to the 010 lyrics editor (`/lyrics/{id}`, ids `lyrics-title-input`,
+Adds the lyric assistant to the 010 lyrics editor (route `/lyrics/{id}`, a new page; the `/lyrics` list keeps its edit dialog and links each sheet title to the page; ids `lyrics-title-input`,
 `lyrics-language-select`, `lyrics-text-input`, `lyrics-save`, `lyrics-error` unchanged) and one
 row to the 010 take details. Merged into the full `ui-test-ids.md` 1.23.0 at Phase 0 (T003) on top
 of the newest full document (1.22.0 of 022 when merged first, else 1.21.0). No existing id changes.
@@ -28,6 +28,9 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-language-guess` | "Looks like Dutch - set language" (language `unknown`); button `lyric-assist-language-apply` | all |
 | Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics (track title) | all |
 | Lyrics editor | `lyric-assist-own-work-open` | "This is my own text" on the refusal (only when the problem says `overridable`) | all |
+| Lyrics editor | `lyric-assist-imitation-refusal` | refusal of an instruction that asks to imitate an artist (`artist-imitation`; text names the rule, no assist is started) | all |
+| Lyrics editor | `lyric-assist-refusal` | any other refusal of a create request (revision conflict, language, model unavailable, notice, assist active); attribute `data-code` = the problem `code` | all |
+| Lyrics editor | `lyric-assist-error` | an unexpected error of the pane (network, server); `role="alert"` | all |
 | Lyrics editor | `lyric-own-work-dialog`, `lyric-own-work-statement`, `lyric-own-work-track`, `lyric-own-work-name`, `lyric-own-work-check`, `lyric-own-work-confirm`, `lyric-own-work-cancel` | confirmation dialog (statement `own-work.v1`, matched track, typed name, tick box; confirm disabled until both set) | all |
 | Lyrics editor | `lyric-own-work-badge` | "Own work confirmed by <name> on <date> (matches <track>)"; attributes `data-track-id`, `data-confirmed-at` | all |
 | Lyrics editor | `lyric-own-work-revoke` | revoke (opens the existing confirm dialog `confirm-dialog-ok` / `confirm-dialog-cancel`) | all |
@@ -37,8 +40,8 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-filter-<category>` | category filter toggle (attribute `aria-pressed`); `lyric-assist-filter-all` | A, E |
 | Lyrics editor | `lyric-assist-accept-all` | "Accept all" for the current filter (count in the label) | all |
 | Lyrics editor | `lyric-assist-undo` | undo the newest accept (enabled when `assist.canUndo`) | all |
-| Lyrics editor | `lyric-assist-list` | the suggestion list (`role="listbox"`, `aria-activedescendant`) | all |
-| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`role="option"`); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
+| Lyrics editor | `lyric-assist-list` | the suggestion list: a plain list (`<ul role="list">`, no `aria-activedescendant`, not a tab stop itself); rendered only while there are open suggestions. Not a listbox: entries hold buttons (WCAG 4.1.2, axe `nested-interactive`; orchestrator decision 2026-11-17) | all |
+| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`<li role="listitem">`, `tabindex="-1"` so F8 can focus it, `aria-current="true"` on the focused entry, no `aria-label` other than its visible text); its buttons are in the tab order (Tab); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
 | Lyrics editor | `lyric-suggestion-original-<suggestionId>`, `lyric-suggestion-proposal-<suggestionId>`, `lyric-suggestion-explanation-<suggestionId>` | texts of the entry | all |
 | Lyrics editor | `lyric-suggestion-syllables-<suggestionId>` | "11 -> 9 syllables" (when present) | all |
 | Lyrics editor | `lyric-suggestion-accept-<suggestionId>`, `lyric-suggestion-reject-<suggestionId>` | decide one | all |
@@ -65,12 +68,16 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 
 | Key | Where | Action |
 |---|---|---|
-| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry) |
+| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry; the decision keys act on the entry that holds the focus, also when a button of it is focused) |
 | Alt+Enter | focused suggestion | accept |
 | Alt+Backspace | focused suggestion | reject |
 | Alt+I | focused correction | mark as intentional (default scope: word for spelling, phrase otherwise) |
 | Escape | list | back to the text at the suggestion's position |
 | Ctrl+Alt+C | editor | Check |
+
+The list is not a listbox (orchestrator decision 2026-11-17, WCAG 4.1.2 / axe `nested-interactive`):
+Tab reaches every button of every entry; after a decision (key or button) the focus moves to the
+entry that takes the decided one's place.
 
 Announcements in `lyric-assist-live`: check started ("Checking 40 lines"), finished ("Check
 finished: 7 suggestions - 2 spelling, 1 grammar, 3 flow, 1 device"), focused suggestion ("Line 4,

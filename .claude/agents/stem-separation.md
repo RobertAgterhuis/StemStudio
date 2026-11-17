@@ -27,3 +27,7 @@ A FastAPI worker matching `contracts/worker-api.openapi.yaml`; contract tests; e
 - Public API documented; new dependencies and licences listed in the hand-off.
 - The model sits behind the `Separator` protocol; unit tests use a fake separator.
 - Hand-off note `docs/handoffs/stem-separation-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

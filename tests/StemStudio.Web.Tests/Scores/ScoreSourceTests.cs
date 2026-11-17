@@ -59,7 +59,7 @@ public sealed class ScoreRangeTests : ScoreTestContext
 /// <summary>Sheet music of a library item (008 T068, FR-001, FR-012).</summary>
 public sealed class ScoreFromLibraryTests : PageTestContext
 {
-    private IRenderedComponent<LibraryPage> RenderLibrary(params AssetListDto[] lists)
+    private IRenderedComponent<AllItemsView> RenderLibrary(params AssetListDto[] lists)
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(lists[0], lists[1..]);
         Api.GetScoreOptionsAsync(Arg.Any<AudioSourceDto>(), Arg.Any<CancellationToken>()).Returns(ScoreData.Options() with
@@ -68,7 +68,7 @@ public sealed class ScoreFromLibraryTests : PageTestContext
             SuggestedProfile = null,
         });
         Api.CreateScoreAsync(Arg.Any<CreateScoreRequest>(), Arg.Any<CancellationToken>()).Returns(ScoreData.Asset(AssetStatusDto.Queued));
-        return Render<LibraryPage>();
+        return Render<AllItemsView>();
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class ScoreFromLibraryTests : PageTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(AssetData.Asset()));
 
-        var page = RenderAtLevel<LibraryPage>(ExperienceLevel.Beginner, _ => { });
+        var page = RenderAtLevel<AllItemsView>(ExperienceLevel.Beginner, _ => { });
 
         page.FindAll($"[data-testid=asset-score-{AssetData.AssetId}]").Count.ShouldBe(1);
     }

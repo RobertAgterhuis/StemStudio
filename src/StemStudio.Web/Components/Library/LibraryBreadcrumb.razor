@@ -1,0 +1,43 @@
+@* Where the user is (feature 022, FR-013, research R-09): a navigation landmark with an ordered list "Library > Artist >
+   Album > Song"; the open folder is marked aria-current="page". Under 480 px the first entries collapse to "..." so the
+   album and song stay readable (CSS ss-crumb-collapsible). *@
+
+<nav class="ss-breadcrumb" aria-label="Library path" data-testid="library-breadcrumb">
+    <ol>
+        <li class="@(Parents.Count >= 2 ? "ss-crumb-collapsible" : null)">
+            @if (Current is null)
+            {
+                <span aria-current="page" data-testid="library-crumb-root">Library</span>
+            }
+            else
+            {
+                <a href="@LibraryLocation.RootPath" data-testid="library-crumb-root">Library</a>
+            }
+        </li>
+        @if (Parents.Count >= 2)
+        {
+            <li class="ss-crumb-ellipsis" aria-hidden="true">...</li>
+        }
+        @for (var i = 0; i < Parents.Count; i++)
+        {
+            var parent = Parents[i];
+            <li class="@(i < Parents.Count - 1 ? "ss-crumb-collapsible" : null)">
+                <a href="@LibraryLocation.FolderUrl(parent.Id)" data-testid="@($"library-crumb-{parent.Id}")">@parent.Name</a>
+            </li>
+        }
+        @if (Current is not null)
+        {
+            <li><span aria-current="page" data-testid="@($"library-crumb-{Current.Id}")">@Current.Name</span></li>
+        }
+    </ol>
+</nav>
+
+@code {
+    /// <summary>The parents of the open folder (root excluded), outermost first.</summary>
+    [Parameter]
+    public IReadOnlyList<FolderRefDto> Parents { get; set; } = [];
+
+    /// <summary>The open folder, or null at the root.</summary>
+    [Parameter]
+    public LibraryFolderDto? Current { get; set; }
+}

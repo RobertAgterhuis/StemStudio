@@ -58,6 +58,17 @@ public sealed record ToolInvocation
     /// <summary>Backend of the run (Claude omits biographies, constitution 1.3.0 IV item 5).</summary>
     public AgentBackendDto Backend { get; init; } = AgentBackendDto.Ollama;
 
+    /// <summary>The run this call belongs to (an assist the agent starts records it, 023).</summary>
+    public Guid? RunId { get; init; }
+
+    /// <summary>The lyric assistant endpoints (023); null when the host registers none.</summary>
+    public ILyricAssistActions? LyricAssist { get; init; }
+
+    /// <summary>The lyric assistant endpoints, or a readable tool error when the host has none.</summary>
+    /// <returns>The port.</returns>
+    /// <exception cref="AgentActionException">The lyric assistant is not available.</exception>
+    public ILyricAssistActions LyricActions() => LyricAssist ?? throw new AgentActionException("The lyric assistant is not available in this StemStudio.");
+
     /// <summary>Asks the open page for UI state; null when no UI is connected.</summary>
     public UiRequester? Ui { get; init; }
 

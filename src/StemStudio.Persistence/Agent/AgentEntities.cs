@@ -86,6 +86,9 @@ public sealed class ConversationMessageEntity
     /// <summary>Mix of the context, if any.</summary>
     public Guid? MixId { get; set; }
 
+    /// <summary>Lyrics sheet of the context, if any (feature 023).</summary>
+    public Guid? LyricsId { get; set; }
+
     /// <summary>The run the message started or answered, if any.</summary>
     public Guid? RunId { get; set; }
 

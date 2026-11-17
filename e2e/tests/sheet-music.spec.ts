@@ -1,11 +1,10 @@
 import type { StemStudioApi, TrackDto } from '../support/api';
 import type { AssetsApi } from '../support/assets-api';
-import { ensureDetailCompleted } from '../support/detail';
+import { ensureCancelledPhase, ensureDetailCompleted } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { expect, test } from '../support/test';
 import { clefs, crossNoteheads, expectedFakeBars, fifths, isMidi, isPdf, measureCount, noteTypes, staves, timeSignature, unpitchedNotes, voices, type GridDto } from '../support/musicxml';
 import type { ScoreApi } from '../support/score-api';
-import { ensurePlainTrack } from '../support/ux-data';
 
 // Feature 008 US1-US5 (008:T045, T050, T056, T065, T070; FR-001..FR-010; SC-003; quickstart
 // M3-M8). Fake stack: the fake transcriber plays one note per beat of the track's real grid
@@ -84,11 +83,11 @@ test.describe('piano', { tag: '@sheet-music' }, () => {
 });
 
 test.describe('drums', { tag: ['@sheet-music', '@detail'] }, () => {
-  // The fake stack runs the detail phase by itself, so the "not split" track is the click
-  // fixture whose detail phase is cancelled (the shared 004 plain track).
-  test('before the split the dialog asks to split the drums first (US4-2)', async ({ api, scoreApi, scoreDialog, trackPage }) => {
+  // The fake stack runs the detail phase by itself, so the "not split" track is a band copy
+  // whose detail phase is cancelled (not the shared click track: other specs let its phase finish).
+  test('before the split the dialog asks to split the drums first (US4-2)', async ({ api, scoreApi, scoreDialog, trackPage }, testInfo) => {
     test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + scoreMs);
-    const plain = await ensurePlainTrack(api);
+    const plain = await ensureCancelledPhase(api, `score-unsplit-${testInfo.project.name}`);
     expect((await scoreApi.options(plain.id, 'drums')).drumsRequireSplit).toBe(true);
     await trackPage.goto(plain.id);
     await scoreDialog.openForStem('drums');

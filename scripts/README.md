@@ -38,6 +38,16 @@ job throttle `StemStudio__LibraryCare__ThrottleBytesPerSecond` (default 8 MiB/s,
 `STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND`); the specs then need `E2E_BACKUP_DIR=<backups folder>`
 and `E2E_LIBRARY_THROTTLE=1`.
 
+Feature 023 (lyric writing assistant): the same override mounts `e2e/lyric-scripts/` read-only at
+`/lyric-scripts` (not under `/scripts`, the read-only agent-script mount: Docker cannot create a mount
+point inside it) and sets `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts`; the scripts are used only
+with the agent backend `fake` (`STEMSTUDIO_AGENT_BACKEND=fake`), else the variable is inert.
+`dev.{sh,ps1}` set the variable to `<repo>/e2e/lyric-scripts` (an existing value wins). The Claude
+double has no variable; its specs skip themselves.
+`lyric-e2e.{sh,ps1} fake|none` runs the lyric assistant passes against a running fake stack like `agent-e2e`
+does for the agent: the api is recreated with backend `fake` + `/lyric-scripts` (`npm run test:lyric-assist`), then with
+backend `none` (`npm run test:lyric-assist-none`); the override is added with `-f` when `COMPOSE_FILE` is empty.
+
 `backups/` is ignored by git and by the image build context. The archives are ordinary files: copy
 them to another disk or computer to keep a copy elsewhere.
 
@@ -46,6 +56,7 @@ them to another disk or computer to keep a copy elsewhere.
 | Script | Checks |
 |---|---|
 | `check-backup-folder.{sh,ps1}` (`backup_folder_checks.py`) | backups folder exists, is writable for the api user, has >= 256 MiB free (013) |
+| `check-api-image-size.{sh,ps1}` (`api_image_size_checks.py`) | vendored lyric dictionaries in the api image < 15 MB; with a baseline image the whole image grows < 15 MB (023) |
 | `check-key-volume.{sh,ps1}` (`key_volume_checks.py`) | Claude key ring volume only in api (011 claude-key) |
 | `check-library-mount.{sh,ps1}` (`library_mount_checks.py`) | worker sees the library read-only at `/library` (007) |
 | `check-worker-fonts.{sh,ps1}` | Leipzig music font in the worker image (008) |

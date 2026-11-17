@@ -19,6 +19,7 @@ export const reflowScreens: readonly ScreenId[] = [
   'mixes',
   'mixer',
   'library',
+  'library-root',
   'style-library',
   'song',
   'voices',

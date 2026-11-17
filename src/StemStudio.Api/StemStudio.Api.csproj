@@ -18,5 +18,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- Feature 023: Hunspell spelling layer (MPL-1.1 of the tri-licence). -->
+    <PackageReference Include="WeCantSpell.Hunspell" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Feature 023 (T006): vendored dictionaries (PROVENANCE.md), copied byte-identical to the output and the publish folder. -->
+    <None Update="LyricAssist\Dictionaries\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="LyricAssist\Dictionaries\**\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

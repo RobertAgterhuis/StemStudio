@@ -51,10 +51,12 @@ Every new feature follows the same pattern (chapter numbers in brackets):
 | Band info (7) | Picture, name, type, active years, album, Wikipedia excerpt, search again and correction | Also country, genres, members, website, sources and your own picture | As Advanced |
 | Karaoke (8) | Banner and on/off | Offset and text size | Timing origin, alignment controls |
 | Export (9) | Save to library, format | Bit depth, bit rate, range, selected channels, all stems, library filters | As Advanced |
-| Sheet music (10) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
+| Library folders (10) | Folders, pictures, path, Grid and List, search, item actions, Library info | Also order of folders, **Only in this folder**, **All items** | As Advanced |
+| Sheet music (11) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
 | Practice tempo (5) | Speed, transpose, original speed and key, count-in on/off | Also 100 % reset, speed trainer, count-in bars and before every loop pass | Also exact values and the Stretch diagnostics |
-| AI agent (13) | Chat, plan and approvals | Step list with job details, backend badge, conversation actions, Claude usage, model choice | Full tool log, Claude model and effort |
-| Library care (14) | Backup profiles, backup list, download, restore (empty or replace), previous library, storage areas and parts, five largest tracks, the three clean-ups | Also backup options per part, check, add what is missing, track table, clean-up per track, bytes of a running job | Also an archive's contents list and the worker cache entries |
+| Lyric assistant (14) | Check, Suggest devices, Alternatives, Continue, Rhymes, accept, reject, mark as intentional, Undo | Also sensitivity, category filters, marks, My words, Title ideas, syllables, rhythm target, density, layers and Claude usage | Also source per suggestion, Assist log and Revisions |
+| AI agent (15) | Chat, plan and approvals | Step list with job details, backend badge, conversation actions, Claude usage, model choice | Full tool log, Claude model and effort |
+| Library care (16) | Backup profiles, backup list, download, restore (empty or replace), previous library, storage areas and parts, five largest tracks, the three clean-ups | Also backup options per part, check, add what is missing, track table, clean-up per track, bytes of a running job | Also an archive's contents list and the worker cache entries |
 
 ## Preferences
 

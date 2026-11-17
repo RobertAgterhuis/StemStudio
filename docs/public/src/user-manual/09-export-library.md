@@ -19,7 +19,7 @@ it later, download it or use it elsewhere for your own practice.
 
 The metronome is never included, and an export always uses the original speed and key,
 whatever the practice tempo (chapter 5) is set to; the dialog says so. After **Save to library** in the dialog it confirms *"Saved "<name>" to the
-library. It is being prepared in the background."* with a link **Open in library**. The
+library. It is being prepared in the background."* with the folder it was filed in (chapter 10) and a link **Open in library**. The
 default name is the song title followed by the contents, for example *drums, raw* or
 *vocals + bass, mixed*.
 
@@ -41,7 +41,9 @@ item says *"Lowered by X dB to avoid clipping"*.
 
 ## The Library screen
 
-Open **Library** in the navigation. The total size of the library is shown at the top. Each
+Open **Library** in the navigation. It opens the folders by artist, album and song
+(chapter 10); at the Advanced level **All items** shows the flat list described here, with a path
+on every row. The total size of the library is shown at the top. Each
 item shows its name, the contents, format, duration and size, the source track, its status
 (*Queued*, *Rendering N %*, *Ready* or *Failed* with the reason) and the date it was created.
 The status updates live. At Advanced level you can filter by track (**All tracks**) and kind

@@ -1,7 +1,11 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { AssetStatus } from '../support/assets-api';
 
-/** The library page `/library` (ui-test-ids 1.5.0, feature 007). */
+/**
+ * The flat item list of the library (ui-test-ids 1.5.0, feature 007). Since 1.22.0 (feature 022,
+ * research R-10) it renders on `/library?view=all` ("All items", Advanced+); `/library` opens the
+ * folder view (`library-folders-page.ts`).
+ */
 export class LibraryPage {
   /** @param page The Playwright page. */
   constructor(private readonly page: Page) {}
@@ -41,9 +45,9 @@ export class LibraryPage {
     return this.byId(`asset-gain-note-${assetId}`);
   }
 
-  /** Opens `/library`. */
+  /** Opens `/library?view=all` (the 007/008 list; ui-test-ids 1.22.0 migration). */
   async goto(): Promise<void> {
-    await this.page.goto('/library');
+    await this.page.goto('/library?view=all');
     await this.byId('library-total-size').waitFor();
   }
 

@@ -12,8 +12,10 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Library;
 using StemStudio.Api.LibraryCare;
 using StemStudio.Api.LibraryCare.Gate;
+using StemStudio.Api.LyricAssist;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
@@ -59,6 +61,8 @@ public static class ApiComposition
         AddHttpServices(services, options);
         services.AddLibraryCare(options, builder.Environment.ContentRootPath);
         services.AddAgentHost(builder.Configuration);
+        services.AddLibraryFolders();
+        services.AddLyricAssist();
         return builder;
     }
 
@@ -79,7 +83,9 @@ public static class ApiComposition
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
         await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
-        LiveDatabaseFile.EnsureCreated(app.Services.GetRequiredService<LiveDatabase>().ConnectionString);
+        var live = app.Services.GetRequiredService<LiveDatabase>().ConnectionString;
+        LiveDatabaseFile.EnsureCreated(live);
+        LiveDatabaseFile.UseWal(live);
         app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {
@@ -123,6 +129,8 @@ public static class ApiComposition
         app.MapAgentEndpoints();
         app.MapClaudeKeyEndpoints();
         app.MapLibraryCareEndpoints();
+        app.MapLibraryEndpoints();
+        app.MapLyricAssistEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

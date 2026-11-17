@@ -1,0 +1,55 @@
+@* Sensitivity and category filters (Advanced, FR-010, FR-029), "Accept all" for the filter and Undo (FR-006, FR-007). *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<LevelGate Feature="lyrics.assist-sensitivity">
+    <fieldset class="ss-fieldset ss-assist-sensitivity" data-testid="lyric-assist-sensitivity" data-help-id="lyric-assist-licence">
+        <legend class="ss-small">Sensitivity</legend>
+        @foreach (var level in Levels)
+        {
+            <label class="ss-radio">
+                <input type="radio" name="lyric-assist-sensitivity" checked="@(Session.Document.Assist.Sensitivity == level)" disabled="@Busy"
+                       @onchange="() => RunAsync(s => s.SetSensitivityAsync(level))" data-testid="@($"lyric-assist-sensitivity-{AssistText.Wire(level)}")" />
+                <span>@Label(level)</span>
+            </label>
+        }
+    </fieldset>
+</LevelGate>
+<LevelGate Feature="lyrics.assist-filters">
+    <div class="ss-assist-filters" role="group" aria-label="Show categories">
+        <button type="button" class="ss-chip" aria-pressed="@(Session.Board.Filter.Count == 0 ? "true" : "false")" @onclick="() => Toggle(null)"
+                data-testid="lyric-assist-filter-all">All</button>
+        @foreach (var category in Categories)
+        {
+            <button type="button" class="ss-chip" aria-pressed="@(Session.Board.Filter.Contains(category) ? "true" : "false")" @onclick="() => Toggle(category)"
+                    data-testid="@($"lyric-assist-filter-{AssistText.Wire(category)}")">@AssistText.Category(category)</button>
+        }
+    </div>
+</LevelGate>
+<div class="ss-row">
+    <RadzenButton Text="@AcceptAllText" Size="ButtonSize.Small" Disabled="Busy || Session.Board.AcceptAllIds.Count == 0"
+                  Click="() => RunAsync(s => s.AcceptAllAsync())" data-testid="lyric-assist-accept-all" />
+    <RadzenButton Text="Undo" Icon="undo" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy || !Session.Document.Assist.CanUndo"
+                  Click="() => RunAsync(s => s.UndoAsync())" data-testid="lyric-assist-undo" />
+</div>
+
+@code {
+    private static readonly SensitivityDto[] Levels = [SensitivityDto.Loose, SensitivityDto.Balanced, SensitivityDto.Strict];
+
+    private static readonly SuggestionCategoryDto[] Categories = Enum.GetValues<SuggestionCategoryDto>();
+
+    private string AcceptAllText => $"Accept all ({AssistText.Number(Session.Board.AcceptAllIds.Count)})";
+
+    private static string Label(SensitivityDto level) => level switch
+    {
+        SensitivityDto.Loose => "Loose: only clear mistakes",
+        SensitivityDto.Balanced => "Balanced",
+        _ => "Strict: also notes poetic licence",
+    };
+
+    private void Toggle(SuggestionCategoryDto? category)
+    {
+        Session.Board.Toggle(category);
+        Session.NotifyChanged();
+    }
+}

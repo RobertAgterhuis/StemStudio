@@ -33,4 +33,8 @@ public enum JobPhaseDto
     /// <summary>Song generation (010, pending 010).</summary>
     [JsonStringEnumMemberName("generation")]
     Generation,
+
+    /// <summary>Lyric assist run (1.23.0, feature 023); the job id is the assist id.</summary>
+    [JsonStringEnumMemberName("lyricAssist")]
+    LyricAssist,
 }

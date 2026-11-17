@@ -2,7 +2,8 @@
   <!-- The composer agent library (feature 011, ADR-020, plan.md "Source Code"). No ASP.NET, Domain, Persistence or Web reference:
        Agent -> Contracts + Microsoft.Extensions.AI only; OllamaSharp and Anthropic are used only in StemStudio.Agent.Backends
        (quality-gate dependency rule T007). Ports/, Model/ and Resources/ are architect-owned; Tools/, Policy/, Runtime/, Backends/ and
-       AgentServiceCollectionExtensions.cs belong to the ai-agent role. -->
+       AgentServiceCollectionExtensions.cs belong to the ai-agent role. 023: LyricAssist/ holds the architect's skeleton (ports, job,
+       sink, model port, output schema, scripted fake); the assistant itself (prompts, parser, validator, model client) is ai-agent's. -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Agent</RootNamespace>
   </PropertyGroup>
@@ -14,6 +15,8 @@
     <EmbeddedResource Include="..\StemStudio.Domain\Styles\imitation-phrases.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
     <EmbeddedResource Include="..\StemStudio.Domain\Styles\artist-denylist.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
     <EmbeddedResource Include="..\StemStudio.Domain\Styles\genre-words.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
+    <!-- 023 lyric-assist-output 1.0.0 (ADR-037 D4): the contract file itself, linked (LyricAssist/LyricAssistOutputSchema.cs). -->
+    <EmbeddedResource Include="..\..\specs\023-lyric-writing-assistant\contracts\lyric-assist-output.schema.json" Link="LyricAssist\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.LyricAssist.%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI" />

@@ -28,4 +28,18 @@ public static class QueryParsing
 
         return valid ? parsed : null;
     }
+
+    /// <summary>Adds a field error when a rule does not hold.</summary>
+    /// <param name="errors">Collected errors.</param>
+    /// <param name="valid">True when the rule holds.</param>
+    /// <param name="field">The field name for the error.</param>
+    /// <param name="message">The error message.</param>
+    public static void Require(List<DomainError> errors, bool valid, string field, string message)
+    {
+        ArgumentNullException.ThrowIfNull(errors);
+        if (!valid)
+        {
+            errors.Add(new DomainError(field, message));
+        }
+    }
 }

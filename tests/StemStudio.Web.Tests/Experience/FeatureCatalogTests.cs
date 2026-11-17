@@ -67,6 +67,17 @@ public sealed class FeatureCatalogTests
         { "care.top-tracks", [B], "storage-overview" },
         { "care.worker-entries", [E], "storage-regenerable" },
         { "care.restore-merge", [A, E], "backup-restore" },
+        { "lyrics.assist-count", [A, E], "lyric-assist" },
+        { "lyrics.assist-titles", [A, E], "lyric-assist" },
+        { "lyrics.assist-filters", [A, E], "lyric-assist" },
+        { "lyrics.assist-layers", [A, E], "lyric-assist-privacy" },
+        { "lyrics.assist-usage", [A, E], "lyric-assist-privacy" },
+        { "lyrics.assist-sensitivity", [A, E], "lyric-assist-licence" },
+        { "lyrics.assist-marks", [A, E], "lyric-assist-licence" },
+        { "lyrics.assist-rhythm", [A, E], "lyric-assist-rhythm" },
+        { "lyrics.assist-source", [E], "lyric-assist-privacy" },
+        { "lyrics.assist-log", [E], "lyric-assist-privacy" },
+        { "lyrics.assist-revisions", [E], "lyric-assist" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -126,7 +137,9 @@ public sealed class FeatureCatalogTests
                 "score.detail-stems", "score.key-override", "score.manual-tempo", "score.quality", "score.range",
                 "restyle.options", "song.options", "voice.pitch", "agent.steps", "agent.conversation-actions", "agent.usage", "agent.tool-log", "agent.models", "agent.claude-options",
                 "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
-                "care.track-table", "care.worker-entries", "care.restore-merge"], ignoreOrder: true);
+                "care.track-table", "care.worker-entries", "care.restore-merge",
+                "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
+                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions"], ignoreOrder: true);
     }
 
     [Fact]

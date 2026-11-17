@@ -1,8 +1,9 @@
+using StemStudio.Contracts.Library;
 using StemStudio.Contracts.Scores;
 
 namespace StemStudio.Contracts.Assets;
 
-/// <summary>A library item (backend contract 1.5.0; score items 1.7.0).</summary>
+/// <summary>A library item (backend contract 1.5.0; score items 1.7.0; placement 1.22.0).</summary>
 public sealed record AssetDto
 {
     /// <summary>Item id.</summary>
@@ -34,6 +35,12 @@ public sealed record AssetDto
 
     /// <summary>Where the item came from.</summary>
     public required ProvenanceDto Provenance { get; init; }
+
+    /// <summary>
+    /// Where the item is filed in the library folders (1.22.0, feature 022). A required member on the wire that is always
+    /// written (null included); null only for recorded takes (015), which no <c>library</c> operation returns.
+    /// </summary>
+    public PlacementDto? Placement { get; init; }
 
     /// <summary>Total size of the files in bytes.</summary>
     public required long SizeBytes { get; init; }

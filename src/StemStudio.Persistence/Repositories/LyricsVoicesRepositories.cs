@@ -13,6 +13,12 @@ public interface ILyricsSheetRepository
     /// <returns>The sheet or null.</returns>
     Task<LyricsSheet?> FindAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>The stored text of a sheet, read past the tracked entity (a running assist sees saves of other requests).</summary>
+    /// <param name="id">Sheet id.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The text, or null when the sheet is gone.</returns>
+    Task<string?> CurrentTextAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>Sheets, newest change first; <paramref name="query"/> matches title and text ignoring case.</summary>
     /// <param name="query">Search text.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -44,6 +50,10 @@ public sealed class LyricsSheetRepository(StemStudioDbContext context) : ILyrics
     /// <inheritdoc />
     public Task<LyricsSheet?> FindAsync(Guid id, CancellationToken cancellationToken) =>
         context.LyricsSheets.FirstOrDefaultAsync(sheet => sheet.Id == id, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<string?> CurrentTextAsync(Guid id, CancellationToken cancellationToken) =>
+        context.LyricsSheets.AsNoTracking().Where(sheet => sheet.Id == id).Select(sheet => (string?)sheet.Text).FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<LyricsSheet>> ListAsync(string? query, CancellationToken cancellationToken)

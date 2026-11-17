@@ -33,7 +33,7 @@ public sealed class LibraryManagementTests : PageTestContext
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(items.Length == 0 ? [Bass, Drums, Elsewhere] : items));
         return Render<CascadingValue<ExperienceContext>>(p => p
             .Add(c => c.Value, new ExperienceContext(level, DensityPreference.Comfortable))
-            .AddChildContent<LibraryPage>());
+            .AddChildContent<AllItemsView>());
     }
 
     private static IEnumerable<string?> Rows(IRenderedComponent<CascadingValue<ExperienceContext>> page) =>

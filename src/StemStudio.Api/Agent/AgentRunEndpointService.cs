@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
@@ -27,7 +26,7 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
     public async Task<IResult> StreamAsync(HttpContext context, Guid runId)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (!TryPosition(context.Request, out var after))
+        if (!StreamPosition.TryParse(context.Request, out var after))
         {
             return ApiProblems.Validation("after", "after and Last-Event-ID must be whole numbers of 0 or more.");
         }
@@ -142,12 +141,5 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
         return request.Result is { } result && JsonSerializer.SerializeToUtf8Bytes(result).Length > AgentContractLimits.ResultMaxBytes
             ? ApiProblems.Validation("result", "The result has at most 4 KB.")
             : null;
-    }
-
-    private static bool TryPosition(HttpRequest request, out int after)
-    {
-        var text = request.Query.TryGetValue("after", out var query) ? query.ToString() : request.Headers["Last-Event-ID"].ToString();
-        after = 0;
-        return text.Length == 0 || int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out after);
     }
 }

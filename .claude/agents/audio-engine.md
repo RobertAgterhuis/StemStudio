@@ -24,3 +24,7 @@ ES module bundle written to `src/StemStudio.Web/wwwroot/js/audio-engine.js` by `
 - Public API documented; new dependencies and licences listed in the hand-off.
 - No setInterval/setTimeout determines audible timing; every start time is computed from `currentTime`.
 - Hand-off note `docs/handoffs/audio-engine-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

@@ -1,0 +1,57 @@
+@* Refusals (FR-003, FR-022, US6): "matches the lyrics of <track>" with "This is my own text" when overridable, the other
+   refusals (imitation, a running assist, model unavailable), and the own-work badge with Revoke (FR-031). The agent
+   panel has no control for the override. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+@inject IConfirmService Confirm
+
+@if (Session.Refusal is { IsNotOwn: true } notOwn)
+{
+    <div class="ss-notice" role="alert" data-testid="lyric-assist-not-own" data-help-id="lyric-assist-limits">
+        <p>@notOwn.Message</p>
+        @if (notOwn is { Overridable: true, MatchedTrackId: not null })
+        {
+            <RadzenButton Text="This is my own text" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OpenOwnWorkAsync"
+                          data-testid="lyric-assist-own-work-open" />
+        }
+    </div>
+}
+else if (Session.Refusal is { } refusal)
+{
+    <p class="ss-notice" role="alert" data-testid="@(refusal.Code == LyricAssistProblemTypes.Imitation ? "lyric-assist-imitation-refusal" : "lyric-assist-refusal")" data-code="@refusal.Code">@refusal.Message @refusal.Fix</p>
+}
+@if (Session.Document.Assist.OwnWorkOverride is { } confirmed)
+{
+    <p class="ss-row ss-small ss-own-work" data-testid="lyric-own-work-badge" data-track-id="@confirmed.MatchedTrackId"
+       data-confirmed-at="@confirmed.ConfirmedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture)">
+        <span>@OwnWorkText.Badge(confirmed)</span>
+        <RadzenButton Text="Revoke" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" Click="RevokeAsync"
+                      aria-label="Revoke the own work confirmation" data-testid="lyric-own-work-revoke" />
+    </p>
+}
+@if (_settings is { } settings && Session.Refusal is { IsNotOwn: true } open)
+{
+    <OwnWorkDialog Settings="settings" TrackTitle="@(open.MatchedTrackTitle ?? string.Empty)" OnConfirm="ConfirmAsync" OnCancel="() => _settings = null" />
+}
+
+@code {
+    private LyricAssistSettingsDto? _settings;
+
+    private async Task OpenOwnWorkAsync() => _settings = await Session.LoadSettingsAsync();
+
+    private Task ConfirmAsync(string name) => RunAsync(async s =>
+    {
+        if (await s.ConfirmOwnWorkAsync(name, _settings!.OwnWorkStatementVersion))
+        {
+            _settings = null;
+        }
+    });
+
+    private async Task RevokeAsync()
+    {
+        if (await Confirm.ConfirmAsync("Revoke own work", "Revoke the confirmation that this text is your own work? The assistant refuses this sheet again while it matches the track.", "Revoke"))
+        {
+            await RunAsync(s => s.RevokeOwnWorkAsync());
+        }
+    }
+}

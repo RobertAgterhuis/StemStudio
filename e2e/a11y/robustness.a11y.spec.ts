@@ -1,3 +1,4 @@
+import { LibraryFoldersPage } from '../pages/library-folders-page';
 import { axeViolations } from '../support/axe';
 import {
   computedColours,
@@ -24,6 +25,21 @@ for (const theme of matrixThemes) {
         expect(await horizontalOverflow(page)).toBe(0);
       });
     }
+
+    // Feature 022: the artist and album folders (grid and list) reflow too; root and song folder are screens above.
+    test('library artist and album folders have no horizontal overflow at 320 px', async ({ page, uxData }) => {
+      const folders = new LibraryFoldersPage(page);
+      await openScreen(page, 'library-root', uxData);
+      for (const level of ['artist', 'album'] as const) {
+        await page.getByTestId(level === 'artist' ? /^folder-tile-ar[0-9a-f]{16}$/u : /^folder-tile-al[0-9a-f]{16}$/u).first().click();
+        await expect(folders.view).toHaveAttribute('data-level', level);
+        for (const layout of ['grid', 'list'] as const) {
+          await folders.setLayout(layout);
+          expect(await horizontalOverflow(page), `${level} / ${layout}`).toBe(0);
+        }
+        await folders.setLayout('grid');
+      }
+    });
   });
 
   test.describe(`library columns / ${theme}`, () => {

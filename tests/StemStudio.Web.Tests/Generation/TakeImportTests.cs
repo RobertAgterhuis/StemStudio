@@ -119,7 +119,7 @@ public sealed class TakeImportTests : GenerationTestContext
         };
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(new AssetListDto([take, AssetData.Asset(Guid.NewGuid())], 2, 2048));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         page.Find($"[data-testid=asset-row-{take.Id}]").TextContent.ShouldContain("AI-generated");
         page.FindAll(".ss-ai-badge").Count.ShouldBe(1);

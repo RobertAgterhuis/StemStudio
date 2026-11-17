@@ -8,7 +8,8 @@
     (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
     secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
-    suite (lint, typecheck, list); feature 012: the 012 contract lint + superset check, the soundtouch
+    suite (lint, typecheck, list); performance budgets (Category=Perf, uninstrumented) and the 022/023 contracts
+    (Redocly, merge_full.py --check, output schema, merge tests); feature 012: the 012 contract lint + superset check, the soundtouch
     emsdk pin check and, when soundtouch.wasm has been built, the engine's Node WASM suite (test:wasm). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
 
@@ -55,11 +56,17 @@ $PracticeContracts = 'specs/012-practice-tempo/contracts'
 $LibraryCareContracts = 'specs/013-library-care/contracts'
 $BackupFx = 'tests/fixtures/backup/pyproject.toml'
 $PyYamlPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', 'python', '-I')
+# Features 022 (backend 1.22.0 = 1.12.0 + library folders) and 023 (backend 1.23.0 = 1.22.0 + lyric assistant):
+# full document + delta, merge_full.py (freshness, superset), 023 output schema check and merge tests.
+$LibraryFoldersContracts = 'specs/022-library-folders/contracts'
+$LyricAssistContracts = 'specs/023-lyric-writing-assistant/contracts'
+$JsonSchemaPython = @('uv', 'run', '--no-project', '--with', 'jsonschema==4.26.0', 'python', '-I')  # as worker/uv.lock
+$PytestPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', '--with', 'pytest==9.2.0', 'python', '-m', 'pytest')
 # SoundTouch module (012): built by scripts/build-soundtouch.ps1; test:wasm runs only when it exists.
 $SoundTouchWasm = 'src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm'
 $HasSoundTouchWasm = Test-Path -LiteralPath (Join-Path $RepoRoot $SoundTouchWasm)
 $ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/tests')
+$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/backup_folder_checks.py', 'scripts/api_image_size_checks.py', 'scripts/tests')
 $QualityTools = @('uv', 'run', '--project', 'tools/quality', '--frozen')
 # Static key volume check (011 claude-key) for every compose combination CI validates.
 $ComposeCombos = @(
@@ -82,6 +89,8 @@ $Steps = @(
     @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', 'StemStudio.slnx', '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
     @{ Name = 'agent coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentCoverage) }
     @{ Name = 'agent-eval coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentEvalCoverage) }
+    # Timing asserts skip under coverlet: the performance budgets (022 SC-004) run uninstrumented (as in CI).
+    @{ Name = 'performance budgets, uninstrumented (Category=Perf)'; Dir = '.'; Cmd = @('dotnet', 'test', 'tests/StemStudio.Api.Tests', '-c', 'Release', '--no-build', '--filter', 'Category=Perf', '-p:RunSettingsFilePath=') }
     @{ Name = 'worker uv sync'; Dir = 'worker'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
@@ -115,6 +124,12 @@ $Steps = @(
     @{ Name = 'contracts lint (013-library-care)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$LibraryCareContracts/redocly.yaml", "$LibraryCareContracts/backend-api.openapi.yaml", "$LibraryCareContracts/backend-api.delta.openapi.yaml", "$LibraryCareContracts/worker-api.openapi.yaml") }
     @{ Name = 'contracts superset (013 contains 1.11.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryCareContracts/check_superset.py") }
     @{ Name = 'contracts superset (013 contains its delta)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryCareContracts/check_superset.py", "$LibraryCareContracts/backend-api.delta.openapi.yaml", "$LibraryCareContracts/backend-api.openapi.yaml") }
+    @{ Name = 'contracts lint (022-library-folders)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$LibraryFoldersContracts/redocly.yaml", "$LibraryFoldersContracts/backend-api.openapi.yaml", "$LibraryFoldersContracts/backend-api.library-folders.openapi.yaml") }
+    @{ Name = 'contracts lint (023-lyric-writing-assistant)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$LyricAssistContracts/redocly.yaml", "$LyricAssistContracts/backend-api.openapi.yaml", "$LyricAssistContracts/backend-api.delta.openapi.yaml") }
+    @{ Name = 'contracts merge check (022 full 1.22.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryFoldersContracts/merge_full.py", '--check') }
+    @{ Name = 'contracts merge check (023 full 1.23.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LyricAssistContracts/merge_full.py", '--check') }
+    @{ Name = 'contracts output schema (023 check_output_schema.py)'; Dir = '.'; Cmd = $JsonSchemaPython + @("$LyricAssistContracts/check_output_schema.py") }
+    @{ Name = 'contracts merge tests (023 test_merge_full.py)'; Dir = '.'; Cmd = $PytestPython + @($LyricAssistContracts) }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
@@ -159,13 +174,17 @@ if ($Gpu) {
     }
 }
 
-# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none); they
+# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none), then the 023 lyric passes; they
 # recreate only the api of this project.
 if ($AgentE2e) {
     $agentEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_AGENT_BACKEND = 'none'; COMPOSE_PROJECT_NAME = $E2eProject }
     $Steps += @{ Name = 'agent e2e: fake stack up'; Dir = '.'; Env = $agentEnv; Cmd = @('docker', 'compose', 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
     foreach ($backend in 'fake', 'none') {
         $Steps += @{ Name = "agent e2e: playwright agent.spec.ts ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/agent-e2e.ps1', $backend) }
+    }
+    # 023 lyric assistant passes (fake model with /lyric-scripts, then backend none); same api-only recreate.
+    foreach ($backend in 'fake', 'none') {
+        $Steps += @{ Name = "agent e2e: lyric assistant ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/lyric-e2e.ps1', $backend) }
     }
 }
 
