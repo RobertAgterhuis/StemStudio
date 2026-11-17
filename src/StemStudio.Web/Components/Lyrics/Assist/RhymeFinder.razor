@@ -1,0 +1,66 @@
+@* Rhyme finder (FR-016; ui-test-ids lyric-rhymes-*): perfect and near rhymes of the word at the cursor from local data,
+   with syllable counts; Insert puts a rhyme at the cursor. No model is involved. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<RadzenButton Text="Rhymes" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Session.Document.AssistLanguage is null"
+              aria-expanded="@(_open ? "true" : "false")" Click="OpenAsync" data-testid="lyric-rhymes-open" data-help-id="lyric-assist-rhythm" />
+@if (_open)
+{
+    <div class="ss-assist-panel" role="group" aria-label="Rhyme finder" data-testid="lyric-rhymes-panel">
+        <form class="ss-row" @onsubmit="FindAsync">
+            <label class="ss-field">
+                <span class="ss-small">Word</span>
+                <input type="text" class="rz-textbox" maxlength="@LyricAssistLimits.WordMaxLength" value="@_word" @oninput="e => _word = (string)e.Value!"
+                       data-testid="lyric-rhymes-input" />
+            </label>
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Find" Size="ButtonSize.Small" Disabled="Busy" />
+        </form>
+        @if (_result is { } result)
+        {
+            <ul class="ss-assist-rhymes">
+                @foreach (var rhyme in result.Rhymes)
+                {
+                    <li @key="rhyme.Word" data-testid="@($"lyric-rhymes-result-{rhyme.Word}")" data-kind="@AssistText.Wire(rhyme.Kind)" data-syllables="@rhyme.Syllables">
+                        <span>@rhyme.Word</span>
+                        <span class="ss-small ss-muted">@AssistText.Wire(rhyme.Kind), @rhyme.Syllables @(rhyme.Syllables == 1 ? "syllable" : "syllables")</span>
+                        <RadzenButton Text="Insert" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Insert {rhyme.Word}")"
+                                      Click="() => OnInsert.InvokeAsync(rhyme.Word)" data-testid="@($"lyric-rhymes-insert-{rhyme.Word}")" />
+                    </li>
+                }
+            </ul>
+            @if (result.Rhymes.Count == 0)
+            {
+                <p class="ss-small ss-muted">No rhymes found.</p>
+            }
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private string _word = string.Empty;
+    private RhymeResultDto? _result;
+
+    /// <summary>Inserts a word at the cursor.</summary>
+    [Parameter]
+    public EventCallback<string> OnInsert { get; set; }
+
+    [Inject]
+    private StemStudio.Web.Api.IStemStudioApiClient Api { get; set; } = default!;
+
+    private async Task OpenAsync()
+    {
+        _open = true;
+        _word = await Host.WordAtCursorAsync() ?? _word;
+        await FindAsync();
+    }
+
+    private async Task FindAsync()
+    {
+        if (_word.Trim().Length > 0 && Session.Document.AssistLanguage is { } language)
+        {
+            (_result, _) = await StemStudio.Web.Api.ApiCall.TryAsync(() => Api.FindRhymesAsync(_word.Trim(), language));
+        }
+    }
+}

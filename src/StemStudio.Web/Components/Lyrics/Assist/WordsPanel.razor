@@ -1,0 +1,37 @@
+@* My words (FR-012; Advanced): the personal word list of the sheet's language. *@
+@inherits AssistPart
+
+<RadzenButton Text="My words" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(_open ? "true" : "false")"
+              Disabled="Session.Document.AssistLanguage is null" Click="ToggleAsync" data-testid="lyric-words-open" />
+@if (_open)
+{
+    <div class="ss-assist-panel" role="group" aria-label="My words">
+        <ul class="ss-assist-plain-list" data-testid="lyric-words-list">
+            @foreach (var word in Session.Words)
+            {
+                <li @key="word.WordId" data-testid="@($"lyric-word-{word.WordId}")">
+                    <span>@word.Word</span>
+                    <RadzenButton Text="Remove" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Remove {word.Word}")" Disabled="Busy"
+                                  Click="() => RunAsync(s => s.DeleteWordAsync(word.WordId))" data-testid="@($"lyric-word-delete-{word.WordId}")" />
+                </li>
+            }
+        </ul>
+        @if (Session.Words.Count == 0)
+        {
+            <p class="ss-small ss-muted">No words yet. Use "Add to my words" on a spelling suggestion.</p>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+
+    private async Task ToggleAsync()
+    {
+        _open = !_open;
+        if (_open)
+        {
+            await RunAsync(s => s.LoadWordsAsync());
+        }
+    }
+}

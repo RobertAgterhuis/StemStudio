@@ -22,6 +22,10 @@
         <p class="ss-agent-card-estimate" data-testid="agent-approval-estimate" data-minutes="@ApprovalText.Minutes(Approval.EstimatedMinutes)"
            data-device="@ApprovalText.Device(Approval.Device)">@ApprovalText.Estimate(Approval.EstimatedMinutes, Approval.Device)</p>
     }
+    @if (Approval.Tool == LyricsApprovalDiff.Tool)
+    {
+        <LyricsApprovalDiff Arguments="Approval.Arguments" />
+    }
     <pre class="ss-agent-card-arguments" data-testid="agent-approval-arguments" aria-label="Arguments">@ApprovalText.Arguments(Approval.Arguments)</pre>
     <div class="ss-agent-card-actions">
         <RadzenButton Text="Approve" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="_busy" Click="ApproveAsync" data-testid="agent-approve" />

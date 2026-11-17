@@ -1,0 +1,49 @@
+@* One-time Claude notice of the lyric assistant (US5, FR-026; ui-test-ids lyric-assist-claude-notice*): the text comes from
+   GET /api/lyric-assist/settings. Nothing is sent before "I agree"; Cancel and Escape drop the request. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="alertdialog" aria-modal="true" aria-labelledby="claude-notice-title" aria-describedby="claude-notice-text"
+         data-testid="lyric-assist-claude-notice" data-help-id="lyric-assist-privacy" @onkeydown="OnKeyAsync">
+        <h2 id="claude-notice-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Your lyrics go to Anthropic</h2>
+        <p id="claude-notice-text">@(_text ?? DefaultText)</p>
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelAsync" data-testid="lyric-assist-claude-notice-cancel" />
+            <RadzenButton Text="I agree" Disabled="_busy" Click="AcknowledgeAsync" data-testid="lyric-assist-claude-notice-ack" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string DefaultText = "Your lyrics text is sent to Anthropic for this check; paid per use.";
+    private string? _text;
+    private bool _busy;
+
+    /// <summary>The editor link.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Components.Lyrics.Assist.EditorHost Host { get; set; } = default!;
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _text = (await Host.Session.LoadSettingsAsync())?.ClaudeNoticeText;
+    }
+
+    private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, EventCallback.Factory.Create(this, CancelAsync));
+
+    private Task CancelAsync()
+    {
+        Host.Session.CancelNotice();
+        Host.Session.NotifyChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task AcknowledgeAsync()
+    {
+        _busy = true;
+        await Host.Session.AcknowledgeNoticeAsync();
+        _busy = false;
+        Host.Session.NotifyChanged();
+    }
+}

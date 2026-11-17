@@ -1,0 +1,45 @@
+@* Decisions of one suggestion (FR-006, FR-011, FR-012): Accept, Reject, Mark as intentional (corrections; scope menu at
+   Advanced and Expert) and Add to my words (spelling, Advanced). Keys: Alt+Enter, Alt+Backspace, Alt+I. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<span class="ss-assist-entry-actions" @onclick:stopPropagation="true">
+    <RadzenButton Text="Accept" Size="ButtonSize.Small" Disabled="Busy" tabindex="-1" Click="() => RunAsync(s => s.AcceptAsync([Id]))"
+                  title="Accept (Alt+Enter)" data-testid="@($"lyric-suggestion-accept-{Id}")" />
+    <RadzenButton Text="Reject" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" tabindex="-1"
+                  Click="() => RunAsync(s => s.RejectAsync(Id))" title="Reject (Alt+Backspace)" data-testid="@($"lyric-suggestion-reject-{Id}")" />
+    @if (LyricAssistSession.IsCorrection(Suggestion))
+    {
+        <RadzenButton Text="Mark as intentional" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" tabindex="-1"
+                      Click="() => RunAsync(s => s.MarkIntentionalAsync(Id, Scope))" title="Mark as intentional (Alt+I)"
+                      data-testid="@($"lyric-suggestion-intentional-{Id}")" data-help-id="lyric-assist-licence" />
+        <LevelGate Feature="lyric-assist.marks">
+            <select class="rz-dropdown ss-select ss-select-small" tabindex="-1" aria-label="Mark as intentional: scope" @onclick:stopPropagation="true"
+                    @onchange="e => _scope = Enum.Parse<IntentionalScopeDto>((string)e.Value!)" data-testid="@($"lyric-suggestion-intentional-scope-{Id}")">
+                @foreach (var scope in Enum.GetValues<IntentionalScopeDto>())
+                {
+                    <option value="@scope" selected="@(scope == Scope)">@AssistText.Wire(scope)</option>
+                }
+            </select>
+        </LevelGate>
+    }
+    @if (Suggestion.Category == SuggestionCategoryDto.Spelling)
+    {
+        <LevelGate Feature="lyric-assist.marks">
+            <RadzenButton Text="Add to my words" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" tabindex="-1"
+                          Click="() => RunAsync(s => s.AddWordAsync(Id))" data-testid="@($"lyric-suggestion-add-word-{Id}")" />
+        </LevelGate>
+    }
+</span>
+
+@code {
+    private IntentionalScopeDto? _scope;
+
+    /// <summary>The suggestion.</summary>
+    [Parameter, EditorRequired]
+    public LyricSuggestionDto Suggestion { get; set; } = default!;
+
+    private Guid Id => Suggestion.SuggestionId;
+
+    private IntentionalScopeDto Scope => _scope ?? LyricAssistSession.DefaultScope(Suggestion);
+}

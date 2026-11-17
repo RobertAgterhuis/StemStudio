@@ -1,0 +1,28 @@
+using System.Text.Json;
+
+namespace StemStudio.Web.Agent;
+
+/// <summary>Reads the id-only arguments of <c>apply_lyric_suggestions</c> (tool catalogue 1.2.0: <c>lyricsId</c>, <c>suggestionIds</c>).</summary>
+public static class LyricsDiffArguments
+{
+    /// <summary>The sheet and the distinct, valid suggestion ids; anything else in the arguments is ignored.</summary>
+    /// <param name="arguments">The approval's arguments.</param>
+    /// <returns>The sheet (or null) and the ids.</returns>
+    public static (Guid? LyricsId, HashSet<Guid> Ids) Read(JsonElement arguments)
+    {
+        var args = new UiToolArguments(arguments);
+        var ids = new HashSet<Guid>();
+        if (arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty("suggestionIds", out var list) && list.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in list.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String && Guid.TryParse(item.GetString(), out var id))
+                {
+                    ids.Add(id);
+                }
+            }
+        }
+
+        return (args.Id("lyricsId"), ids);
+    }
+}

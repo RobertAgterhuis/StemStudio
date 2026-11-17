@@ -1,0 +1,74 @@
+@* The suggestion list (FR-005, FR-006, FR-028; ui-test-ids lyric-assist-list): a listbox with aria-activedescendant; F8 /
+   Shift+F8 move, Alt+Enter accepts, Alt+Backspace rejects, Alt+I marks as intentional, Escape goes back to the text. The
+   per-entry buttons are reached by mouse or by these keys (they are not in the tab order). *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+@if (Session.Board.Visible is { Count: > 0 } visible)
+{
+    <ul id="@ListId" class="ss-assist-list" role="listbox" tabindex="0" aria-label="Suggestions" aria-activedescendant="@ActiveId" data-testid="lyric-assist-list"
+        @onkeydown="OnKeyAsync" @onkeydown:stopPropagation="true" @onfocus="OnFocusAsync">
+        @foreach (var s in visible)
+        {
+            <SuggestionEntry @key="s.SuggestionId" Host="Host" Suggestion="s" Active="s.SuggestionId == Session.Board.Active" OnSelect="SelectAsync" />
+        }
+    </ul>
+}
+else if (Session.Run is { IsActive: false })
+{
+    <p class="ss-small ss-muted">No open suggestions.</p>
+}
+
+@code {
+    /// <summary>Moves the text cursor to a suggestion's highlight.</summary>
+    [Parameter]
+    public EventCallback<LyricSuggestionDto> OnReveal { get; set; }
+
+    /// <summary>Escape: back to the text at the suggestion's position.</summary>
+    [Parameter]
+    public EventCallback<LyricSuggestionDto?> OnBackToText { get; set; }
+
+    /// <summary>The element id of the listbox (focused again after the text cursor moved).</summary>
+    public const string ListId = "lyric-assist-listbox";
+
+    private string? ActiveId => Session.Board.Active is { } id ? SuggestionEntry.OptionId(id) : null;
+
+    private LyricSuggestionDto? Active => Session.Board.Active is { } id ? Session.Board.Find(id) : null;
+
+    private void OnFocusAsync()
+    {
+        if (Session.Board.Active is null && Session.Board.Move(1) is { } s)
+        {
+            Session.Announce(AssistText.Focused(s));
+            Session.NotifyChanged();
+        }
+    }
+
+    private Task OnKeyAsync(KeyboardEventArgs e) => SuggestionKeys.Of(e) switch
+    {
+        SuggestionKey.Next => MoveAsync(1),
+        SuggestionKey.Previous => MoveAsync(-1),
+        SuggestionKey.Accept when Active is { } s => RunAsync(x => x.AcceptAsync([s.SuggestionId])),
+        SuggestionKey.Reject when Active is { } s => RunAsync(x => x.RejectAsync(s.SuggestionId)),
+        SuggestionKey.Intentional when Active is { } s && LyricAssistSession.IsCorrection(s) =>
+            RunAsync(x => x.MarkIntentionalAsync(s.SuggestionId, LyricAssistSession.DefaultScope(s))),
+        SuggestionKey.Back => OnBackToText.InvokeAsync(Active),
+        _ => Task.CompletedTask,
+    };
+
+    private async Task MoveAsync(int step)
+    {
+        if (Session.Board.Move(step) is { } s)
+        {
+            await SelectAsync(s);
+        }
+    }
+
+    private async Task SelectAsync(LyricSuggestionDto s)
+    {
+        Session.Board.Focus(s.SuggestionId);
+        Session.Announce(AssistText.Focused(s));
+        await OnReveal.InvokeAsync(s);
+        Session.NotifyChanged();
+    }
+}

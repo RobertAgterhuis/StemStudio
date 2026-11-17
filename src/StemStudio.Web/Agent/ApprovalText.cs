@@ -17,6 +17,7 @@ public static class ApprovalText
         [AgentDecisionReasons.Tainted] = "Proposed after reading external content (tags, lyrics or online facts): check the arguments",
         [AgentDecisionReasons.UrlNotFromUser] = "The link does not appear in your own messages",
         [AgentDecisionReasons.UndoCompensation] = "Removes what an earlier step created",
+        [AgentDecisionReasons.LyricsEdit] = "Changes the text of your lyrics: check every change below",
     };
 
     /// <summary>The readable text of a reason code (unknown codes are shown as they are).</summary>

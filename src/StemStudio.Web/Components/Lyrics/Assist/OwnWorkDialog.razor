@@ -1,0 +1,52 @@
+@* Own-work confirmation (US6, FR-031; ui-test-ids lyric-own-work-*): the statement and its version from the server, the
+   matched track, a typed name and a tick box. Confirm stays disabled until both are set; Cancel and Escape send nothing. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="own-work-title" aria-describedby="own-work-statement"
+         data-testid="lyric-own-work-dialog" data-help-id="lyric-assist-limits" @onkeydown="OnKeyAsync">
+        <h2 id="own-work-title" class="ss-title" tabindex="-1" @ref="InitialFocus">This is my own text</h2>
+        <p id="own-work-statement" class="ss-own-work-statement" data-testid="lyric-own-work-statement"
+           data-version="@Settings.OwnWorkStatementVersion">@Settings.OwnWorkStatementText</p>
+        <p class="ss-small">Matches the lyrics of: <strong data-testid="lyric-own-work-track">@TrackTitle</strong></p>
+        <label class="ss-field">
+            <span class="ss-label">Your name</span>
+            <input type="text" class="rz-textbox" maxlength="@LyricAssistLimits.ConfirmedByMaxLength" autocomplete="name" value="@_name"
+                   @oninput="e => _name = (string)e.Value!" data-testid="lyric-own-work-name" />
+        </label>
+        <label class="ss-check">
+            <input type="checkbox" checked="@_ticked" @onchange="e => _ticked = e.Value is true" data-testid="lyric-own-work-check" />
+            <span>I confirm the statement above for this sheet.</span>
+        </label>
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" data-testid="lyric-own-work-cancel" />
+            <RadzenButton Text="Confirm" Disabled="!CanConfirm" Click="() => OnConfirm.InvokeAsync(_name)" data-testid="lyric-own-work-confirm" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _name = string.Empty;
+    private bool _ticked;
+
+    /// <summary>The statement and its version (<c>GET /api/lyric-assist/settings</c>).</summary>
+    [Parameter, EditorRequired]
+    public LyricAssistSettingsDto Settings { get; set; } = default!;
+
+    /// <summary>The matched track.</summary>
+    [Parameter, EditorRequired]
+    public string TrackTitle { get; set; } = string.Empty;
+
+    /// <summary>Confirm with the typed name.</summary>
+    [Parameter]
+    public EventCallback<string> OnConfirm { get; set; }
+
+    /// <summary>Cancel or Escape.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private bool CanConfirm => _ticked && _name.Trim().Length is > 0 and <= LyricAssistLimits.ConfirmedByMaxLength;
+
+    private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, OnCancel);
+}

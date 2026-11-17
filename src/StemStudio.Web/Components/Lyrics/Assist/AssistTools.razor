@@ -1,0 +1,30 @@
+@* Writing tools of the pane (FR-016, FR-017, FR-011, FR-012, FR-029): rhyme finder, syllables and rhythm target
+   (Advanced), intentional marks and my words (Advanced), usage (Advanced), assist log and revisions (Expert). *@
+@inherits AssistPart
+
+<RhymeFinder Host="Host" OnInsert="OnInsert" />
+<LevelGate Feature="lyric-assist.rhythm">
+    <RhythmPanel Host="Host" />
+</LevelGate>
+<LevelGate Feature="lyric-assist.marks">
+    <MarksPanel Host="Host" />
+    <WordsPanel Host="Host" />
+</LevelGate>
+<LevelGate Feature="lyric-assist.usage">
+    @if (Session.Run?.Usage is { } usage)
+    {
+        <p class="ss-small ss-num" data-help-id="lyric-assist-privacy">Usage of the last assist: @usage.InputTokens input and @usage.OutputTokens output tokens</p>
+    }
+</LevelGate>
+<LevelGate Feature="lyric-assist.log">
+    <AssistLog Host="Host" />
+</LevelGate>
+<LevelGate Feature="lyric-assist.revisions">
+    <RevisionPanel Host="Host" />
+</LevelGate>
+
+@code {
+    /// <summary>Inserts a word at the cursor.</summary>
+    [Parameter]
+    public EventCallback<string> OnInsert { get; set; }
+}

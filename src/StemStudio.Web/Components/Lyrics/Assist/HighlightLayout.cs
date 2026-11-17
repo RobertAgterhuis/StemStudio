@@ -42,7 +42,8 @@ public static class HighlightLayout
     public static string StyleClass(SuggestionCategoryDto category) => "ss-hl-" + AssistText.Wire(category);
 
     private static bool Fits(string line, LyricSuggestionDto s) =>
-        s.Operation == SuggestionOperationDto.Replace && s.Anchor.Length > 0 && s.Anchor.Start >= 0 && s.Anchor.Start + s.Anchor.Length <= line.Length;
+        s.Operation == SuggestionOperationDto.Replace && s.Anchor.Length > 0 && s.Anchor.Start >= 0 && s.Anchor.Start + s.Anchor.Length <= line.Length
+        && string.Equals(line.Substring(s.Anchor.Start, s.Anchor.Length), s.Anchor.Original, StringComparison.Ordinal);
 
     private static void Add(List<HighlightSegment> pieces, string text, LyricSuggestionDto? suggestion)
     {

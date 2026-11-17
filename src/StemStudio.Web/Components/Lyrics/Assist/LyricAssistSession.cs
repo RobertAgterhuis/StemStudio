@@ -49,6 +49,13 @@ public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorD
     /// <summary>Raised after every state change made outside a user event (stream events).</summary>
     public event Action? Changed;
 
+    /// <summary>Sets the live-region text (the focused suggestion, FR-028).</summary>
+    /// <param name="text">The announcement.</param>
+    public void Announce(string text) => Live = text;
+
+    /// <summary>Raises <see cref="Changed"/> (after a user action of a pane part).</summary>
+    public void NotifyChanged() => Changed?.Invoke();
+
     /// <summary>True when the model layer can run: a ready backend other than <c>none</c>.</summary>
     public bool ModelReady => Status?.Model is { Ready: true, Backend: not AgentBackendDto.None };
 

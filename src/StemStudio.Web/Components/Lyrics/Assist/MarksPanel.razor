@@ -1,0 +1,46 @@
+@* Intentional marks of the sheet (FR-011; Advanced): list, remove, and "Mark selection as intentional". *@
+@inherits AssistPart
+
+<RadzenButton Text="Intentional marks" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(_open ? "true" : "false")"
+              Click="ToggleAsync" data-testid="lyric-marks-open" data-help-id="lyric-assist-licence" />
+@if (_open)
+{
+    <div class="ss-assist-panel" role="group" aria-label="Intentional marks">
+        <RadzenButton Text="Mark selection as intentional" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                      Click="MarkSelectionAsync" data-testid="lyric-mark-selection" />
+        <ul class="ss-assist-plain-list" data-testid="lyric-marks-list">
+            @foreach (var mark in Session.Marks)
+            {
+                <li @key="mark.MarkId" data-testid="@($"lyric-mark-{mark.MarkId}")">
+                    <span>@mark.Text</span>
+                    <span class="ss-small ss-muted">@AssistText.Wire(mark.Scope)@(mark.InText ? string.Empty : ", no longer in the text")</span>
+                    <RadzenButton Text="Remove" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Remove {mark.Text}")" Disabled="Busy"
+                                  Click="() => RunAsync(s => s.DeleteMarkAsync(mark.MarkId))" data-testid="@($"lyric-mark-delete-{mark.MarkId}")" />
+                </li>
+            }
+        </ul>
+        @if (Session.Marks.Count == 0)
+        {
+            <p class="ss-small ss-muted">No marks yet.</p>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+
+    private async Task ToggleAsync()
+    {
+        _open = !_open;
+        if (_open)
+        {
+            await RunAsync(s => s.LoadMarksAsync());
+        }
+    }
+
+    private Task MarkSelectionAsync() => RunAsync(async s =>
+    {
+        var (text, wholeLine) = await Host.SelectedTextAsync();
+        await s.MarkSelectionAsync(text, wholeLine);
+    });
+}

@@ -1,0 +1,65 @@
+@* Assistant actions (FR-002, FR-004, FR-013, FR-015): Check, Suggest devices, Alternatives (count, Advanced), Continue,
+   Title ideas (Advanced), the optional instruction, Cancel while running and the progress bar. Writing help needs the
+   model and is disabled with the reason when it is unavailable (FR-027). *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<div class="ss-assist-actions" role="group" aria-label="Assistant actions">
+    <RadzenButton Text="Check" Icon="spellcheck" Size="ButtonSize.Small" Disabled="Disabled || Busy" Click="() => Request(AssistKindDto.Check)"
+                  title="Check spelling, grammar and flow (Ctrl+Alt+C)" data-testid="lyric-assist-check" />
+    <RadzenButton Text="Suggest devices" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
+                  Click="() => Request(AssistKindDto.Devices)" data-testid="lyric-assist-devices" data-help-id="lyric-assist-devices" />
+    <RadzenButton Text="Alternatives" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
+                  Click="() => Request(AssistKindDto.Alternatives, _count)" data-testid="lyric-assist-alternatives" />
+    <LevelGate Feature="lyric-assist.count">
+        <label class="ss-field ss-field-inline">
+            <span class="ss-small">How many</span>
+            <select class="rz-dropdown ss-select" @onchange="e => _count = int.Parse((string)e.Value!, System.Globalization.CultureInfo.InvariantCulture)"
+                    data-testid="lyric-assist-count">
+                @for (var n = LyricAssistLimits.MinCount; n <= LyricAssistLimits.MaxAlternatives; n++)
+                {
+                    <option value="@n" selected="@(n == _count)">@n</option>
+                }
+            </select>
+        </label>
+    </LevelGate>
+    <RadzenButton Text="Continue" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
+                  Click="() => Request(AssistKindDto.Continue)" data-testid="lyric-assist-continue" />
+    <LevelGate Feature="lyric-assist.titles">
+        <RadzenButton Text="Title ideas" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="WritingOff" title="@WritingReason"
+                      Click="() => Request(AssistKindDto.Titles)" data-testid="lyric-assist-titles" />
+    </LevelGate>
+</div>
+<label class="ss-field">
+    <span class="ss-small">Instruction (optional, for devices and writing help)</span>
+    <input type="text" class="rz-textbox" maxlength="@LyricAssistLimits.InstructionMaxLength" placeholder="darker, more hopeful, simpler words"
+           value="@_instruction" @oninput="e => _instruction = (string)e.Value!" data-testid="lyric-assist-instruction" />
+</label>
+@if (Session.Run is { IsActive: true } run)
+{
+    <div class="ss-row">
+        <div class="ss-assist-progress" role="progressbar" aria-label="Assistant progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@run.Percent"
+             data-testid="lyric-assist-progress"><div class="ss-assist-progress-bar" style="width: @(run.Percent)%"></div></div>
+        <RadzenButton Text="Cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => RunAsync(s => s.CancelAsync())"
+                      data-testid="lyric-assist-cancel" />
+    </div>
+}
+@if (Session.Run?.Withheld is > 0 and var withheld)
+{
+    <p class="ss-small" role="status" data-testid="lyric-assist-withheld" data-help-id="lyric-assist-limits">@AssistText.Withheld(withheld)</p>
+}
+
+@code {
+    private int _count = LyricAssistLimits.DefaultAlternatives;
+    private string _instruction = string.Empty;
+
+    /// <summary>True when no assist may start (language, a running assist).</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private bool WritingOff => Disabled || Busy || !Session.ModelReady;
+
+    private string? WritingReason => StatusText.WritingDisabled(Session);
+
+    private Task Request(AssistKindDto kind, int? count = null) => RunAsync(_ => Host.RequestAsync(kind, count, kind == AssistKindDto.Check ? null : _instruction));
+}
