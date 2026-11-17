@@ -98,20 +98,21 @@ public sealed class RestoreRun(RestoreRunServices services, LibraryMerger merger
     {
         context.MarkNotCancellable();
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Switch, "Switching to the restored library", 95, context.Job.BytesTotal, context.Job.BytesTotal, null));
-        var movedAt = clock.GetUtcNow();
-        await services.Switcher.SwitchAsync(JournalPlans.Restore(context.JobId, context.JobId, services.Paths, keepPrevious: !request.LibraryEmpty), CancellationToken.None);
+        var previous = request.LibraryEmpty ? null : new PreviousLibraryDto
+        {
+            RestoreId = context.JobId,
+            MovedAsideAt = clock.GetUtcNow(),
+            SizeBytes = 0,
+            Counts = request.CurrentCounts,
+            RestoredArchive = request.FileName,
+        };
+        var plan = JournalPlans.Restore(context.JobId, context.JobId, services.Paths, keepPrevious: !request.LibraryEmpty) with { Previous = previous };
+        await services.Switcher.SwitchAsync(plan, CancellationToken.None);
         UseWal(services.Live);
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Reconcile, "Finishing", 98, context.Job.BytesTotal, context.Job.BytesTotal, null));
-        if (!request.LibraryEmpty)
+        if (previous is not null)
         {
-            await services.Previous.SaveAsync(new PreviousLibraryDto
-            {
-                RestoreId = context.JobId,
-                MovedAsideAt = movedAt,
-                SizeBytes = services.Previous.SizeOf(context.JobId),
-                Counts = request.CurrentCounts,
-                RestoredArchive = request.FileName,
-            }, CancellationToken.None);
+            await services.Previous.SaveAsync(previous with { SizeBytes = services.Previous.SizeOf(context.JobId) }, CancellationToken.None);
         }
     }
 
@@ -177,17 +178,17 @@ public sealed class UndoRun(RestoreRunServices services, TimeProvider clock)
         ArgumentNullException.ThrowIfNull(context);
         context.MarkNotCancellable();
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Switch, "Switching to the previous library", 50, 0, 0, null));
-        var movedAt = clock.GetUtcNow();
-        await services.Switcher.SwitchAsync(JournalPlans.Undo(previous.RestoreId, context.JobId, services.Paths), CancellationToken.None);
-        RestoreRun.UseWal(services.Live);
-        await services.Previous.SaveAsync(new PreviousLibraryDto
+        var restored = new PreviousLibraryDto
         {
             RestoreId = context.JobId,
-            MovedAsideAt = movedAt,
-            SizeBytes = services.Previous.SizeOf(context.JobId),
+            MovedAsideAt = clock.GetUtcNow(),
+            SizeBytes = 0,
             Counts = currentCounts,
             RestoredArchive = previous.RestoredArchive,
-        }, CancellationToken.None);
+        };
+        await services.Switcher.SwitchAsync(JournalPlans.Undo(previous.RestoreId, context.JobId, services.Paths) with { Previous = restored }, CancellationToken.None);
+        RestoreRun.UseWal(services.Live);
+        await services.Previous.SaveAsync(restored with { SizeBytes = services.Previous.SizeOf(context.JobId) }, CancellationToken.None);
         return new RestoreReportDto { Mode = RestoreReportModeDto.Undo, Restored = [], Skipped = [], MigratedFrom = null, Warnings = [], PreviousLibraryKept = true };
     }
 }

@@ -77,8 +77,8 @@ internal sealed class LibraryFixture(ApiFactory factory)
         return asset;
     }
 
-    /// <summary>A completed restyle of the track with one take file.</summary>
-    public async Task<Generation> GenerationAsync(Track track)
+    /// <summary>A completed restyle of the track with one take file and, optionally, a converted vocal path (written when inside the library).</summary>
+    public async Task<Generation> GenerationAsync(Track track, Func<Guid, string>? vocal = null)
     {
         var style = Style.CreateUser(Guid.NewGuid(), new StyleFields
         {
@@ -103,7 +103,13 @@ internal sealed class LibraryFixture(ApiFactory factory)
         generation.AssignJob("0123456789abcdef0123456789abcde1", T0);
         var path = $"generations/{Id(generation.Id)}/take-1.flac";
         var hash = await FileAsync(path, 40);
-        generation.Complete([new GenerationTake(1, 11, 30, hash, 40, -1.5, path, new TakeModel("acestep-v15-turbo", "19671f4"))], T0);
+        var vocalPath = vocal?.Invoke(generation.Id);
+        if (vocalPath is not null && !vocalPath.StartsWith("..", StringComparison.Ordinal))
+        {
+            await FileAsync(vocalPath, 20);
+        }
+
+        generation.Complete([new GenerationTake(1, 11, 30, hash, 40, -1.5, path, new TakeModel("acestep-v15-turbo", "19671f4")) { VocalFilePath = vocalPath }], T0);
         await AddAsync(generation);
         return generation;
     }

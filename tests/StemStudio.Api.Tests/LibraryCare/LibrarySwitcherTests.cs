@@ -94,6 +94,70 @@ public sealed class LibrarySwitcherTests : IDisposable
         _gate.Mode.ShouldBe(LibraryGateMode.Open);
     }
 
+    // Security review 013 item 9: requests still in flight after the idle timeout stop the switch before anything moves.
+    [Fact]
+    public async Task RequestsStillInFlight_FailTheSwitchWithoutMovingAnything()
+    {
+        var clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var gate = new LibraryGate(clock);
+        using var request = gate.TrackRequest();
+        var switcher = new LibrarySwitcher(gate, new RestoreJournal(_paths), _files, _hook, TimeSpan.Zero);
+
+        var switching = switcher.SwitchAsync(JournalPlans.Restore(JobId, JobId, _paths, keepPrevious: true), Ct);
+        while (!switching.IsCompleted)
+        {
+            clock.Advance(TimeSpan.FromSeconds(1));
+            await Task.Delay(5, Ct);
+        }
+
+        (await Should.ThrowAsync<LibraryJobException>(() => switching)).Code.ShouldBe(LibraryJobErrorCodeDto.IoError);
+        (Read("stemstudio.db"), Read("tracks/a/stems/vocals.flac")).ShouldBe(("live db", "live stem"));
+        _files.MoveAttempts.ShouldBe(0);
+        gate.Mode.ShouldBe(LibraryGateMode.Open);
+        (await new RestoreJournal(_paths).FindAsync(JobId, Ct))!.State.ShouldBe(JournalState.RolledBack);
+    }
+
+    // Security review 013 item 10: a crash after the commit but before the previous library was recorded is finished at start-up.
+    [Fact]
+    public async Task CommittedJournalWithoutItsPreviousRecord_IsCompletedAtStartUp()
+    {
+        var previous = new PreviousLibraryDto
+        {
+            RestoreId = JobId,
+            MovedAsideAt = DateTimeOffset.UnixEpoch,
+            SizeBytes = 0,
+            Counts = new ArchiveCountsDto { Tracks = 1, Mixes = 0, Assets = 1, Generations = 0, Styles = 0, LyricsSheets = 0, VoiceProfiles = 0 },
+            RestoredArchive = "x.zip",
+        };
+        await Switcher().SwitchAsync(JournalPlans.Restore(JobId, JobId, _paths, keepPrevious: true) with { Previous = previous }, Ct);
+        var store = new PreviousLibraryStore(_paths);
+        (await store.ReadAsync(Ct)).ShouldBeNull();
+
+        var journal = new RestoreJournal(_paths);
+        (await journal.RecoverAsync(_files, Ct)).ShouldBe(0);
+        (await journal.CompleteCommittedAsync(Ct)).ShouldBe(1);
+
+        var recorded = (await store.ReadAsync(Ct)).ShouldNotBeNull();
+        (recorded.RestoreId, recorded.RestoredArchive, recorded.Counts.Tracks).ShouldBe((JobId, "x.zip", 1));
+        recorded.SizeBytes.ShouldBeGreaterThan(0);
+        (await journal.CompleteCommittedAsync(Ct)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CommittedUndoJournal_RemovesTheEmptiedPreviousLibraryAtStartUp()
+    {
+        await Switcher().SwitchAsync(JournalPlans.Restore(JobId, JobId, _paths, keepPrevious: true), Ct);
+        var emptied = _paths.Previous(JobId);
+        Write($"library-care/previous/{JobId}/previous.json", "{}");
+        var undo = Guid.NewGuid();
+        var journal = new RestoreJournal(_paths);
+        await journal.SaveAsync(JournalPlans.Undo(JobId, undo, _paths) with { State = JournalState.Committed }, Ct);
+
+        (await journal.CompleteCommittedAsync(Ct)).ShouldBe(1);
+
+        Directory.Exists(emptied).ShouldBeFalse();
+    }
+
     [Fact]
     public async Task Undo_SwapsBackAndKeepsTheRestoredLibraryAsTheNewPrevious()
     {

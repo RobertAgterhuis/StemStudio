@@ -173,6 +173,22 @@ public sealed class CleanupTests : ApiTestBase
         empty.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    // Security review 013 item 11: plan files do not pile up; each preview prunes the expired ones.
+    [Fact]
+    public async Task Preview_PrunesExpiredPlans()
+    {
+        await _library.TrackAsync();
+        var first = await (await PreviewAsync(new CleanupActionDto { Kind = CleanupKindDto.DetailStems })).BodyAsync<CleanupPlanDto>();
+        var folder = Path.Combine(Factory.DataDir, "library-care", "cleanup");
+        await File.WriteAllTextAsync(Path.Combine(folder, Guid.NewGuid().ToString("D") + ".json"), "not a plan", Ct);
+        Factory.Clock.Advance(TimeSpan.FromMinutes(11));
+
+        var second = await (await PreviewAsync(new CleanupActionDto { Kind = CleanupKindDto.DetailStems })).BodyAsync<CleanupPlanDto>();
+
+        Directory.GetFiles(folder).Select(Path.GetFileNameWithoutExtension).ShouldBe([second.PlanId.ToString("D")]);
+        (await ExecuteAsync(first.PlanId)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
     private static WorkerStorage Storage(IReadOnlyList<WorkerCacheEntry> entries) =>
         new(ApiFactory.Start, [new("data", 1000, 5000), new("models", 1000, 5000)], entries, 0, 0, 0, []);
 

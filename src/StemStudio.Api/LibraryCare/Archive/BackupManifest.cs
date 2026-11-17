@@ -51,13 +51,18 @@ public sealed record BackupManifest
     public required IReadOnlyList<ArchiveWarningDto> Warnings { get; init; }
 }
 
-/// <summary>JSON options of the manifest: camelCase members and enum values, nulls omitted.</summary>
+/// <summary>
+/// JSON options of the manifest: camelCase members and enum values, nulls omitted when writing; when reading, a null or
+/// missing member that the C# types do not allow fails the deserialisation (<c>archive-invalid</c>, never a null reference).
+/// </summary>
 public static class ManifestJson
 {
     /// <summary>The options.</summary>
     public static JsonSerializerOptions Options { get; } = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        RespectNullableAnnotations = true,
+        RespectRequiredConstructorParameters = true,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 }
@@ -140,8 +145,8 @@ public sealed record ManifestEntity(string Type, string Id);
 /// <param name="Category">Category.</param>
 /// <param name="SizeBytes">Uncompressed size.</param>
 /// <param name="Sha256">SHA-256 of the content.</param>
-/// <param name="Entity">Owning entity, if any.</param>
-public sealed record ManifestEntry(string Path, BackupCategory Category, long SizeBytes, string Sha256, ManifestEntity? Entity);
+/// <param name="Entity">Owning entity, if any (optional in the manifest).</param>
+public sealed record ManifestEntry(string Path, BackupCategory Category, long SizeBytes, string Sha256, ManifestEntity? Entity = null);
 
 /// <summary>The consent record of a voice profile in the manifest.</summary>
 /// <param name="StatementVersion">Statement version.</param>

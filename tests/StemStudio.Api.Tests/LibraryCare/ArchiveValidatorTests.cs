@@ -45,6 +45,11 @@ public sealed class ArchiveValidatorTests : IDisposable
         { "format2", LibraryJobErrorCodeDto.ArchiveIncompatible },
         { "newer", LibraryJobErrorCodeDto.ArchiveIncompatible },
         { "H16", LibraryJobErrorCodeDto.InsufficientDiskSpace },
+        { "duplicatePath", LibraryJobErrorCodeDto.ArchiveInvalid },
+        { "nullApp", LibraryJobErrorCodeDto.ArchiveInvalid },
+        { "nullEntry", LibraryJobErrorCodeDto.ArchiveInvalid },
+        { "noFormatVersion", LibraryJobErrorCodeDto.ArchiveInvalid },
+        { "format2Broken", LibraryJobErrorCodeDto.ArchiveIncompatible },
     };
 
     [Theory]
@@ -133,6 +138,15 @@ public sealed class ArchiveValidatorTests : IDisposable
             ["nomanifest"] = WriteWithoutManifest,
             ["format2"] = () => Write(Archive, [stem], manifest => manifest["formatVersion"] = "2.0.0"),
             ["newer"] = () => Write(Archive, [stem], manifest => manifest["schema"] = new { provider = "sqlite", lastMigration = "20991231000000_Future", migrations = new[] { "20261114215330_Initial", "20991231000000_Future" } }),
+            ["duplicatePath"] = () => Write(Archive, [stem], manifest => AddEntry(manifest, ((List<Dictionary<string, object?>>)manifest["entries"]!)[^1])),
+            ["nullApp"] = () => Write(Archive, [stem], manifest => manifest["app"] = null),
+            ["nullEntry"] = () => Write(Archive, [stem], manifest => ((List<Dictionary<string, object?>>)manifest["entries"]!).Add(null!)),
+            ["noFormatVersion"] = () => Write(Archive, [stem], manifest => manifest["formatVersion"] = null),
+            ["format2Broken"] = () => Write(Archive, [stem], manifest =>
+            {
+                manifest["formatVersion"] = "2.0.0";
+                manifest["entries"] = "a format 2 shape";
+            }),
             ["H16"] = () =>
             {
                 _files.Free = 10;
@@ -148,10 +162,13 @@ public sealed class ArchiveValidatorTests : IDisposable
         zip.CreateEntry("photo.jpg");
     }
 
-    private static void AddPhantom(Dictionary<string, object?> manifest)
+    private static void AddPhantom(Dictionary<string, object?> manifest) =>
+        AddEntry(manifest, new Dictionary<string, object?> { ["path"] = $"files/tracks/{Track}/stems/bass.flac", ["category"] = "stems", ["sizeBytes"] = 1, ["sha256"] = new string('a', 64) });
+
+    private static void AddEntry(Dictionary<string, object?> manifest, Dictionary<string, object?> entry)
     {
         var entries = (List<Dictionary<string, object?>>)manifest["entries"]!;
-        entries.Add(new Dictionary<string, object?> { ["path"] = $"files/tracks/{Track}/stems/bass.flac", ["category"] = "stems", ["sizeBytes"] = 1, ["sha256"] = new string('a', 64) });
+        entries.Add(entry);
         manifest["totals"] = new { entries = entries.Count, bytes = entries.Sum(entry => Convert.ToInt64(entry["sizeBytes"], System.Globalization.CultureInfo.InvariantCulture)) };
     }
 

@@ -1,15 +1,15 @@
 using System.Globalization;
 using System.IO.Compression;
-using Microsoft.Data.Sqlite;
 using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Api.LibraryCare.Restore;
 using StemStudio.Contracts.LibraryCare;
 
 namespace StemStudio.Api.LibraryCare.Backup;
 
 /// <summary>
-/// The work of a verify job: structure, names, links, the manifest's entry list, every SHA-256 and the database integrity,
-/// without restoring anything. A damaged archive completes the job with <c>ok: false</c> and the first problem.
+/// The work of a verify job: structure, names, links, the manifest's entry list, every SHA-256 and the read-only database
+/// checks of restore (integrity, migration history, no triggers or views, stored paths), without restoring anything. A damaged archive completes the job with <c>ok: false</c> and the first problem.
 /// </summary>
 /// <param name="paths">Library-care folders.</param>
 /// <param name="options">API options (throttle).</param>
@@ -62,7 +62,7 @@ public sealed class VerifyRun(LibraryCarePaths paths, Microsoft.Extensions.Optio
         {
             if (entry.Path == Domain.LibraryCare.LibraryLayout.DatabaseEntry)
             {
-                await VerifyDatabaseAsync(zip, entry, staging, cancellationToken);
+                await VerifyDatabaseAsync(archive, entry, staging, cancellationToken);
             }
             else
             {
@@ -73,30 +73,21 @@ public sealed class VerifyRun(LibraryCarePaths paths, Microsoft.Extensions.Optio
         }
     }
 
-    private static async Task VerifyDatabaseAsync(ZipArchive zip, ManifestEntry entry, string staging, CancellationToken cancellationToken)
+    /// <summary>
+    /// The read-only database checks of restore (data-model 3.4 steps 7 and 8: integrity, migration history, no triggers or
+    /// views, stored paths) on a copy in the job's staging folder; nothing is migrated.
+    /// </summary>
+    private static async Task VerifyDatabaseAsync((ZipArchive Zip, BackupManifest Manifest) archive, ManifestEntry entry, string staging, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(staging);
         var path = Path.Combine(staging, "stemstudio.db");
         await using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
         {
-            await ArchiveReader.CopyVerifiedAsync(zip, entry, file, cancellationToken);
+            await ArchiveReader.CopyVerifiedAsync(archive.Zip, entry, file, cancellationToken);
         }
 
-        await using var connection = new SqliteConnection(DatabaseSnapshot.StagingConnectionString(path, readOnly: true));
-        try
-        {
-            await connection.OpenAsync(cancellationToken);
-            if (await DatabaseSnapshot.IsIntactAsync(connection, cancellationToken))
-            {
-                return;
-            }
-        }
-        catch (SqliteException)
-        {
-            // Not a database: reported below.
-        }
-
-        throw ArchiveReader.Corrupt("The database in the archive is damaged; nothing was changed.");
+        await ArchivedDatabase.CheckReadOnlyAsync(path, archive.Manifest, cancellationToken);
+        await ArchivedDatabase.CheckStoredPathsAsync(path, cancellationToken);
     }
 
     private sealed class VerifyProgress(LibraryJobContext context)

@@ -25,7 +25,7 @@ public sealed record BackupPlan(IReadOnlyList<SelectedFile> Files, IReadOnlyList
 
 /// <summary>
 /// Selects the files of a backup from the scrubbed snapshot (data-model 4.4): stems and artwork of completed tracks,
-/// present detail stems, ready library items, completed generations' takes, voice samples and uploads of tracks that did
+/// present detail stems, ready library items, completed generations' takes and converted vocals, voice samples and uploads of tracks that did
 /// not complete. Files are selected from the snapshot, never from the live folder.
 /// </summary>
 /// <param name="data">The data directory (sources).</param>
@@ -112,7 +112,8 @@ public sealed class BackupSelection(DataDirectory data)
     private IEnumerable<SelectedFile> GenerationFiles(Generation generation)
     {
         var entity = new ManifestEntity("generation", Id(generation.Id));
-        return generation.Takes.Select(take => File(take.FilePath, BackupCategory.Generations, entity, "Generation - takes"));
+        return generation.Takes.SelectMany(take => new[] { take.FilePath, take.VocalFilePath }).OfType<string>()
+            .Select(path => File(path, BackupCategory.Generations, entity, "Generation - takes"));
     }
 
     private SelectedFile VoiceFile(VoiceProfile profile) =>

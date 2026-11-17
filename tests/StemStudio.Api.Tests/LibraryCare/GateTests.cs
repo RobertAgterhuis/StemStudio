@@ -82,6 +82,8 @@ public sealed class GateTests : ApiTestBase
     [InlineData("POST", "/api/imports")]
     [InlineData("GET", "/api/library-jobs")]
     [InlineData("GET", "/api/storage")]
+    [InlineData("GET", "/API/tracks")]
+    [InlineData("POST", "/Api/imports")]
     public async Task Maintenance_Answers503WithRetryAfter(string method, string path)
     {
         Gate.EnterMaintenance();
@@ -97,6 +99,8 @@ public sealed class GateTests : ApiTestBase
     [InlineData("/health")]
     [InlineData("/api/library-care/status")]
     [InlineData($"/api/library-jobs/{Id}")]
+    [InlineData("/API/Library-Care/Status")]
+    [InlineData($"/API/LIBRARY-JOBS/{Id}")]
     public async Task Maintenance_KeepsTheThreeAllowedRoutes(string path)
     {
         Gate.EnterMaintenance();

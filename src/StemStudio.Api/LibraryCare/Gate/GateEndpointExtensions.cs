@@ -18,12 +18,15 @@ public static class GateEndpointExtensions
                 ? GateProblems.BackupRunning()
                 : await next(context));
 
-    /// <summary>Adds the maintenance middleware: counts in-flight <c>/api</c> requests and answers 503 during maintenance.</summary>
+    /// <summary>
+    /// Adds the maintenance middleware: counts in-flight <c>/api</c> requests and answers 503 during maintenance. The prefix
+    /// is matched case-insensitively, as routing matches it, so <c>/API/...</c> cannot bypass the gate.
+    /// </summary>
     /// <param name="app">The application.</param>
     /// <returns>The application.</returns>
     public static IApplicationBuilder UseLibraryGate(this IApplicationBuilder app) => app.Use(async (context, next) =>
     {
-        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.Ordinal) || IsAlwaysAllowed(context.Request))
+        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase) || IsAlwaysAllowed(context.Request))
         {
             await next(context);
             return;
@@ -41,7 +44,7 @@ public static class GateEndpointExtensions
         await next(context);
     });
 
-    /// <summary>True for the routes served during maintenance: the status and a library job.</summary>
+    /// <summary>True for the routes served during maintenance: the status and a library job (case-insensitive like routing).</summary>
     /// <param name="request">The request.</param>
     /// <returns>True when allowed.</returns>
     public static bool IsAlwaysAllowed(HttpRequest request)
@@ -53,8 +56,8 @@ public static class GateEndpointExtensions
         }
 
         var path = request.Path.Value ?? string.Empty;
-        return path == ApiRoutes.LibraryCareStatus
-            || (path.StartsWith(ApiRoutes.LibraryJobs + "/", StringComparison.Ordinal) && path.Count(c => c == '/') == 3);
+        return string.Equals(path, ApiRoutes.LibraryCareStatus, StringComparison.OrdinalIgnoreCase)
+            || (path.StartsWith(ApiRoutes.LibraryJobs + "/", StringComparison.OrdinalIgnoreCase) && path.Count(c => c == '/') == 3);
     }
 }
 

@@ -15,22 +15,15 @@ public static class ArchiveReader
 {
     private const int UnixLinkMode = 0xA000;
     private const int UnixTypeMask = 0xF000;
+    private const string TooManyEntries = "The archive has more entries than a StemStudio backup may have.";
+    private const string ManifestTooLarge = "The manifest is larger than 256 MiB.";
 
     /// <summary>Opens the archive and reads its manifest (step 2).</summary>
     /// <param name="path">The archive file.</param>
     /// <returns>The open archive (caller disposes) and its manifest.</returns>
     public static (ZipArchive Zip, BackupManifest Manifest) Open(string path)
     {
-        ZipArchive zip;
-        try
-        {
-            zip = ZipFile.OpenRead(path);
-        }
-        catch (InvalidDataException exception)
-        {
-            throw Invalid("The file is not a ZIP archive.", exception);
-        }
-
+        var zip = OpenZip(path);
         try
         {
             return (zip, ReadManifest(zip));
@@ -42,24 +35,31 @@ public static class ArchiveReader
         }
     }
 
-    /// <summary>Reads and checks the manifest (entry count, size, JSON, format, version major).</summary>
+    /// <summary>
+    /// Reads only <c>format</c>, <c>formatVersion</c> and the descriptive members of the manifest, without the other rules:
+    /// for the list entry of an archive that <see cref="Open"/> refused as <c>archive-incompatible</c>.
+    /// </summary>
+    /// <param name="path">The archive file.</param>
+    /// <returns>The header.</returns>
+    public static ManifestHeader ReadHeader(string path)
+    {
+        using var zip = OpenZip(path);
+        return Deserialize<ManifestHeader>(ManifestBytes(zip));
+    }
+
+    /// <summary>
+    /// Reads and checks the manifest: entry count, size (the decompressed read stops at 256 MiB + 1 byte whatever the
+    /// header declares), JSON, then <c>format</c> and the <c>formatVersion</c> major before every other rule.
+    /// </summary>
     /// <param name="zip">The archive.</param>
     /// <returns>The manifest.</returns>
     public static BackupManifest ReadManifest(ZipArchive zip)
     {
         ArgumentNullException.ThrowIfNull(zip);
-        if (zip.Entries.Count > LibraryCareLimits.MaxArchiveEntries)
-        {
-            throw Invalid("The archive has more entries than a StemStudio backup may have.");
-        }
-
-        var entry = zip.GetEntry(LibraryLayout.ManifestEntry) ?? throw Invalid("Not a StemStudio backup (no manifest.json).");
-        if (entry.Length > LibraryCareLimits.MaxManifestBytes)
-        {
-            throw Invalid("The manifest is larger than 256 MiB.");
-        }
-
-        return ManifestRules.Check(Deserialize(entry));
+        var bytes = ManifestBytes(zip);
+        var header = Deserialize<ManifestHeader>(bytes);
+        ManifestRules.CheckFormat(header.Format, header.FormatVersion);
+        return ManifestRules.Check(Deserialize<BackupManifest>(bytes));
     }
 
     /// <summary>Checks every central-directory entry against the rules and the manifest (step 3).</summary>
@@ -159,16 +159,92 @@ public static class ArchiveReader
         return name.Length > 200 ? cleaned + "..." : cleaned;
     }
 
-    private static BackupManifest Deserialize(ZipArchiveEntry entry)
+    private static ZipArchive OpenZip(string path)
+    {
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
+        {
+            if (ZipDirectory.DeclaredEntries(stream) > LibraryCareLimits.MaxArchiveEntries)
+            {
+                throw Invalid(TooManyEntries);
+            }
+
+            return new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        }
+        catch (InvalidDataException exception)
+        {
+            stream.Dispose();
+            throw Invalid("The file is not a ZIP archive.", exception);
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
+    }
+
+    private static ReadOnlyMemory<byte> ManifestBytes(ZipArchive zip)
     {
         try
         {
-            using var stream = entry.Open();
-            return JsonSerializer.Deserialize<BackupManifest>(stream, ManifestJson.Options) ?? throw Invalid("The manifest is empty.");
+            if (zip.Entries.Count > LibraryCareLimits.MaxArchiveEntries)
+            {
+                throw Invalid(TooManyEntries);
+            }
+
+            var entry = zip.GetEntry(LibraryLayout.ManifestEntry) ?? throw Invalid("Not a StemStudio backup (no manifest.json).");
+            if (entry.Length > LibraryCareLimits.MaxManifestBytes)
+            {
+                throw Invalid(ManifestTooLarge);
+            }
+
+            using var buffer = new MemoryStream();
+            using (var source = entry.Open())
+            using (var bounded = new HashingLimitedStream(buffer, LibraryCareLimits.MaxManifestBytes))
+            {
+                source.CopyTo(bounded);
+            }
+
+            return buffer.GetBuffer().AsMemory(0, (int)buffer.Length);
         }
-        catch (Exception exception) when (exception is JsonException or InvalidDataException or NotSupportedException)
+        catch (InvalidDataException exception)
+        {
+            throw Invalid("The archive's central directory or manifest is damaged or larger than 256 MiB.", exception);
+        }
+    }
+
+    private static T Deserialize<T>(ReadOnlyMemory<byte> bytes)
+        where T : class
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(bytes.Span, ManifestJson.Options) ?? throw Invalid("The manifest is empty.");
+        }
+        catch (Exception exception) when (exception is JsonException or NotSupportedException)
         {
             throw Invalid("The manifest is not valid.", exception);
         }
     }
+}
+
+/// <summary>
+/// The members of a manifest that are read before the rules (format check first, then display of another format's
+/// archive); every member is optional and loosely typed, so another format's shape still yields its version.
+/// </summary>
+public sealed record ManifestHeader
+{
+    /// <summary><c>format</c>.</summary>
+    public string? Format { get; init; }
+
+    /// <summary><c>formatVersion</c>.</summary>
+    public string? FormatVersion { get; init; }
+
+    /// <summary><c>backupId</c>, unchecked.</summary>
+    public JsonElement? BackupId { get; init; }
+
+    /// <summary><c>createdAt</c>, unchecked.</summary>
+    public JsonElement? CreatedAt { get; init; }
+
+    /// <summary><c>app</c>, unchecked.</summary>
+    public JsonElement? App { get; init; }
 }

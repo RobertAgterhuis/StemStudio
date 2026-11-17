@@ -75,10 +75,16 @@ public static class LibraryCareRegistration
     /// <summary>Start-up recovery of library care (before the endpoints are served).</summary>
     /// <param name="services">Root services.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>A task (the restore journal is recovered before the jobs).</returns>
+    /// <returns>A task (the restore journal is recovered, and committed journals finished, before the jobs).</returns>
     public static async Task RecoverLibraryCareAsync(this IServiceProvider services, CancellationToken cancellationToken)
     {
-        await services.GetRequiredService<RestoreJournal>().RecoverAsync(services.GetRequiredService<ILibraryFiles>(), cancellationToken);
+        var journal = services.GetRequiredService<RestoreJournal>();
+        await journal.RecoverAsync(services.GetRequiredService<ILibraryFiles>(), cancellationToken);
+        if (await journal.CompleteCommittedAsync(cancellationToken) > 0)
+        {
+            RestoreRun.UseWal(services.GetRequiredService<LiveDatabase>());
+        }
+
         await services.GetRequiredService<LibraryJobRecovery>().RecoverAsync(cancellationToken);
     }
 }

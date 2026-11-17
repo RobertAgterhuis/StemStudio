@@ -18,6 +18,7 @@ using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Scores;
+using StemStudio.Api.Security;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Styles;
 using StemStudio.Api.Sync;
@@ -90,6 +91,7 @@ public static class ApiComposition
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors(CorsPolicy);
+        app.UseCrossSiteRequestGuard();
         app.UseLibraryGate();
         app.MapOpenApi();
         MapEndpoints(app);

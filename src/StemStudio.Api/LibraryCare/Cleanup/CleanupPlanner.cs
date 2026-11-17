@@ -48,7 +48,8 @@ public sealed record StoredCleanupPlan
 
 /// <summary>
 /// Plans clean-ups of regenerable data only (FR-022-FR-024, SC-007): detail stems of tracks, the worker cache and
-/// leftovers, with the reasons why items are skipped. Nothing is removed; plans are valid for 10 minutes.
+/// leftovers, with the reasons why items are skipped. Nothing is removed; plans are valid for 10 minutes and each preview
+/// deletes the plan files that expired.
 /// </summary>
 /// <param name="context">The live database.</param>
 /// <param name="walker">The library walker.</param>
@@ -80,6 +81,7 @@ public sealed class CleanupPlanner(StemStudioDbContext context, LibraryWalker wa
 
         var stored = builder.Build(Guid.NewGuid(), clock.GetUtcNow(), TimeSpan.FromMinutes(options.Value.LibraryCare.CleanupPlanMinutes), paths.Data);
         Directory.CreateDirectory(paths.CleanupDirectory);
+        await PruneExpiredAsync(cancellationToken);
         await JsonFiles.WriteAsync(PlanPath(paths, stored.Plan.PlanId), stored, cancellationToken);
         return stored.Plan;
     }
@@ -104,6 +106,19 @@ public sealed class CleanupPlanner(StemStudioDbContext context, LibraryWalker wa
         ArgumentNullException.ThrowIfNull(data);
         var lines = files.Select(file => Describe(data, file.Path)).Concat(entries.Select(entry => "worker|" + entry.AudioSha256)).Order(StringComparer.Ordinal);
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));
+    }
+
+    /// <summary>Removes plan files that expired or cannot be read (plans are never reused after 10 minutes).</summary>
+    private async Task PruneExpiredAsync(CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        foreach (var file in Directory.GetFiles(paths.CleanupDirectory, "*.json"))
+        {
+            if (await JsonFiles.ReadAsync<StoredCleanupPlan>(file, cancellationToken) is not { } plan || plan.Plan.ExpiresAt < now)
+            {
+                File.Delete(file);
+            }
+        }
     }
 
     private static string Describe(DataDirectory data, string path)

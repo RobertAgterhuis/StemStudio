@@ -10,6 +10,11 @@ namespace StemStudio.Api.LibraryCare.Archive;
 /// </summary>
 public static partial class ManifestRules
 {
+    /// <summary>Reason of an archive in another format version.</summary>
+    public const string IncompatibleText = "The backup was made by a newer StemStudio; update StemStudio first.";
+
+    private const string UnknownFormat = "Not a StemStudio backup (unknown format).";
+
     /// <summary>Checks a deserialised manifest.</summary>
     /// <param name="manifest">The manifest.</param>
     /// <returns>The same manifest.</returns>
@@ -17,31 +22,52 @@ public static partial class ManifestRules
     public static BackupManifest Check(BackupManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        if (manifest.Format != LibraryCareLimits.ArchiveFormat || manifest.HashAlgorithm != "sha-256" || manifest.Encryption != "none")
+        CheckFormat(manifest.Format, manifest.FormatVersion);
+        if (manifest.HashAlgorithm != "sha-256" || manifest.Encryption != "none")
         {
-            throw ArchiveReader.Invalid("Not a StemStudio backup (unknown format).");
-        }
-
-        if (!VersionPattern().IsMatch(manifest.FormatVersion))
-        {
-            throw new Jobs.LibraryJobException(LibraryJobErrorCodeDto.ArchiveIncompatible, "The backup was made by a newer StemStudio; update StemStudio first.");
+            throw ArchiveReader.Invalid(UnknownFormat);
         }
 
         CheckLists(manifest);
         return manifest;
     }
 
+    /// <summary>
+    /// The format check that runs before every other rule (CTO decision 013 "formatVersion 2.0.0"): another <c>format</c>
+    /// or no <c>formatVersion</c> is <c>archive-invalid</c>, a version other than 1.x is <c>archive-incompatible</c>.
+    /// </summary>
+    /// <param name="format">The <c>format</c> member.</param>
+    /// <param name="formatVersion">The <c>formatVersion</c> member.</param>
+    /// <exception cref="Jobs.LibraryJobException"><c>archive-invalid</c> or <c>archive-incompatible</c>.</exception>
+    public static void CheckFormat(string? format, string? formatVersion)
+    {
+        if (format != LibraryCareLimits.ArchiveFormat || formatVersion is null)
+        {
+            throw ArchiveReader.Invalid(UnknownFormat);
+        }
+
+        if (!VersionPattern().IsMatch(formatVersion))
+        {
+            throw new Jobs.LibraryJobException(LibraryJobErrorCodeDto.ArchiveIncompatible, IncompatibleText);
+        }
+    }
+
     private static void CheckLists(BackupManifest manifest)
     {
-        if (!EntriesValid(manifest) || !HeaderValid(manifest))
+        if (HasNullElements(manifest) || !EntriesValid(manifest) || !HeaderValid(manifest))
         {
             throw ArchiveReader.Invalid("The manifest is not valid.");
         }
     }
 
+    private static bool HasNullElements(BackupManifest manifest) =>
+        manifest.Entries.Contains(null!) || manifest.VoiceProfiles.Contains(null!) || manifest.Warnings.Contains(null!)
+        || manifest.Schema.Migrations.Contains(null!) || manifest.Contents.Excluded.Contains(null!);
+
     private static bool EntriesValid(BackupManifest manifest) =>
         manifest.Entries.Count is > 0 and <= LibraryCareLimits.MaxArchiveEntries
         && manifest.Entries.All(entry => Sha256Pattern().IsMatch(entry.Sha256) && entry.SizeBytes >= 0 && entry.Path.Length <= LibraryLayout.MaxEntryNameLength)
+        && manifest.Entries.Select(entry => entry.Path).Distinct(StringComparer.Ordinal).Count() == manifest.Entries.Count
         && manifest.Totals.Entries == manifest.Entries.Count && manifest.Totals.Bytes == manifest.Entries.Sum(entry => entry.SizeBytes);
 
     private static bool HeaderValid(BackupManifest manifest) =>

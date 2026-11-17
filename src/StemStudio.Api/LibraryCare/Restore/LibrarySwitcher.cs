@@ -26,7 +26,8 @@ public sealed class NoJournalStepHook : IJournalStepHook
 /// <summary>
 /// Switches libraries in one journalled step (research R-04 P3/P4, R-07): maintenance gate, wait for in-flight requests,
 /// <c>ClearAllPools()</c>, each move retried 10 x 200 ms; on failure every done move is undone and the job fails with
-/// <c>io-error</c>. The gate is opened in every outcome.
+/// <c>io-error</c>. Requests still in flight after 10 s fail the switch with <c>io-error</c> before anything moves. The gate
+/// is opened in every outcome.
 /// </summary>
 /// <param name="gate">The gate.</param>
 /// <param name="journal">Journal files.</param>
@@ -52,7 +53,12 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
         gate.EnterMaintenance();
         try
         {
-            await gate.WaitForIdleAsync(IdleTimeout, cancellationToken);
+            if (!await gate.WaitForIdleAsync(IdleTimeout, cancellationToken))
+            {
+                await journal.SaveAsync(record with { State = JournalState.RolledBack }, CancellationToken.None);
+                throw new LibraryJobException(LibraryJobErrorCodeDto.IoError, "Requests to the library did not finish in time; the library was not changed. Try again.");
+            }
+
             SqliteConnection.ClearAllPools();
             await MoveAllAsync(record);
         }
@@ -79,7 +85,7 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
         }
 
         await journal.SaveAsync(record with { Steps = steps, State = JournalState.Committed }, CancellationToken.None);
-        Finish(record);
+        journal.FinishCommitted(record);
     }
 
     private async Task<bool> TryMoveAsync(JournalStep step)
@@ -105,14 +111,5 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
         }
 
         return false;
-    }
-
-    private void Finish(RestoreJournalRecord record)
-    {
-        var remove = record.KeepPrevious ? record.RemoveAfterCommit : $"library-care/previous/{LibraryCarePaths.Id(record.RestoreId)}";
-        if (remove is not null && Directory.Exists(journal.Full(remove)))
-        {
-            Directory.Delete(journal.Full(remove), recursive: true);
-        }
     }
 }
