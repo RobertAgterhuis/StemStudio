@@ -78,8 +78,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T015 [backend] `PlacementInput.cs`, `PlacementResolver.cs`, `LibraryFilingRules.cs`; `Asset.File`, `Asset.SetLibraryInfo`, `Track.SetLibraryInfo` (`Track.Library.cs`) (green)
 - [ ] T016 [P] [backend] Tests (red) persistence: owned `Placement` mapping, library info columns on `Assets`/`Tracks`, `FiledVersion` default 0, `IX_Assets_Folder`, migration up/down on a copy of a pre-022 database (SQLite)
 - [ ] T017 [backend] EF configurations and migration `AddLibraryFolders` (green) (research R-13)
-- [ ] T018 [P] [frontend] Tests (red) API client methods for the 9 new operations against a stub handler (ETag/304 handling, 404 folder-not-found, 422 mapping) and pure helpers `LibraryLocationTests` (routes, `?q=`, `?view=all`, URL building), `HighlightedTextTests` (ranges, overlaps, out-of-range safety), `FolderArtModelTests` (cover/mosaic 2-4/placeholder, `srcset`/`sizes`, tone class)
-- [ ] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
+- [x] T018 [P] [frontend] Tests (red) API client methods for the 9 new operations against a stub handler (ETag/304 handling, 404 folder-not-found, 422 mapping) and pure helpers `LibraryLocationTests` (routes, `?q=`, `?view=all`, URL building), `HighlightedTextTests` (ranges, overlaps, out-of-range safety), `FolderArtModelTests` (cover/mosaic 2-4/placeholder, `srcset`/`sizes`, tone class)
+- [x] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
 - [ ] T020 [P] [ai-agent] Tests (red) descriptors and JSON schemas of the 4 tools (names, kinds, risk, undo, `additionalProperties: false`, folder id pattern, xor of `trackId`/`assetId`), registry groups and the 32-tool cap per page context (library = 32, others unchanged) (catalogue 1.1.0)
 - [ ] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
 - [ ] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
@@ -98,8 +98,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T033 [US1] [backend] `LibraryFilingBackfill.cs` (hosted service + `ILibraryFilingTrigger`), `StemStudio:LibraryBackfillBatchSize` option; required `LibraryGate` constructor dependency (013 is on `main`; no `GetService` fallback) (green)
 - [ ] T034 [P] [US1] [backend] Tests (red) `AssetMapperTests`: `placement` on every asset response (get, list, create, rename, retry, stem pack, score, generation import), `filed = false` preview before backfill, null for recordings
 - [ ] T035 [US1] [backend] `AssetMapper`/`LibraryMapper` placement mapping (green)
-- [ ] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
-- [ ] T037 [US1] [frontend] Confirmation changes in the export and score dialogs (green)
+- [x] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
+- [x] T037 [US1] [frontend] Confirmation changes in the export and score dialogs (green)
 - [ ] T038 [P] [US1] [qa] E2E `e2e/tests/library-filing.spec.ts`: save each item kind, check folder path and confirmation; two spellings of one artist -> one folder; unknown artist/album; deleted track keeps items; last item deleted -> folders gone (US1 scenarios 1-5, 7-9; SC-001)
 - [ ] T039 [P] [US1] [qa] E2E `e2e/tests/library-migration.spec.ts`: start on a pre-022 database fixture, `library-filing-pending` visible then gone, every item filed (US1 scenario 6, SC-003)
 

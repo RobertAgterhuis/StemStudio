@@ -1,0 +1,14 @@
+@* The folder path of a library item, "Artist > Album > Song", as three links (feature 022, FR-012, ui-test-ids 1.22.0
+   asset-path-<assetId>, export-saved-folder, score-saved-folder). The separators are hidden from screen readers. *@
+
+<span class="ss-folder-path" data-testid="@TestId"><a href="@LibraryLocation.FolderUrl(Placement.Artist.FolderId)">@Placement.Artist.Name</a><span class="ss-folder-sep" aria-hidden="true"> &gt; </span><a href="@LibraryLocation.FolderUrl(Placement.Album.FolderId)">@Placement.Album.Name</a><span class="ss-folder-sep" aria-hidden="true"> &gt; </span><a href="@LibraryLocation.FolderUrl(Placement.Song.FolderId)">@Placement.Song.Name</a></span>
+
+@code {
+    /// <summary>Where the item is filed.</summary>
+    [Parameter, EditorRequired]
+    public PlacementDto Placement { get; set; } = default!;
+
+    /// <summary>The <c>data-testid</c> of the path.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+}
