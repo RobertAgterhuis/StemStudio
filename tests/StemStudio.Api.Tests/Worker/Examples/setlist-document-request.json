@@ -1,0 +1,58 @@
+{
+  "title": "Band night",
+  "note": "Bring the capo.",
+  "generatedAt": "2026-11-16T18:00:00Z",
+  "options": {
+    "includeLyrics": true,
+    "includeSections": true,
+    "includeNotes": true,
+    "pageBreakPerSong": true
+  },
+  "songs": [
+    {
+      "position": 1,
+      "title": "Morning Light",
+      "artist": "The Examples",
+      "bpm": 120,
+      "beatsPerBar": 4,
+      "key": "A minor",
+      "durationSeconds": 222,
+      "mixName": "Band night",
+      "note": "Start soft.",
+      "sections": [
+        {
+          "label": "Intro",
+          "kind": "intro",
+          "startSeconds": 0
+        },
+        {
+          "label": "Verse 1",
+          "kind": "verse",
+          "startSeconds": 12
+        }
+      ],
+      "lyrics": {
+        "lines": [
+          "First line of the verse",
+          "Second line",
+          "",
+          "Chorus line"
+        ],
+        "shortened": false
+      }
+    },
+    {
+      "position": 2,
+      "title": "Encore",
+      "artist": null,
+      "bpm": null,
+      "beatsPerBar": null,
+      "key": null,
+      "durationSeconds": 185.5,
+      "mixName": null,
+      "note": null,
+      "sections": [],
+      "lyrics": null
+    }
+  ]
+}

@@ -63,7 +63,7 @@ public sealed partial class LibraryCareContractTests
     [Fact]
     public void Backend_IsLabelled1120AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Backend013.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.12.0");
         Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0"]);
@@ -73,7 +73,7 @@ public sealed partial class LibraryCareContractTests
     [MemberData(nameof(Changed1110Entries))]
     public void Backend1120_Contains1110UnchangedExceptTheGateAndDetailPhase(string section, string[] changed)
     {
-        ChangedEntries(Backend012, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend012, Backend013, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Theory]
@@ -83,13 +83,13 @@ public sealed partial class LibraryCareContractTests
         var shared = SharedComponents.Where(c => section.EndsWith(c.Split('/')[0], StringComparison.Ordinal)).Select(c => c.Split('/')[1]);
         var present = section.Split('/').Aggregate((JsonNode?)Backend013Delta.Root, (node, part) => node?[part]) is not null;
 
-        (present ? ChangedEntries(Backend013Delta, OpenApiContract.Backend, section).Except(shared) : []).ShouldBeEmpty();
+        (present ? ChangedEntries(Backend013Delta, Backend013, section).Except(shared) : []).ShouldBeEmpty();
     }
 
     [Fact]
     public void Backend1120_AddsTheEighteenLibraryCareOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend012.Operations.Select(Id)).ToList();
+        var added = Backend013.Operations.Select(Id).Except(Backend012.Operations.Select(Id)).ToList();
 
         added.ShouldBe(Backend013Delta.Operations.Select(Id), ignoreOrder: true);
         added.Count.ShouldBe(18);
@@ -101,7 +101,7 @@ public sealed partial class LibraryCareContractTests
         foreach (var (path, method) in GatedOperations)
         {
             var before = Operation(Backend012, path, method);
-            var after = Operation(OpenApiContract.Backend, path, method).DeepClone().AsObject();
+            var after = Operation(Backend013, path, method).DeepClone().AsObject();
 
             after["x-stemstudio-write-gate"]!.GetValue<string>().ShouldBe("backupRunning", path);
             Codes(after).ShouldContain("409", path);

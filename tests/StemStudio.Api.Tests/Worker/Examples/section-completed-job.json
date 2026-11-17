@@ -1,0 +1,62 @@
+{
+  "jobId": "0123456789abcdef0123456789abcdef",
+  "status": "completed",
+  "progress": 1,
+  "error": null,
+  "createdAt": "2026-11-16T10:11:50Z",
+  "result": {
+    "analyzer": {
+      "name": "stems-novelty",
+      "version": "1.0.0"
+    },
+    "snap": "downbeat",
+    "warnings": [],
+    "sections": [
+      {
+        "kind": "intro",
+        "label": "Intro",
+        "startSeconds": 0,
+        "endSeconds": 8.1,
+        "cluster": "A",
+        "instrument": null,
+        "confidence": 0.82
+      },
+      {
+        "kind": "verse",
+        "label": "Verse",
+        "startSeconds": 8.1,
+        "endSeconds": 24.1,
+        "cluster": "B",
+        "instrument": null,
+        "confidence": 0.74
+      },
+      {
+        "kind": "chorus",
+        "label": "Chorus",
+        "startSeconds": 24.1,
+        "endSeconds": 40.1,
+        "cluster": "C",
+        "instrument": null,
+        "confidence": 0.79
+      },
+      {
+        "kind": "solo",
+        "label": "Electric guitar solo",
+        "startSeconds": 40.1,
+        "endSeconds": 56.1,
+        "cluster": "D",
+        "instrument": "guitar.electric-guitar",
+        "confidence": 0.66
+      },
+      {
+        "kind": "outro",
+        "label": "Outro",
+        "startSeconds": 56.1,
+        "endSeconds": 64,
+        "cluster": "A",
+        "instrument": null,
+        "confidence": 0.71
+      }
+    ]
+  }
+}

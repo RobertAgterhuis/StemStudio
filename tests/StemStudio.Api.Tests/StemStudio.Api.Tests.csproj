@@ -24,12 +24,20 @@
          documents and the 009 generator document are linked as well so tests can prove they are subsets. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the worker document is 013's 1.7.0 (1.6.0 + storage, cleanup, rehydrate). -->
-    <None Include="..\..\specs\013-library-care\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 014 Phase 0 part 2 (T003/T005, agreed one-time edit): the worker document is 014's 1.8.0 (1.7.0 + the practice lane);
+         013's 1.7.0 stays linked as Contract/013. -->
+    <None Include="..\..\specs\014-practice-flow\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\worker-api.openapi.yaml" Link="Contract\013\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 012 Phase 0 (T004, agreed one-time edit): the current full backend document is 012's 1.11.0 (= 1.21.0 + 012);
          the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
     <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the current full backend document is 013's 1.12.0 (= 1.11.0 + 013);
          012's 1.11.0 stays linked as Contract/012 so PracticeContractTests and LibraryCareContractTests prove both merges. -->
-    <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 014 Phase 0 part 2 (T003/T005, agreed one-time edit): the current full backend document is 014's 1.13.0 (= 1.12.0 + 014);
+         013's 1.12.0 stays linked as Contract/013 so LibraryCareContractTests and PracticeFlowContractTests prove both merges. -->
+    <None Include="..\..\specs\014-practice-flow\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\013\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\practice-api.openapi.yaml" Link="Contract\014\practice-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\worker-practice.openapi.yaml" Link="Contract\014\worker-practice.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.delta.openapi.yaml" Link="Contract\013\backend-api.delta.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\ui-test-ids.md" Link="Contract\013\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />

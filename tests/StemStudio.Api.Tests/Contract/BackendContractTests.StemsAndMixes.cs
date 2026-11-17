@@ -110,7 +110,7 @@ public sealed partial class BackendContractTests
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
             .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations)
-            .Except(PendingLibraryCareOperations).ToList();
+            .Except(PendingLibraryCareOperations).Except(PendingPracticeFlowOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
@@ -146,6 +146,35 @@ public sealed partial class BackendContractTests
     // library, revert, discard), T055 (getStorageOverview), T059 (previewCleanup, executeCleanup).
     private static readonly string[] PendingLibraryCareOperations =
     [
+    ];
+
+    // Feature 014 (backend 1.13.0, staged in the 014 Phase 0 part 2, T003): the backend removes each id when it serves it -
+    // T055 (getSections, detectSections), T071 (replaceSections), T079 (listTrackScores, getScoreView, createScoreView,
+    // getScoreViewPage), T089 (setlist CRUD, replaceSetlistEntries), T091 (getSetlistPdf), T097 (practice log).
+    private static readonly string[] PendingPracticeFlowOperations =
+    [
+        "getSections",
+        "replaceSections",
+        "detectSections",
+        "listTrackScores",
+        "getScoreView",
+        "createScoreView",
+        "getScoreViewPage",
+        "listSetlists",
+        "createSetlist",
+        "getSetlist",
+        "updateSetlist",
+        "deleteSetlist",
+        "replaceSetlistEntries",
+        "getSetlistPdf",
+        "getPracticeLogSettings",
+        "updatePracticeLogSettings",
+        "listPracticeSessions",
+        "deletePracticeSessions",
+        "upsertPracticeSession",
+        "deletePracticeSession",
+        "getPracticeSummary",
+        "getPracticeOverview",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>

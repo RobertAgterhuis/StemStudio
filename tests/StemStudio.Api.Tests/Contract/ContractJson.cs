@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012 and 013).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012, 013 and 014).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -25,6 +25,14 @@ internal static class ContractJson
     private static readonly Lazy<OpenApiContract> LazyBackend1210 = new(() => Backend("011-claude-key"));
 
     private static readonly Lazy<OpenApiContract> LazyBackend012 = new(() => Backend("012"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend013 = new(() => Backend("013"));
+
+    private static readonly Lazy<OpenApiContract> LazyWorker013 =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "013", "worker-api.openapi.yaml")));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend014Delta =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "014", "practice-api.openapi.yaml")));
 
     private static readonly Lazy<OpenApiContract> LazyBackend013Delta =
         new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "013", "backend-api.delta.openapi.yaml")));
@@ -63,6 +71,15 @@ internal static class ContractJson
 
     /// <summary>The standalone 013 delta (1.12.0-delta.1), linked as <c>Contract/013/backend-api.delta.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend013Delta => LazyBackend013Delta.Value;
+
+    /// <summary>The 013 backend document (1.12.0), linked as <c>Contract/013/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend013 => LazyBackend013.Value;
+
+    /// <summary>The 013 worker document (1.7.0), linked as <c>Contract/013/worker-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Worker013 => LazyWorker013.Value;
+
+    /// <summary>The standalone 014 backend delta (1.13.0-delta.2), linked as <c>Contract/014/practice-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend014Delta => LazyBackend014Delta.Value;
 
     /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
     public static OpenApiContract GeneratorContract => LazyGenerator.Value;
