@@ -25,6 +25,7 @@ import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
+import { InstrumentViews } from './views/instrument-views';
 import { pendingView } from './views/pending';
 import type {
   AudioEngine,
@@ -185,6 +186,7 @@ export class Engine implements AudioEngine {
   private readonly practice: PracticeController;
   private readonly practiceNotifier: PracticeNotifier;
   private readonly recording: Recording;
+  private readonly views: InstrumentViews;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -197,6 +199,7 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
+    this.views = new InstrumentViews({ context: this.parts.context, transport: this.parts.transport, loop: this.parts.frames, grid: () => this.grid });
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
     this.recording = this.createRecording(ref, options);
@@ -297,6 +300,7 @@ export class Engine implements AudioEngine {
     this.parts.passes.onLoopChanged();
     this.parts.karaoke.redraw();
     this.parts.score.redraw();
+    this.views.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -455,13 +459,13 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.attachChordLane} */
   public attachChordLane(elementId: string, chart: ChordChartData, options?: ChordLaneOptions): void {
     this.alive();
-    return pendingView('attachChordLane', elementId, chart, options);
+    this.views.attachChordLane(elementId, chart, options);
   }
 
   /** {@inheritDoc AudioEngine.detachChordLane} */
   public detachChordLane(): void {
     this.alive();
-    return pendingView('detachChordLane');
+    this.views.detachChordLane();
   }
 
   /** {@inheritDoc AudioEngine.setKaraokeChords} */
@@ -538,6 +542,7 @@ export class Engine implements AudioEngine {
     });
     karaoke.detach();
     this.parts.score.detach();
+    this.views.dispose();
     [frames, metronome, this.practice, this.practiceNotifier, this.recording].forEach((part) => {
       part.dispose();
     });
@@ -549,6 +554,7 @@ export class Engine implements AudioEngine {
     const factory = options.timeStretchFactory ?? createWorkletStageFactory({ ...options.timeStretch, fetch: this.fetchFn });
     const changed = (): void => {
       this.practiceNotifier.changed();
+      this.views.setTranspose(this.practice.status().transposeSemitones);
     };
     const startDelay = options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS;
     const tempoSource = (): TempoSource => ({ grid: this.grid, metronome: this.metronome });

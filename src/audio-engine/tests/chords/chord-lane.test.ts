@@ -230,6 +230,7 @@ describe('chord lane validation', () => {
     ['fractional root', { ...ok, segments: [{ ...seg, root: 1.5 }] }, 'Invalid chord chart: root outside 0..11'],
     ['bass', { ...ok, segments: [{ ...seg, bass: -1 }] }, 'Invalid chord chart: bass outside 0..11'],
     ['quality', { ...ok, segments: [{ ...seg, quality: 'maj9' }] }, 'Invalid chord chart: unknown quality maj9'],
+    ['no chord with a quality', { ...ok, segments: [{ ...seg, root: null }] }, 'Invalid chord chart: unknown quality maj'],
     ['root without quality', { ...ok, segments: [{ ...seg, quality: null }] }, 'Invalid chord chart: unknown quality null'],
     ['key tonic', { ...ok, keyTonic: 13 }, 'Invalid chord chart: key tonic outside 0..11'],
     ['region tonic', { ...ok, keyRegions: [{ startMs: 0, endMs: 10, tonic: 12, mode: 'major' }] }, 'Invalid chord chart: key tonic outside 0..11'],

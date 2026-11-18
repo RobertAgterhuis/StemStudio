@@ -3,7 +3,6 @@ import {
   ENGINE_CONTRACT_VERSION,
   createEngine,
   type AudioEngine,
-  type ChordChartData,
   type DotNetCallbacks,
   type PitchContour,
 } from '../../src/index';
@@ -18,7 +17,6 @@ function engine(): AudioEngine {
   return createEngine(new FakeDotNetRef(), { audioContextFactory: () => ctx.asAudioContext(), pitchWorkletUrl: '/p.js' });
 }
 
-const chart: ChordChartData = { segments: [{ startMs: 0, endMs: 1000, root: 0, quality: 'maj', bass: null }], keyTonic: 0, keyMode: 'major' };
 const reference: PitchContour = { hopMs: 10, frames: [6900] };
 const units = [{ index: 0, startMs: 0, endMs: 1000 }];
 
@@ -31,8 +29,6 @@ describe('instrument views contract 2.6.0', () => {
   });
 
   it.each([
-    ['attachChordLane', (e: AudioEngine) => { e.attachChordLane('lane', chart, { barsAhead: 4 }); }],
-    ['detachChordLane', (e: AudioEngine) => { e.detachChordLane(); }],
     ['setKaraokeChords', (e: AudioEngine) => { e.setKaraokeChords(null); }],
     ['setChordDisplay', (e: AudioEngine) => { e.setChordDisplay({ capo: 3, showSounding: true }); }],
     ['attachHitLanes', (e: AudioEngine) => { e.attachHitLanes('lanes', [{ timeMs: 0, piece: 'kick', strength: 1 }]); }],

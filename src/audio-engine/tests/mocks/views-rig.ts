@@ -60,11 +60,15 @@ const CYCLE: readonly [number, ChordQuality, number | null][] = [
   [7, '7', 11],
 ];
 
+function cycleEntry(index: number): readonly [number, ChordQuality, number | null] {
+  return CYCLE[index % CYCLE.length] ?? [0, 'maj', null];
+}
+
 /** `N.C.` 0-1000, then C, Am, F, G7/B repeating every 2 s up to 59 s, `N.C.` to 60 s (31 segments). */
 export function cycleChart(keyTonic: number | null = 0): ChordChartData {
   const segments: ChordSymbolEvent[] = [{ startMs: 0, endMs: 1000, root: null, quality: null, bass: null }];
   for (let start = 1000; start < 59_000; start += 2000) {
-    const [root, quality, bass] = CYCLE[segments.length % 4 === 0 ? 3 : (segments.length % 4) - 1] ?? CYCLE[0];
+    const [root, quality, bass] = cycleEntry(segments.length - 1);
     segments.push({ startMs: start, endMs: start + 2000, root, quality, bass });
   }
   segments.push({ startMs: 59_000, endMs: 60_000, root: null, quality: null, bass: null });
