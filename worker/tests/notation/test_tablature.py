@@ -1,4 +1,4 @@
-"""Tablature: string/fret assignment and the TAB staff in MusicXML (016 T023, data-model 4.5, SC-002)."""
+"""Tablature: strings, frets and the TAB staff in MusicXML (016 T023, data-model 4.5, SC-002)."""
 
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
@@ -7,6 +7,7 @@ from typing import get_args
 import pytest
 
 from stemstudio_worker.notation.notator import MusicNotator
+from stemstudio_worker.notation.tab_staff import TabResult, add_tab_staff
 from stemstudio_worker.notation.tablature import ViterbiTabFingerer
 from stemstudio_worker.ports import TUNINGS, NotationSettings, NoteEvent, TabAssignment, Tuning
 from stemstudio_worker.schemas import (
@@ -156,7 +157,7 @@ GOLDEN: list[tuple[list[list[int]], list[list[tuple[int, int]]]]] = [
             [(1, 0)],
             [(1, 3)],
         ],
-    ),  # fmt: skip
+    ),
     (  # bass line E-A-D-G, open strings and fifth frets
         [[28], [33], [35], [38], [40], [43]],
         [[(4, 0)], [(3, 0)], [(3, 2)], [(2, 0)], [(2, 2)], [(1, 0)]],
@@ -201,13 +202,14 @@ def _riff(pitches: Sequence[int]) -> list[NoteEvent]:
 
 
 RIFF = [38, 45, 50, 53, 55, 57, 62, 64, 38, 50, 57, 62]
+STANDARD_RIFF = [p for p in RIFF if p >= 40]
 
 
 def _xml(
     profile: ScoreProfile, tab: TablatureSettings | None, notes: Sequence[NoteEvent]
 ) -> ET.Element:
     document = MusicNotator().notate(notes, _settings(profile, tab))
-    return ET.fromstring(document.musicxml)
+    return ET.fromstring(document.musicxml)  # noqa: S314 - our own notator output
 
 
 def _midi_of(element: ET.Element) -> int:
@@ -253,10 +255,10 @@ def test_every_tab_note_has_a_string_and_fret_that_sound_its_pitch(layout: TabLa
 
 
 def test_notation_and_tab_keeps_the_notation_staff_without_technical_marks() -> None:
-    root = _xml("guitar", TablatureSettings(tuning="guitar-standard"), _riff(RIFF[1:]))
+    root = _xml("guitar", TablatureSettings(tuning="guitar-standard"), _riff(STANDARD_RIFF))
     assert root.findtext(".//attributes/staves") == "2"
     notation = _tab_notes(root, "1")
-    assert len(notation) == len(RIFF) - 1
+    assert len(notation) == len(STANDARD_RIFF)
     assert all(n.find("notations/technical") is None for n in notation)
 
 
@@ -292,16 +294,15 @@ def test_tied_notes_keep_their_string_and_fret() -> None:
 
 
 def test_tablature_summary_reports_the_counts() -> None:
-    notes = _riff([30, 52, 55]) + [note(2.0, 2.5, p) for p in (40, 45, 50, 55, 59, 64, 67)]
-    document = MusicNotator().notate(
-        notes, _settings("guitar", TablatureSettings(tuning="guitar-standard"))
-    )
+    notes = _riff([41, 52, 55]) + [note(2.0, 2.5, p) for p in (45, 50, 55, 59, 64, 67, 71)]
+    tab = TablatureSettings(tuning="guitar-standard", capo=2)
+    document = MusicNotator().notate(notes, _settings("guitar", tab))
     summary = document.tablature
     assert summary is not None
     assert (summary.tuning, summary.strings, summary.capo, summary.layout) == (
         "guitar-standard",
         6,
-        0,
+        2,
         "notation-and-tab",
     )
     assert (summary.octave_moved, summary.notes_dropped) == (1, 1)
@@ -310,8 +311,14 @@ def test_tablature_summary_reports_the_counts() -> None:
     assert "tab-notes-dropped" in codes
 
 
+def test_notes_of_a_lower_tuning_survive_the_profile_range() -> None:
+    root = _xml("bass", TablatureSettings(tuning="bass-5-standard"), _riff([23, 26, 28]))
+    pitches = [_midi_of(n) for n in _tab_notes(root, "2")]
+    assert pitches == [23, 26, 28]
+
+
 def test_midi_is_the_same_with_and_without_tablature() -> None:
-    notes = _riff(RIFF)
+    notes = _riff(STANDARD_RIFF)
     plain = MusicNotator().notate(notes, _settings("guitar", None))
     tabbed = MusicNotator().notate(
         notes, _settings("guitar", TablatureSettings(tuning="guitar-drop-d"))
@@ -323,3 +330,66 @@ def test_midi_is_the_same_with_and_without_tablature() -> None:
 def test_without_tablature_the_musicxml_has_no_tab_staff() -> None:
     root = _xml("guitar", None, _riff(RIFF))
     assert "TAB" not in [c.findtext("sign") for c in root.iter("clef")]
+
+
+def test_unisons_that_cannot_all_be_played_are_dropped() -> None:
+    result = _assign([[88, 88, 88]])
+    assert result.positions == (((1, 24),),)
+    assert result.notes_dropped == 2
+
+
+def test_an_empty_event_gets_no_position() -> None:
+    assert _assign([[], [52]]).positions == ((), ((4, 2),))
+
+
+def test_tunings_with_flats_write_the_tuning_alter() -> None:
+    tab = TablatureSettings(tuning="guitar-half-step-down", layout="tab-only")
+    root = _xml("guitar", tab, _riff([39, 44, 49]))
+    first = root.find(".//staff-details/staff-tuning")
+    assert first is not None
+    assert (first.findtext("tuning-step"), first.findtext("tuning-alter")) == ("D", "1")
+
+
+CLEF = "<attributes><divisions>1</divisions><clef><sign>G</sign><line>2</line></clef></attributes>"
+
+
+def _crafted(body: str, attributes: str = CLEF) -> bytes:
+    head = '<score-partwise><part id="P1"><measure number="1">'
+    return (head + attributes + body + "</measure></part></score-partwise>").encode()
+
+
+def _pitch(step: str, octave: int, voice: int = 1) -> str:
+    return (
+        f"<note><pitch><step>{step}</step><octave>{octave}</octave></pitch>"
+        f"<duration>2</duration><voice>{voice}</voice><type>half</type><stem>up</stem></note>"
+    )
+
+
+def _parse(data: bytes) -> ET.Element:
+    return ET.fromstring(data)  # noqa: S314 - written in this test
+
+
+def test_two_voice_measures_back_up_over_the_whole_measure() -> None:
+    body = _pitch("E", 3) + _pitch("A", 3) + "<backup><duration>4</duration></backup>"
+    body += "<forward><duration>2</duration><voice>2</voice></forward>" + _pitch("D", 4, 2)
+    settings = TablatureSettings(tuning="guitar-standard")
+    measure = _parse(add_tab_staff(_crafted(body), settings, ViterbiTabFingerer()).musicxml)[0][0]
+    assert [b.findtext("duration") for b in measure.findall("backup")] == ["4", "4", "4"]
+    tab = [n for n in measure.findall("note") if n.findtext("staff") == "2"]
+    assert [n.findtext("voice") for n in tab] == ["5", "5", "6"]
+    assert all(n.find("stem") is None for n in tab)
+    assert len([f for f in measure.findall("forward") if f.findtext("staff") == "2"]) == 1
+
+
+def test_a_document_without_a_part_is_returned_unchanged() -> None:
+    document = b"<score-partwise/>"
+    settings = TablatureSettings(tuning="guitar-standard")
+    assert add_tab_staff(document, settings, ViterbiTabFingerer()) == TabResult(document, 0)
+
+
+def test_a_part_without_a_clef_gets_frets_but_no_tab_attributes() -> None:
+    settings = TablatureSettings(tuning="guitar-standard", layout="tab-only", capo=1)
+    result = add_tab_staff(_crafted(_pitch("E", 3), ""), settings, ViterbiTabFingerer())
+    root = _parse(result.musicxml)
+    assert root.find(".//staff-details") is None
+    assert root.findtext(".//technical/string") == "4"
