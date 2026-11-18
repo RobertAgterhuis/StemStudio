@@ -39,6 +39,21 @@ public sealed class PracticePresetsTests
     }
 
     [Fact]
+    public void PlayAlongDrums_MutesTheWholeFamily_IncludingCollapsedDetailChannels()
+    {
+        var state = new MixerState(TestData.DetailTrack());
+        state.ToggleSolo("vocals.lead");
+
+        var result = PracticePresets.Get("play-along-drums").Apply(state);
+
+        state.AllChannels.Where(c => c.Mute).Select(c => c.Stem).ShouldBe([StemNames.Drums, "drums.kick", "drums.snare", "drums.rest"]);
+        state.AllChannels.ShouldAllBe(c => !c.Solo);
+        result.Channels.Select(c => c.Stem).ShouldBe(state.AllChannels.Select(c => c.Stem));
+        state.SetExpanded(StemNames.Drums, true);
+        state.AllChannels.Where(c => c.Stem.StartsWith("drums", StringComparison.Ordinal)).ShouldAllBe(c => !state.IsAudible(c));
+    }
+
+    [Fact]
     public void PlayAlongBass_LeavesTheClickAlone()
     {
         _state.SetMetronome(_state.Metronome with { Enabled = false });
