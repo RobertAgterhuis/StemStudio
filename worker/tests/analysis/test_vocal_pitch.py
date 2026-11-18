@@ -1,4 +1,4 @@
-"""Reference melody from the vocal stem: pYIN / YIN, packing, warnings (016 T021, data-model 3.1)."""
+"""Reference melody of the vocal stem: pYIN / YIN, packing, warnings (016 T021, data-model 3.1)."""
 
 import time
 
@@ -53,7 +53,7 @@ def _analyze(
 
 
 def _cents(hz: float) -> float:
-    return 6900 + 1200 * np.log2(hz / 440.0)
+    return 6900 + 1200 * float(np.log2(hz / 440.0))
 
 
 @pytest.mark.parametrize("engine", ["pyin", "yin"])
@@ -112,7 +112,7 @@ def test_a_silent_stem_raises_no_melody(engine: str, seconds: float) -> None:
 
 
 def test_a_stem_without_any_voiced_frame_raises_no_melody() -> None:
-    noise = np.random.default_rng(5).uniform(-0.001, 0.001, 2 * SR).astype(np.float32)
+    noise = np.random.default_rng(5).uniform(-0.003, 0.003, 2 * SR).astype(np.float32)
     with pytest.raises(NoMelodyError):
         _analyze(noise, "yin")
 
