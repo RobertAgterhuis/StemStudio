@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, get_args
 
 import pytest
-from stemstudio_worker.harmony import labels
 
+from stemstudio_worker.harmony import labels
 from stemstudio_worker.schemas import ChordQuality
 
 QUALITIES: tuple[ChordQuality, ...] = get_args(ChordQuality)

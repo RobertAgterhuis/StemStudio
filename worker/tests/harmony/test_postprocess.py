@@ -5,8 +5,8 @@ import itertools
 import numpy as np
 import numpy.typing as npt
 import pytest
-from stemstudio_worker.harmony.postprocess import BeatSnapPostProcessor
 
+from stemstudio_worker.harmony.postprocess import BeatSnapPostProcessor
 from stemstudio_worker.ports import CHORD_SAMPLE_RATE, ChordFrames, PostProcessOptions
 from stemstudio_worker.schemas import ChordChart
 
@@ -172,9 +172,27 @@ def test_full_request_on_btc_stays_full() -> None:
     assert chart.engine == "btc"
 
 
+def _alternating_per_beat(grid_beats: list[float]) -> ChordFrames:
+    base = frames_of([("C:maj", grid_beats[-1])])
+    fs = base.frame_seconds
+    posteriors = base.posteriors.copy()
+    for k, (a, b) in enumerate(itertools.pairwise(grid_beats)):
+        rows = slice(round(a / fs), round(b / fs))
+        posteriors[rows] = base.posteriors[0][::-1] if k % 2 else base.posteriors[0]
+    return ChordFrames(posteriors, base.labels, fs, base.chroma, "btc")
+
+
 def test_segment_count_is_capped_at_4000() -> None:
-    frames = frames_of([("C:maj", 0.2), ("G:maj", 0.2)] * 2300)
-    grid = grid_of(300, 920.0, first=0.0)
+    grid = grid_of(300, 850.0, first=0.0)
+    frames = _alternating_per_beat(grid.beats)
     chart = _run(frames, PostProcessOptions(grid=grid, vocabulary="simple"))
-    assert len(chart.segments) <= 4000
+    assert len(chart.segments) == 4000
     _assert_covers(chart, frames)
+
+
+def test_a_beat_inside_the_first_frame_is_dropped() -> None:
+    frames = frames_of([("C:maj", 2.0)])
+    chart = _run(
+        frames, PostProcessOptions(grid=grid_of(120, 2.0, first=0.04), vocabulary="simple")
+    )
+    assert [(s.start_ms, s.label) for s in chart.segments] == [(0, "C:maj")]

@@ -3,8 +3,8 @@
 from collections.abc import Sequence
 
 import numpy as np
-from stemstudio_worker.harmony import labels
 
+from stemstudio_worker.harmony import labels
 from stemstudio_worker.ports import CHORD_HOP, CHORD_SAMPLE_RATE, ChordFrames
 from stemstudio_worker.schemas import BeatGridTempo, ChordEngine
 
