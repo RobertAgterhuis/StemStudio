@@ -169,7 +169,14 @@ public static class InstrumentCatalogue
 
     private static readonly Dictionary<string, int> Intervals = new(StringComparer.Ordinal)
     {
-        ["P1"] = 0, ["M2"] = 2, ["M9"] = 14, ["M6"] = 9, ["M13"] = 21, ["-m3"] = -3, ["P5"] = 7, ["P8"] = 12,
+        ["P1"] = 0,
+        ["M2"] = 2,
+        ["M9"] = 14,
+        ["M6"] = 9,
+        ["M13"] = 21,
+        ["-m3"] = -3,
+        ["P5"] = 7,
+        ["P8"] = 12,
     };
 
     /// <summary>The tunings in catalogue order.</summary>

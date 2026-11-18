@@ -253,7 +253,14 @@ public sealed class TrackAnalysesPersistenceTests
 
     private static ScoreFacts Facts() => new()
     {
-        Profile = ScoreProfile.Guitar, Engine = ScoreEngine.BasicPitch, Bpm = 120, TimeSignature = "4/4", Bars = 12, Notes = 40, Pages = 1, Resolution = ScoreResolution.Sixteenth,
+        Profile = ScoreProfile.Guitar,
+        Engine = ScoreEngine.BasicPitch,
+        Bpm = 120,
+        TimeSignature = "4/4",
+        Bars = 12,
+        Notes = 40,
+        Pages = 1,
+        Resolution = ScoreResolution.Sixteenth,
     };
 
     private static Asset Score(Guid trackId, TablatureSettings? tablature, PartSettings? part)
