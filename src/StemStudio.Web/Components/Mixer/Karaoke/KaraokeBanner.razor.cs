@@ -75,7 +75,11 @@ public sealed partial class KaraokeBanner : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    protected override Task OnAfterRenderAsync(bool firstRender) => SyncEngineAsync();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await SyncEngineAsync();
+        await SyncChordsAsync();
+    }
 
     private async Task LoadAsync()
     {

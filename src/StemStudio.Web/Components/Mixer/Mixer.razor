@@ -111,6 +111,7 @@ else
                           aria-expanded="@(ShowPracticeLog ? "true" : "false")" Click="TogglePracticeLog" data-testid="practice-log-panel-toggle"
                           data-help-id="practice-log-panel" />
         </div>
+        <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
         @if (ShowPracticeLog)
         {
             <PracticeLogPanel TrackId="Id" OnSettingsChanged="OnLogSettingsChanged" />
@@ -183,7 +184,7 @@ else
         </div>
 
         <div class="ss-mixer-dock">
-            <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" />
+            <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" Chords="BannerChords" />
             <div class="ss-countin-slot"><CountInIndicator Status="PracticeLive.CountIn" /></div>
             <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
                           OnStop="StopAsync" OnSeek="SeekAsync" />

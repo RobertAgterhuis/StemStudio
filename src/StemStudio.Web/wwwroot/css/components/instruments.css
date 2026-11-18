@@ -1,0 +1,153 @@
+/*
+ * Instrument views (feature 016): chord lane, chord sheet, chord editor, banner chords and the later family views. The
+ * engine owns the children of the lane host (.chord-lane-track > .chord-lane-item[data-state]) and writes only the
+ * track's transform; all styling is here, from 004 tokens. Every view lives in the scrolling mixer content above the
+ * fixed dock, so nothing focusable ends up under it (--ss-dock-inset, WCAG 2.4.11).
+ */
+
+.ss-chords {
+  display: grid;
+  gap: var(--ss-space-2);
+  margin-block: var(--ss-space-3);
+}
+
+.ss-chords-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+}
+
+.ss-chord-lane {
+  position: relative;
+  min-height: calc(var(--ss-target-min) + var(--ss-space-3));
+  overflow: hidden;
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+}
+
+.ss-chord-lane .chord-lane-track {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.ss-chord-lane .chord-lane-item {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding: 0 var(--ss-space-2);
+  border-left: 2px solid var(--ss-color-divider);
+  white-space: nowrap;
+  font-size: var(--ss-type-heading-size);
+  font-weight: var(--ss-type-heading-weight);
+  color: var(--ss-color-muted);
+}
+
+.ss-chord-lane .chord-lane-item[data-state="current"] {
+  border-left-color: var(--ss-color-ink);
+  color: var(--ss-color-ink);
+}
+
+.ss-chord-lane .chord-sounding,
+.ss-karaoke-host .karaoke-chord .chord-sounding {
+  margin-left: 0.25em;
+  font-size: 0.6em;
+  font-weight: var(--ss-type-body-weight);
+}
+
+/* Banner chords: the engine puts each .karaoke-chord right before its anchor word; it is raised above the word without
+   taking width, and the lines get room for it while chords are on (the dock grows by one row, dock-inset.js re-measures). */
+.ss-karaoke-host[data-chords="true"] .karaoke-line {
+  padding-top: 1.1em;
+}
+
+.ss-karaoke-host .karaoke-chord {
+  display: inline-block;
+  width: 0;
+  overflow: visible;
+  white-space: nowrap;
+  translate: 0 -1.1em;
+  font-size: 0.62em;
+  font-weight: var(--ss-type-heading-weight);
+  color: var(--ss-color-ink);
+}
+
+.ss-karaoke-host .karaoke-chord[data-state="past"] {
+  color: var(--ss-color-muted);
+}
+
+.ss-chord-sheet-card {
+  display: grid;
+  gap: var(--ss-space-2);
+  margin-block: var(--ss-space-4);
+}
+
+.ss-chord-sheet-actions {
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.ss-chord-sheet-transpose {
+  width: 5em;
+  min-height: var(--ss-target-min);
+}
+
+.ss-chord-sheet {
+  display: grid;
+  gap: var(--ss-space-2);
+  max-height: 32rem;
+  overflow: auto;
+  padding: var(--ss-space-2);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+}
+
+.ss-chord-sheet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 0;
+}
+
+.ss-chord-sheet-part {
+  display: inline-flex;
+  flex-direction: column;
+  white-space: pre;
+}
+
+.ss-chord-sheet-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-chord-sheet-chord {
+  min-height: 1.4em;
+  padding-right: var(--ss-space-1);
+  font-weight: var(--ss-type-heading-weight);
+  color: var(--ss-color-ink);
+}
+
+.ss-chord-sheet-text {
+  min-height: 1.4em;
+}
+
+/* WCAG 2.5.8: at least 24 x 24 px. */
+.ss-chord-edit {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}
+
+.ss-chord-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--ss-space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-chord-lane .chord-lane-track {
+    will-change: auto;
+  }
+}

@@ -71,6 +71,19 @@ public sealed class ChordSheetTests : PageTestContext
     }
 
     [Fact]
+    public async Task Advanced_SheetAndEditor_NameEveryControlWithItsVisibleText()
+    {
+        Api.GetChordSheetAsync(Track, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new ChordSheetDto { Transpose = 0, Capo = 0, Rows = [new() { Text = "Line", Chords = [new() { CharIndex = 0, Symbol = "C", Lead = false }] }] });
+        var sheet = RenderAt(ExperienceLevel.Advanced);
+        InstrumentViewsAccessibility.EveryControlIsNamedWithItsVisibleText(sheet.Find(".ss-chord-sheet-card"));
+
+        await sheet.Find("[data-testid=chord-edit-1]").ClickAsync(new());
+
+        InstrumentViewsAccessibility.EveryControlIsNamedWithItsVisibleText(sheet.Find("[data-testid=chord-edit-dialog]"));
+    }
+
+    [Fact]
     public async Task EditDialog_SavesTheHarteLabel_AndReloads()
     {
         Api.GetChordSheetAsync(Track, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())

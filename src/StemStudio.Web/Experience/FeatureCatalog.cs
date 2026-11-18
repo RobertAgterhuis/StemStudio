@@ -99,6 +99,12 @@ public static class FeatureCatalog
         new("recording.latency-samples", Expert, null, "recording-latency"),
         new("recording.timing-adjust", Expert, null, "recording-timing"),
         new("recording.diagnostics", Expert, null, "recording"),
+        new("chords.view", Beginner, null, "chords"),
+        new("chords.full", Advanced, null, "chords-advanced"),
+        new("chords.edit", Advanced, null, "chords-advanced"),
+        new("chords.export", Advanced, null, "chords-advanced"),
+        new("chords.engine", Expert, null, "chords-advanced"),
+        new("scores.chords", Advanced, null, "chords-advanced"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

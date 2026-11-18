@@ -60,6 +60,15 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <param name="profile">The profile, or null for none.</param>
     public void SetProfile(ScoreProfileDto? profile) => (Profile, Simplified) = (profile, profile == ScoreProfileDto.Vocals);
 
+    /// <summary>"Include chords" (016 FR-017, Advanced): the user's choice.</summary>
+    public bool IncludeChords { get; set; }
+
+    /// <summary>True for the profiles that take chord symbols above the top staff (vocals, guitar, keys, piano).</summary>
+    public bool ChordsAllowed => Profile is ScoreProfileDto.Vocals or ScoreProfileDto.Guitar or ScoreProfileDto.Keys or ScoreProfileDto.Piano;
+
+    /// <summary>True when the backend offers chords (ready chords and an allowed profile).</summary>
+    public bool ChordsAvailable => ChordsAllowed && Options.Chords?.Available == true;
+
     /// <summary>Checks the choices.</summary>
     /// <returns>A readable problem, or null.</returns>
     public string? Validate() => Profile is null ? ProfileMessage : Tempo.Validate() ?? Range.Validate();
@@ -75,6 +84,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         KeyOverride = HasKey && KeyOverride.Length > 0 ? KeyOverride : null,
         Tempo = Tempo.ToDto(),
         Range = Range.ToDto(),
+        IncludeChords = ChordsAvailable && IncludeChords,
     };
 
     private int? EstimateOf(ScoreProfileDto? profile) =>

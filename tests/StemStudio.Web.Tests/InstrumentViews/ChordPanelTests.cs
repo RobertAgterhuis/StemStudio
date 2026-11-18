@@ -45,6 +45,14 @@ public sealed class ChordPanelTests : PageTestContext
     }
 
     [Fact]
+    public void Expert_EveryControlIsNamedWithItsVisibleText()
+    {
+        Chords(InstrumentViewsData.Chords());
+
+        InstrumentViewsAccessibility.EveryControlIsNamedWithItsVisibleText(RenderAt(ExperienceLevel.Expert).Find(".ss-chords"));
+    }
+
+    [Fact]
     public void BeforeTheEngineIsReady_TheLaneIsNotAttached()
     {
         Chords(InstrumentViewsData.Chords());

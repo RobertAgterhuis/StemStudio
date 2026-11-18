@@ -1,0 +1,77 @@
+@inherits PollingComponent
+@* Chord sheet in the lyrics card of the track page (016 US1, FR-013, FR-016; ui-test-ids chord-sheet-*): chords above the lyric
+   lines, a display transpose, the ChordPro download (Advanced) and chord corrections (Advanced). It is also the text
+   alternative of the mixer's chord lane (FR-062). *@
+
+<div class="ss-chord-sheet-card">
+    <div class="ss-label-row">
+        <h3 class="ss-subheading" id="chord-sheet-heading">Chords</h3>
+        <HelpHint HelpId="chord-sheet" />
+    </div>
+    @if (Sheet is null)
+    {
+        <p class="ss-help" role="status" data-testid="chord-sheet-empty">@EmptyText</p>
+    }
+    else
+    {
+        <div class="ss-row ss-chord-sheet-actions">
+            <label class="ss-inline-label">
+                Transpose
+                <input type="number" class="ss-input ss-chord-sheet-transpose" min="@ContractLimits.MinDisplayTranspose"
+                       max="@ContractLimits.MaxDisplayTranspose" step="1" @bind:get="Transpose" @bind:set="SetTransposeAsync" @bind:event="onchange"
+                       aria-label="Transpose the chord sheet in semitones" data-testid="chord-sheet-transpose" />
+            </label>
+            @if (Sheet.Capo > 0)
+            {
+                <span class="ss-badge" data-testid="chord-sheet-capo">Capo @Sheet.Capo</span>
+            }
+            <LevelGate Feature="chords.export">
+                <a class="ss-text-button" href="@ChordProUrl" download aria-label="Download ChordPro (chord sheet as a .cho file)" data-testid="chord-sheet-download">Download ChordPro</a>
+            </LevelGate>
+        </div>
+        <div class="ss-chord-sheet" role="region" tabindex="0" aria-labelledby="chord-sheet-heading" data-testid="chord-sheet" data-help-id="chord-sheet">
+            @for (var r = 0; r < Sheet.Rows.Count; r++)
+            {
+                var row = Sheet.Rows[r];
+                var rowIndex = r;
+                <p class="ss-chord-sheet-row" data-testid="@($"chord-sheet-row-{rowIndex}")">
+                    @foreach (var part in ChordSheetLayout.Parts(row))
+                    {
+                        <span class="ss-chord-sheet-part">
+                            @if (part.Chord is { } chord)
+                            {
+                                <span class="ss-chord-sheet-head">
+                                <span class="ss-chord-sheet-chord" data-testid="@($"chord-sheet-chord-{rowIndex}-{part.ChordIndex}")">@chord.Symbol</span>
+                                @if (Segments is not null)
+                                {
+                                    var segment = Segments.ForChord(rowIndex, part.ChordIndex);
+                                    <LevelGate Feature="chords.edit">
+                                        @if (segment is { } index)
+                                        {
+                                            <button type="button" class="ss-text-button ss-chord-edit" aria-label="@($"Edit chord {chord.Symbol}")"
+                                                    @onclick="() => OpenEdit(index, chord.Symbol)" data-testid="@($"chord-edit-{index}")" data-help-id="chord-edit">
+                                                <span class="rzi" aria-hidden="true">edit</span>
+                                            </button>
+                                        }
+                                    </LevelGate>
+                                }
+                                </span>
+                            }
+                            <span class="ss-chord-sheet-text">@part.Text</span>
+                        </span>
+                    }
+                </p>
+            }
+        </div>
+    }
+    @if (Error is not null)
+    {
+        <p class="ss-error" role="alert">@Error</p>
+    }
+</div>
+
+@if (Editing is { } edit && Analysis?.Document is { } document)
+{
+    <ChordEditDialog TrackId="TrackId" SegmentIndex="edit.Index" Segment="document.Segments[edit.Index]" Symbol="@edit.Symbol"
+                     Vocabulary="document.Vocabulary" OnSaved="OnEditedAsync" OnCancel="CloseEdit" />
+}

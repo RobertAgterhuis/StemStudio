@@ -10,7 +10,7 @@ namespace StemStudio.Web.Help;
 internal static partial class TopicParser
 {
     /// <summary>Allowed areas in contract order.</summary>
-    public static readonly string[] AreaOrder = ["start", "import", "tracks", "detail", "mixer", "mixes", "glossary"];
+    public static readonly string[] AreaOrder = ["start", "import", "tracks", "detail", "mixer", "mixes", "instruments", "glossary"];
 
     private const string Fence = "---";
 
