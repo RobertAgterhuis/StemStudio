@@ -1930,6 +1930,21 @@ settings: no serious or critical violation. A keyboard-only walk (Tab/Shift+Tab,
 the WAI-ARIA widgets) reaches every command with a visible focus that is never under the fixed
 bars. The NVDA browse-mode check is manual (CTO).
 
+**T103 visual and a11y suites (FR-031, SC-006).** Seeded data in `e2e/support/practice-flow-ux.ts`
+(setlist "UX setlist" with the seeded mix and a note, the 008 score item "UX bass sheet music" of the
+detail track and its ready score view, sections of both seeded tracks, an empty practice log; found or
+reset through the API, nothing is played). `e2e/visual/practice-flow.spec.ts` (project `visual`,
+container only, fresh stack): section lane, Score panel paused in bar index 1, setlist bar, Practice log
+panel (charts masked: they name the last seven days) as element shots; setlists, setlist editor,
+Practice page (overview and sessions masked) and shortcut settings as full-page shots; light and dark,
+1280 px and 320 px, Advanced. `e2e/a11y/practice-flow.a11y.spec.ts` (project `a11y`): axe on every
+surface in both themes at Expert (setlist add and PDF dialogs included); a keyboard-only walk per new
+page that reaches the main control by Tab and activates it (New setlist, Add songs + Escape, Next song,
+the log switch twice, a shortcut capture + Escape: nothing saved); FR-031: the current score bar
+(`score-view` child in `data-state="current"`) has a border >= 2 px and `score-bar-label` reads
+"Bar n of m"; the current section has `aria-current="true"`, the text "playing now" and a border or
+inset shadow that a non-current section lacks.
+
 ### 20.4 Commands
 
 ```bash
