@@ -8,5 +8,7 @@
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Tracks\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Shared render vectors 1.1.0 (feature 015 = 007 1.0.0 + 8 take cases): gate cases for RenderPlannerTests (backend T027, T071). -->
     <None Include="..\..\specs\015-play-along-recording\contracts\render-vectors.json" Link="Rendering\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 016 Phase 0 (T004): shared chord spelling, key and capo vectors (ChordSpellingTests, KeyFormatterTests, CapoAdvisorTests). -->
+    <None Include="..\..\specs\016-instrument-views\contracts\chord-spelling-vectors.json" Link="InstrumentViews\chord-spelling-vectors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
