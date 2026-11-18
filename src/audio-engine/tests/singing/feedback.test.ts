@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PITCH_PROCESSOR_NAME } from '../../src/pitch/worklet';
 import { OVERRUN_REASON, SingingFeedback, type SingingSession, type SessionSpec } from '../../src/singing/feedback';
-import type { InputInfo, SingingFeedbackRequest, SingingState, SingingSummary, SingingUnitScore } from '../../src/types';
+import type { InputInfo, SingingFeedbackRequest, SingingState, SingingSummary } from '../../src/types';
 import { MockAudioNode } from '../mocks/audio-context';
 import { WorkletContext, type MockAudioWorkletNode } from '../mocks/worklet-node';
 
@@ -72,7 +72,7 @@ function makeRig(): Rig {
     workletUrl: '/p.js',
     positionAtMs: (time) => Math.round(time * 1000),
     playing: () => clock.playing,
-    notify: { state: (state, reason) => states.push([state, reason]), unit: (_: SingingUnitScore) => undefined },
+    notify: { state: (state, reason) => states.push([state, reason]), unit: () => undefined },
     session: (spec) => {
       const session = new FakeSession(spec);
       sessions.push(session);

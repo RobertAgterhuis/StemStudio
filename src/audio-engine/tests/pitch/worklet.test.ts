@@ -44,12 +44,14 @@ describe('pitch-tracker processor (research R-05, data-model 3.2)', () => {
     const s = scope();
     feed(s, tone(48_000, 0.5, [[220, 0.4]]));
     const posted = s.processor?.port.posted as Posted[];
+    const [first, second] = posted as [Posted, Posted];
+    const steady = posted.at(20);
     expect(posted.length).toBeGreaterThanOrEqual(45);
-    expect((posted[1]?.t ?? 0) - (posted[0]?.t ?? 0)).toBeCloseTo(0.01, 3);
+    expect(second.t - first.t).toBeCloseTo(0.01, 3);
     // first frame: window of 512 samples at 16 kHz ends at 32 ms, its centre is at 16 ms
-    expect(posted[0]?.t).toBeCloseTo(0.016, 2);
-    expect(Math.abs((posted[20]?.cents ?? 0) - centsOf(220))).toBeLessThan(20);
-    expect(posted[20]?.clarity).toBeGreaterThan(0.8);
+    expect(first.t).toBeCloseTo(0.016, 2);
+    expect(Math.abs(Number(steady?.cents) - centsOf(220))).toBeLessThan(20);
+    expect(steady?.clarity).toBeGreaterThan(0.8);
   });
 
   it('posts null cents for silence and for a missing input channel', () => {
