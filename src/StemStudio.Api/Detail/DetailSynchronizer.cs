@@ -9,15 +9,22 @@ namespace StemStudio.Api.Detail;
 /// <summary>
 /// One pass over every track with a queued or running detail phase (plan.md key flow 4): submits pending phases
 /// (<c>POST /v1/detail-jobs</c>), polls the others and applies the state. An unreachable worker keeps the state, one
-/// broken track never stops the others.
+/// broken track never stops the others. Each track is synchronised under its <see cref="DetailPhaseLocks"/> lock and
+/// skipped when its stored phase changed after the pass loaded it (a cancel in between), so a stale phase is never saved.
 /// </summary>
 /// <param name="tracks">Track repository (scoped).</param>
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Applies detail job states.</param>
 /// <param name="rehydrator">Rehydrates the worker cache on a miss (feature 013).</param>
+/// <param name="locks">Per-track locks shared with <see cref="DetailService"/>.</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class DetailSynchronizer(
-    ITrackRepository tracks, IWorkerClient worker, DetailJobApplier applier, WorkerCacheRehydrator rehydrator, ILogger<DetailSynchronizer> logger)
+    ITrackRepository tracks,
+    IWorkerClient worker,
+    DetailJobApplier applier,
+    WorkerCacheRehydrator rehydrator,
+    DetailPhaseLocks locks,
+    ILogger<DetailSynchronizer> logger)
 {
     /// <summary>Synchronises every active detail phase and saves after each track.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -25,7 +32,22 @@ public sealed partial class DetailSynchronizer(
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
         await TrackPass.RunAsync(
-            await tracks.ListDetailActiveAsync(cancellationToken), track => track.Id, track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
+            await tracks.ListDetailActiveAsync(cancellationToken), track => track.Id, track => SyncLockedAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
+    }
+
+    private Task<bool> SyncLockedAsync(Track track, CancellationToken cancellationToken) =>
+        locks.RunAsync(track.Id, () => SyncWhenCurrentAsync(track, cancellationToken), cancellationToken);
+
+    private async Task<bool> SyncWhenCurrentAsync(Track track, CancellationToken cancellationToken)
+    {
+        if (!await tracks.IsDetailPhaseCurrentAsync(track, cancellationToken))
+        {
+            LogChangedMeanwhile(logger, track.Id);
+            return false;
+        }
+
+        await SyncAsync(track, cancellationToken);
+        return true;
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
@@ -90,6 +112,9 @@ public sealed partial class DetailSynchronizer(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Track {TrackId}: processing service unreachable for the detail phase, retrying on the next tick")]
     private static partial void LogWorkerUnavailable(ILogger logger, Guid trackId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Track {TrackId}: detail phase changed since the pass started, synchronised on the next tick")]
+    private static partial void LogChangedMeanwhile(ILogger logger, Guid trackId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Track {TrackId}: detail synchronisation failed unexpectedly")]
     private static partial void LogSyncFailed(ILogger logger, Guid trackId, Exception exception);

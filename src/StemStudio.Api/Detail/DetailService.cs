@@ -13,7 +13,8 @@ namespace StemStudio.Api.Detail;
 /// <param name="worker">Worker client (cancel only; submission is done by the <see cref="DetailSynchronizer"/>).</param>
 /// <param name="files">Detail stem store.</param>
 /// <param name="clock">Clock.</param>
-public sealed class DetailService(ITrackRepository tracks, IWorkerClient worker, IDetailStemFileStore files, TimeProvider clock)
+/// <param name="locks">Per-track locks shared with the <see cref="DetailSynchronizer"/>: a start or cancel never interleaves with a sync step.</param>
+public sealed class DetailService(ITrackRepository tracks, IWorkerClient worker, IDetailStemFileStore files, TimeProvider clock, DetailPhaseLocks locks)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -21,7 +22,17 @@ public sealed class DetailService(ITrackRepository tracks, IWorkerClient worker,
     /// <param name="id">Track ID.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404 or 409.</returns>
-    public async Task<IResult> StartAsync(Guid id, CancellationToken cancellationToken)
+    public Task<IResult> StartAsync(Guid id, CancellationToken cancellationToken) =>
+        locks.RunAsync(id, () => StartLockedAsync(id, cancellationToken), cancellationToken);
+
+    /// <summary>Cancels a queued or running detail phase (in the worker first when a worker job exists).</summary>
+    /// <param name="id">Track ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200, 404, 409 or 503.</returns>
+    public Task<IResult> CancelAsync(Guid id, CancellationToken cancellationToken) =>
+        locks.RunAsync(id, () => CancelLockedAsync(id, cancellationToken), cancellationToken);
+
+    private async Task<IResult> StartLockedAsync(Guid id, CancellationToken cancellationToken)
     {
         var track = await tracks.FindAsync(id, cancellationToken);
         if (track is null)
@@ -32,11 +43,7 @@ public sealed class DetailService(ITrackRepository tracks, IWorkerClient worker,
         return StartBlocker(track) ?? await QueueAsync(track, cancellationToken);
     }
 
-    /// <summary>Cancels a queued or running detail phase (in the worker first when a worker job exists).</summary>
-    /// <param name="id">Track ID.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>200, 404, 409 or 503.</returns>
-    public async Task<IResult> CancelAsync(Guid id, CancellationToken cancellationToken)
+    private async Task<IResult> CancelLockedAsync(Guid id, CancellationToken cancellationToken)
     {
         var track = await tracks.FindAsync(id, cancellationToken);
         if (track is null)
