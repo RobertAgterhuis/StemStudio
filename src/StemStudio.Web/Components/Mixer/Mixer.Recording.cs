@@ -19,6 +19,7 @@ public sealed partial class Mixer : IRecordingHost
 {
     private RecordingSession? _recording;
     private bool _recordingResolved;
+    private TakeChannelSettingsDto? _pendingTake;
 
     [Inject]
     private IServiceProvider PageServices { get; set; } = default!;
@@ -157,9 +158,22 @@ public sealed partial class Mixer : IRecordingHost
         }
     }
 
+    // A mix opened by URL is applied before the engine has the track, and the engine refuses a take until then: the strip
+    // is restored once the engine has started (OnEngineStarted).
     partial void OnMixLoaded(MixDto mix)
     {
-        if (mix.Settings.Take is { } take && Recording is { } session)
+        _pendingTake = mix.Settings.Take;
+        if (EngineReady)
+        {
+            OnEngineStarted();
+        }
+    }
+
+    partial void OnEngineStarted()
+    {
+        var take = _pendingTake;
+        _pendingTake = null;
+        if (EngineReady && take is not null && Recording is { } session)
         {
             _ = InvokeAsync(() => RestoreTakeAsync(session, take));
         }

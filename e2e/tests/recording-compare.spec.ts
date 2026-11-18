@@ -1,6 +1,6 @@
 import type { TrackDto } from '../support/api';
 import { fakeStems, silentDb } from '../support/detail';
-import { fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs, runId } from '../support/env';
 import { requireChromium } from '../support/feature-skips';
 import { recordingLaunchOptions, takeReadyTimeoutMs } from '../support/recording';
 import { expect, test } from '../support/recording-test';
@@ -48,9 +48,11 @@ test.describe('compare take and original', { tag: '@recording' }, () => {
     await expect.poll(() => mixer.peak('bass'), { timeout: 5_000 }).toBeGreaterThan(silentDb);
     await mixer.byId('transport-pause').click();
 
-    await mixer.saveAs('With my bass take');
-    await expect.poll(async () => (await api.findMix(track.id, 'With my bass take'))?.id).toBeDefined();
-    const mix = await api.findMix(track.id, 'With my bass take');
+    // A run-unique name: a rerun against the same data volume must not hit "name taken" (the dialog then stays open).
+    const name = `With my bass take ${runId()}`;
+    await mixer.saveAs(name);
+    await expect.poll(async () => (await api.findMix(track.id, name))?.id).toBeDefined();
+    const mix = await api.findMix(track.id, name);
     await mixer.goto(track.id, mix?.id);
     await mixer.waitForReady(fakeStems);
 

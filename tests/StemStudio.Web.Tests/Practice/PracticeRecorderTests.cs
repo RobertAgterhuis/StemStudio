@@ -313,6 +313,31 @@ public sealed class PracticeRecorderTests
     }
 
     [Fact]
+    public async Task Close_WhileTheHoldFlushIsInFlight_WritesAgainAfterIt_SoALatePassIsKept()
+    {
+        // E2E practice-log scenario 2: pause, then the last loop pass arrives and the page is left while the pause's write runs.
+        var gate = new TaskCompletionSource();
+        var bodies = new List<PracticeSessionInputDto>();
+        var recorder = new PracticeRecorder(async (_, body, _) => { bodies.Add(body); await gate.Task; }, _time);
+        recorder.Begin(TrackId, null, [Intro, Verse]);
+        await recorder.OnPlaybackAsync(PlaybackState.Playing, 0);
+        _time.Advance(TimeSpan.FromSeconds(10));
+        await recorder.OnPositionAsync(10, 90);
+        var hold = recorder.OnPlaybackAsync(PlaybackState.Paused, 10);
+        recorder.OnLoopPass(new LoopPassInfo(0, 10, 1, 90), trainerOn: true, Intro.Id);
+
+        var close = recorder.CloseAsync();
+        bodies.Count.ShouldBe(1);
+        gate.SetResult();
+        await Task.WhenAll(hold, close);
+
+        bodies.Count.ShouldBe(2);
+        bodies[^1].LoopPasses.ShouldBe(1);
+        bodies[^1].Sections!.Single(s => s.SectionId == Intro.Id).TrainerReachedPercent.ShouldBe(90);
+        recorder.State.ShouldBe(PracticeRecorderState.Closed);
+    }
+
+    [Fact]
     public void Arguments_AreChecked()
     {
         Should.Throw<ArgumentNullException>(() => new PracticeRecorder(null!, _time));

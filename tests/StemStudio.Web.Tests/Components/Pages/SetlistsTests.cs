@@ -176,6 +176,32 @@ public sealed class SetlistsTests : PageTestContext
     }
 
     [Fact]
+    public async Task Editor_AMoveWhileTheNoteIsSaving_WaitsForIt_AndKeepsTheNote()
+    {
+        // E2E setlists scenarios 1-2: the note (Tab) and Move down (Enter) came in quick succession; the move was built from
+        // the entries before the note was stored and its save wiped the note.
+        var setlist = PracticeFlowData.Setlist();
+        var (first, second) = (setlist.Entries[0], setlist.Entries[1]);
+        var noted = setlist with { Entries = [first with { Note = "Start soft." }, second] };
+        var gate = new TaskCompletionSource<SetlistDto>();
+        Api.GetSetlistAsync(Id, false, Arg.Any<CancellationToken>()).Returns(setlist);
+        Api.ReplaceSetlistEntriesAsync(Id, Arg.Is<SetlistEntriesUpdateRequest>(r => r.Entries[0].Id == first.Id), Arg.Any<CancellationToken>())
+            .Returns(gate.Task);
+        Api.ReplaceSetlistEntriesAsync(Id, Arg.Is<SetlistEntriesUpdateRequest>(r => r.Entries[0].Id == second.Id), Arg.Any<CancellationToken>())
+            .Returns(noted with { Entries = [second, noted.Entries[0]] });
+        var page = RenderEditor();
+
+        var note = page.InvokeAsync(() => page.Find($"[data-testid=setlist-entry-note-{first.Id}]").Change("Start soft."));
+        var move = page.InvokeAsync(() => page.Find($"[data-testid=setlist-entry-down-{first.Id}]").Click());
+        await Task.WhenAll(note, move);
+        Api.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "ReplaceSetlistEntriesAsync").ShouldBe(1);
+        gate.SetResult(noted);
+
+        page.WaitForAssertion(() => Api.Received(1).ReplaceSetlistEntriesAsync(Id,
+            Arg.Is<SetlistEntriesUpdateRequest>(r => r.Entries[0].Id == second.Id && r.Entries[1].Note == "Start soft."), Arg.Any<CancellationToken>()));
+    }
+
+    [Fact]
     public async Task Editor_RenamesNotesAndMixes()
     {
         var setlist = PracticeFlowData.Setlist();

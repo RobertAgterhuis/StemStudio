@@ -20,6 +20,7 @@ public sealed partial class SetlistEditor
     private readonly Dictionary<Guid, Radzen.Blazor.RadzenButton> _upButtons = [];
     private readonly Dictionary<Guid, Radzen.Blazor.RadzenButton> _downButtons = [];
     private int? _dragging;
+    private Task _saving = Task.CompletedTask;
     private (Guid Entry, bool Down)? _focusAfterMove;
 
     [Inject]
@@ -61,8 +62,17 @@ public sealed partial class SetlistEditor
             ? mixes
             : entry.MixId is { } id ? [new MixSummaryDto(id, entry.TrackId, entry.TrackTitle, entry.MixName ?? "Saved mix", DateTimeOffset.MinValue)] : [];
 
-    private async Task SaveAsync(Func<Task<SetlistDto>> call)
+    // Saves run one after the other: a change made while another is saving (a note, then Move at once) is built from the
+    // setlist that save returns, so it never sends entries without the change before it.
+    private Task SaveAsync(Func<Task<SetlistDto>> call)
     {
+        _saving = AfterAsync(_saving, call);
+        return _saving;
+    }
+
+    private async Task AfterAsync(Task previous, Func<Task<SetlistDto>> call)
+    {
+        await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         try
         {
             Setlist = await call();
@@ -87,9 +97,11 @@ public sealed partial class SetlistEditor
         }
     }
 
-    private Task EntriesAsync(List<SetlistEntryInputDto>? entries) => entries is null
-        ? Task.CompletedTask
-        : SaveAsync(() => Api.ReplaceSetlistEntriesAsync(SetlistId, new SetlistEntriesUpdateRequest { Entries = entries }));
+    // The change is applied to the entries when its turn comes (see SaveAsync); null means no change, and nothing is sent.
+    private Task EntriesAsync(Func<IReadOnlyList<SetlistEntryDto>, List<SetlistEntryInputDto>?> change) =>
+        SaveAsync(() => change(Setlist!.Entries) is { } entries
+            ? Api.ReplaceSetlistEntriesAsync(SetlistId, new SetlistEntriesUpdateRequest { Entries = entries })
+            : Task.FromResult(Setlist!));
 
     private Task RenameAsync(ChangeEventArgs args) => args.Value?.ToString()?.Trim() is { Length: > 0 } name
         ? SaveAsync(() => Api.UpdateSetlistAsync(SetlistId, new SetlistUpdateRequest { Name = name }))
@@ -100,13 +112,16 @@ public sealed partial class SetlistEditor
 
     private Task AcknowledgeRemovedAsync() => SaveAsync(() => Api.GetSetlistAsync(SetlistId, acknowledgeRemoved: true));
 
-    private Task MoveAsync(int from, int to) => EntriesAsync(SetlistEntries.Move(Setlist!.Entries, from, to));
+    private Task MoveAsync(int from, int to) => EntriesAsync(entries => SetlistEntries.Move(entries, from, to));
 
     // Keyboard reorder (US5 scenario 2): the focus follows the moved song to its new place.
+    // The place is looked up when the move runs, so a move queued behind another save still moves this song by one.
     private Task MoveByButtonAsync(SetlistEntryDto entry, int from, int to)
     {
         _focusAfterMove = (entry.Id, to > from);
-        return MoveAsync(from, to);
+        return EntriesAsync(entries => entries.ToList().FindIndex(e => e.Id == entry.Id) is var at and >= 0
+            ? SetlistEntries.Move(entries, at, at + (to - from))
+            : null);
     }
 
     /// <inheritdoc />
@@ -134,12 +149,12 @@ public sealed partial class SetlistEditor
         return from is { } index ? MoveAsync(index, to) : Task.CompletedTask;
     }
 
-    private Task RemoveAsync(SetlistEntryDto entry) => EntriesAsync(SetlistEntries.Remove(Setlist!.Entries, entry.Id));
+    private Task RemoveAsync(SetlistEntryDto entry) => EntriesAsync(entries => SetlistEntries.Remove(entries, entry.Id));
 
     private Task SetNoteAsync(SetlistEntryDto entry, object? value) =>
-        EntriesAsync(SetlistEntries.Change(Setlist!.Entries, entry.Id, e => e with { Note = value?.ToString() ?? string.Empty }));
+        EntriesAsync(entries => SetlistEntries.Change(entries, entry.Id, e => e with { Note = value?.ToString() ?? string.Empty }));
 
-    private Task SetMixAsync(SetlistEntryDto entry, object? value) => EntriesAsync(SetlistEntries.Change(Setlist!.Entries, entry.Id,
+    private Task SetMixAsync(SetlistEntryDto entry, object? value) => EntriesAsync(entries => SetlistEntries.Change(entries, entry.Id,
         e => e with { MixId = Guid.TryParse(value?.ToString(), out var id) ? id : null }));
 
     private async Task LoadMixesAsync(Guid trackId)
@@ -159,7 +174,7 @@ public sealed partial class SetlistEditor
     private async Task AddAsync((Guid TrackId, Guid? MixId) choice)
     {
         Adding = false;
-        await EntriesAsync(SetlistEntries.Add(Setlist!.Entries, choice.TrackId, choice.MixId));
+        await EntriesAsync(entries => SetlistEntries.Add(entries, choice.TrackId, choice.MixId));
     }
 
     private void Play() => Navigation.NavigateTo(SetlistEntries.PlayRoute(SetlistId, 1));

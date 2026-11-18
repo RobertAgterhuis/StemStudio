@@ -69,22 +69,14 @@ export class SetlistsPage {
 
 /** The setlist bar in the mixer during play mode (ui-test-ids 1.13.0). */
 export class SetlistBar {
-  private readonly stemTracks: string[] = [];
-
   /**
-   * Play mode shows the mixer inside the play route `/setlists/{id}/play/{n}`; the track of that mixer is the one whose
-   * stems the page loads, so the bar records the track id of every stem request.
+   * Play mode shows the mixer inside the play route `/setlists/{id}/play/{n}`; the mixer names its track in
+   * `mixer-console` `data-track-id` (ui-test-ids 1.13.0). Not the stem requests: the browser may serve a song's stems
+   * from its cache, so the network does not show which mixer is on screen.
    *
    * @param page The Playwright page.
    */
-  constructor(private readonly page: Page) {
-    page.on('request', (request) => {
-      const match = /\/api\/tracks\/([0-9a-f-]{36})\/stems\//u.exec(request.url());
-      if (match?.[1] !== undefined) {
-        this.stemTracks.push(match[1]);
-      }
-    });
-  }
+  constructor(private readonly page: Page) {}
 
   /** The bar (`data-setlist-id`, `data-position`, `data-count`). */
   get bar(): Locator {
@@ -110,7 +102,8 @@ export class SetlistBar {
   async expectOn(trackId: string, songNumber: number): Promise<void> {
     await expect(this.page).toHaveURL(new RegExp(`/setlists/[0-9a-f-]{36}/play/${String(songNumber)}$`, 'u'));
     await expect(this.bar).toBeVisible();
-    await expect.poll(() => this.stemTracks.at(-1)).toBe(trackId);
+    await expect(this.page.getByTestId('mixer-console')).toHaveAttribute('data-track-id', trackId);
+    await expect(this.page.getByTestId('mixer-loading')).toHaveCount(0, { timeout: 30_000 });
   }
 
   /** Leaves play mode. */

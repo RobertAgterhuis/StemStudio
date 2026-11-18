@@ -86,7 +86,10 @@ test.describe('setlist editing and play mode (014 US5)', { tag: '@practice-flow'
     const bar = new SetlistBar(page);
     const songs = await threeSongs(api);
     const id = await buildSetlist(setlists, songs);
-    await flow.setSetlistNote(id, 'Tune down first.');
+    // The bar shows the entry note (FR-017, scenario 3), not the setlist note: song 3 gets one.
+    const [, , third] = await setlists.entryIds();
+    await fillAndCommit(setlists.byId(`setlist-entry-note-${third ?? ''}`), 'Tune down first.');
+    await expect.poll(async () => (await flow.setlist(id)).entries[2]?.note).toBe('Tune down first.');
 
     await setlists.goto();
     await setlists.byId(`setlist-play-${id}`).click();
@@ -103,14 +106,16 @@ test.describe('setlist editing and play mode (014 US5)', { tag: '@practice-flow'
     const settings = new ShortcutSettings(page);
     await settings.goto();
     await settings.usePedals('next-previous-song');
-    // Saved before the page is left: the switch and the preset show the stored preferences.
+    // Saved before the page is left: the page renders a shortcut change only after it is stored, and the "Next song" row
+    // lists the right pedal (PageDown) once the preset is in the stored preferences (the native select changes at once).
     await expect(settings.byId('pedal-mode')).toHaveAttribute('aria-checked', 'true');
     await expect(settings.byId('pedal-preset')).toHaveValue('next-previous-song');
+    await settings.expectKeys('setlist.next', 'mod+arrowright|pagedown');
     await page.goto(playing);
     await bar.expectOn(songs.tracks[1].id, 2);
     await pressOutsideFields(page, 'PageDown');
     await bar.expectOn(songs.tracks[2].id, 3);
-    await expect(bar.note).toBeAttached();
+    await expect(bar.note).toHaveText('Tune down first.');
     await bar.exit();
   });
 

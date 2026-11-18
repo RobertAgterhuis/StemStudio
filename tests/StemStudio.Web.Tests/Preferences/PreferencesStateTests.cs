@@ -95,6 +95,58 @@ public sealed class PreferencesStateTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SetShortcuts_IsSavedAtOnce_SoAReloadRightAfterTheChangeKeepsIt()
+    {
+        await _state.LoadAsync();
+        var shortcuts = UserPreferences.Default.Shortcuts with { SingleKey = false };
+
+        await _state.SetShortcutsAsync(shortcuts);
+
+        _store.Saved.Single().Shortcuts.SingleKey.ShouldBeFalse();
+        await FlushAsync();
+        _store.Saved.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task SetShortcuts_IsStoredBeforeTheChangeIsShown_SoTheShownStateIsTheSavedOne()
+    {
+        // E2E setlists scenario 3: the settings page showed the preset, the page was left, the write had not finished.
+        await _state.LoadAsync();
+        var savedWhenShown = -1;
+        _state.Changed += () => savedWhenShown = _store.Saved.Count;
+
+        await _state.SetShortcutsAsync(UserPreferences.Default.Shortcuts with { PedalMode = true });
+
+        savedWhenShown.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task SetShortcuts_WithoutStorage_KeepsTheChangeInMemoryOnly()
+    {
+        _store.Snapshot = new(UserPreferences.Default, false);
+        await _state.LoadAsync();
+
+        await _state.SetShortcutsAsync(UserPreferences.Default.Shortcuts with { SingleKey = false });
+
+        _state.Current.Shortcuts.SingleKey.ShouldBeFalse();
+        _store.Saved.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SetShortcuts_SupersedesAPendingDebouncedSave()
+    {
+        await _state.LoadAsync();
+        await _state.SetThemeAsync(ThemePreference.Light);
+
+        await _state.SetShortcutsAsync(UserPreferences.Default.Shortcuts with { SingleKey = false });
+        await FlushAsync();
+
+        var saved = _store.Saved.Single();
+        saved.Theme.ShouldBe(ThemePreference.Light);
+        saved.Shortcuts.SingleKey.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task QuickSuccessiveChanges_AreSavedOnce_WithTheLastValue()
     {
         await _state.LoadAsync();

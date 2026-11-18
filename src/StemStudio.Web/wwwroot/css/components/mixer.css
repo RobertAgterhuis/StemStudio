@@ -422,3 +422,11 @@ html:has(.ss-transport-dock) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 015 Takes panel: the fieldset only groups the take radios (no frame); min-width 0 keeps reflow at 320 px. */
+.ss-take-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}

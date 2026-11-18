@@ -97,14 +97,17 @@ test.describe('practice log (014 US6)', { tag: '@practice-flow' }, () => {
     await practice.setTrainer({ start: 80, step: 10, target: 100, passes: 1 }, true);
 
     await mixer.play();
-    await expect(practice.trainerStatus).toContainText('100', { timeout: 90_000 });
+    // data-state, not the text: the waiting text "Ready - starts at 80 % (target 100 %)" already contains "100".
+    await expect(practice.trainerStatus).toHaveAttribute('data-state', 'target', { timeout: 90_000 });
     await page.getByTestId('transport-play').click();
     await page.goto('/');
 
-    await expect.poll(async () => (await flow.practiceSummary(track.id)).tempo.length, { timeout: 15_000 }).toBeGreaterThan(0);
+    // The pause writes the session (pass 1 at 80 %) and leaving the mixer writes it again (pass 2 at 90 %): wait for the
+    // last write, not for the first tempo point.
+    const bestTempo = async (): Promise<number> => Math.max(0, ...(await flow.practiceSummary(track.id)).tempo.map((point) => point.percent));
+    await expect.poll(bestTempo, { timeout: 15_000 }).toBeGreaterThanOrEqual(90);
     const summary = await flow.practiceSummary(track.id);
     expect(summary.sections.map((total) => total.sectionId)).toContain(sectionId);
-    expect(Math.max(...summary.tempo.map((point) => point.percent))).toBeGreaterThanOrEqual(90);
   });
 
 });

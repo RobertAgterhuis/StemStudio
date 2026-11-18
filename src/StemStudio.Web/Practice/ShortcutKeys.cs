@@ -51,6 +51,8 @@ public sealed class ShortcutKeys(IWebInterop web, PreferencesState preferences)
         {
             (_owner, _scope, _registration, _applied) = (owner, scope, registration, applied);
             owner.Preferences.Changed += OnChanged;
+            // A change while the map was being registered (the stored preferences loading) raised no event for this map.
+            OnChanged();
         }
 
         public ValueTask DisposeAsync()
