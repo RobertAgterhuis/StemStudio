@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Configurations;
 
 namespace StemStudio.Persistence.Repositories;
 
@@ -36,6 +37,17 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .OrderBy(track => track.CreatedAt)
             .ToListAsync(cancellationToken);
         return withPhase.Where(track => track.IsDetailActive).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsDetailPhaseCurrentAsync(Track track, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        var stored = await context.Tracks.AsNoTracking()
+            .Where(candidate => candidate.Id == track.Id)
+            .Select(candidate => new { candidate.DetailPhase })
+            .FirstOrDefaultAsync(cancellationToken);
+        return stored is not null && DetailPhaseJson.Comparer.Equals(stored.DetailPhase, track.DetailPhase);
     }
 
     /// <inheritdoc />

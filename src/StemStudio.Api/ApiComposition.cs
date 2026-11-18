@@ -172,6 +172,7 @@ public static class ApiComposition
     private static void AddDetailServices(IServiceCollection services)
     {
         services.AddSingleton<IDetailStemFileStore, DetailStemFileStore>();
+        services.AddSingleton<DetailPhaseLocks>();
         services.AddScoped<DetailJobApplier>();
         services.AddScoped<DetailSynchronizer>();
         services.AddScoped<DetailService>();
