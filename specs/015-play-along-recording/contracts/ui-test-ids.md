@@ -1044,6 +1044,7 @@ command id of data-model 5.2 with `:` and `.` replaced by `-` (e.g. `mixer-seek-
 | Setlist editor | `setlist-pdf`, `setlist-pdf-dialog`, `setlist-pdf-lyrics`, `setlist-pdf-sections`, `setlist-pdf-notes`, `setlist-pdf-page-break`, `setlist-pdf-download`, `setlist-pdf-error` | PDF export (options: advanced, expert; beginner downloads with defaults) | all |
 | Track / mix actions | `add-to-setlist-<trackId>`, `add-to-setlist-mix-<mixId>` | "Add to setlist" | all |
 | Mixer (setlist play mode) | `setlist-bar` (attributes `data-setlist-id`, `data-position`, `data-count`), `setlist-bar-previous`, `setlist-bar-next`, `setlist-bar-note`, `setlist-bar-exit` | | all |
+| Mixer | `mixer-console` | the mixer's console (root of the page under the journey rail); attribute `data-track-id` = the track it plays. Setlist play mode specs assert the shown song with it (added in the r14 fix round, 2026-11-18) | all |
 | Shortcut overlay | `shortcut-overlay` (existing), `shortcut-group-<group>` (`transport`, `loop-sections`, `speed`, `channels`, `setlist`, `score`, `navigation`), `shortcut-row-<command>` with `data-keys` (e.g. `n|pagedown`) | all |
 | Preferences panel | `pref-single-key` (switch "Single-key shortcuts"), `pref-shortcuts-open` (opens `/settings/shortcuts`) | all |
 | Shortcut settings (`/settings/shortcuts`) | `shortcut-settings`, `shortcut-edit-<command>`, `shortcut-capture` (listening state), `shortcut-capture-cancel`, `shortcut-conflict` (reason text), `shortcut-clear-<command>`, `shortcut-reset-all` | advanced, expert |

@@ -108,6 +108,19 @@ public sealed class PreferencesStateTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SetShortcuts_IsStoredBeforeTheChangeIsShown_SoTheShownStateIsTheSavedOne()
+    {
+        // E2E setlists scenario 3: the settings page showed the preset, the page was left, the write had not finished.
+        await _state.LoadAsync();
+        var savedWhenShown = -1;
+        _state.Changed += () => savedWhenShown = _store.Saved.Count;
+
+        await _state.SetShortcutsAsync(UserPreferences.Default.Shortcuts with { PedalMode = true });
+
+        savedWhenShown.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task SetShortcuts_WithoutStorage_KeepsTheChangeInMemoryOnly()
     {
         _store.Snapshot = new(UserPreferences.Default, false);

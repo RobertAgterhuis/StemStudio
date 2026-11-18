@@ -38,6 +38,15 @@ public sealed class MixerPageTests : MixerTestContext
     }
 
     [Fact]
+    public void TheConsole_NamesItsTrack_ForSetlistPlayMode()
+    {
+        // ui-test-ids 1.13.0 mixer-console: E2E setlist play asserts the shown mixer's track, not the network (cached stems).
+        var page = RenderMixer();
+
+        page.Find("[data-testid=mixer-console]").GetAttribute("data-track-id").ShouldBe(TestData.TrackId.ToString("D"));
+    }
+
+    [Fact]
     public async Task Engine_IsLoaded_MetersAttached_AndStatePushed()
     {
         RenderMixer();
