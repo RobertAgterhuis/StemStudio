@@ -131,19 +131,13 @@ def test_clear_cadence_is_confident_without_an_alternative() -> None:
     assert key.alternative is None
 
 
-def test_relative_keys_that_fit_almost_equally_name_the_alternative() -> None:
-    chords: list[tuple[int, ChordQuality]] = [(0, "maj"), (9, "min")] * 8
+def test_a_relative_key_that_fits_almost_equally_is_the_alternative() -> None:
+    chords: list[tuple[int, ChordQuality]] = [(9, "min"), (5, "maj"), (2, "min"), (7, "maj")] * 4
     key = _estimate(chords).key
     assert key is not None
-    assert (
-        {(key.tonic, key.mode), (key.alternative.tonic, key.alternative.mode)}
-        == {
-            (0, "major"),
-            (9, "minor"),
-        }
-        if key.alternative
-        else (key.tonic, key.mode) in {(0, "major"), (9, "minor")}
-    )
+    assert key.alternative is not None
+    relative = (key.tonic + 9) % 12 if key.mode == "major" else (key.tonic + 3) % 12
+    assert (key.alternative.tonic, key.alternative.mode != key.mode) == (relative, True)
 
 
 def test_noise_without_chords_is_uncertain() -> None:
@@ -230,3 +224,19 @@ def test_estimator_parameters_are_configurable(p_stay: float) -> None:
     )
     assert key is not None
     assert (key.tonic, key.mode) == (0, "major")
+
+
+def test_a_loose_hmm_merges_a_short_excursion_back_into_its_neighbours() -> None:
+    chroma, segments = song(
+        cadence(0, "major", 12) + cadence(6, "major", 4) + cadence(0, "major", 12)
+    )
+    estimate = HmmKeyEstimator(p_stay=0.5, smooth_beats=0).estimate(chroma, segments, _grid(28))
+    assert [(r.tonic, r.mode) for r in estimate.regions] == [(0, "major")]
+    assert estimate.regions[0].end_ms == round((LEAD_S + 28 * BAR_S) * 1000)
+
+
+def test_chord_evidence_alone_finds_the_key_when_chroma_is_missing() -> None:
+    _, segments = song(cadence(2, "major", 16))
+    key = HmmKeyEstimator().estimate(np.zeros((0, 12), np.float32), segments, _grid(16)).key
+    assert key is not None
+    assert (key.tonic, key.mode) == (2, "major")
