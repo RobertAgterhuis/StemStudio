@@ -16,6 +16,12 @@ from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.detail_runner import DetailRunner
 from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
 from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.instrument_analysis_ports import (
+    InstrumentAnalysisParts,
+    unavailable_parts,
+)
+from stemstudio_worker.jobs.instrument_analysis_service import Context as AnalysisContext
+from stemstudio_worker.jobs.instrument_analysis_service import InstrumentAnalysisService
 from stemstudio_worker.jobs.lyrics_defaults import default_lyrics_parts
 from stemstudio_worker.jobs.lyrics_lane import LyricsQueues, LyricsService
 from stemstudio_worker.jobs.lyrics_runner import LyricsContext, LyricsParts, LyricsRunner
@@ -127,6 +133,7 @@ class Lanes:
         lyrics: The lyrics jobs (feature 006).
         transcription: The transcription jobs on the ``transcribe`` lane (feature 008).
         practice: The ``practice`` lane and its section, score-view and setlist jobs (014).
+        instrument_analysis: The ``instrument-analysis`` lane (chords, drum hits, melody; 016).
     """
 
     metadata: MetadataLane
@@ -138,6 +145,7 @@ class Lanes:
     lyrics: LyricsService
     transcription: TranscriptionService
     practice: PracticeServices
+    instrument_analysis: InstrumentAnalysisService
 
     @classmethod
     def start(cls, parts: "WorkerParts", wiring: LaneWiring) -> "Lanes":
@@ -149,13 +157,16 @@ class Lanes:
         render = RenderService.start(paths, render_parts.executor, clock)
         transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
         practice = _practice(parts, wiring)
+        analysis = InstrumentAnalysisService.start(
+            paths, parts.instrument_analysis, AnalysisContext(render_parts.library, clock)
+        )
         artwork = UserArtworkStore(paths, clock)
         sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep,
-                  practice.lane.sweep]  # fmt: skip
+                  practice.lane.sweep, analysis.sweep]  # fmt: skip
         sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, sweeps)
         sweeper.start()
         return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
-                   lyrics, transcription, practice)  # fmt: skip
+                   lyrics, transcription, practice, analysis)  # fmt: skip
 
     def stop(self, timeout: float) -> None:
         """Stop the sweep timer and the lane threads."""
@@ -164,6 +175,7 @@ class Lanes:
         self.render.stop(timeout)
         self.transcription.stop(timeout)
         self.practice.lane.stop(timeout)
+        self.instrument_analysis.stop(timeout)
 
 
 def _practice(parts: "WorkerParts", wiring: LaneWiring) -> PracticeServices:
@@ -190,7 +202,8 @@ class WorkerParts:
 
     ``lyrics`` defaults to stand-ins (lookups ``disabled``, alignments failing, CPU only);
     ``transcription`` None runs every transcription job into a failure; ``practice`` without
-    parts fails every practice job.
+    parts fails every practice job; ``instrument_analysis`` defaults to parts that fail every
+    analysis job (feature 016).
     """
 
     adapters: PipelineAdapters
@@ -201,6 +214,7 @@ class WorkerParts:
     lyrics: LyricsParts = field(default_factory=default_lyrics_parts)
     transcription: TranscriptionParts | None = None
     practice: PracticeParts = field(default_factory=PracticeParts)
+    instrument_analysis: InstrumentAnalysisParts = field(default_factory=unavailable_parts)
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:

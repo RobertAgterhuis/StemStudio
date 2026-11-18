@@ -146,7 +146,7 @@ def test_the_lane_is_not_blocked_by_the_transcribe_practice_or_render_lanes(
     runtime = started.client.app.state.runtime  # type: ignore[attr-defined]
     hold = Fakes().chords
     hold.gate.clear()
-    busy = [runtime.lanes.transcription._lane, runtime.lanes.render._lane,  # noqa: SLF001
+    busy = [runtime.lanes.transcription._lane, runtime.lanes.render._lane,
             runtime.lanes.practice.lane.scheduler]  # fmt: skip
     for lane in busy:
         lane.submit_call(lambda _job: hold.hold(lambda _f: None), "x")
@@ -386,7 +386,7 @@ def test_health_reports_the_engines_models_and_lane(started: Api) -> None:
 def test_the_lane_store_and_sweep_are_registered(started: Api) -> None:
     runtime = started.client.app.state.runtime  # type: ignore[attr-defined]
 
-    assert _service(started).sweep in runtime.lanes.sweeper._tasks  # noqa: SLF001
+    assert _service(started).sweep in runtime.lanes.sweeper._tasks
     assert (started.settings.data_dir / "instrument-analysis-jobs").is_dir()
 
 

@@ -50,12 +50,15 @@ def get_health(request: Request) -> JSONResponse:
 def _runtime_health(runtime: WorkerRuntime) -> dict[str, object]:
     """The ``/health`` members the running job subsystem reports."""
     lanes = runtime.lanes
+    analysis = lanes.instrument_analysis
     states = LanesHealth(render=lanes.render.health(), transcribe=lanes.transcription.lane_health(),
-                         practice=lanes.practice.lane.health())  # fmt: skip
+                         practice=lanes.practice.lane.health(),
+                         instrument_analysis=analysis.lane_health())  # fmt: skip
     return {"device_info": runtime.device, "library": lanes.library.status(), "lanes": states,
             "lyrics_alignment": lanes.lyrics.health(),
             "transcription": lanes.transcription.health(),
-            "structure": lanes.practice.parts.structure_health()}  # fmt: skip
+            "structure": lanes.practice.parts.structure_health(),
+            "instrument_analysis": analysis.health()}  # fmt: skip
 
 
 @router.post("/v1/jobs")

@@ -187,7 +187,8 @@ class FakePitch(Gate):
         self.calls.append((audio, source))
         self.hold(progress)
         return VocalPitch(frames=[0, 6900, 6950], source=source, engine="pyin",
-                          voiced_ratio=2 / 3, range=PitchRange(low_cents=6900, high_cents=6950))  # fmt: skip
+                          voiced_ratio=2 / 3,
+                          range=PitchRange(low_cents=6900, high_cents=6950))  # fmt: skip
 
 
 class FakeMixer:

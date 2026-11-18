@@ -8,9 +8,10 @@ recognizer -> post-processing -> key, or the fake chords), the 008 ``DrumTranscr
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Any, Final, Literal, Protocol
 
 from stemstudio_worker.ports import (
+    AnalysisError,
     AnalysisProgress,
     DeviceUse,
     DrumTranscriber,
@@ -96,3 +97,37 @@ class InstrumentAnalysisParts:
     def pitch_engine(self) -> PitchEngine:
         """``Health.instrumentAnalysis.pitchEngine``."""
         return self.pitch.engine
+
+
+UNAVAILABLE_TEXT: Final = "Instrument analyses are not available on this worker."
+"""Failure text of every analysis job of a worker composed without analysis parts."""
+
+
+class NoAnalysis:
+    """Every part of a worker composed without analysis parts: each job fails readably."""
+
+    engine: Final = "pyin"
+    default_engine: Final = "btc"
+
+    def models(self) -> InstrumentAnalysisModels:
+        """Nothing is cached."""
+        return InstrumentAnalysisModels()
+
+    def analyze(self, *_args: object) -> Any:
+        """Fail with ``UNAVAILABLE_TEXT`` (chords and pitch)."""
+        raise AnalysisError(UNAVAILABLE_TEXT)
+
+    def transcribe(self, *_args: object) -> Any:
+        """Fail with ``UNAVAILABLE_TEXT`` (drum hits)."""
+        raise AnalysisError(UNAVAILABLE_TEXT)
+
+    def mix(self, *_args: object) -> Any:
+        """Fail with ``UNAVAILABLE_TEXT`` (vocal stem)."""
+        raise AnalysisError(UNAVAILABLE_TEXT)
+
+
+def unavailable_parts() -> InstrumentAnalysisParts:
+    """Parts whose jobs all fail with ``UNAVAILABLE_TEXT`` (``WorkerParts`` default)."""
+    missing: Any = NoAnalysis()
+    return InstrumentAnalysisParts(chords=missing, drums=missing, drum_engine="drum-onsets",
+                                   pitch=missing, mixer=missing)  # fmt: skip

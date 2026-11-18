@@ -29,6 +29,7 @@ from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNov
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
+    instrument_analysis_routes,
     lyrics_routes,
     metadata_routes,
     practice_routes,
@@ -82,6 +83,7 @@ from stemstudio_worker.notation import create_notator
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.profiles import get_profile, resolve_resolution
 from stemstudio_worker.ports import (
+    BTC_GPU_NEED,
     WHISPER_GPU_NEED,
     Aligner,
     AnalysisError,
@@ -127,6 +129,7 @@ _ROUTERS = (
     transcription_routes.router,
     storage.router,
     practice_routes.router,
+    instrument_analysis_routes.router,
 )
 
 
@@ -150,6 +153,8 @@ class AppOverrides:
         structure_analyzer: Section analyser (default :func:`create_structure_analyzer`).
         score_view_renderer: Score views (default ``engraving.score_view``).
         setlist_renderer: Setlist PDFs (default ``documents.ReportLabSetlistRenderer``).
+        instrument_analysis: Chords, drum hits and melody parts (default
+            :func:`create_instrument_analysis_parts`, feature 016).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -166,6 +171,7 @@ class AppOverrides:
     structure_analyzer: StructureAnalyzer | None = None
     score_view_renderer: ScoreViewRenderer | None = None
     setlist_renderer: SetlistDocumentRenderer | None = None
+    instrument_analysis: InstrumentAnalysisParts | None = None
 
 
 def create_app(
@@ -267,15 +273,25 @@ class _Parts:
         pipeline = self.overrides.detail_pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
         lyrics = default_lyrics(settings, self.overrides, devices)
-        models = _GpuModels(pipeline, lyrics.aligner)
+        analysis, btc = self._analysis(settings, devices)
+        models = _GpuModels(pipeline, lyrics.aligner, btc)
         devices.reclaim_with(models.reclaim)
         hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
         scores = default_transcription(settings, self.overrides, devices, render.library)
         practice = default_practice(settings, self.overrides)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice,
+                            analysis)  # fmt: skip
         return WorkerRuntime.start_with(settings, parts)
+
+    def _analysis(
+        self, settings: WorkerSettings, devices: ManagedRunner
+    ) -> tuple[InstrumentAnalysisParts, BtcRecognizer | None]:
+        """The injected analysis parts (no BTC to release), else the configured ones (016)."""
+        if self.overrides.instrument_analysis is not None:
+            return self.overrides.instrument_analysis, None
+        return create_instrument_analysis_parts(settings, devices)
 
 
 def _pitch_range(profile: ScoreProfile) -> tuple[int, int]:
@@ -320,11 +336,12 @@ def default_practice(settings: WorkerSettings, overrides: AppOverrides) -> Pract
 
 
 class _GpuModels:
-    """The worker's cached models: the detail pipeline's (``release_gpu``) and the aligner's."""
+    """The cached models: the detail pipeline's (``release_gpu``), the aligner's and BTC's."""
 
-    def __init__(self, pipeline: object, aligner: object) -> None:
+    def __init__(self, pipeline: object, aligner: object, btc: object = None) -> None:
         self._pipeline: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
         self._aligner: Callable[[], None] | None = getattr(aligner, "release", None)
+        self._btc: Callable[[], None] | None = getattr(btc, "release", None)
 
     def reclaim(self, need: GpuNeed) -> None:
         """Release the models a step that does not fit does not need (keeps its own)."""
@@ -332,12 +349,14 @@ class _GpuModels:
             self._pipeline(keep=need)
         if self._aligner is not None and need != WHISPER_GPU_NEED:
             self._aligner()
+        if self._btc is not None and need != BTC_GPU_NEED:
+            self._btc()
 
     def idle_release(self, devices: ManagedRunner) -> Callable[[], None]:
         """Idle hook: drop every cached model, then return the GPU memory."""
 
         def release() -> None:
-            for drop in (self._pipeline, self._aligner):
+            for drop in (self._pipeline, self._aligner, self._btc):
                 if drop is not None:
                     drop()
             devices.release()

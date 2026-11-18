@@ -166,8 +166,8 @@ def test_a_fake_worker_composes_the_fake_analyses(tmp_path: Path) -> None:
 
     from stemstudio_worker.main import create_app  # noqa: PLC0415
 
-    settings = WorkerSettings(data_dir=tmp_path, separator="fake", model_dir=tmp_path / "m")
-    with TestClient(create_app(settings)) as client:
+    settings = _settings(tmp_path, chord="fake", pitch="fake", transcriber="fake")
+    with TestClient(create_app(replace(settings, separator="fake"))) as client:
         service = client.app.state.runtime.lanes.instrument_analysis  # type: ignore[attr-defined]
         parts = service.parts
 
@@ -195,3 +195,20 @@ def test_the_idle_hook_releases_the_btc_models(tmp_path: Path) -> None:
     models.idle_release(Devices())()  # type: ignore[arg-type]
 
     assert released == ["aligner", "btc", "devices"]
+
+
+def test_a_reclaim_keeps_btc_for_a_btc_step_and_drops_it_for_others() -> None:
+    from stemstudio_worker.main import _GpuModels  # noqa: PLC0415
+    from stemstudio_worker.ports import BTC_GPU_NEED, GpuNeed  # noqa: PLC0415
+
+    released: list[str] = []
+
+    class Btc:
+        def release(self) -> None:
+            released.append("btc")
+
+    models = _GpuModels(object(), object(), Btc())
+    models.reclaim(BTC_GPU_NEED)
+    models.reclaim(GpuNeed("Other", 1024))
+
+    assert released == ["btc"]
