@@ -24,6 +24,13 @@ public interface ITrackAnalysisRepository
     /// <returns>The analyses.</returns>
     Task<IReadOnlyList<TrackAnalysis>> ActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>The stored worker job of an analysis, read from the database (not from tracked entities).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <param name="kind">Kind.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job id, or null.</returns>
+    Task<string?> CurrentJobIdAsync(Guid trackId, AnalysisKind kind, CancellationToken cancellationToken);
+
     /// <summary>The statuses of the given tracks' analyses (no documents loaded).</summary>
     /// <param name="trackIds">Tracks.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -61,6 +68,11 @@ public sealed class TrackAnalysisRepository(StemStudioDbContext context) : ITrac
     /// <inheritdoc />
     public async Task<IReadOnlyList<TrackAnalysis>> ActiveAsync(CancellationToken cancellationToken) =>
         await context.TrackAnalyses.Where(analysis => Active.Contains(analysis.Status)).OrderBy(analysis => analysis.UpdatedAt).ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task<string?> CurrentJobIdAsync(Guid trackId, AnalysisKind kind, CancellationToken cancellationToken) =>
+        context.TrackAnalyses.AsNoTracking().Where(analysis => analysis.TrackId == trackId && analysis.Kind == kind)
+            .Select(analysis => analysis.JobId).FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<AnalysisStatusRow>> StatusesAsync(IReadOnlyCollection<Guid> trackIds, CancellationToken cancellationToken) =>

@@ -12,6 +12,7 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.InstrumentViews;
 using StemStudio.Api.Library;
 using StemStudio.Api.LibraryCare;
 using StemStudio.Api.LibraryCare.Gate;
@@ -67,6 +68,7 @@ public static class ApiComposition
         services.AddLyricAssist();
         services.AddPracticeFlow(builder.Configuration);
         services.AddRecording(builder.Configuration);
+        services.AddInstrumentViews(builder.Configuration);
         return builder;
     }
 
@@ -137,6 +139,7 @@ public static class ApiComposition
         app.MapLyricAssistEndpoints();
         app.MapPracticeFlowEndpoints();
         app.MapRecordingEndpoints();
+        app.MapInstrumentViewEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
