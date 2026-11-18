@@ -112,13 +112,17 @@ test.describe('section lane after import (014 US1)', { tag: '@practice-flow' }, 
   });
 
   test('detecting again with overwrite refills the lane; Try again exists only after a failure', async ({ api, mixer, page }) => {
-    const { lane, trackId } = await openWithSections(api, mixer, page);
+    const { lane, trackId, set: before } = await openWithSections(api, mixer, page);
     await expect(lane.retry).toHaveCount(0);
 
     const again = await flow.detect(trackId, true);
 
     expect(again.status()).toBe(202);
+    await expect.poll(async () => (await flow.sections(trackId)).revision, { timeout: sectionsReadyTimeoutMs }).toBeGreaterThan(before.revision);
     const set = await flow.waitForSections(trackId);
+    // The detection was started through the API, not in this page: the lane shows it after a reload.
+    await page.reload();
+    await mixer.waitForReady(fakeStems);
     await lane.waitForReady(set.sections.length, sectionsReadyTimeoutMs);
     await expect(lane.lane).toHaveAttribute('data-revision', String(set.revision));
   });

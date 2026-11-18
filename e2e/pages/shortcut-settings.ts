@@ -28,6 +28,12 @@ export class ShortcutSettings {
     await this.page.keyboard.press(key);
   }
 
+  /** Waits until the row of `command` shows `keys` (`data-keys`), i.e. the change is saved before the page is left. */
+  async expectKeys(command: string, keys: string): Promise<void> {
+    const row = this.byId(`shortcut-edit-${ShortcutSettings.idOf(command)}`).locator('xpath=ancestor::tr');
+    await expect(row).toHaveAttribute('data-keys', keys);
+  }
+
   /** Resets every shortcut. */
   async resetAll(): Promise<void> {
     await this.byId('shortcut-reset-all').click();

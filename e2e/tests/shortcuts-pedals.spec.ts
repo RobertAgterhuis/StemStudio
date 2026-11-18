@@ -154,14 +154,19 @@ test.describe('remapping, pedals and single-key off (014 US2 scenarios 3-5)', { 
     await settings.byId('shortcut-capture-cancel').click();
     await expect(settings.byId('shortcut-capture')).toHaveCount(0);
     await settings.capture('mixer.loop.toggle', 'j');
+    await settings.expectKeys('mixer.loop.toggle', 'j');
     await page.goto(back);
     await mixer.waitForReady(fakeStems);
+    // Loop on/off needs both loop points.
+    await mixer.setLoop(4, 9, false);
     await expectToggled(page, 'j', mixer.byId('loop-toggle'));
 
     await settings.goto();
     await settings.resetAll();
+    await settings.expectKeys('mixer.loop.toggle', 'l');
     await page.goto(back);
     await mixer.waitForReady(fakeStems);
+    await mixer.setLoop(4, 9, false);
     await expectToggled(page, 'l', mixer.byId('loop-toggle'));
   });
 
@@ -184,6 +189,7 @@ test.describe('remapping, pedals and single-key off (014 US2 scenarios 3-5)', { 
   });
 
   test('with single-key shortcuts off, letters do nothing and chords still work', async ({ mixer, page }) => {
+    await mixer.setLoop(4, 9, false);
     await setSingleKey(page, false);
     const loopBefore = await isOn(mixer.byId('loop-toggle'));
 

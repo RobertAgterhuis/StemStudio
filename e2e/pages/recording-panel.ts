@@ -59,6 +59,13 @@ export class RecordingPanel {
     await this.byId('rec-part-select').selectOption(part);
   }
 
+  /** Chooses the channel mode (`rec-input-mode`, Advanced); the input is opened again with it. */
+  async chooseInputMode(mode: 'mono-1' | 'mono-2' | 'stereo'): Promise<void> {
+    await this.byId('rec-input-mode').selectOption(mode);
+    await expect(this.byId('rec-input-mode')).toHaveValue(mode);
+    await expect(this.byId('meter-input')).toBeVisible();
+  }
+
   /** Chooses the count-in bars (0-2). */
   async chooseCountIn(bars: 0 | 1 | 2): Promise<void> {
     await this.byId('rec-count-in').selectOption(String(bars));

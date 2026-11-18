@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { SetlistBar, SetlistsPage } from '../pages/setlists-page';
+import { ShortcutSettings } from '../pages/shortcut-settings';
 import type { StemStudioApi, TrackDto } from '../support/api';
 import { axeViolations } from '../support/axe';
 import { fillAndCommit } from '../support/controls';
@@ -89,23 +90,26 @@ test.describe('setlist editing and play mode (014 US5)', { tag: '@practice-flow'
 
     await setlists.goto();
     await setlists.byId(`setlist-play-${id}`).click();
-    await bar.expectOn(songs.tracks[0].id);
+    await bar.expectOn(songs.tracks[0].id, 1);
     await expect(bar.bar).toHaveAttribute('data-count', '3');
     await bar.next.click();
-    await bar.expectOn(songs.tracks[1].id);
+    await bar.expectOn(songs.tracks[1].id, 2);
     await pressOutsideFields(page, 'Control+ArrowRight');
-    await bar.expectOn(songs.tracks[2].id);
+    await bar.expectOn(songs.tracks[2].id, 3);
     await pressOutsideFields(page, 'Control+ArrowLeft');
-    await bar.expectOn(songs.tracks[1].id);
+    await bar.expectOn(songs.tracks[1].id, 2);
 
     const playing = page.url();
-    await page.goto('/settings/shortcuts');
-    await page.getByTestId('pedal-mode').click();
-    await page.getByTestId('pedal-preset').selectOption('next-previous-song');
+    const settings = new ShortcutSettings(page);
+    await settings.goto();
+    await settings.usePedals('next-previous-song');
+    // Saved before the page is left: the switch and the preset show the stored preferences.
+    await expect(settings.byId('pedal-mode')).toHaveAttribute('aria-checked', 'true');
+    await expect(settings.byId('pedal-preset')).toHaveValue('next-previous-song');
     await page.goto(playing);
-    await bar.expectOn(songs.tracks[1].id);
+    await bar.expectOn(songs.tracks[1].id, 2);
     await pressOutsideFields(page, 'PageDown');
-    await bar.expectOn(songs.tracks[2].id);
+    await bar.expectOn(songs.tracks[2].id, 3);
     await expect(bar.note).toBeAttached();
     await bar.exit();
   });
@@ -143,6 +147,8 @@ test.describe('setlist PDF, removed songs and accessibility (014 US5)', { tag: '
     const id = await buildSetlist(setlists, songs);
     await setlists.add(disposable.id);
     await expect(setlists.entries).toHaveCount(4);
+    // A new import starts its detail phase (feature 002); a track with a running detail phase cannot be deleted.
+    await api.stopDetail(disposable.id, fakeJobTimeoutMs);
 
     expect(await api.deleteTrack(disposable.id)).toBe(204);
 

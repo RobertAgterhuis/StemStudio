@@ -6,6 +6,7 @@
  *
  * @packageDocumentation
  */
+import type { RecordingPanel } from '../pages/recording-panel';
 import type { TrackDto } from './api';
 import { fakeStems, silentDb } from './detail';
 import { fakeJobTimeoutMs } from './env';
@@ -64,6 +65,15 @@ function trackHooks(): () => TrackDto {
   };
 }
 
+/** Stereo for the two-channel inputs (keys, drums), the part, and no count-in. */
+async function prepareInput(recording: RecordingPanel, part: RecordingFamily['part'], channels: 1 | 2): Promise<void> {
+  if (channels === 2) {
+    await recording.chooseInputMode('stereo');
+  }
+  await recording.choosePart(part);
+  await recording.chooseCountIn(0);
+}
+
 function familyTakeCase({ family, part, input, channels }: RecordingFamily, track: () => TrackDto): void {
   test(`${family}: a 10 s take is saved as 24-bit FLAC and plays in the take strip (US1, SC-008)`, async ({
     page, mixer, recording, recordingApi, assetsApi,
@@ -73,8 +83,7 @@ function familyTakeCase({ family, part, input, channels }: RecordingFamily, trac
     await mixer.goto(track().id);
     await mixer.waitForReady(fakeStems);
     await recording.openWithInput();
-    await recording.choosePart(part);
-    await recording.chooseCountIn(0);
+    await prepareInput(recording, part, channels);
     await recording.recordFor(10);
 
     await expect(recording.strip).toBeVisible({ timeout: 2_000 });

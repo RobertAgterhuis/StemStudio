@@ -79,9 +79,9 @@ function secondOf(set: SectionSetDto): SectionDto {
   return second;
 }
 
-/** A later start for the editor's start field: the next bar with a grid, else 2 s later. */
+/** A later start for the editor's start field ("Starts at (s)", seconds with 0.1 s steps): 2 s later. */
 function laterStart(section: SectionDto): string {
-  return section.startBar === undefined ? (section.startSeconds + 2).toFixed(1) : String(section.startBar + 1);
+  return (section.startSeconds + 2).toFixed(1);
 }
 
 test.describe('section editor (014 US3)', { tag: '@practice-flow' }, () => {
@@ -97,7 +97,8 @@ test.describe('section editor (014 US3)', { tag: '@practice-flow' }, () => {
     const saved = await savedSet(trackId, set.revision + 1);
     expect(saved.origin).toBe('edited');
     expect(saved.sections).toHaveLength(set.sections.length + 1);
-    expect(nearestDistance(track.beatGrid?.downbeats ?? [], secondOf(saved).startSeconds)).toBeLessThan(0.01);
+    // Section times are kept at 0.1 s (data-model: times rounded to 0.1 s), so the snapped boundary is within 0.05 s.
+    expect(nearestDistance(track.beatGrid?.downbeats ?? [], secondOf(saved).startSeconds)).toBeLessThanOrEqual(0.05 + 1e-9);
     expect(saved.sections.map((section) => section.id)).toContain(first.id);
   });
 
@@ -122,7 +123,7 @@ test.describe('section editor (014 US3)', { tag: '@practice-flow' }, () => {
     await page.reload();
     await mixer.waitForReady(fakeStems);
 
-    await expect(lane.section(first.id)).toHaveText('Count-in');
+    await lane.expectLabel(first.id, 'Count-in');
     await expect(lane.section(first.id)).toHaveAttribute('data-kind', 'other');
     expect((await flow.sections(trackId)).sections[0]?.origin).toBe('user');
   });
@@ -172,9 +173,10 @@ test.describe('section editor conflicts and re-detection (014 US3)', { tag: '@pr
     await lane.byId('section-detect-again').click();
     await lane.byId('section-overwrite-confirm').click();
 
+    // The stored edited set stays `ready` until the new detection replaces it: wait for its revision.
+    await expect.poll(async () => (await flow.sections(trackId)).revision, { timeout: sectionsReadyTimeoutMs }).toBe(set.revision + 2);
     const detected = await flow.waitForSections(trackId);
     expect(detected.origin).toBe('detected');
-    expect(detected.revision).toBe(set.revision + 2);
     await lane.waitForReady(detected.sections.length, sectionsReadyTimeoutMs);
   });
 });
