@@ -11,8 +11,8 @@ namespace StemStudio.Api.Tests.SongSections;
 /// <summary>Feature 014 T070: <c>replaceSections</c> (FR-006, data-model 3.2).</summary>
 public sealed class ReplaceSectionsTests : ApiTestBase
 {
-    private static SectionInputDto Input(double start, double end, SectionKindDto kind = SectionKindDto.Verse, string label = "Verse", Guid? id = null, string? instrument = null) =>
-        new() { Id = id, Kind = kind, Label = label, StartSeconds = start, EndSeconds = end, Instrument = instrument };
+    private static SectionInputDto Input(double start, double end, SectionKindDto kind = SectionKindDto.Verse, string label = "Verse") =>
+        new() { Kind = kind, Label = label, StartSeconds = start, EndSeconds = end };
 
     [Fact]
     public async Task Replace_KeepsSentIds_GivesNewOnes_AndMarksTheSetEdited()
@@ -21,7 +21,7 @@ public sealed class ReplaceSectionsTests : ApiTestBase
         var stored = await Factory.SeedDetectedAsync(track.Id);
         var (intro, verse) = (stored.Sections[0], stored.Sections[1]);
 
-        using var response = await PutAsync(track.Id, 1, Input(0, 8.1, SectionKindDto.Intro, "Intro", intro.Id), Input(8.1, 30, label: "Verse A", id: verse.Id), Input(30, 64, SectionKindDto.Solo, "Bass solo", instrument: "bass"));
+        using var response = await PutAsync(track.Id, 1, Input(0, 8.1, SectionKindDto.Intro, "Intro") with { Id = intro.Id }, Input(8.1, 30, label: "Verse A") with { Id = verse.Id }, Input(30, 64, SectionKindDto.Solo, "Bass solo") with { Instrument = "bass" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         await ContractAssert.MatchesAsync(response, "replaceSections");
@@ -74,9 +74,9 @@ public sealed class ReplaceSectionsTests : ApiTestBase
         { "sections[0].endSeconds", [Input(200, 214)] },
         { "sections[0].endSeconds", [Input(5, 5.5)] },
         { "sections[1].startSeconds", [Input(0, 10), Input(9, 20)] },
-        { "sections[0].instrument", [Input(0, 10, instrument: "bass")] },
-        { "sections[0].instrument", [Input(0, 10, SectionKindDto.Solo, "Solo", instrument: "guitar.electric-guitar")] },
-        { "sections[0].id", [Input(0, 10, id: Guid.NewGuid())] },
+        { "sections[0].instrument", [Input(0, 10) with { Instrument = "bass" }] },
+        { "sections[0].instrument", [Input(0, 10, SectionKindDto.Solo, "Solo") with { Instrument = "guitar.electric-guitar" }] },
+        { "sections[0].id", [Input(0, 10) with { Id = Guid.NewGuid() }] },
     };
 
     [Theory]
@@ -118,7 +118,7 @@ public sealed class ReplaceSectionsTests : ApiTestBase
         var track = await Factory.SeedAsync(SyncTestData.DetailCompleted());
         var channel = SectionChannels.Of(track).First(id => id.Contains('.', StringComparison.Ordinal));
 
-        using var response = await PutAsync(track.Id, 0, Input(0, 10, SectionKindDto.Solo, "Solo", instrument: channel));
+        using var response = await PutAsync(track.Id, 0, Input(0, 10, SectionKindDto.Solo, "Solo") with { Instrument = channel });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }

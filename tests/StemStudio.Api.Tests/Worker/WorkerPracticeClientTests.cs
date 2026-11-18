@@ -130,6 +130,50 @@ public sealed class WorkerPracticeClientTests
         await Should.ThrowAsync<ArgumentOutOfRangeException>(() => client.DownloadScoreViewPageAsync(ScoreViewJobId, 0, destination, Ct));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ScoreViewPage_AboveTheCap_IsRefused_WithoutBufferingMoreThanTheCap(bool declaresLength)
+    {
+        var (client, _) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new SizedContent(WorkerClient.MaxScoreViewPageBytes + 1, declaresLength) });
+        using var destination = new MemoryStream();
+
+        await Should.ThrowAsync<WorkerResponseTooLargeException>(() => client.DownloadScoreViewPageAsync(ScoreViewJobId, 1, destination, Ct));
+
+        destination.Length.ShouldBeLessThanOrEqualTo(WorkerClient.MaxScoreViewPageBytes);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SetlistDocument_AboveTheCap_IsRefused_WithoutBufferingMoreThanTheCap(bool declaresLength)
+    {
+        var (client, _) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new SizedContent(WorkerClient.MaxSetlistDocumentBytes + 1, declaresLength) });
+        using var destination = new MemoryStream();
+
+        await Should.ThrowAsync<WorkerResponseTooLargeException>(() => client.DownloadSetlistDocumentAsync(DocumentJobId, destination, Ct));
+
+        destination.Length.ShouldBeLessThanOrEqualTo(WorkerClient.MaxSetlistDocumentBytes);
+    }
+
+    [Fact]
+    public async Task Downloads_ExactlyAtTheCap_AreAccepted()
+    {
+        var (client, _) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new SizedContent(WorkerClient.MaxScoreViewPageBytes, declaresLength: false) });
+        using var destination = new MemoryStream();
+
+        await client.DownloadScoreViewPageAsync(ScoreViewJobId, 1, destination, Ct);
+
+        destination.Length.ShouldBe(WorkerClient.MaxScoreViewPageBytes);
+    }
+
+    [Fact]
+    public void TooLargeException_HasTheStandardConstructors()
+    {
+        new WorkerResponseTooLargeException().Message.ShouldNotBeNullOrWhiteSpace();
+        new WorkerResponseTooLargeException("x", new InvalidOperationException()).InnerException.ShouldBeOfType<InvalidOperationException>();
+    }
+
     [Fact]
     public async Task SetlistDocument_CreateGetDownload()
     {
@@ -208,4 +252,23 @@ public sealed class WorkerPracticeClientTests
 
     private static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
         WorkerClientTests.Create(respond);
+}
+
+/// <summary>A response body of the given size, with or without a Content-Length (then only counting can catch it).</summary>
+internal sealed class SizedContent(long size, bool declaresLength) : HttpContent
+{
+    protected override async Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context)
+    {
+        var chunk = new byte[64 * 1024];
+        for (var left = size; left > 0; left -= chunk.Length)
+        {
+            await stream.WriteAsync(chunk.AsMemory(0, (int)Math.Min(chunk.Length, left)));
+        }
+    }
+
+    protected override bool TryComputeLength(out long length)
+    {
+        length = size;
+        return declaresLength;
+    }
 }

@@ -6,6 +6,12 @@ namespace StemStudio.Api.SongSections;
 /// <summary>Problem responses of feature 014 (type <c>https://stemstudio.local/problems/&lt;code&gt;</c>).</summary>
 public static class PracticeFlowProblems
 {
+    /// <summary>
+    /// 503 code of <c>getSetlistPdf</c> when the document job failed or its PDF is unusable (backend 1.13.0/1.14.0
+    /// <c>SetlistDocumentUnavailable</c>). Kept here until <c>PracticeFlowProblemTypes</c> (architect-owned) gains it.
+    /// </summary>
+    public const string DocumentFailed = "document-failed";
+
     /// <summary>409 <c>track-not-ready</c>.</summary>
     /// <returns>The problem.</returns>
     public static IResult TrackNotReady() =>

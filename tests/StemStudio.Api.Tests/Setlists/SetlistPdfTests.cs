@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using StemStudio.Api.Setlists;
+using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.SongSections;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Worker;
@@ -86,8 +87,35 @@ public sealed class SetlistPdfTests : ApiTestBase
 
         using var response = await AdvanceUntilDoneAsync(request);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        await SectionEndpointsTests.AssertProblemAsync(response, HttpStatusCode.ServiceUnavailable, "document-failed");
+        await ContractAssert.MatchesAsync(response, "getSetlistPdf");
         (await response.JsonAsync()).GetProperty("detail").GetString().ShouldBe("Fonts missing.");
+    }
+
+    [Fact]
+    public async Task Pdf_WorkerRejectingTheJob_Is503DocumentFailedWithTheWorkerText()
+    {
+        var setlist = await SetlistWithOneSongAsync();
+        Factory.PracticeWorker.SubmitFailure = new WorkerRequestException(HttpStatusCode.UnprocessableEntity, "Too many songs.");
+
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.SetlistPdf(setlist.Id, SetlistPdfOptions.Default), UriKind.Relative), Ct);
+
+        await SectionEndpointsTests.AssertProblemAsync(response, HttpStatusCode.ServiceUnavailable, "document-failed");
+        await ContractAssert.MatchesAsync(response, "getSetlistPdf");
+        (await response.JsonAsync()).GetProperty("detail").GetString().ShouldBe("Too many songs.");
+    }
+
+    [Fact]
+    public async Task Pdf_AboveTheSizeCap_Is503DocumentFailed_AndTheJobIsDeleted()
+    {
+        var setlist = await SetlistWithOneSongAsync();
+        Factory.PracticeWorker.DownloadFailure = new WorkerResponseTooLargeException("The processing service sent a file above the size cap.");
+
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.SetlistPdf(setlist.Id, SetlistPdfOptions.Default), UriKind.Relative), Ct);
+
+        await SectionEndpointsTests.AssertProblemAsync(response, HttpStatusCode.ServiceUnavailable, "document-failed");
+        (await response.JsonAsync()).GetProperty("detail").GetString().ShouldBe(SetlistPdfService.TooLarge);
+        Factory.PracticeWorker.Deleted.Count.ShouldBe(1);
     }
 
     [Fact]

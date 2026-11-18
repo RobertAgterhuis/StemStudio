@@ -216,7 +216,11 @@ any time to keep manual "free" boundaries for rubato songs).
 
 - After the 001 job sync stores a completed separation and `SectionDetectOnComplete` is true:
   create `TrackSections(status queued)` if absent or `none`, submit the section job. A failed
-  submission (worker down) leaves `status none`; the mixer's open triggers it again.
+  submission (worker down) leaves `status none`; the mixer's open triggers it again. A refused
+  submission (worker 4xx, e.g. 404 input not found or an unknown route) stores `status failed` with
+  the reason ("The processing service could not start finding the sections: <worker detail>"), so the
+  UI offers a retry; `detectSections` then answers 202 with that failed set. The same holds for
+  score views (`createScoreView` / the automatic view: `failed` with the reason).
 - `POST /api/tracks/{id}/sections/detect {overwrite}`: 409 `track-not-ready` (not completed),
   409 `sections-edited` when `Origin = edited` and `overwrite` is false, 409 `detection-running`
   when queued/detecting; else 202 `SectionSet` (status queued).

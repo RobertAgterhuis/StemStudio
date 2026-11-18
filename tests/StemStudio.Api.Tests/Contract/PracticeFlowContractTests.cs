@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using StemStudio.Api.SongSections;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Practice;
@@ -255,11 +256,28 @@ public sealed class PracticeFlowContractTests
             PracticeFlowProblemTypes.SectionsChanged, PracticeFlowProblemTypes.SectionsEdited, PracticeFlowProblemTypes.DetectionRunning,
             PracticeFlowProblemTypes.TrackNotReady, PracticeFlowProblemTypes.NotAScore, PracticeFlowProblemTypes.ScoreNotReady,
             PracticeFlowProblemTypes.ScoreViewNotReady, PracticeFlowProblemTypes.SetlistEmpty, PracticeFlowProblemTypes.PracticeLogOff,
-            PracticeFlowProblemTypes.DocumentTimeout, PracticeFlowProblemTypes.TrackNotFound, PracticeFlowProblemTypes.MixTrackMismatch,
+            PracticeFlowProblemTypes.DocumentTimeout, PracticeFlowProblems.DocumentFailed, PracticeFlowProblemTypes.TrackNotFound, PracticeFlowProblemTypes.MixTrackMismatch,
         ];
 
         codes.ShouldAllBe(code => text.Contains(code, StringComparison.Ordinal));
         PracticeFlowProblemTypes.BaseUri.ShouldBe(Contracts.LibraryCare.LibraryCareProblemTypes.BaseUri);
+    }
+
+    [Fact]
+    public void SetlistPdf503_NamesWorkerUnavailableAndDocumentFailed_InTheDelta_1130_And1140()
+    {
+        foreach (var contract in new[] { Backend014Delta, Backend, OpenApiContract.Backend })
+        {
+            var response = contract.Response("getSetlistPdf", 503)!;
+            var example = response["content"]!["application/problem+json"]!["example"]!;
+
+            response["description"]!.GetValue<string>().ShouldContain("`worker-unavailable`");
+            response["description"]!.GetValue<string>().ShouldContain($"`{PracticeFlowProblems.DocumentFailed}`");
+            example["type"]!.GetValue<string>().ShouldBe(PracticeFlowProblemTypes.BaseUri + PracticeFlowProblems.DocumentFailed);
+            example["status"]!.GetValue<double>().ShouldBe(503);
+        }
+
+        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.14.0");
     }
 
     [Fact]

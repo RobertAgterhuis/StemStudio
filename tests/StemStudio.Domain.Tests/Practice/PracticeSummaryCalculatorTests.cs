@@ -81,8 +81,8 @@ public sealed class PracticeSummaryCalculatorTests
     public void Sections_GroupById_OrByLabelAndKind_WithTheBestTrainerPercent()
     {
         var unnamed = Part(30, null, "", PracticeSectionKind.None);
-        var first = Stored(Now.AddDays(-1), 10, 600, Part(200, Solo, "Solo", trainer: 80), unnamed, Part(10, null, "Bridge", PracticeSectionKind.Bridge));
-        var second = Stored(Now.AddMinutes(-20), 10, 600, Part(300, Solo, "Solo (old)", trainer: 90), Part(5, Solo, "Solo", trainer: null), unnamed);
+        var first = Stored(Now.AddDays(-1), 10, 600, Part(200, Solo, "Solo") with { TrainerReachedPercent = 80 }, unnamed, Part(10, null, "Bridge", PracticeSectionKind.Bridge));
+        var second = Stored(Now.AddMinutes(-20), 10, 600, Part(300, Solo, "Solo (old)") with { TrainerReachedPercent = 90 }, Part(5, Solo, "Solo"), unnamed);
 
         var summary = PracticeSummaryCalculator.Summarize([first, second], new SummaryWindow(Now, 30, 0), new Dictionary<Guid, string> { [Solo] = "Guitar solo" });
 
@@ -106,9 +106,9 @@ public sealed class PracticeSummaryCalculatorTests
     [Fact]
     public void Tempo_IsTheHighestTrainerPercentPerDayAndSection_InTheWindow()
     {
-        var dayOne = Stored(Now.AddDays(-1), 10, 600, Part(100, Solo, "Solo", trainer: 75), Part(100, Solo, "Solo", trainer: 80));
-        var dayTwo = Stored(Now.AddMinutes(-20), 10, 600, Part(100, Solo, "Solo", trainer: 90), Part(50, null, "Verse", PracticeSectionKind.Verse));
-        var outside = Stored(Now.AddDays(-40), 10, 600, Part(100, Solo, "Solo", trainer: 60));
+        var dayOne = Stored(Now.AddDays(-1), 10, 600, Part(100, Solo, "Solo") with { TrainerReachedPercent = 75 }, Part(100, Solo, "Solo") with { TrainerReachedPercent = 80 });
+        var dayTwo = Stored(Now.AddMinutes(-20), 10, 600, Part(100, Solo, "Solo") with { TrainerReachedPercent = 90 }, Part(50, null, "Verse", PracticeSectionKind.Verse));
+        var outside = Stored(Now.AddDays(-40), 10, 600, Part(100, Solo, "Solo") with { TrainerReachedPercent = 60 });
 
         var summary = Summarize(30, 0, dayTwo, outside, dayOne);
 

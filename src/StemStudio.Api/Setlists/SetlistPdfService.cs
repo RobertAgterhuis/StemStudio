@@ -26,11 +26,14 @@ public sealed class SetlistPdfService(
     /// <summary>Poll interval of the document job.</summary>
     public static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
 
+    /// <summary>Detail of <c>document-failed</c> when the PDF is above <see cref="WorkerClient.MaxSetlistDocumentBytes"/>.</summary>
+    public const string TooLarge = "The setlist PDF is too large; leave out the lyrics or split the setlist.";
+
     /// <summary>The PDF of a setlist.</summary>
     /// <param name="id">Setlist id.</param>
     /// <param name="pdfOptions">Print options from the query.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>200 PDF, 404, 409 <c>setlist-empty</c>, 503 or 504 <c>document-timeout</c>.</returns>
+    /// <returns>200 PDF, 404, 409 <c>setlist-empty</c>, 503 <c>worker-unavailable</c> or <c>document-failed</c>, or 504 <c>document-timeout</c>.</returns>
     public async Task<IResult> PdfAsync(Guid id, SetlistPdfOptions pdfOptions, CancellationToken cancellationToken)
     {
         if (await setlists.FindAsync(id, cancellationToken) is not { } setlist)
@@ -71,9 +74,9 @@ public sealed class SetlistPdfService(
         {
             jobId = (await worker.CreateSetlistDocumentJobAsync(content, cancellationToken)).JobId;
         }
-        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        catch (Exception exception) when (ProblemOf(exception) is { } problem)
         {
-            return PracticeFlowProblems.WorkerUnavailable();
+            return problem;
         }
 
         try
@@ -93,18 +96,27 @@ public sealed class SetlistPdfService(
             var job = await WaitAsync(jobId, cancellationToken);
             if (job?.Status != WorkerPracticeJobState.Completed)
             {
-                return job is null ? Timeout() : PracticeFlowProblems.Typed(StatusCodes.Status503ServiceUnavailable, "document-failed", "The PDF could not be made", job.Error ?? "The setlist PDF could not be made.");
+                return job is null ? Timeout() : DocumentFailed(job.Error ?? "The setlist PDF could not be made.");
             }
 
             using var pdf = new MemoryStream();
             await worker.DownloadSetlistDocumentAsync(jobId, pdf, cancellationToken);
             return TypedResults.File(pdf.ToArray(), "application/pdf", fileName);
         }
-        catch (WorkerUnavailableException)
+        catch (Exception exception) when (ProblemOf(exception) is { } problem)
         {
-            return PracticeFlowProblems.WorkerUnavailable();
+            return problem;
         }
     }
+
+    /// <summary>The problem of a worker failure: unreachable, refused (4xx) or a PDF above the cap; null for anything else.</summary>
+    private static IResult? ProblemOf(Exception exception) => exception switch
+    {
+        WorkerUnavailableException => PracticeFlowProblems.WorkerUnavailable(),
+        WorkerRequestException rejected => DocumentFailed(rejected.Detail),
+        WorkerResponseTooLargeException => DocumentFailed(TooLarge),
+        _ => null,
+    };
 
     /// <summary>The finished job, or null on timeout.</summary>
     private async Task<WorkerSetlistDocumentJob?> WaitAsync(string jobId, CancellationToken cancellationToken)
@@ -138,6 +150,9 @@ public sealed class SetlistPdfService(
             // The worker removes finished jobs after 24 h itself.
         }
     }
+
+    private static IResult DocumentFailed(string detail) =>
+        PracticeFlowProblems.Typed(StatusCodes.Status503ServiceUnavailable, PracticeFlowProblems.DocumentFailed, "The PDF could not be made", detail);
 
     private static IResult Timeout() => PracticeFlowProblems.Typed(
         StatusCodes.Status504GatewayTimeout, PracticeFlowProblemTypes.DocumentTimeout, "The PDF took too long", "Try again in a moment.");

@@ -19,14 +19,14 @@ public sealed class PracticeRulesTests
         Sections = sections,
     };
 
-    internal static PracticeSectionInput Part(double played, Guid? id = null, string label = "Guitar solo", PracticeSectionKind kind = PracticeSectionKind.Solo, double? trainer = null) =>
-        new() { SectionId = id, Kind = kind, Label = label, PlayedSeconds = played, LoopPasses = 2, TrainerReachedPercent = trainer };
+    internal static PracticeSectionInput Part(double played, Guid? id = null, string label = "Guitar solo", PracticeSectionKind kind = PracticeSectionKind.Solo) =>
+        new() { SectionId = id, Kind = kind, Label = label, PlayedSeconds = played, LoopPasses = 2 };
 
     private static string[] Fields(PracticeSessionInput input) => PracticeSessionRules.Validate(input, Now).Select(error => error.Field).ToArray();
 
     [Fact]
     public void ValidSession_HasNoErrors() =>
-        Fields(Session(Now.AddMinutes(-10), 10, 600, Part(300, Guid.NewGuid(), trainer: 80), Part(301, kind: PracticeSectionKind.None, label: ""))).ShouldBeEmpty();
+        Fields(Session(Now.AddMinutes(-10), 10, 600, Part(300, Guid.NewGuid()) with { TrainerReachedPercent = 80 }, Part(301, kind: PracticeSectionKind.None, label: ""))).ShouldBeEmpty();
 
     [Fact]
     public void EndBeforeStart_IsRefused() => Fields(Session(Now, -1, 0)).ShouldBe(["endedAt"]);
@@ -75,7 +75,7 @@ public sealed class PracticeRulesTests
     [Fact]
     public void SectionRowRules_AreChecked()
     {
-        var bad = Session(Now.AddMinutes(-2), 1, 60, Part(-1), Part(1, label: new string('l', 41)), Part(1, trainer: 121), Part(1) with { LoopPasses = -1 });
+        var bad = Session(Now.AddMinutes(-2), 1, 60, Part(-1), Part(1, label: new string('l', 41)), Part(1) with { TrainerReachedPercent = 121 }, Part(1) with { LoopPasses = -1 });
 
         Fields(bad).ShouldBe(["sections[0].playedSeconds", "sections[1].label", "sections[2].trainerReachedPercent", "sections[3].loopPasses"]);
     }
@@ -94,7 +94,7 @@ public sealed class PracticeRulesTests
         var id = Guid.NewGuid();
         var section = Guid.NewGuid();
 
-        var session = PracticeSession.Create(id, Session(Now.AddMinutes(-10), 10, 500, Part(200, section, " Solo ", trainer: 85)), Now);
+        var session = PracticeSession.Create(id, Session(Now.AddMinutes(-10), 10, 500, Part(200, section, " Solo ") with { TrainerReachedPercent = 85 }), Now);
 
         (session.Id, session.TrackId, session.PlayedSeconds, session.LoopPasses, session.MaxSpeedPercent).ShouldBe((id, TrackId, 500.0, 3, (double?)90));
         session.Sections.Single().ShouldSatisfyAllConditions(

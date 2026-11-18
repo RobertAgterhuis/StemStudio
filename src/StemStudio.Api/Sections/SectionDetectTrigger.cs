@@ -7,7 +7,8 @@ namespace StemStudio.Api.SongSections;
 
 /// <summary>
 /// Starts section detection right after a separation completes (data-model 3.3) when
-/// <c>StemStudio:Practice:SectionDetectOnComplete</c> is on; a failed submission leaves status <c>none</c>.
+/// <c>StemStudio:Practice:SectionDetectOnComplete</c> is on; an unreachable worker leaves status <c>none</c>, a refused job stores
+/// <c>failed</c> with the reason.
 /// </summary>
 /// <param name="service">The section service.</param>
 /// <param name="options">Practice options.</param>

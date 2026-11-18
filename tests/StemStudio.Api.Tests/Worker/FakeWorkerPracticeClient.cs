@@ -22,6 +22,12 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
     /// <summary>When true every call throws <see cref="WorkerUnavailableException"/> (worker down).</summary>
     public bool Unavailable { get; set; }
 
+    /// <summary>When set, every job submission (<c>Create*</c>) throws it (e.g. a <see cref="WorkerRequestException"/> 404).</summary>
+    public Exception? SubmitFailure { get; set; }
+
+    /// <summary>When set, every file download (pages, PDF) throws it (e.g. a <see cref="WorkerResponseTooLargeException"/>).</summary>
+    public Exception? DownloadFailure { get; set; }
+
     /// <summary>Calls in order (<c>create-section</c>, <c>get-section:&lt;id&gt;</c>, ...).</summary>
     public ConcurrentQueue<string> Calls { get; } = new();
 
@@ -52,7 +58,7 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
 
     public Task<WorkerSectionJob> CreateSectionJobAsync(WorkerSectionJobRequest request, CancellationToken cancellationToken)
     {
-        Record("create-section");
+        Submit("create-section");
         SectionRequests.Enqueue(request);
         var job = Example<WorkerSectionJob>("section-queued-job") with { JobId = NewId() };
         SectionJobs[job.JobId] = job;
@@ -69,7 +75,7 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
 
     public Task<WorkerScoreViewJob> CreateScoreViewJobAsync(WorkerScoreViewJobRequest request, CancellationToken cancellationToken)
     {
-        Record("create-score-view");
+        Submit("create-score-view");
         ScoreViewRequests.Enqueue(request);
         var job = new WorkerScoreViewJob { JobId = NewId(), Status = WorkerPracticeJobState.Queued };
         ScoreViewJobs[job.JobId] = job;
@@ -84,7 +90,7 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
 
     public async Task DownloadScoreViewPageAsync(string jobId, int page, Stream destination, CancellationToken cancellationToken)
     {
-        Record($"page:{jobId}:{page}");
+        Download($"page:{jobId}:{page}");
         await destination.WriteAsync(Encoding.UTF8.GetBytes(PageSvg), cancellationToken);
     }
 
@@ -92,7 +98,7 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
 
     public Task<WorkerSetlistDocumentJob> CreateSetlistDocumentJobAsync(WorkerSetlistDocumentRequest request, CancellationToken cancellationToken)
     {
-        Record("create-document");
+        Submit("create-document");
         DocumentRequests.Enqueue(request);
         var job = new WorkerSetlistDocumentJob { JobId = NewId(), Status = WorkerPracticeJobState.Queued };
         DocumentJobs[job.JobId] = job;
@@ -112,7 +118,7 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
 
     public async Task DownloadSetlistDocumentAsync(string jobId, Stream destination, CancellationToken cancellationToken)
     {
-        Record($"pdf:{jobId}");
+        Download($"pdf:{jobId}");
         await destination.WriteAsync(Pdf, cancellationToken);
     }
 
@@ -154,6 +160,24 @@ internal sealed class FakeWorkerPracticeClient : IWorkerPracticeClient
         jobs.TryRemove(jobId, out _);
         Deleted.Add(jobId);
         return Task.CompletedTask;
+    }
+
+    private void Submit(string call)
+    {
+        Record(call);
+        if (SubmitFailure is { } failure)
+        {
+            throw failure;
+        }
+    }
+
+    private void Download(string call)
+    {
+        Record(call);
+        if (DownloadFailure is { } failure)
+        {
+            throw failure;
+        }
     }
 
     private void Record(string call)

@@ -16,16 +16,16 @@ public sealed class PracticeEndpointsTests : ApiTestBase
 {
     private static readonly DateTimeOffset Now = ApiFactory.Start;
 
-    private static PracticeSessionInputDto Session(Guid trackId, double minutesAgo = 20, double played = 600, Guid? mixId = null, params PracticeSectionInputDto[] sections) => new()
+    private static PracticeSessionInputDto Session(Guid trackId, double minutesAgo = 20, double played = 600) => new()
     {
         TrackId = trackId,
-        MixId = mixId,
+        MixId = null,
         StartedAt = Now.AddMinutes(-minutesAgo),
         EndedAt = Now.AddMinutes(-minutesAgo + 10),
         PlayedSeconds = played,
         LoopPasses = 4,
         MaxSpeedPercent = 90,
-        Sections = sections,
+        Sections = [],
     };
 
     private static PracticeSectionInputDto Part(Guid? sectionId, string label, double played, double? trainer = null) =>
@@ -55,8 +55,8 @@ public sealed class PracticeEndpointsTests : ApiTestBase
         var id = Guid.NewGuid();
         var solo = Guid.NewGuid();
 
-        using var created = await PutAsync(id, Session(track.Id, mixId: mix.Id, sections: [Part(solo, "Solo", 300, 80), Part(null, "", 100)]));
-        using var replaced = await PutAsync(id, Session(track.Id, played: 590, mixId: mix.Id, sections: Part(solo, "Solo", 500, 85)));
+        using var created = await PutAsync(id, Session(track.Id) with { MixId = mix.Id, Sections = [Part(solo, "Solo", 300, 80), Part(null, "", 100)] });
+        using var replaced = await PutAsync(id, Session(track.Id, played: 590) with { MixId = mix.Id, Sections = [Part(solo, "Solo", 500, 85)] });
 
         created.StatusCode.ShouldBe(HttpStatusCode.OK);
         await ContractAssert.MatchesAsync(created, "upsertPracticeSession");
@@ -105,8 +105,8 @@ public sealed class PracticeEndpointsTests : ApiTestBase
         using var unknown = await PutAsync(Guid.NewGuid(), Session(Guid.NewGuid()));
         using var future = await PutAsync(Guid.NewGuid(), Session(track.Id, minutesAgo: -10));
         using var tooLong = await PutAsync(Guid.NewGuid(), Session(track.Id, played: 700));
-        using var sectionsTooLong = await PutAsync(Guid.NewGuid(), Session(track.Id, played: 100, sections: [Part(null, "A", 60), Part(null, "B", 60)]));
-        using var mix = await PutAsync(Guid.NewGuid(), Session(track.Id, mixId: foreignMix.Id));
+        using var sectionsTooLong = await PutAsync(Guid.NewGuid(), Session(track.Id, played: 100) with { Sections = [Part(null, "A", 60), Part(null, "B", 60)] });
+        using var mix = await PutAsync(Guid.NewGuid(), Session(track.Id) with { MixId = foreignMix.Id });
 
         unknown.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await future.FieldErrorsAsync("startedAt")).ShouldNotBeEmpty();
@@ -171,8 +171,8 @@ public sealed class PracticeEndpointsTests : ApiTestBase
         var track = await Factory.SeedAsync(SectionTestData.Completed());
         var set = await Factory.SeedDetectedAsync(track.Id);
         var solo = set.Sections[3];
-        (await PutAsync(Guid.NewGuid(), Session(track.Id, minutesAgo: 60 * 24, played: 300, sections: Part(solo.Id, "Old label", 200, 80)))).Dispose();
-        (await PutAsync(Guid.NewGuid(), Session(track.Id, minutesAgo: 30, played: 600, sections: Part(solo.Id, "Old label", 400, 90)))).Dispose();
+        (await PutAsync(Guid.NewGuid(), Session(track.Id, minutesAgo: 60 * 24, played: 300) with { Sections = [Part(solo.Id, "Old label", 200, 80)] })).Dispose();
+        (await PutAsync(Guid.NewGuid(), Session(track.Id, minutesAgo: 30, played: 600) with { Sections = [Part(solo.Id, "Old label", 400, 90)] })).Dispose();
 
         using var response = await Client.GetAsync(new Uri(ApiRoutes.PracticeSummaryFor(track.Id, 7, 60), UriKind.Relative), Ct);
 
