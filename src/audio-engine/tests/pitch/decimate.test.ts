@@ -16,13 +16,7 @@ function rms(values: readonly number[]): number {
 }
 
 function zeroCrossings(values: readonly number[]): number {
-  let count = 0;
-  for (let i = 1; i < values.length; i += 1) {
-    if ((values[i - 1] ?? 0) < 0 && (values[i] ?? 0) >= 0) {
-      count += 1;
-    }
-  }
-  return count;
+  return values.slice(1).filter((v, i) => Number(values[i]) < 0 && v >= 0).length;
 }
 
 describe('Decimator (31-tap windowed sinc, fractional phase, to 16 kHz)', () => {
