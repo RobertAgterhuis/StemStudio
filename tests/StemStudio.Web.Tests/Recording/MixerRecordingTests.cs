@@ -147,6 +147,28 @@ public sealed class MixerRecordingTests : MixerTestContext
         page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty();
     }
 
+    [Fact]
+    public void ASavedMix_OpenedByUrl_LoadsItsTakeOnlyAfterTheEngineHasTheTrack()
+    {
+        // The real engine refuses a take before loadTrack (E2E recording-compare: the strip stayed empty after a reload).
+        var trackLoaded = false;
+        Engine.LoadTrackAsync(Arg.Any<StemStudio.Contracts.Tracks.TrackDto>()).Returns(_ =>
+        {
+            trackLoaded = true;
+            return 213.04;
+        });
+        _recording.LoadTakeAsync(Arg.Any<LoadTakeRequest>()).Returns(_ =>
+            trackLoaded ? Task.CompletedTask : Task.FromException(new RecordingException("no track loaded")));
+        var take = new TakeChannelSettingsDto { TakeId = RecordingData.TakeId, Volume = 0.6, Pan = 0, Mute = false, Solo = false };
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix() with { Settings = TestData.Settings() with { Take = take } });
+        Api.ListTakesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(RecordingData.List(RecordingData.Take()));
+
+        var page = RenderMixer(TestData.MixId);
+
+        page.WaitForAssertion(() => page.Find("[data-testid=strip-take]").GetAttribute("data-take-id").ShouldBe(RecordingData.TakeId.ToString("D")));
+        page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty();
+    }
+
     private IRenderedComponent<MixerPage> Ready()
     {
         var page = RenderMixer();

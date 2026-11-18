@@ -105,10 +105,14 @@ public sealed partial class Mixer : IAsyncDisposable
         await RegisterKeysAsync();
         SubscribeEngine();
         await StartEngineAsync(State);
+        OnEngineStarted();
         await StartRecorderAsync();
         RegisterAgentTools();
         StateHasChanged();
     }
+
+    /// <summary>Hook of feature 015 (<c>Mixer.Recording.cs</c>): runs once after the engine has loaded the track.</summary>
+    partial void OnEngineStarted();
 
     private async Task StartEngineAsync(MixerState state)
     {
