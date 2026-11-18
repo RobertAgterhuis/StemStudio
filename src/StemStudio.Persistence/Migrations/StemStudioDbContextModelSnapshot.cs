@@ -370,6 +370,65 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Generations", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.InstrumentViews.TrackAnalysis", b =>
+                {
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Device")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("DeviceJson");
+
+                    b.Property<string>("Document")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("DocumentJson");
+
+                    b.Property<string>("Engine")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("EstimateSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("JobId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Options")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("OptionsJson");
+
+                    b.Property<double>("Progress")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TrackId", "Kind");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("TrackAnalyses", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistEvent", b =>
                 {
                     b.Property<Guid>("AssistId")
@@ -2174,6 +2233,15 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("ConversationId", "Ordinal");
 
                     b.ToTable("UndoEntries", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.InstrumentViews.TrackAnalysis", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistEvent", b =>

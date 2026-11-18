@@ -34,6 +34,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IScoreViewRepository, ScoreViewRepository>();
         services.AddScoped<ISetlistRepository, SetlistRepository>();
         services.AddScoped<IPracticeRepository, PracticeRepository>();
+        services.AddScoped<ITrackAnalysisRepository, TrackAnalysisRepository>();
         return services;
     }
 }
