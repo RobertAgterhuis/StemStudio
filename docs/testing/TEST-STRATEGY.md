@@ -2044,3 +2044,80 @@ uv run --project ../../worker pytest tests/test_recording_fixtures.py --cov=reco
 # fake stack with the e2e override (TestLoopback), then the recording project
 (cd e2e && npx playwright install chromium && npm run test:recording)
 ```
+
+## 22. (016) Instrument views: chords, tablature, drum trainer, singing, parts, key, capo
+
+Binding: `specs/016-instrument-views/` (spec US1-US8, FR-001..FR-078, SC-001..SC-011, quickstart
+V2-V14), worker API **1.9.0** (tag `instrument-analysis`), backend API **1.15.0** (tag
+`instrument-views`), engine **2.6.0** ("Instrument views"), UI test ids **1.15.0**, help-content
+**1.1.0**, chord spelling vectors **1.0.0**, ADR-031..033. Principle: every instrument family counts
+equally (SC-006: each family has a view, at least one unit suite and at least one E2E case).
+
+### 22.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Worker (pytest, beat-analysis) | Harte labels, post-processing (beat snap, merge, slash bass, `preferFlats`), chroma-hmm, key HMM, vocal pitch (pYIN/YIN), tablature fingering, transposed parts and new profiles, chord symbols in scores, drum MIDI | synthetic chroma/posteriors, rendered triads and cadences (numpy sines), sung sine sweeps, MusicXML written in the test |
+| Worker (pytest, audio-ingest) | harmonic mixdown of 1-4 FLAC stems (22,050 / 16,000 Hz), TAB engraving with Verovio (6/5/4 lines, "Capo n") | generated FLACs, MusicXML fixtures |
+| Worker (pytest, stem-separation) | BTC adapter (fake torch), safe load (`BTC_SAFE_GLOBALS`), analysis jobs and routes, `/health`, fake analyses (`views_fake.py`) | fake recognizers, `TestClient` |
+| Backend (xUnit) | domain (spelling, key display, capo ranking, catalogue), persistence (`AddTrackAnalyses`), worker client, analysis service, endpoints, ChordPro, edit labels (Harte pattern), large documents | stub worker handler with the 1.9.0 examples, SQLite, temp data dir |
+| Engine (Vitest) | timeline, chord lane and banner chords, `setChordDisplay`, hit lanes, YIN core and pitch worklet, singing feedback and scorer, `scoreTake`, spelling-vector parity, frame budget | mocked `AudioContext`/worklet/canvas, fake 015 input |
+| Frontend (bUnit) | family mix service and "Practise as", chord views and sheet, tab/part dialogs, drum trainer, singing panel, key and capo controls, help area `instruments`, WCAG 2.2 AA (dock inset) | fake API client, fake engine module |
+| Fixtures (pytest, qa) | `generate_instrument_fixtures.py` (22.2) | worker environment |
+| E2E (qa) | the specs of 22.3 on the fake stack; singing in the fake-mic projects | fake analyses (research R-11), fake capture device |
+
+### 22.2 Fixtures (`tests/fixtures/generate_instrument_fixtures.py`, qa T014)
+
+Run from the repository root: `uv run --project worker python tests/fixtures/generate_instrument_fixtures.py`.
+The WAVs land in `tests/fixtures/audio/` (git-ignored); `tests/fixtures/instrument-manifest.json`
+(facts, reference melody, SHA-256 of every file) is committed. 44.1 kHz mono PCM16, 20 s, peak
+-3.1 dBFS, synthesised (CC0 1.0), byte-identical reruns.
+
+| File | Content | Expected in `instrument-singing.spec.ts` |
+|---|---|---|
+| `sing-on-pitch.wav` | sines with partials 1-3 on the reference melody one octave lower (-1200 cents) | every `karaoke-score` >= 90, summary >= 90 (octave independence) |
+| `sing-semitone-off.wav` | the same voice at -1100 cents (a semitone above the octave) | <= 20 at 50 cents tolerance |
+| `silence.wav` | digital silence | 0 |
+
+Reference melody (`referenceMelody` in the manifest): one note per beat at 120 BPM from 0.5 s (the
+015 `click-track.wav` grid); the note of beat *k* is `walk[k % 14]` with walk
+60, 62, 64, 65, 67, 69, 71, 72, 71, 69, 67, 65, 64, 62. The fake reference melody of the fake stack
+uses the same rule (global beat index), so a sung note always matches its beat's reference.
+`tests/fixtures/tests/test_generate_instrument_fixtures.py` checks format, YIN pitch of every note
+(+-10 cents of the reference plus the offset), the two harmonics, silence, the hash list and that a
+rerun equals the committed manifest.
+
+### 22.3 (016) family -> tests (SC-006)
+
+| Family | Unit / component suites (at least) | E2E (qa) |
+|---|---|---|
+| Harmony (keys, rhythm guitar) | `worker/tests/harmony/test_{labels,postprocess,chroma_hmm,key}.py`; backend spelling/key/ChordPro tests; engine chord lane and banner chords | `instrument-chords.spec.ts` (keys and guitar), `instrument-key.spec.ts` |
+| Guitar | `worker/tests/notation/test_tablature.py` (every tuning, drop D, capo, golden fingerings), `worker/tests/engraving/test_tablature_engraving.py`; backend capo ranking | `instrument-tab.spec.ts` (drop D notation + tab), `instrument-capo.spec.ts` |
+| Bass | `worker/tests/notation/test_tablature.py` (4/5-string tunings, low B) | `instrument-tab.spec.ts` (5-string tab only), `instrument-practise-as.spec.ts` |
+| Drums | `worker/tests/notation/test_chord_symbols_drum_midi.py` (GM map, channel 10, `singlePiece`); engine hit lanes; stem-separation drum-hits job | `instrument-drums.spec.ts`, MIDI case in `instrument-tab.spec.ts` |
+| Vocals | `worker/tests/analysis/test_vocal_pitch.py` (pYIN/YIN, packing, warnings), `worker/tests/analysis_inputs/test_mixdown.py` (16 kHz); engine YIN core, feedback, scorer | `instrument-singing.spec.ts` (fake-mic projects) |
+| Strings | `worker/tests/notation/test_parts.py` (viola alto clef, strings profile, `section-reduced`) | `instrument-parts.spec.ts` (viola) |
+| Brass | `worker/tests/notation/test_parts.py` (alto sax E-flat `<transpose>`, key respelling) | `instrument-parts.spec.ts` (alto sax) |
+| Woodwinds | `worker/tests/notation/test_parts.py` (clarinet B-flat, woodwinds profile) | `instrument-parts.spec.ts` (clarinet) |
+
+Every family is also covered by `instrument-practise-as.spec.ts` (US6) and `instrument-key.spec.ts`
+(US7). The traceability matrix FR-001..FR-078 -> tests is completed by qa in T136.
+
+### 22.4 Integration-only tests (run once by the CTO, T139)
+
+| Test | Marker | What |
+|---|---|---|
+| `worker/tests/harmony/test_chords_integration.py` (T063, stem-separation) | `integration` | downloads BTC (SHA-256), safe load; synthetic chord set >= 85 % majmin time (SC-001), key test set >= 90 % (SC-010); BTC time per audio second on 8 threads |
+| `worker/tests/analysis/test_vocal_pitch.py::test_real_pyin_five_minutes` (beat-analysis) | `integration` | real `librosa.pyin` over 5 min at 16 kHz: frames within 20 cents, time per audio second |
+
+Command: `uv run --project worker pytest -m integration worker/tests/harmony worker/tests/analysis`.
+The default `pytest` deselects `integration`.
+
+### 22.5 Commands
+
+```bash
+uv run --project worker python tests/fixtures/generate_instrument_fixtures.py
+cd tests/fixtures && uv run --project ../../worker pytest tests/test_generate_instrument_fixtures.py
+cd worker && uv run pytest tests/harmony tests/analysis tests/notation tests/analysis_inputs tests/engraving --cov --cov-branch
+(cd e2e && npm run test:instrument)   # fake stack; fake-mic projects for the singing spec
+```
