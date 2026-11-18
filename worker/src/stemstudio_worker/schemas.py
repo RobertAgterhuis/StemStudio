@@ -1089,6 +1089,9 @@ def _ascending(values: list[float]) -> list[float]:
 GridTimes = Annotated[list[GridTime], AfterValidator(_ascending)]
 """Strictly ascending beat or downbeat times."""
 
+_DOWNBEAT_TOLERANCE: Final = 1e-3
+"""A downbeat this far before the input start still starts bar 1 (the API rounds shifts)."""
+
 
 class BeatGridTempo(ContractModel):
     """The track's beat grid, shifted so that 0 is the input start (data-model.md 2.4)."""
@@ -1098,6 +1101,18 @@ class BeatGridTempo(ContractModel):
     beats_per_bar: BeatsPerBar
     beats: Annotated[GridTimes, Field(min_length=2, max_length=10_000)]
     downbeats: Annotated[GridTimes, Field(min_length=1, max_length=10_000)]
+
+    @property
+    def bar_one_downbeat(self) -> float:
+        """The downbeat that starts bar 1: the first one at or after the input start.
+
+        A shifted grid keeps the track's downbeats before a range start (negative); bar 1 of the
+        range is its first downbeat inside it (a step of the API's 6-decimal rounding before 0
+        still counts), so no empty bars precede the range. Without a downbeat inside the input
+        it is the last downbeat.
+        """
+        inside = (d for d in self.downbeats if d >= -_DOWNBEAT_TOLERANCE)
+        return next(inside, self.downbeats[-1])
 
 
 class ManualTempo(ContractModel):

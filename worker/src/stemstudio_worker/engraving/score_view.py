@@ -4,10 +4,11 @@ Two Verovio passes with the 008 options: plain SVG pages (stored and served as i
 same layout with ``svgBoundingBoxes`` (parsed for the bar boxes, then dropped). Bar *k* is the
 *k*-th ``g.measure`` in document order; its box is the union of its staff boxes plus the page
 margin, as fractions of the 21000 x 29700 page. Bar times follow the 008 time base: full bar *j*
-starts at beat ``j x beatsPerBar`` after the first downbeat (beats interpolated, extrapolated with
-the median period), a pickup starts ``pickupBeats`` periods before the first downbeat and the last
-bar ends at the duration. Verovio embeds the Leipzig ``@font-face`` in every page that uses
-Leipzig text; the check refuses a page that would need it without it (research R-11).
+starts at beat ``j x beatsPerBar`` after the first downbeat inside the input (a range drops the
+track's earlier downbeats; beats interpolated, extrapolated with the median period), a pickup
+starts ``pickupBeats`` periods before that downbeat and the last bar ends at the duration.
+Verovio embeds the Leipzig ``@font-face`` in every page that uses Leipzig text; the check refuses
+a page that would need it without it (research R-11).
 
 Imports: ``ports``, ``schemas``, ``engraving`` itself, Verovio and the standard library only.
 The MusicXML is the score asset the API stored from an 008 job (``SCORE_MUSICXML_PATTERN``);
@@ -260,7 +261,7 @@ def _beats(grid: TempoGrid, duration: float) -> tuple[list[float], int]:
 
 
 def _nearest(grid: BeatGridTempo) -> int:
-    first = grid.downbeats[0]
+    first = grid.bar_one_downbeat
     return min(range(len(grid.beats)), key=lambda i: abs(grid.beats[i] - first))
 
 

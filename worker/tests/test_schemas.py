@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from stemstudio_worker.schemas import (
     BeatGrid,
+    BeatGridTempo,
     CreateJobRequest,
     Job,
     JobResult,
@@ -128,3 +129,25 @@ def test_metadata_artist_limit() -> None:
     SourceMetadata(title="t", artist="a" * 500)
     with pytest.raises(ValidationError):
         SourceMetadata(title="t", artist="a" * 501)
+
+
+def test_bar_one_of_a_shifted_grid_is_the_first_downbeat_inside_the_input() -> None:
+    # A range from 6 s of a track with downbeats at 1.4, 3.4, ...: shifted they start at -4.6.
+    grid = BeatGridTempo(bpm=120, beats_per_bar=4, beats=[-4.6 + 0.5 * i for i in range(40)],
+                         downbeats=[-4.6 + 2.0 * i for i in range(10)])  # fmt: skip
+
+    assert grid.bar_one_downbeat == pytest.approx(1.4)
+
+
+def test_bar_one_allows_a_downbeat_a_rounding_step_before_the_input_start() -> None:
+    grid = BeatGridTempo(bpm=120, beats_per_bar=4, beats=[-0.5, -0.000001, 0.5, 1.0],
+                         downbeats=[-2.0, -0.000001])  # fmt: skip
+
+    assert grid.bar_one_downbeat == -0.000001
+
+
+def test_bar_one_without_a_downbeat_in_the_input_is_the_last_downbeat() -> None:
+    grid = BeatGridTempo(bpm=60, beats_per_bar=4, beats=[-6.0, -5.0, -2.0, -1.0],
+                         downbeats=[-6.0, -2.0])  # fmt: skip
+
+    assert grid.bar_one_downbeat == -2.0

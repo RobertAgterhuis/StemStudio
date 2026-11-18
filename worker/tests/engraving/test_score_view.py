@@ -212,3 +212,13 @@ def test_a_page_margin_without_a_translate_adds_nothing() -> None:
             "</g></g></svg>")  # fmt: skip
 
     assert score_view.measure_boxes(page, 1)[0].x == 0.0
+
+
+def test_a_range_score_times_its_bars_from_the_first_downbeat_inside_the_range() -> None:
+    # The 014 E2E range case: track downbeats at 1.4 + 2k s, range 6..14 s (grid shifted by 6 s).
+    grid = BeatGridTempo(bpm=120, beats_per_bar=4, beats=[-4.6 + 0.5 * i for i in range(40)],
+                         downbeats=[-4.6 + 2.0 * i for i in range(10)])  # fmt: skip
+
+    view = _render(score(3, pickup_beats=2), grid, duration=8.0)
+
+    assert _times(view) == pytest.approx([0.4, 1.4, 1.4, 3.4, 3.4, 5.4, 5.4, 8.0])

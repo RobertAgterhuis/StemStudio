@@ -182,9 +182,10 @@ def test_shift_moves_beats_and_downbeats_and_keeps_earlier_beats() -> None:
     assert isinstance(shifted, BeatGridTempo)
     assert shifted.beats == pytest.approx([b - 2.0 for b in DRIFT])
     assert shifted.downbeats == pytest.approx([-1.0, 1.1])
-    assert TimeBase.from_grid(shifted, 4.0).quarters(0.0) == TimeBase.from_grid(grid, 6.0).quarters(
-        2.0
-    )
+    # Bar 1 of the range is its first downbeat (1.1 s, the track's second): one bar later, same
+    # meter phase.
+    ranged, track = TimeBase.from_grid(shifted, 4.0), TimeBase.from_grid(grid, 6.0)
+    assert ranged.quarters(0.0) == track.quarters(2.0) - 4
 
 
 def test_shift_of_a_manual_grid_moves_the_downbeat_by_whole_bars() -> None:
@@ -209,3 +210,13 @@ def test_time_signature_and_rounded_tempo() -> None:
 @pytest.mark.parametrize(("bpm", "rounded"), [(119.5, 120), (120.49, 120), (87.5, 88), (30, 30)])
 def test_round_bpm_rounds_half_up(bpm: float, rounded: int) -> None:
     assert round_bpm(bpm) == rounded
+
+
+def test_bar_one_of_a_range_is_the_first_downbeat_inside_it() -> None:
+    # Track downbeats 1.4, 3.4, ... seen from a range that starts at 6 s.
+    track = BeatGridTempo(bpm=120, beats_per_bar=4, beats=[1.4 + 0.5 * i for i in range(40)],
+                          downbeats=[1.4 + 2.0 * i for i in range(10)])  # fmt: skip
+    timebase = TimeBase.from_grid(shift_grid(track, 6.0), duration_seconds=8.0)
+
+    assert timebase.quarters(1.4) == pytest.approx(0)
+    assert timebase.quarters(0.4) == pytest.approx(-2)

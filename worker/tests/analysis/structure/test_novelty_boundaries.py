@@ -112,8 +112,8 @@ def test_spans_cover_the_frames() -> None:
 @pytest.mark.parametrize(
     ("bounds", "snap", "expected"),
     [
-        ((0.0, 0.48, 2.48, 4.48, 6.5), "downbeat", [(0.0, 2.48), (2.48, 6.5)]),
-        ((0.0, 0.31, 1.63, 2.96, 4.5), "beat", [(0.0, 1.63), (1.63, 4.5)]),
+        ((0.0, 0.48, 2.48, 4.48, 6.5), "downbeat", [(0.0, 2.5), (2.5, 6.5)]),
+        ((0.0, 0.31, 1.63, 2.96, 4.5), "beat", [(0.0, 1.6), (1.6, 4.5)]),
         ((0.0, 2.0, 4.0, 6.04, 7.33), "time", [(0.0, 4.0), (4.0, 7.33)]),
     ],
 )
@@ -131,3 +131,12 @@ def test_time_snap_rounds_inner_boundaries_to_a_tenth() -> None:
     frames = FrameGrid(bounds=(0.0, 2.04, 4.04, 7.33), snap="time")
 
     assert spans_in_seconds([(0, 1), (1, 3)], frames) == [(0.0, 2.0), (2.0, 7.33)]
+
+
+@pytest.mark.parametrize("snap", ["downbeat", "beat"])
+def test_grid_snaps_round_inner_boundaries_to_a_tenth(snap: str) -> None:
+    frames = FrameGrid(bounds=(0.0, 0.6153, 8.6153, 16.6153, 24.6153, 30.25), snap=snap)  # type: ignore[arg-type]
+
+    spans = spans_in_seconds([(0, 2), (2, 3), (3, 5)], frames)
+
+    assert spans == [(0.0, 8.6), (8.6, 16.6), (16.6, 30.25)]

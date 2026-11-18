@@ -1,5 +1,6 @@
 """Tests of the fake section analyser of the E2E stack (014 T032, data-model 2.4)."""
 
+import itertools
 from pathlib import Path
 
 import pytest
@@ -138,3 +139,22 @@ def test_factory_follows_the_setting(tmp_path: Path, kind: str, *, fake: bool) -
     assert isinstance(analyzer, FakeStructureAnalyzer) is fake
     assert analyzer.name == ("fake" if fake else "stems-novelty")
     assert analyzer.version == "1.0.0"
+
+
+def test_section_times_are_rounded_to_a_tenth_and_stay_contiguous() -> None:
+    # 111.4 BPM with a 0.6153 s lead-in: raw downbeats such as 8.6153 s (the 014 E2E finding).
+    result = _analyze(_grid(111.4, 200, lead_in=0.6153), 199.987)
+
+    starts = [s.start_seconds for s in result.sections]
+    assert all(round(t, 1) == t for t in starts)
+    assert starts == sorted(set(starts))
+    assert all(a.end_seconds == b.start_seconds for a, b in itertools.pairwise(result.sections))
+    assert result.sections[-1].end_seconds == 199.987
+
+
+def test_a_start_that_rounds_onto_the_end_is_not_a_section() -> None:
+    # 60 BPM, bars of 4 s from 0.96 s: the verse would start at 16.96 s, which rounds to 17.0 s,
+    # past the 16.98 s end.
+    result = _analyze(_grid(60, 16.98, lead_in=0.96), 16.98)
+
+    assert _spans(result) == [(0.0, 16.98)]

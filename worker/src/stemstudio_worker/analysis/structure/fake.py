@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from typing import Final
 
 from stemstudio_worker.analysis.structure.names import numbered_labels
+from stemstudio_worker.analysis.structure.times import contiguous_spans, section_time
 from stemstudio_worker.ports import SectionProgress, StemFiles
 from stemstudio_worker.schemas import (
     SECTION_WARNING_TEXTS,
@@ -81,7 +82,9 @@ def _section_starts(clock: _BarClock, duration: float, max_sections: int) -> lis
     """Start of every section; the first is 0 (the lead-in belongs to the intro)."""
     starts = [0.0]
     bar = _INTRO_BARS
-    while len(starts) < min(len(_CYCLE), max_sections) and clock.start(bar) < duration:
+    while (
+        len(starts) < min(len(_CYCLE), max_sections) and section_time(clock.start(bar)) < duration
+    ):
         starts.append(clock.start(bar))
         bar += _SECTION_BARS
     return starts
@@ -90,12 +93,12 @@ def _section_starts(clock: _BarClock, duration: float, max_sections: int) -> lis
 def _sections(starts: list[float], duration: float) -> list[DetectedSection]:
     cycle = _CYCLE[: len(starts)]
     labels = numbered_labels([c[0] for c in cycle], [c[1] for c in cycle], [c[2] for c in cycle])
-    ends = [*starts[1:], duration]
+    spans = contiguous_spans(starts[1:], duration)
     return [
         DetectedSection(kind=kind, label=label, start_seconds=start, end_seconds=end,
                         cluster=cluster, instrument=instrument, confidence=_CONFIDENCE)
-        for (kind, cluster, instrument), label, start, end in zip(cycle, labels, starts, ends,
-                                                                  strict=True)
+        for (kind, cluster, instrument), label, (start, end) in zip(cycle, labels, spans,
+                                                                    strict=True)
     ]  # fmt: skip
 
 
