@@ -89,15 +89,16 @@ public sealed class ShortcutOverlayTests : PageTestContext
     }
 
     [Fact]
-    public async Task AtExpert_TheRecordAndCompareRowsCarryThe015Ids()
+    public async Task AtExpert_TheRecordAndCompareRowsUseTheGeneric014Ids()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
         var shell = RenderShell(ExperienceLevel.Expert);
 
         await OpenAsync(shell);
 
-        Id(shell, "shortcut-record").TextContent.ShouldBe("Record / stop recording");
-        Id(shell, "shortcut-compare").Closest("tr")!.GetAttribute("data-keys").ShouldBe("c");
+        Id(shell, "shortcut-row-mixer-record-toggle").TextContent.ShouldContain("Record / stop recording");
+        Id(shell, "shortcut-row-mixer-compare-cycle").GetAttribute("data-keys").ShouldBe("c");
+        shell.FindAll("[data-testid=shortcut-record], [data-testid=shortcut-compare]").ShouldBeEmpty();
     }
 
     [Fact]

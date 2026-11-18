@@ -42,6 +42,31 @@ public sealed class RecordingComponentTests : RecordingTestContext
     }
 
     [Fact]
+    public void InputMeter_HasADefiniteHeight_SoTheRecordingPanelGrowsWithItsContent()
+    {
+        // The strip meter wrap is height: 100 %; inside the wrapping recording panel (a grid row of the console) that
+        // percentage made the meter as tall as the panel and pushed Record under the channel strips (r14 E2E).
+        var module = JSInterop.SetupModule("./Components/Recording/InputMeter.razor.js");
+        module.SetupModule("watchMeter", _ => true);
+
+        var meter = Render<InputMeter>();
+
+        meter.Find(".ss-meter-wrap").ClassList.ShouldContain("ss-input-meter");
+        var rule = CssRule(Fakes.RepoPaths.ReadWeb("wwwroot/css/components/mixer.css"), ".ss-meter-wrap.ss-input-meter {");
+        rule.ShouldContain("flex: 0 0 100%;");
+        var height = System.Text.RegularExpressions.Regex.Match(rule, @"(?m)^\s*height:\s*([^;]+);").Groups[1].Value;
+        height.ShouldNotBeEmpty();
+        height.ShouldNotContain("%");
+    }
+
+    private static string CssRule(string css, string selector)
+    {
+        var start = css.IndexOf(selector, StringComparison.Ordinal);
+        start.ShouldBeGreaterThanOrEqualTo(0, selector);
+        return css[start..css.IndexOf('}', start)];
+    }
+
+    [Fact]
     public async Task InputSelector_IgnoresUnknownValues()
     {
         await OpenWithInputAsync();

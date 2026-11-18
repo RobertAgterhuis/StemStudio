@@ -5,6 +5,7 @@ import type { StemStudioApi } from '../support/api';
 import { fakeStems } from '../support/detail';
 import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
 import { expectLoop } from '../support/expert-flow';
+import { practiceFlowFixturePath } from '../support/fixtures';
 import { blurActiveElement } from '../support/help';
 import { positionSeconds } from '../support/levels';
 import {
@@ -96,8 +97,8 @@ test.describe('section lane after import (014 US1)', { tag: '@practice-flow' }, 
   });
 
   test('a grid the analyser does not trust shows the uncertain-grid note (scenario 5)', async ({ api, mixer, page }) => {
-    // Digital silence has no reliable beat grid (TEST-STRATEGY fixture table): the fake analyser warns grid-unreliable.
-    const track = await api.ensureCompleted('silence_5s.wav', fakeJobTimeoutMs);
+    // A chord pad without drums or onsets has no reliable beat grid (014 T018 fixture): the analyser warns grid-unreliable.
+    const track = await api.ensureFileCompleted(practiceFlowFixturePath('practice-song-free.wav'), fakeJobTimeoutMs);
     expect(track.beatGrid?.reliable ?? false, 'the fixture has no reliable beat grid').toBe(false);
     const set = await flow.waitForSections(track.id);
     const lane = new SectionLane(page);
@@ -111,13 +112,17 @@ test.describe('section lane after import (014 US1)', { tag: '@practice-flow' }, 
   });
 
   test('detecting again with overwrite refills the lane; Try again exists only after a failure', async ({ api, mixer, page }) => {
-    const { lane, trackId } = await openWithSections(api, mixer, page);
+    const { lane, trackId, set: before } = await openWithSections(api, mixer, page);
     await expect(lane.retry).toHaveCount(0);
 
     const again = await flow.detect(trackId, true);
 
     expect(again.status()).toBe(202);
+    await expect.poll(async () => (await flow.sections(trackId)).revision, { timeout: sectionsReadyTimeoutMs }).toBeGreaterThan(before.revision);
     const set = await flow.waitForSections(trackId);
+    // The detection was started through the API, not in this page: the lane shows it after a reload.
+    await page.reload();
+    await mixer.waitForReady(fakeStems);
     await lane.waitForReady(set.sections.length, sectionsReadyTimeoutMs);
     await expect(lane.lane).toHaveAttribute('data-revision', String(set.revision));
   });

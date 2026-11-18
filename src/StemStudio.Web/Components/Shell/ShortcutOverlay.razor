@@ -30,7 +30,7 @@
                     {
                         <tr data-testid="@($"shortcut-row-{line.TestId}")" data-keys="@line.DataKeys">
                             <th scope="row"><kbd>@line.Text</kbd></th>
-                            <td data-testid="@RecordingId(line.Command)">@line.Label</td>
+                            <td>@line.Label</td>
                         </tr>
                     }
                 </tbody>
@@ -43,12 +43,9 @@
     private ElementReference _dialog;
     private IAsyncDisposable? _focus;
 
-    // 015 ui-test-ids 1.14.0: the record and compare rows (shortcut-record, shortcut-compare) are Expert rows (R10).
-    private static readonly Dictionary<string, string> RecordingRows = new(StringComparer.Ordinal)
-    {
-        ["mixer.record.toggle"] = "shortcut-record",
-        ["mixer.compare.cycle"] = "shortcut-compare",
-    };
+    // 015 ui-test-ids 1.14.0: the record and compare rows (generic ids shortcut-row-mixer-record-toggle and
+    // shortcut-row-mixer-compare-cycle) are Expert rows (R10).
+    private static readonly HashSet<string> RecordingRows = new(StringComparer.Ordinal) { "mixer.record.toggle", "mixer.compare.cycle" };
 
     /// <summary>The cascaded level.</summary>
     [CascadingParameter]
@@ -56,9 +53,7 @@
 
     private bool Expert => (Experience ?? StemStudio.Web.Experience.ExperienceContext.Default).Is(StemStudio.Web.Experience.ExperienceLevel.Expert);
 
-    private static string? RecordingId(string command) => RecordingRows.GetValueOrDefault(command);
-
-    private bool Shown(ShortcutLine line) => Expert || !RecordingRows.ContainsKey(line.Command);
+    private bool Shown(ShortcutLine line) => Expert || !RecordingRows.Contains(line.Command);
 
     private IReadOnlyList<ShortcutGroup> Groups => ShortcutOverview.Build(ShortcutKeys.Catalogue, Preferences.Current.Shortcuts, Scopes());
 

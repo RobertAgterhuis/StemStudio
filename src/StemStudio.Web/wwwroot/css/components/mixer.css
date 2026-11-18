@@ -288,6 +288,15 @@ html:has(.ss-transport-dock) {
   box-shadow: inset 0 4px 0 var(--ss-color-danger);
 }
 
+/* Input meter of the recording panel (015): a line of its own with a definite height. The strip wrap's height: 100 %
+   would resolve against the panel's grid row, make the meter as tall as the panel and push the rest of the panel
+   (Record, options) out of it, under the channel strips. */
+.ss-meter-wrap.ss-input-meter {
+  flex: 0 0 100%;
+  align-items: flex-start;
+  height: calc(4rem * var(--ss-density));
+}
+
 /* Transport dock: sticky at the bottom of the viewport. */
 .ss-transport-dock {
   position: sticky;

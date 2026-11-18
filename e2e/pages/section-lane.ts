@@ -45,10 +45,19 @@ export class SectionLane {
     await expect(this.buttons).toHaveCount(count);
   }
 
+  /**
+   * Asserts that the button's text starts with `label` (ui-test-ids: text = label). The button also shows the kind and a
+   * screen-reader range ("bars 1 to 5, playing now") after the label.
+   */
+  async expectLabel(sectionId: string, label: string): Promise<void> {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    await expect(this.section(sectionId)).toHaveText(new RegExp(`^\\s*${escaped}(\\s|,|$)`, 'u'));
+  }
+
   /** Asserts that a button shows the section's label, kind and bounds (1 decimal). */
   async expectSection(section: SectionDto): Promise<void> {
     const button = this.section(section.id);
-    await expect(button).toHaveText(section.label);
+    await this.expectLabel(section.id, section.label);
     await expect(button).toHaveAttribute('data-kind', section.kind);
     await expect(button).toHaveAttribute('data-start', laneSeconds(section.startSeconds));
     await expect(button).toHaveAttribute('data-end', laneSeconds(section.endSeconds));

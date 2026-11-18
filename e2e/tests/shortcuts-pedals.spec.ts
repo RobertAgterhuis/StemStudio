@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { AppShell } from '../pages/app-shell';
 import type { MixerPage } from '../pages/mixer-page';
 import { ShortcutSettings } from '../pages/shortcut-settings';
 import { axeViolations } from '../support/axe';
@@ -26,6 +27,16 @@ test.beforeEach(async ({ api, mixer }) => {
 async function press(page: Page, key: string): Promise<void> {
   await blurActiveElement(page);
   await page.keyboard.press(key);
+}
+
+/** Switches "Single-key shortcuts" in the preferences panel (ui-test-ids 1.13.0) and closes the panel again. */
+async function setSingleKey(page: Page, on: boolean): Promise<void> {
+  await new AppShell(page).openPreferences();
+  const toggle = page.getByTestId('pref-single-key');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', on ? 'true' : 'false');
+  await page.getByTestId('preferences-open').click();
+  await expect(page.getByTestId('preferences-panel')).toHaveCount(0);
 }
 
 async function heard(page: Page): Promise<number> {
@@ -137,16 +148,25 @@ test.describe('remapping, pedals and single-key off (014 US2 scenarios 3-5)', { 
 
     await settings.capture('mixer.loop.toggle', 'n');
     await expect(settings.byId('shortcut-conflict')).toContainText(/Next section/u);
+    // A refused key ends the capture; Change starts a new one, and Cancel ends it without a change.
+    await expect(settings.byId('shortcut-capture')).toHaveCount(0);
+    await settings.byId(`shortcut-edit-${ShortcutSettings.idOf('mixer.loop.toggle')}`).click();
     await settings.byId('shortcut-capture-cancel').click();
+    await expect(settings.byId('shortcut-capture')).toHaveCount(0);
     await settings.capture('mixer.loop.toggle', 'j');
+    await settings.expectKeys('mixer.loop.toggle', 'j');
     await page.goto(back);
     await mixer.waitForReady(fakeStems);
+    // Loop on/off needs both loop points.
+    await mixer.setLoop(4, 9, false);
     await expectToggled(page, 'j', mixer.byId('loop-toggle'));
 
     await settings.goto();
     await settings.resetAll();
+    await settings.expectKeys('mixer.loop.toggle', 'l');
     await page.goto(back);
     await mixer.waitForReady(fakeStems);
+    await mixer.setLoop(4, 9, false);
     await expectToggled(page, 'l', mixer.byId('loop-toggle'));
   });
 
@@ -169,8 +189,8 @@ test.describe('remapping, pedals and single-key off (014 US2 scenarios 3-5)', { 
   });
 
   test('with single-key shortcuts off, letters do nothing and chords still work', async ({ mixer, page }) => {
-    await page.getByTestId('pref-single-key').click();
-    await expect(page.getByTestId('pref-single-key')).toHaveAttribute('aria-checked', 'false');
+    await mixer.setLoop(4, 9, false);
+    await setSingleKey(page, false);
     const loopBefore = await isOn(mixer.byId('loop-toggle'));
 
     await press(page, 'l');
@@ -179,7 +199,7 @@ test.describe('remapping, pedals and single-key off (014 US2 scenarios 3-5)', { 
     await expect(page.getByTestId('shortcut-overlay')).toBeVisible();
     expect(await isOn(mixer.byId('loop-toggle'))).toBe(loopBefore);
     await page.keyboard.press('Escape');
-    await page.getByTestId('pref-single-key').click();
+    await setSingleKey(page, true);
   });
 
   test('the shortcut settings page has no axe violations (SC-006)', async ({ page }) => {

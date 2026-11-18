@@ -138,7 +138,7 @@ public sealed class SectionEditorTests : MixerTestContext
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Conflict, "sections-changed", "Another window saved the sections first. Cancel and open the editor again to see them.")]
+    [InlineData(HttpStatusCode.Conflict, "sections-changed", "The sections were changed in another window. The newer version is loaded; make your changes again.")]
     [InlineData(HttpStatusCode.UnprocessableEntity, "validation", "Label is too long.")]
     public async Task SaveErrors_AreShownInTheEditor(HttpStatusCode status, string code, string message)
     {
@@ -153,6 +153,44 @@ public sealed class SectionEditorTests : MixerTestContext
 
         page.Find("[data-testid=section-editor-error]").TextContent.ShouldBe(message);
         page.Find("[data-testid=section-editor]").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task ASaveRefusedBecauseOfAnotherWindow_ReloadsTheNewerVersion()
+    {
+        // US3 scenario 5: the second save is refused and the editor shows the version the other window saved.
+        var newer = PracticeFlowData.SectionSet() with { Revision = 2, Snap = SectionSnapDto.Time };
+        newer = newer with { Sections = [newer.Sections[0] with { Label = "From the other tab" }, .. newer.Sections.Skip(1)] };
+        Api.ReplaceSectionsAsync(TestData.TrackId, Arg.Any<SectionsUpdateRequest>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ApiException(new ApiError(HttpStatusCode.Conflict, "Problem", "Changed.", new Dictionary<string, string[]>())
+            {
+                Type = "https://stemstudio.local/problems/sections-changed",
+            }));
+        var page = await OpenEditorAsync();
+        Api.GetSectionsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(newer);
+
+        await Click(page, "section-editor-done");
+
+        page.WaitForAssertion(() => Labels(page)[0].ShouldBe("From the other tab"));
+        page.Find("[data-testid=section-editor-error]").TextContent.ShouldStartWith("The sections were changed in another window");
+    }
+
+    [Fact]
+    public async Task ASaveRefusedBecauseOfAnotherWindow_WhenTheReloadFails_ShowsTheReloadError()
+    {
+        Api.ReplaceSectionsAsync(TestData.TrackId, Arg.Any<SectionsUpdateRequest>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ApiException(new ApiError(HttpStatusCode.Conflict, "Problem", "Changed.", new Dictionary<string, string[]>())
+            {
+                Type = "https://stemstudio.local/problems/sections-changed",
+            }));
+        var page = await OpenEditorAsync();
+        Api.GetSectionsAsync(TestData.TrackId, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ApiException(new ApiError(HttpStatusCode.ServiceUnavailable, "Down", "The library is busy.", new Dictionary<string, string[]>())));
+
+        await Click(page, "section-editor-done");
+
+        page.Find("[data-testid=section-editor-error]").TextContent.ShouldBe("The library is busy.");
+        Labels(page).Length.ShouldBe(5);
     }
 
     [Fact]

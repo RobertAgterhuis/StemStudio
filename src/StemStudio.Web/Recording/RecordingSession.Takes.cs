@@ -105,6 +105,7 @@ public sealed partial class RecordingSession
     private async Task UploadAsync(IReadOnlyList<TakeItem> items)
     {
         await _uploader.UploadAsync(_host.TrackId, items);
+        Takes.AnnounceSavedStrip();
         await _host.RefreshAsync();
         _ = PollAsync();
     }

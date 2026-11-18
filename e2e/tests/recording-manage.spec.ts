@@ -36,6 +36,8 @@ test.describe('managing takes', { tag: '@recording' }, () => {
     expect(await recordingApi.status(`/api/takes/${oldest.id}`)).toBe(404);
     expect(await recordingApi.status(`/api/assets/${oldest.assetId}`)).toBe(404);
 
+    // A new import starts its detail phase (feature 002); a track with a running detail phase cannot be deleted.
+    await api.stopDetail(track.id, fakeJobTimeoutMs);
     await trackPage.goto(track.id);
     await recording.byId('track-delete').click();
     await expect(recording.byId('track-delete-takes-note')).toContainText('2 takes');
