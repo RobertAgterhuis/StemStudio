@@ -34,7 +34,7 @@ public sealed class PracticeRecorder
     private DateTimeOffset _lastFlush;
     private DateTimeOffset _holdSince;
     private double _lastPosition;
-    private bool _flushing;
+    private Task _inFlight = Task.CompletedTask;
 
     /// <summary>Creates a recorder.</summary>
     /// <param name="write">Upserts a session (<c>PUT /api/practice/sessions/{id}</c>).</param>
@@ -153,7 +153,7 @@ public sealed class PracticeRecorder
             Account();
         }
 
-        await FlushAsync();
+        await FlushAsync(afterInFlight: true);
         State = State == PracticeRecorderState.Off ? State : PracticeRecorderState.Closed;
     }
 
@@ -190,7 +190,7 @@ public sealed class PracticeRecorder
 
         Account();
         (_holdSince, State) = (_time.GetUtcNow(), PracticeRecorderState.Holding);
-        return FlushAsync();
+        return FlushAsync(afterInFlight: true);
     }
 
     private void Account()
@@ -200,18 +200,35 @@ public sealed class PracticeRecorder
         _lastTick = now;
     }
 
-    private async Task FlushAsync()
+    // A periodic flush is skipped while a write runs; a hold or close waits for it and writes again, so a loop pass or the
+    // last seconds that arrive during the write are not lost (E2E practice-log scenario 2). Writes never overlap.
+    private async Task FlushAsync(bool afterInFlight = false)
     {
-        if (_flushing || _session is not { PlayedSeconds: > 0 } session)
+        if (!_inFlight.IsCompleted && !afterInFlight)
         {
             return;
         }
 
-        _flushing = true;
+        while (!_inFlight.IsCompleted)
+        {
+            await _inFlight;
+        }
+
+        if (_session is not { PlayedSeconds: > 0 } session)
+        {
+            return;
+        }
+
         _lastFlush = _time.GetUtcNow();
+        _inFlight = WriteAsync(session.Id, session.ToInput(_trackId, _mixId, _lastFlush));
+        await _inFlight;
+    }
+
+    private async Task WriteAsync(Guid id, PracticeSessionInputDto body)
+    {
         try
         {
-            await _write(session.Id, session.ToInput(_trackId, _mixId, _lastFlush), CancellationToken.None);
+            await _write(id, body, CancellationToken.None);
         }
         catch (ApiException ex) when (ex.Error.IsConflict && ex.Error.Code == PracticeFlowProblemTypes.PracticeLogOff)
         {
@@ -220,10 +237,6 @@ public sealed class PracticeRecorder
         catch (Exception ex) when (ex is ApiException or HttpRequestException or OperationCanceledException)
         {
             // Kept: the values are cumulative, the next flush sends them again.
-        }
-        finally
-        {
-            _flushing = false;
         }
     }
 }
