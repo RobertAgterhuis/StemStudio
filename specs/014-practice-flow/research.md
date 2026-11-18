@@ -224,6 +224,11 @@ Consequence: data-model 2.5 step 4 changes from "insert the `@font-face`" to "ke
 position). The fallback (strip the Leipzig text, tempo in the panel header) is not needed. Page size per
 view page about 80-260 KB (the font accounts for 58.6 KB of each).
 
+**Correction (wave, audio-ingest polish; integration 2026-11-18):** Verovio 6.4.0 embeds the `@font-face` only
+in pages that contain Leipzig **text** (the tempo mark, normally page 1); later pages draw every glyph as `<use>`
+paths and carry no font. The check is therefore "every page that uses `font-family="Leipzig"` has the
+`@font-face`" (data-model 2.5 step 4), not "every page has it"; pages without Leipzig text are smaller.
+
 ## R-12 ReportLab lock (T002, 2026-11-17)
 
 `reportlab==5.1.0` (PyPI upload 2026-10-22, 26 days before the lock; newest release; pure-Python wheel

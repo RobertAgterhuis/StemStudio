@@ -38,6 +38,9 @@ public static class PracticeFlowProblemTypes
     /// <summary>504: the setlist PDF was not ready within the timeout.</summary>
     public const string DocumentTimeout = "document-timeout";
 
+    /// <summary>503: the setlist document job failed or its PDF is unusable (<c>SetlistDocumentUnavailable</c>, backend 1.13.0/1.14.0).</summary>
+    public const string DocumentFailed = "document-failed";
+
     /// <summary>Field error code of <c>replaceSetlistEntries</c>: the track does not exist.</summary>
     public const string TrackNotFound = "track-not-found";
 

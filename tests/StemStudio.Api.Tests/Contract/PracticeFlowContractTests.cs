@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using StemStudio.Api.SongSections;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Practice;
@@ -256,7 +255,7 @@ public sealed class PracticeFlowContractTests
             PracticeFlowProblemTypes.SectionsChanged, PracticeFlowProblemTypes.SectionsEdited, PracticeFlowProblemTypes.DetectionRunning,
             PracticeFlowProblemTypes.TrackNotReady, PracticeFlowProblemTypes.NotAScore, PracticeFlowProblemTypes.ScoreNotReady,
             PracticeFlowProblemTypes.ScoreViewNotReady, PracticeFlowProblemTypes.SetlistEmpty, PracticeFlowProblemTypes.PracticeLogOff,
-            PracticeFlowProblemTypes.DocumentTimeout, PracticeFlowProblems.DocumentFailed, PracticeFlowProblemTypes.TrackNotFound, PracticeFlowProblemTypes.MixTrackMismatch,
+            PracticeFlowProblemTypes.DocumentTimeout, PracticeFlowProblemTypes.DocumentFailed, PracticeFlowProblemTypes.TrackNotFound, PracticeFlowProblemTypes.MixTrackMismatch,
         ];
 
         codes.ShouldAllBe(code => text.Contains(code, StringComparison.Ordinal));
@@ -272,8 +271,8 @@ public sealed class PracticeFlowContractTests
             var example = response["content"]!["application/problem+json"]!["example"]!;
 
             response["description"]!.GetValue<string>().ShouldContain("`worker-unavailable`");
-            response["description"]!.GetValue<string>().ShouldContain($"`{PracticeFlowProblems.DocumentFailed}`");
-            example["type"]!.GetValue<string>().ShouldBe(PracticeFlowProblemTypes.BaseUri + PracticeFlowProblems.DocumentFailed);
+            response["description"]!.GetValue<string>().ShouldContain($"`{PracticeFlowProblemTypes.DocumentFailed}`");
+            example["type"]!.GetValue<string>().ShouldBe(PracticeFlowProblemTypes.BaseUri + PracticeFlowProblemTypes.DocumentFailed);
             example["status"]!.GetValue<double>().ShouldBe(503);
         }
 

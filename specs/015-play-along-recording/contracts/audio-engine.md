@@ -659,8 +659,9 @@ detachScoreFollower(): void;
 
 - Fired once per completed pass of an **enabled** loop at the moment the wrap is heard (computed on
   the frame loop and on the scheduler tick, whichever sees the wrap first; never twice for one
-  pass), with the region and the speed of the pass. A seek or loop change resets `pass` to 0 and
-  the partial pass is not reported.
+  pass), with the region and the speed of the pass. A seek or a change of the loop region (start,
+  end or enabled) resets `pass` to 0 and the partial pass is not reported. Re-sending an identical
+  region with `setLoop` is not a change and does not reset the count (CTO decision 2026-11-17).
 - Frequency is at most one call per pass (a 1 s loop: 1 Hz), so no high-frequency interop.
 
 ## Play-along recording (v2.5.0, feature 015, ADR-024)
@@ -806,11 +807,11 @@ interface EngineOptions {
 | `calibrateLatency(options?): Promise<CalibrationResult>` | Needs `open`, transport not playing (else rejects `Error("Pause playback to calibrate")`); research R-04; never throws for a failed measurement (`ok: false` + reason) |
 | `startRecording(options): Promise<void>` | Needs `open`, a loaded track, speed 1 and transpose 0 (else rejects `recordingSpeed:`), no speed trainer (`speedTrainer:`); starts capture, then the transport from the current position with 012's count-in; disables seek, loop, speed, transpose and track changes until `stopRecording` (they throw `Error("Stop the recording first")`); the take channel is gated to 0 while recording |
 | `stopRecording(): Promise<CapturedTake[]>` | Stops the transport, waits `L + P` + one batch (state `finishing`), returns every take of the session (also reported by `OnTakesCaptured`) |
-| `captureWav(captureKey): Blob` | 24-bit PCM WAV of the take (research R-07); Blazor reads it as `IJSStreamReference` |
+| `captureWav(captureKey): Blob` | 24-bit PCM WAV of the take (research R-07); Blazor reads it as `IJSStreamReference`. With the take id of the **loaded** take (instead of a capture key) it returns that take re-encoded as a 24-bit WAV starting at song sample `max(0, startSample + adjustmentSamples)`: a shift before the song start drops the leading samples (the re-encoded span for `PUT /api/takes/{id}/audio`, data-model 2.4). Unknown key: throws `Unknown capture "<key>"` |
 | `releaseCapture(captureKey): void` | Frees the local audio (unknown key: no-op) |
 | `loadTake(request): Promise<void>` | Decodes/slices (R-09), creates the `take` channel (fader x gate -> panner -> meter -> master) if needed, schedules it sample-locked with the shared transport anchor; replaces a loaded take; rejects with the stem-loader messages on fetch/decode errors |
 | `unloadTake(): void` | Removes the take buffer; the `take` channel stays silent; compare resets to `both` |
-| `setTakeAdjustment(samples): void` | Playback-only shift of the loaded take, re-scheduled at `ctx.currentTime + 0.01` |
+| `setTakeAdjustment(samples): void` | Playback-only shift of the loaded take, re-scheduled at `ctx.currentTime + 0.01`. The value is **absolute**, relative to the loaded `startSample` (not a delta); integer `-8820..8820` samples (else throws `Invalid take adjustment`); no-op without a loaded take |
 | `setTakeCompare(mode): void` | R-10 gate factor, swapped at one context time with <= 10 ms ramps; with part `none`, `original` = take gated |
 
 `setChannel('take', settings)` and `attachMeter('take' | 'input', elementId)` work like for stems;

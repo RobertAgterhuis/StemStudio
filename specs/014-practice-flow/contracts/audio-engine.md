@@ -646,8 +646,9 @@ detachScoreFollower(): void;
 
 - Fired once per completed pass of an **enabled** loop at the moment the wrap is heard (computed on
   the frame loop and on the scheduler tick, whichever sees the wrap first; never twice for one
-  pass), with the region and the speed of the pass. A seek or loop change resets `pass` to 0 and
-  the partial pass is not reported.
+  pass), with the region and the speed of the pass. A seek or a change of the loop region (start,
+  end or enabled) resets `pass` to 0 and the partial pass is not reported. Re-sending an identical
+  region with `setLoop` is not a change and does not reset the count (CTO decision 2026-11-17).
 - Frequency is at most one call per pass (a 1 s loop: 1 Hz), so no high-frequency interop.
 
 ## Callbacks to .NET

@@ -152,7 +152,7 @@ public sealed class SetlistPdfService(
     }
 
     private static IResult DocumentFailed(string detail) =>
-        PracticeFlowProblems.Typed(StatusCodes.Status503ServiceUnavailable, PracticeFlowProblems.DocumentFailed, "The PDF could not be made", detail);
+        PracticeFlowProblems.Typed(StatusCodes.Status503ServiceUnavailable, PracticeFlowProblemTypes.DocumentFailed, "The PDF could not be made", detail);
 
     private static IResult Timeout() => PracticeFlowProblems.Typed(
         StatusCodes.Status504GatewayTimeout, PracticeFlowProblemTypes.DocumentTimeout, "The PDF took too long", "Try again in a moment.");

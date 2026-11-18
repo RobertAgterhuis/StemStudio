@@ -106,10 +106,12 @@ Processing (audio-ingest, `engraving/score_view.py`):
    `x / 21000`, `y / 29700`, rounded to 4 decimals. Page index = page of that measure.
 3. Bar times (008 data-model 2.4 time base): measure *k* (1-based, the pickup counts as measure 1
    when present, number 0) starts at its downbeat in the grid; the pickup starts at
-   `downbeats[0] - pickupBeats x beatPeriod`; the last bar ends at `durationSeconds`. Manual tempo:
+   bar-one downbeat (008 data-model 2.4: the first downbeat >= 0 of the shifted grid) `- pickupBeats x
+   beatPeriod`; the last bar ends at `durationSeconds`. Manual tempo:
    generated grid as in 008. Result times are relative to the input start (the API shifts).
 4. Font: Verovio 6.4.0 already writes the Leipzig `@font-face` (WOFF2 data URI, 58.6 KB) into a
-   `<style>` of every page; keep it and verify that each page contains it (`ScoreViewError` when not).
+   `<style>` of every page with Leipzig text; keep it and verify that each page using `font-family="Leipzig"`
+   contains it (`ScoreViewError` when not; research R-11 correction).
    Do not add a second copy (check T011, research.md R-11: renders as `<img>` in Chromium and Firefox).
 5. Output files `page-001.svg` ... (max 200 pages), `bars.json`.
 
