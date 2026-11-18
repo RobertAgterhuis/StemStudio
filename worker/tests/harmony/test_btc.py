@@ -146,7 +146,11 @@ class RecordingRunner(FakeDeviceRunner):
 def _recognizer(
     tmp_path: Path, runtime: FakeRuntime | None = None, missing: bool = False, mode: str = "cpu"
 ) -> tuple[BtcRecognizer, FakeModels, RecordingRunner, FallbackRecognizer]:
-    models, runner, fallback = FakeModels(tmp_path, missing), RecordingRunner(mode), FallbackRecognizer()
+    models, runner, fallback = (
+        FakeModels(tmp_path, missing),
+        RecordingRunner(mode),
+        FallbackRecognizer(),
+    )
     recognizer = BtcRecognizer(models, runner, runtime or FakeRuntime(), fallback)
     return recognizer, models, runner, fallback
 
@@ -390,7 +394,10 @@ def test_readiness_per_model_comes_from_the_store(tmp_path: Path) -> None:
     missing, _, _, _ = _recognizer(tmp_path, missing=True)
 
     assert ready.models_ready() == {"btc-majmin": "ready", "btc-large-voca": "ready"}
-    assert missing.models_ready() == {"btc-majmin": "not-downloaded", "btc-large-voca": "not-downloaded"}
+    assert missing.models_ready() == {
+        "btc-majmin": "not-downloaded",
+        "btc-large-voca": "not-downloaded",
+    }
 
 
 # ------------------------------------------------------------------ the model store
@@ -566,11 +573,11 @@ def test_the_real_torch_refuses_a_global_outside_the_allow_list(tmp_path: Path) 
     torch.save({"model": {}, "mean": np.float64(0.0), "std": np.float64(1.0), "x": Path("p")},
                checkpoint)  # fmt: skip
 
-    with pytest.raises(Exception, match="(?i)weights_only|unsupported global"):
+    with pytest.raises(Exception, match=r"(?i)weights_only|unsupported global"):
         TorchBtcRuntime(1).load(checkpoint, 25, "cpu")
 
 
-def test_the_real_torch_loads_numpy_scalar_mean_and_std(
+def test_the_real_torch_loads_a_plain_checkpoint_inside_the_allow_list(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import torch  # noqa: PLC0415
@@ -578,7 +585,7 @@ def test_the_real_torch_loads_numpy_scalar_mean_and_std(
     vendored = importlib.import_module("stemstudio_worker.harmony.vendor.btc.btc_model")
     monkeypatch.setattr(vendored, "BTC_model", _RealTinyNetwork)
     checkpoint = tmp_path / "ok.pt"
-    torch.save({"model": {}, "mean": np.float64(0.5), "std": np.float64(2.0)}, checkpoint)
+    torch.save({"model": {}, "mean": 0.5, "std": 2.0}, checkpoint)  # the real BTC files: T063
     threads = torch.get_num_threads()
 
     model = TorchBtcRuntime(1).load(checkpoint, 25, "cpu")
