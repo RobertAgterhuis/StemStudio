@@ -225,6 +225,11 @@ class BtcRecognizer:
         """``btc``."""
         return "btc"
 
+    @property
+    def fallback(self) -> ChordRecognizer:
+        """The recognizer that runs without weights (chroma-hmm)."""
+        return self._fallback
+
     def models_ready(self) -> dict[str, ModelReadiness]:
         """``Health.instrumentAnalysis.models``: readiness per BTC model id."""
         return {w.model_id: "ready" if self._models.ready(w) else "not-downloaded"
