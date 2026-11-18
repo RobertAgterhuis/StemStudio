@@ -34,7 +34,9 @@ snapshot (`dotnet ef migrations has-pending-model-changes`: no changes).
 | `96a01a97` | E2E: the 014 tours (`practice-section`, `hands-free`) in the stored tour versions (self-test red; tours were offered on every page); section starts within half of the worker's 0.1 s rounding step of a downbeat; range score before its first bar = `data-bar-index="-1"` (the old `/\d/` matched it) |
 | `0707013d` | E2E: score follow pauses with `transport-pause` and allows the floored position text; Ctrl+/ at Advanced opens the overlay (014 FR-024 changed 004's Expert-only rule) |
 | `30d7e326` | E2E: axe scans wait for running CSS transitions (Firefox measured the level switch of the setlists page mid-transition; 2 of 2 runs red, 3 of 3 green after) |
-| (see log) | E2E no-detect pass: re-imports the click track when the default pass already detected its sections; `sections-edit` disposes its context also when skipped |
+| `ce171c77` | E2E no-detect pass: re-imports the click track when the default pass already detected its sections; `sections-edit` disposes its context also when skipped |
+| `2737ce19` | **Product**: section lane (column flexbox in a centred panel took max-content width, +84 px) and "Add <mix> to setlist" (+283 px) reflow at 320 px; red first in `robustness.a11y.spec.ts` |
+| `fb7bb688` | Visual baselines in the CI Playwright container on a fresh stack: 32 practice-flow + 4 recording-panel new, 115 `screens.spec` changed by the 014 rail links and mixer controls (diffs inspected); second fresh run 160 passed |
 | `1280e4bd` | 014 T103 (was never assigned to a lane): `e2e/visual/practice-flow.spec.ts`, `e2e/a11y/practice-flow.a11y.spec.ts` (axe both themes, keyboard walks of the new pages, FR-031 "not colour alone") |
 
 ## Verification
@@ -45,4 +47,17 @@ Per-suite table: `docs/STATUS.md`, section "Feature 014 + 015". Stack: own compo
 
 ## Open items
 
-See STATUS "Open" row and the final report to the orchestrator.
+1. **axe `target-size` on `help-hint-practice-speed`** (a11y `screens` mixer + export dialog, `robustness` forced colours;
+   6 cases): the taller 014 mixer puts the Practice tempo heading under the sticky karaoke/transport dock at load, so the
+   hint is partially obscured (axe: 24 x 12.6 px). Needs a frontend/design decision (dock vs. panel order, or scan after
+   scrolling); not quarantined.
+2. **Decisions for the orchestrator**: `stopRecording` pauses (keeps the position) while audio-engine.md says "Stops the
+   transport"; FR-019 "up to two chords" - the settings page edits one keys chord per command; 015 FR-015 take export only
+   from the Takes panel ("Take only" / "Take + mix"), no channel or loop selection (manual follows the code).
+3. **Owner checks** 014 T105 (SC-005 first-time chorus loop, NVDA browse mode, label quality on reference songs) and 015
+   T089 (cable loopback SC-002, 5-min stereo take SC-004, 10-min recording SC-005, one real input per family).
+4. SC-004 (014) frame cost <= 2 ms per frame: Chromium performance trace not done.
+5. `scripts/agent-e2e.sh` not run: known `agent.spec.ts:119` regression since 013 (branch `fix/agent-detail-requeue`).
+6. CI: the single E2E job needs 150 min; split the feature passes into parallel jobs (LESSONS).
+7. Cosmetic: the `score-panel` element baselines show the sticky top bar over the panel's first line (element screenshot
+   of a tall panel); stable, but qa may want a viewport-sized capture.
