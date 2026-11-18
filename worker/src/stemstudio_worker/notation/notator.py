@@ -16,11 +16,11 @@ from stemstudio_worker.notation.cleaning import (
     clean_notes,
     cleaning_warnings,
 )
+from stemstudio_worker.notation.extensions import Extensions, extend, section_warnings
 from stemstudio_worker.notation.keys import MIN_KEY_NOTES, resolve_key
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.profiles import Profile, get_profile
-from stemstudio_worker.notation.tab_staff import tablature_document
-from stemstudio_worker.notation.tablature import FitResult, ViterbiTabFingerer, fit_notes
+from stemstudio_worker.notation.tablature import FitResult, fit_notes
 from stemstudio_worker.notation.timebase import TimeBase
 from stemstudio_worker.notation.writer import midi_bytes, musicxml_bytes
 from stemstudio_worker.ports import (
@@ -57,11 +57,14 @@ class MusicNotator:
         built = build_pitched_score(
             fit.notes, ScoreSpec(profile, timebase, key.info, settings.titles)
         )
-        warnings = (*_tempo_warnings(settings), *cleaning_warnings(cleaned), *key.warnings)
+        warnings = (
+            *_tempo_warnings(settings),
+            *cleaning_warnings(cleaned),
+            *key.warnings,
+            *section_warnings(notes, profile),
+        )
         document = _document(built, timebase, _Facts(key.info, len(fit.notes), warnings))
-        if settings.tablature is None:
-            return document
-        return tablature_document(document, settings.tablature, fit, ViterbiTabFingerer())
+        return extend(document, built.score, Extensions(settings, profile, key.info, fit))
 
     def notate_drums(self, hits: Sequence[DrumHit], settings: NotationSettings) -> ScoreDocument:
         """Build the two-voice percussion score of the ``drums`` profile.

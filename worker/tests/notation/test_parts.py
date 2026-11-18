@@ -1,6 +1,7 @@
-"""Transposed parts, clefs and the strings/brass/woodwinds profiles (016 T025, data-model 4.2-4.6)."""
+"""Transposed parts, clefs and the section profiles (016 T025, data-model 4.2-4.6)."""
 
 import json
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,11 @@ def _written(document: ScoreDocument) -> list[int]:
     return [_midi_of(n) for n in _root(document).iter("note") if n.find("pitch") is not None]
 
 
+def _stable(musicxml: bytes) -> bytes:
+    """MusicXML without music21's per-run part ids."""
+    return re.sub(rb'"P[0-9a-f]{20,}"', b'"P1"', musicxml)
+
+
 def _vector_cases() -> list[dict[str, Any]]:
     data = json.loads(VECTORS.read_text(encoding="utf-8"))
     return [k for k in data["keys"] if k["writtenKey"] and k["transpose"] == 0]
@@ -97,9 +103,15 @@ def test_every_written_instrument_matches_the_shared_key_vectors(case: dict[str,
 
 @pytest.mark.parametrize(
     ("instrument", "diatonic", "chromatic", "octave"),
-    [("alto-sax-eb", "-5", "-9", None), ("tenor-sax-bb", "-1", "-2", "-1"), ("clarinet-eb", "2", "3", None),
-     ("double-bass", "0", "0", "-1"), ("horn-f", "-4", "-7", None), ("baritone-sax-eb", "-5", "-9", "-1")],
-)  # fmt: skip
+    [
+        ("alto-sax-eb", "-5", "-9", None),
+        ("tenor-sax-bb", "-1", "-2", "-1"),
+        ("clarinet-eb", "2", "3", None),
+        ("double-bass", "0", "0", "-1"),
+        ("horn-f", "-4", "-7", None),
+        ("baritone-sax-eb", "-5", "-9", "-1"),
+    ],
+)
 def test_transpose_element_gives_written_to_sounding(
     instrument: WrittenInstrument, diatonic: str, chromatic: str, octave: str | None
 ) -> None:
@@ -141,7 +153,7 @@ def test_midi_stays_at_concert_pitch() -> None:
 def test_concert_and_auto_are_byte_identical_to_the_008_output() -> None:
     plain = _notate(SCALE, _settings())
     concert = _notate(SCALE, _settings(part=PartSettings(instrument="concert")))
-    assert (concert.musicxml, concert.midi) == (plain.musicxml, plain.midi)
+    assert (_stable(concert.musicxml), concert.midi) == (_stable(plain.musicxml), plain.midi)
     assert concert.part is not None
     assert (concert.part.instrument, concert.part.interval, concert.part.clef) == (
         "concert",
@@ -151,23 +163,27 @@ def test_concert_and_auto_are_byte_identical_to_the_008_output() -> None:
     assert concert.part.name == "Vocals"
 
 
-@pytest.mark.parametrize(
-    ("instrument", "clef", "sign", "line", "summary"),
-    [("viola", "auto", "C", "3", "alto"), ("cello", "tenor", "C", "4", "tenor"),
-     ("cello", "auto", "F", "4", "bass"), ("concert", "bass", "F", "4", "bass"),
-     ("violin", "treble-8vb", "G", "2", "treble-8vb"), ("trombone", "bass-8vb", "F", "4", "bass-8vb")],
-)  # fmt: skip
-def test_clef_choices(
-    instrument: WrittenInstrument, clef: ClefChoice, sign: str, line: str, summary: str
-) -> None:
+CLEF_CASES: list[tuple[WrittenInstrument, ClefChoice, tuple[str, str], str]] = [
+    ("viola", "auto", ("C", "3"), "alto"),
+    ("cello", "tenor", ("C", "4"), "tenor"),
+    ("cello", "auto", ("F", "4"), "bass"),
+    ("concert", "bass", ("F", "4"), "bass"),
+    ("violin", "treble-8vb", ("G", "2"), "treble-8vb"),
+    ("trombone", "bass-8vb", ("F", "4"), "bass-8vb"),
+]
+
+
+@pytest.mark.parametrize("case", CLEF_CASES, ids=lambda c: f"{c[0]}-{c[1]}")
+def test_clef_choices(case: tuple[WrittenInstrument, ClefChoice, tuple[str, str], str]) -> None:
+    instrument, clef, sign_line, written = case
     document = _notate(
         [48, 50, 52], _settings("strings", PartSettings(instrument=instrument, clef=clef))
     )
     clef_element = _root(document).find(".//clef")
     assert clef_element is not None
-    assert (clef_element.findtext("sign"), clef_element.findtext("line")) == (sign, line)
+    assert (clef_element.findtext("sign"), clef_element.findtext("line")) == sign_line
     assert document.part is not None
-    assert document.part.clef == summary
+    assert document.part.clef == written
 
 
 def test_grand_staff_profiles_keep_both_clefs() -> None:
@@ -228,9 +244,16 @@ def test_a_single_line_has_no_section_warning() -> None:
 
 @pytest.mark.parametrize(
     ("channel", "profile"),
-    [("other.strings", "strings"), ("other.brass", "brass"), ("other.woodwinds", "woodwinds"),
-     ("piano.strings", "strings"), ("other", "keys"), ("other.synth", "keys"), ("piano.keys", "keys")],
-)  # fmt: skip
+    [
+        ("other.strings", "strings"),
+        ("other.brass", "brass"),
+        ("other.woodwinds", "woodwinds"),
+        ("piano.strings", "strings"),
+        ("other", "keys"),
+        ("other.synth", "keys"),
+        ("piano.keys", "keys"),
+    ],
+)
 def test_section_detail_stems_suggest_the_new_profiles(channel: str, profile: str) -> None:
     assert suggest_profile(channel) == profile
 
@@ -241,3 +264,10 @@ def test_section_detail_stems_suggest_the_new_profiles(channel: str, profile: st
 )
 def test_written_key_names_use_the_music21_flat_sign(display: str, name: str) -> None:
     assert written_key_name(display) == name
+
+
+def test_chords_of_a_grand_staff_part_are_transposed() -> None:
+    chord = [note(0.0, 1.0, p) for p in (60, 64, 67)]
+    settings = _settings("keys", PartSettings(instrument="clarinet-bb"))
+    document = MusicNotator().notate(chord, settings)
+    assert sorted(_written(document)) == [62, 66, 69]

@@ -54,12 +54,21 @@ PROFILES: Final[Mapping[ScoreProfile, Profile]] = MappingProxyType(
         "keys": Profile("keys", _GRAND, 21, 108, False, "sixteenth"),
         "piano": Profile("piano", _GRAND, 21, 108, False, "sixteenth"),
         "drums": Profile("drums", ("percussion",), 0, 127, False, "sixteenth"),
+        "strings": Profile("strings", ("treble",), 28, 103, True, "sixteenth"),
+        "brass": Profile("brass", ("treble",), 28, 84, True, "sixteenth"),
+        "woodwinds": Profile("woodwinds", ("treble",), 34, 98, True, "sixteenth"),
     }
 )
 """Every profile by name."""
 
 _EXACT: Final[Mapping[str, ScoreProfile]] = MappingProxyType(
     {"bass": "bass", "piano": "piano", "drums": "drums"}
+)
+SECTION_PROFILES: Final[frozenset[ScoreProfile]] = frozenset({"strings", "brass", "woodwinds"})
+"""Profiles of section detail stems (one line kept, ``section-reduced``)."""
+
+_SECTIONS: Final[Mapping[str, ScoreProfile]] = MappingProxyType(
+    {"strings": "strings", "brass": "brass", "woodwinds": "woodwinds"}
 )
 _FAMILIES: Final[Mapping[str, ScoreProfile]] = MappingProxyType(
     {"vocals": "vocals", "guitar": "guitar", "piano": "keys", "other": "keys"}
@@ -75,10 +84,14 @@ def suggest_profile(channel: str) -> ScoreProfile | None:
     """Return the suggested profile of a stem channel, or None when none fits.
 
     ``vocals*`` -> vocals, ``bass`` -> bass, ``guitar*`` -> guitar, ``piano`` -> piano,
-    ``piano.*`` and ``other*`` -> keys, ``drums`` -> drums; single drum pieces get none (008).
+    ``piano.*`` and ``other*`` -> keys, ``drums`` -> drums; single drum pieces get none (008);
+    ``<parent>.strings|brass|woodwinds`` -> the section profiles (016 data-model 4.4).
     """
     exact = _EXACT.get(channel)
-    return exact if exact is not None else _FAMILIES.get(channel.split(".", 1)[0])
+    if exact is not None:
+        return exact
+    family, _, detail = channel.partition(".")
+    return _SECTIONS.get(detail) or _FAMILIES.get(family)
 
 
 def resolve_resolution(profile: ScoreProfile, requested: ScoreResolution | None) -> ScoreResolution:
