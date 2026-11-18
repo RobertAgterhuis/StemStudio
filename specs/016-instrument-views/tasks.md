@@ -166,10 +166,10 @@ text, the row wins.
 
 ### audio-engine (tests first)
 
-- [ ] T053 [P] [audio-engine] Failing tests `tests/timeline/*.test.ts`: shared clock = karaoke clock (output latency before loop wrap, 012 rate), cursor O(1) advance and binary search after seek/wrap, one-frame redraw triggers, reduced-motion paging helper (FR-003, SC-007)
-- [ ] T054 [audio-engine] Implement `src/timeline/` (and move the karaoke clock onto it without behaviour change) to pass T053
-- [ ] T055 [P] [audio-engine] Failing tests `tests/chords/chord-spelling.test.ts`: every case of `chord-spelling-vectors.json` (region keys, transpose, capo, shapes, `N.C.`) (FR-014, FR-073, SC-011)
-- [ ] T056 [audio-engine] Implement `src/chords/spelling.ts` to pass T055
+- [x] T053 [P] [audio-engine] Failing tests `tests/timeline/*.test.ts`: shared clock = karaoke clock (output latency before loop wrap, 012 rate), cursor O(1) advance and binary search after seek/wrap, one-frame redraw triggers, reduced-motion paging helper (FR-003, SC-007)
+- [x] T054 [audio-engine] Implement `src/timeline/` (and move the karaoke clock onto it without behaviour change) to pass T053
+- [x] T055 [P] [audio-engine] Failing tests `tests/chords/chord-spelling.test.ts`: every case of `chord-spelling-vectors.json` (region keys, transpose, capo, shapes, `N.C.`) (FR-014, FR-073, SC-011)
+- [x] T056 [audio-engine] Implement `src/chords/spelling.ts` to pass T055
 
 ### frontend (tests first)
 

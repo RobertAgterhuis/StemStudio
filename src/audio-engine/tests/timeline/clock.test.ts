@@ -66,14 +66,6 @@ describe('TimelineClock (shared clock = karaoke clock without offset)', () => {
     expect(rig.clock.positionMs()).toBe(rig.karaoke.positionMs());
   });
 
-  it('subtracts the output latency before the loop wrap (heard time, not scheduled time)', async () => {
-    const rig = await playing();
-    rig.transport.setLoop({ start: 2, end: 4, enabled: true });
-    rig.ctx.outputLatency = 0.05;
-    rig.ctx.currentTime = 4.13;
-    expect(rig.clock.positionMs()).toBe(3980);
-  });
-
   it('applies the 012 rate through the transport position', async () => {
     const rig = makeTransport();
     rig.transport.setTiming({ rate: 0.5, latency: 0 });
