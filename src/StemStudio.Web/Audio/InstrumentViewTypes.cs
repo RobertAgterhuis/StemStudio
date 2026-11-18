@@ -73,12 +73,9 @@ public sealed record PitchContour(IReadOnlyList<int> Frames)
 /// <param name="EndMs">End in track milliseconds.</param>
 public sealed record SingingUnit(int Index, int StartMs, int EndMs);
 
-/// <summary>Argument of <c>startSingingFeedback</c>.</summary>
-public sealed record SingingFeedbackRequest
+/// <summary>What the singing scorer needs: the reference, the units and the tolerance (live and offline).</summary>
+public abstract record ScoringRequest
 {
-    /// <summary>Host of the pitch view canvas.</summary>
-    public required string PitchViewElementId { get; init; }
-
     /// <summary>Reference melody.</summary>
     public required PitchContour Reference { get; init; }
 
@@ -87,6 +84,13 @@ public sealed record SingingFeedbackRequest
 
     /// <summary>Tolerance 10..200 cents.</summary>
     public required int ToleranceCents { get; init; }
+}
+
+/// <summary>Argument of <c>startSingingFeedback</c>.</summary>
+public sealed record SingingFeedbackRequest : ScoringRequest
+{
+    /// <summary>Host of the pitch view canvas.</summary>
+    public required string PitchViewElementId { get; init; }
 
     /// <summary>Round trip of the stored 015 calibration, or null for the input's estimate.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -139,22 +143,13 @@ public sealed record TakeScoreResult : SingingSummary
 }
 
 /// <summary>Argument of <c>scoreTake</c> (a 015 take).</summary>
-public sealed record TakeScoreRequest
+public sealed record TakeScoreRequest : ScoringRequest
 {
     /// <summary>Absolute audio URL of the take.</summary>
     public required string TakeUrl { get; init; }
 
     /// <summary>Song sample of the take's first sample.</summary>
     public required long StartSample { get; init; }
-
-    /// <summary>Reference melody.</summary>
-    public required PitchContour Reference { get; init; }
-
-    /// <summary>Units in time order.</summary>
-    public required IReadOnlyList<SingingUnit> Units { get; init; }
-
-    /// <summary>Tolerance 10..200 cents.</summary>
-    public required int ToleranceCents { get; init; }
 }
 
 /// <summary>Result of <c>getRoundTripLatency</c>.</summary>

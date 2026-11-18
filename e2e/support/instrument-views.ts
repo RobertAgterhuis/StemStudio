@@ -12,9 +12,13 @@ import { okJson } from './http';
 /** Contract `AnalysisStatus`. */
 export type AnalysisStatus = 'none' | 'queued' | 'running' | 'ready' | 'failed' | 'unavailable' | 'stale';
 
+/** Display suffix per contract `ChordQuality` (data-model 2.1). */
+const suffix = {
+  maj: '', min: 'm', dim: 'dim', aug: 'aug', min6: 'm6', maj6: '6', min7: 'm7', minmaj7: 'm(maj7)', maj7: 'maj7', '7': '7', dim7: 'dim7', hdim7: 'm7b5', sus2: 'sus2', sus4: 'sus4',
+} as const;
+
 /** Contract `ChordQuality`. */
-export type ChordQuality =
-  | 'maj' | 'min' | 'dim' | 'aug' | 'min6' | 'maj6' | 'min7' | 'minmaj7' | 'maj7' | '7' | 'dim7' | 'hdim7' | 'sus2' | 'sus4';
+export type ChordQuality = keyof typeof suffix;
 
 /** Contract `KeyMode`. */
 export type KeyMode = 'major' | 'minor';
@@ -104,11 +108,6 @@ const settled: readonly AnalysisStatus[] = ['ready', 'failed', 'unavailable', 's
 
 /** Sharp spelling of a pitch class (C major / D major regions of the fake chords, data-model 2.5). */
 const sharpNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
-
-/** Display suffix per quality (data-model 2.1). */
-const suffix: Readonly<Record<ChordQuality, string>> = {
-  maj: '', min: 'm', dim: 'dim', aug: 'aug', min6: 'm6', maj6: '6', min7: 'm7', minmaj7: 'm(maj7)', maj7: 'maj7', '7': '7', dim7: 'dim7', hdim7: 'm7b5', sus2: 'sus2', sus4: 'sus4',
-};
 
 /** Returns the value, or fails the test naming what was missing. */
 export function required<T>(value: T | null | undefined, what: string): T {

@@ -61,6 +61,22 @@ public sealed partial class ChordEditDialog
         Bass = Segment.Bass ?? -1;
     }
 
+    // "-1" (none) and the twelve pitch classes of the root and bass selects.
+    private static RenderFragment PitchClassOptions(string none) => builder =>
+    {
+        builder.OpenElement(0, "option");
+        builder.AddAttribute(1, "value", "-1");
+        builder.AddContent(2, none);
+        builder.CloseElement();
+        for (var pc = 0; pc < ChordLabels.RootNames.Count; pc++)
+        {
+            builder.OpenElement(3, "option");
+            builder.AddAttribute(4, "value", pc);
+            builder.AddContent(5, ChordLabels.RootNames[pc]);
+            builder.CloseElement();
+        }
+    };
+
     private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, OnCancel);
 
     private string Label() => NoChord ? "N" : ChordLabels.Harte(Root, Quality, Bass < 0 ? null : Bass);

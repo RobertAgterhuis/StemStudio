@@ -10,11 +10,7 @@
             <label class="ss-field">
                 Root
                 <select class="ss-select" @bind="Root" data-testid="chord-edit-root">
-                    <option value="-1">No chord (N.C.)</option>
-                    @for (var pc = 0; pc < 12; pc++)
-                    {
-                        <option value="@pc">@ChordLabels.RootNames[pc]</option>
-                    }
+                    @PitchClassOptions("No chord (N.C.)")
                 </select>
             </label>
             <label class="ss-field">
@@ -29,11 +25,7 @@
             <label class="ss-field">
                 Bass
                 <select class="ss-select" @bind="Bass" disabled="@NoChord" data-testid="chord-edit-bass">
-                    <option value="-1">Root (no slash)</option>
-                    @for (var pc = 0; pc < 12; pc++)
-                    {
-                        <option value="@pc">@ChordLabels.RootNames[pc]</option>
-                    }
+                    @PitchClassOptions("Root (no slash)")
                 </select>
             </label>
         </div>
