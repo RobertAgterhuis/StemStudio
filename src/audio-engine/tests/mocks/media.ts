@@ -32,6 +32,11 @@ export class FakeTrack extends EventTarget {
     this.stopped = true;
   }
 
+  /** @returns A live copy with the same label and settings (stopping one never stops the other). */
+  public clone(): FakeTrack {
+    return new FakeTrack(this.label, this.settings);
+  }
+
   /** Simulates an unplugged device. */
   public end(): void {
     this.dispatchEvent(new Event('ended'));
@@ -48,6 +53,11 @@ export class FakeStream {
 
   public getTracks(): FakeTrack[] {
     return this.tracks;
+  }
+
+  /** @returns A new stream of cloned tracks. */
+  public clone(): FakeStream {
+    return new FakeStream(this.tracks.map((track) => track.clone()));
   }
 }
 
