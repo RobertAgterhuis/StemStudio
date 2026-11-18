@@ -147,12 +147,14 @@ export class LaneView {
   /** Creates a missing item (prepended below the existing ones, else appended) or re-places it after a resize. */
   private ensureItem(index: number, before: number, relayout: boolean): void {
     const existing = this.items.get(index);
-    if (existing !== undefined) {
-      if (relayout) {
-        this.place(existing, index, this.options.writer);
-      }
-      return;
+    if (existing === undefined) {
+      this.addItem(index, before);
+    } else if (relayout) {
+      this.place(existing, index, this.options.writer);
     }
+  }
+
+  private addItem(index: number, before: number): void {
     const item = this.createItem(index);
     if (index < before) {
       this.track.prepend(item);

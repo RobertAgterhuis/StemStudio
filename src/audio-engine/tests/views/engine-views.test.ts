@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeStretchStage } from '../../src/stretch/fake-stage';
-import { makeEngineRig, loadVocals } from '../mocks/engine-rig';
+import { makeEngineRig, loadVocals, type EngineRig } from '../mocks/engine-rig';
 import { practice } from '../mocks/practice-rig';
 import { GRID, addHost, cycleChart } from '../mocks/views-rig';
 
@@ -48,16 +48,21 @@ describe('engine chord lane (2.6.0)', () => {
 describe('engine banner chords and chord display (2.6.0)', () => {
   const lyrics = { lines: [{ startMs: 1000, endMs: 3000, words: [{ text: 'Fake', startMs: 1000, endMs: 2000 }, { text: 'line', startMs: 2000, endMs: 3000 }] }] };
 
-  function bannerTexts(host: HTMLElement): string[] {
-    return [...host.querySelectorAll('.karaoke-chord')].map((c) => c.textContent);
-  }
-
-  it('sets chords before attachKaraoke, re-spells them on a capo change and removes them with null', async () => {
+  async function withBanner(): Promise<{ rig: EngineRig; host: HTMLElement }> {
     const rig = makeEngineRig();
     await loadVocals(rig);
     const host = addHost('karaoke-banner');
     rig.engine.setKaraokeChords(cycleChart());
     rig.engine.attachKaraoke('karaoke-banner', lyrics, { offsetMs: 0, reducedMotion: true });
+    return { rig, host };
+  }
+
+  function bannerTexts(host: HTMLElement): string[] {
+    return [...host.querySelectorAll('.karaoke-chord')].map((c) => c.textContent);
+  }
+
+  it('sets chords before attachKaraoke, re-spells them on a capo change and removes them with null', async () => {
+    const { rig, host } = await withBanner();
     rig.step();
     expect(bannerTexts(host)).toEqual(['C']);
     rig.engine.setChordDisplay({ capo: 5 });
@@ -69,11 +74,7 @@ describe('engine banner chords and chord display (2.6.0)', () => {
   });
 
   it('rejects a capo out of range without changing the display', async () => {
-    const rig = makeEngineRig();
-    await loadVocals(rig);
-    const host = addHost('karaoke-banner');
-    rig.engine.setKaraokeChords(cycleChart());
-    rig.engine.attachKaraoke('karaoke-banner', lyrics, { offsetMs: 0, reducedMotion: true });
+    const { rig, host } = await withBanner();
     expect(() => {
       rig.engine.setChordDisplay({ capo: 13 });
     }).toThrow('Capo out of range: 13');
