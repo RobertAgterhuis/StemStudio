@@ -78,7 +78,12 @@ public static class FamilyMixService
         return Settle(state, state.AllChannels);
     }
 
-    private static void Set(MixerState state, ChannelState channel, bool mute, bool solo)
+    /// <summary>Sets the mute and solo flags through the toggle operations (dirty like a manual change).</summary>
+    /// <param name="state">The mixer.</param>
+    /// <param name="channel">The channel.</param>
+    /// <param name="mute">The new mute flag.</param>
+    /// <param name="solo">The new solo flag.</param>
+    internal static void Set(MixerState state, ChannelState channel, bool mute, bool solo)
     {
         if (channel.Mute != mute)
         {
@@ -92,6 +97,6 @@ public static class FamilyMixService
     }
 
     // Re-applies each channel's own volume: an existing operation that marks the mix dirty and returns the engine payload.
-    private static List<ChannelSettingsDto> Settle(MixerState state, IEnumerable<ChannelState> channels) =>
+    internal static List<ChannelSettingsDto> Settle(MixerState state, IEnumerable<ChannelState> channels) =>
         channels.Select(c => state.SetVolume(c.Stem, c.Volume)).ToList();
 }

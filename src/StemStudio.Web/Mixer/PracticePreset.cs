@@ -78,21 +78,7 @@ public static class PracticePresets
         return new PresetResult(Settle(state), state.SetMetronome(state.Metronome with { Enabled = false }));
     }
 
-    private static void Set(MixerState state, ChannelState channel, bool mute, bool solo)
-    {
-        if (channel.Mute != mute)
-        {
-            state.ToggleMute(channel.Stem);
-        }
+    private static void Set(MixerState state, ChannelState channel, bool mute, bool solo) => FamilyMixService.Set(state, channel, mute, solo);
 
-        if (channel.Solo != solo)
-        {
-            state.ToggleSolo(channel.Stem);
-        }
-    }
-
-    // Re-applies each channel's own volume: an existing operation that marks the mix dirty and returns the
-    // settings the engine needs, so a preset is indistinguishable from manual changes.
-    private static List<ChannelSettingsDto> Settle(MixerState state) =>
-        state.Channels.Select(c => state.SetVolume(c.Stem, c.Volume)).ToList();
+    private static List<ChannelSettingsDto> Settle(MixerState state) => FamilyMixService.Settle(state, state.Channels);
 }

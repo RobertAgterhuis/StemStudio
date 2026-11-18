@@ -135,12 +135,12 @@ public static class InstrumentViewsData
     {
         Families =
         [
-            Family(InstrumentFamilyDto.Vocals, "Vocals", ["vocals"], ["lead", "backing"], InstrumentViewDto.Singing),
-            Family(InstrumentFamilyDto.Drums, "Drums", ["drums"], ["kick", "snare", "toms", "hihat", "cymbals", "percussion"], InstrumentViewDto.DrumTrainer),
-            Family(InstrumentFamilyDto.Bass, "Bass", ["bass"], [], InstrumentViewDto.Tablature),
-            Family(InstrumentFamilyDto.Guitar, "Guitar", ["guitar"], ["acoustic-guitar", "electric-guitar"], InstrumentViewDto.Tablature),
-            Family(InstrumentFamilyDto.Keys, "Keys", ["piano"], ["keys", "synth"], InstrumentViewDto.Chords),
-            Family(InstrumentFamilyDto.Orchestral, "Strings, brass and woodwinds", ["other"], ["strings", "brass", "woodwinds"], InstrumentViewDto.Part),
+            new() { Id = InstrumentFamilyDto.Vocals, Label = "Vocals", Stems = ["vocals"], DetailNames = ["lead", "backing"], View = InstrumentViewDto.Singing },
+            new() { Id = InstrumentFamilyDto.Drums, Label = "Drums", Stems = ["drums"], DetailNames = ["kick", "snare", "toms", "hihat", "cymbals", "percussion"], View = InstrumentViewDto.DrumTrainer },
+            new() { Id = InstrumentFamilyDto.Bass, Label = "Bass", Stems = ["bass"], DetailNames = [], View = InstrumentViewDto.Tablature },
+            new() { Id = InstrumentFamilyDto.Guitar, Label = "Guitar", Stems = ["guitar"], DetailNames = ["acoustic-guitar", "electric-guitar"], View = InstrumentViewDto.Tablature },
+            new() { Id = InstrumentFamilyDto.Keys, Label = "Keys", Stems = ["piano"], DetailNames = ["keys", "synth"], View = InstrumentViewDto.Chords },
+            new() { Id = InstrumentFamilyDto.Orchestral, Label = "Strings, brass and woodwinds", Stems = ["other"], DetailNames = ["strings", "brass", "woodwinds"], View = InstrumentViewDto.Part },
         ],
         Tunings =
         [
@@ -152,9 +152,9 @@ public static class InstrumentViewsData
         ],
         Instruments =
         [
-            Instrument(WrittenInstrumentDto.Concert, string.Empty, "C", "P1", "auto", 0, 127),
-            Instrument(WrittenInstrumentDto.AltoSaxEb, "Alto Saxophone in E-flat", "E-flat", "M6", "treble", 49, 81),
-            Instrument(WrittenInstrumentDto.Viola, "Viola", "C", "P1", "alto", 48, 88),
+            new() { Id = WrittenInstrumentDto.Concert, Name = string.Empty, KeyName = "C", Interval = "P1", DefaultClef = "auto", LowMidi = 0, HighMidi = 127 },
+            new() { Id = WrittenInstrumentDto.AltoSaxEb, Name = "Alto Saxophone in E-flat", KeyName = "E-flat", Interval = "M6", DefaultClef = "treble", LowMidi = 49, HighMidi = 81 },
+            new() { Id = WrittenInstrumentDto.Viola, Name = "Viola", KeyName = "C", Interval = "P1", DefaultClef = "alto", LowMidi = 48, HighMidi = 88 },
         ],
         Clefs = Enum.GetValues<ClefChoiceDto>(),
     };
@@ -191,12 +191,6 @@ public static class InstrumentViewsData
 
     private static T Parse<T>(string json) => JsonSerializer.Deserialize<T>(json, Json)!;
 
-    private static InstrumentFamilyInfoDto Family(InstrumentFamilyDto id, string label, string[] stems, string[] details, InstrumentViewDto view) =>
-        new() { Id = id, Label = label, Stems = stems, DetailNames = details, View = view };
-
     private static TuningDto Tuning(TuningIdDto id, string instrument, string label, int[] pitches) =>
         new() { Id = id, Instrument = instrument, Label = label, Pitches = pitches };
-
-    private static WrittenInstrumentInfoDto Instrument(WrittenInstrumentDto id, string name, string key, string interval, string clef, int low, int high) =>
-        new() { Id = id, Name = name, KeyName = key, Interval = interval, DefaultClef = clef, LowMidi = low, HighMidi = high };
 }
