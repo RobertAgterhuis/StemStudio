@@ -9,7 +9,10 @@ public sealed partial class BackendContractTests
     // Feature 016 (backend 1.15.0, staged in the 016 Phase 0, T003): the backend moves each id to InstrumentViewOperations in the task
     // that serves it - T065 (getChords, detectChords, deleteChords, editChordSegment, getChordSheet, downloadChordPro),
     // T046/T065 (getInstrumentCatalogue), T087 (drum hits), T096 (vocal pitch), T117 (getKey), T124 (getCapoSuggestions).
-    private static readonly string[] InstrumentViewOperations = [];
+    private static readonly string[] InstrumentViewOperations =
+    [
+        "getChords", "detectChords", "deleteChords", "editChordSegment", "getChordSheet", "downloadChordPro", "getInstrumentCatalogue",
+    ];
 
-    private static readonly string[] PendingInstrumentViewOperations = InstrumentViewsContractTests.Operations;
+    private static readonly string[] PendingInstrumentViewOperations = [.. InstrumentViewsContractTests.Operations.Except(InstrumentViewOperations)];
 }
