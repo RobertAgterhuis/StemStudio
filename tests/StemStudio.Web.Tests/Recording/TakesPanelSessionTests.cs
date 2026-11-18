@@ -45,6 +45,26 @@ public sealed class TakesPanelSessionTests : RecordingTestContext
         panel.FindAll($"[data-testid=rec-take-pass-{Single:D}]").ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData(ExperienceLevel.Beginner)]
+    [InlineData(ExperienceLevel.Advanced)]
+    public async Task TheRadios_AreGroupedByAFieldset_AndEveryRowIsAListItemOfAPlainList(ExperienceLevel level)
+    {
+        // axe "listitem" (E2E recording.a11y): an li must sit in a ul/ol that keeps its list role, never in a radiogroup.
+        var panel = await RenderTakesAsync(level);
+
+        var group = panel.Find("fieldset");
+        group.QuerySelector("legend")!.TextContent.Trim().ShouldBe("Take in the take strip");
+        panel.FindAll("[role=radiogroup], [role=none], [role=presentation]").ShouldBeEmpty();
+        foreach (var item in panel.FindAll("li"))
+        {
+            item.ParentElement!.TagName.ShouldBe("UL");
+            item.ParentElement.HasAttribute("role").ShouldBeFalse();
+        }
+
+        group.QuerySelectorAll("input[type=radio]").Select(r => r.GetAttribute("name")).Distinct().ShouldBe(["rec-take"]);
+    }
+
     [Fact]
     public async Task Beginner_ShowsFlatRowsWithoutPassesOrGroups()
     {

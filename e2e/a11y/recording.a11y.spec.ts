@@ -49,14 +49,20 @@ for (const theme of matrixThemes) {
 }
 
 test.describe('recording by keyboard', { tag: '@recording' }, () => {
-  test.use({ storageState: cellState('advanced', 'dark') });
+  // No microphone permission up front: with it granted the panel opens the input at once and never shows "Allow
+  // microphone" (PermissionGate). The permission is granted while the button is shown, so pressing it by keyboard opens
+  // the input as a user's "Allow" in the browser prompt would.
+  test.use({ storageState: cellState('advanced', 'dark'), permissions: [] });
 
-  test('record, compare and delete without a mouse; the live region announces the state', async ({ page, uxData }) => {
+  test('record, compare and delete without a mouse; the live region announces the state', async ({ context, page, uxData }) => {
     const recording = new RecordingPanel(page);
+    await context.clearPermissions();
     await page.goto(`/tracks/${uxData.plainTrack.id}/mixer`);
     await expect(page.getByTestId('transport-play')).toBeEnabled({ timeout: 60_000 });
     await page.keyboard.press('r');
     await expect(recording.panel).toBeVisible();
+    await expect(recording.byId('rec-allow-mic')).toBeVisible();
+    await context.grantPermissions(['microphone']);
     await recording.byId('rec-allow-mic').focus();
     await page.keyboard.press('Enter');
     await expect(recording.panel).toHaveAttribute('data-permission', 'granted', { timeout: 15_000 });
@@ -85,8 +91,9 @@ test.describe('recording by keyboard', { tag: '@recording' }, () => {
     await expect(recording.row(takeId)).toHaveCount(0);
   });
 
-  test('nothing in the recording panel animates with reduced motion', async ({ page, uxData }) => {
+  test('nothing in the recording panel animates with reduced motion', async ({ context, page, uxData }) => {
     const recording = new RecordingPanel(page);
+    await context.grantPermissions(['microphone']);
     await page.goto(`/tracks/${uxData.plainTrack.id}/mixer`);
     await expect(page.getByTestId('transport-play')).toBeEnabled({ timeout: 60_000 });
     await recording.openWithInput();
