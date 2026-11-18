@@ -13,6 +13,9 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - Run tests quietly, write full logs to a file and read only summaries and failures. (token cost)
 - Run `dotnet format StemStudio.slnx --verify-no-changes` on the whole solution before a hand-off, not
   per project: 197 whitespace findings of one lane reached the integration. (022/023)
+- An agent that waits on a background run polls its log for progress and stops a run that has not moved for
+  10 minutes; heavy suites run in the foreground with an explicit timeout where possible. (022/023: an agent
+  waited 2.5 h on a hung run)
 
 ## frontend
 
@@ -23,6 +26,12 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   audio engine inside rapid-click handlers. (012: lost +1 / +5 % clicks)
 - A new navigation item: check the rail at 720 px height and at 320 px width (013: Help and
   Settings were cut off).
+- Check every contract role against ARIA at design time: a `listbox` whose options hold buttons violates
+  `nested-interactive` (an option may not contain interactive content); use a plain list with focusable entries.
+  (023: 12 of 16 axe failures on the suggestion list)
+- Never combine `value="@x"` with a separate `@oninput` on a text field: every render writes the
+  server value over keys still in flight. Use `@bind:get`/`@bind:set` with `@bind:event="oninput"`.
+  (022: the library search lost typed characters; about ten other fields still use the pattern)
 
 ## backend
 
@@ -44,6 +53,8 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - Lanes do not start E2E stacks; write specs against contracts and test ids, typecheck and lint
   them. The integration runs E2E.
 - The default `npm test` includes the feature specs: plan about 1.2 h for it at integration. (013)
+- A wait on a container attribute that is already set while the view loads (`data-level="root"` on the
+  skeleton) is no wait: wait on an element that exists only once the data is in. (022: library-browse root tiles)
 
 ## devops
 
@@ -60,4 +71,9 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   check the duplication step's own output at every hand-off. (022/023: 9 clones found only at integration)
 - Several lanes ticking one `tasks.md` gives a conflict on every merge; resolve by keeping every tick
   (union per row), or let lanes tick only in their hand-off. (022/023)
-
+- jscpd can fail silently (no report, exit 0 through a wrapper): the integration reads the duplication step's own
+  output, not only the summary line of `run_all.py`. (022/023)
+- WAL mode must be set at every start and again after every library switch (restore/undo), or a later
+  `database is locked` shows up only as an E2E flake. (013 flakes2, 022/023)
+- The specs of a lane must pass on a real stack at the mid-wave checkpoint, not only typecheck: the 022/023 E2E
+  failures surfaced only at integration, when every fix costs a full default-suite rerun. (022/023)

@@ -181,7 +181,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
 - [x] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
 - [x] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
-- [ ] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)
+- [x] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)
 - [ ] T090 [qa] Audit the owners' tests and coverage evidence (HO:polish)
 
 ## Phase 8: Integration (CTO)

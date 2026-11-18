@@ -1,6 +1,9 @@
 @* The live search box (feature 022, FR-022, FR-026, FR-027, FR-029; ui-test-ids 1.22.0 library-search): a labelled search
    field on every level, a clear button while it has text, "Only in this folder" (Advanced, inside a folder) and the
-   polite result count. Enter searches at once, Escape clears, Arrow Down moves to the first result. *@
+   polite result count. Enter searches at once, Escape clears, Arrow Down moves to the first result.
+   The value is bound with @bind (get/set), not value= plus @oninput: only a bound attribute is kept in step with what the
+   browser sent, so a render while keys are still on their way never writes an older text into the box (022 E2E: lost
+   characters when typing fast). *@
 
 <div class="ss-library-search" role="search" data-help-id="library-search">
     <div class="ss-label-row">
@@ -9,7 +12,7 @@
     </div>
     <div class="ss-search-row">
         <input id="library-search" type="search" class="rz-textbox ss-search" maxlength="@ContractLimits.LibrarySearchMaxLength" autocomplete="off"
-               placeholder="Artist, album, song or instrument" value="@Controller.Text" @oninput="OnInput" @onkeydown="OnKeyAsync"
+               placeholder="Artist, album, song or instrument" @bind:get="Controller.Text" @bind:set="OnInput" @bind:event="oninput" @onkeydown="OnKeyAsync"
                aria-describedby="library-search-status" data-testid="library-search" @ref="_input" />
         @if (Controller.Text.Length > 0)
         {

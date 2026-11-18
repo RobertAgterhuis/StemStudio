@@ -39,9 +39,11 @@ runs:
         uv run --project worker --frozen python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
     - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
       shell: bash
+      # Owner uid 1654 (the api), group = the runner's group with setgid and group write, so the
+      # runner user can place and remove archives too (as in the e2e job of ci.yml).
       run: |
         backups="$RUNNER_TEMP/stemstudio-backups"
-        mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
+        sudo install -d -o 1654 -g "$(id -g)" -m 2775 "$backups"
         {
           echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups"
           echo "E2E_BACKUP_DIR=$backups"

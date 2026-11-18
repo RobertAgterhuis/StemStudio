@@ -16,13 +16,14 @@ public sealed class LiveSearchControllerTests : IDisposable
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 11, 17, 10, 0, 0, TimeSpan.Zero));
     private readonly List<(LibrarySearchRequest Request, TaskCompletionSource<LibrarySearchResultDto> Answer, CancellationToken Token)> _searches = [];
     private readonly List<(string Url, bool Replace)> _navigations = [];
+    private readonly List<string> _states = [];
     private readonly LiveSearchController _search;
     private int _focus;
     private int _changes;
 
     public LiveSearchControllerTests()
     {
-        _search = new LiveSearchController(new LiveSearchPorts(Search, (url, replace) => _navigations.Add((url, replace)), Focus, work => work()), _time);
+        _search = new LiveSearchController(new LiveSearchPorts(Search, Navigate, Focus, work => work()), _time);
         _search.Changed += () => _changes++;
     }
 
@@ -38,13 +39,21 @@ public sealed class LiveSearchControllerTests : IDisposable
         return answer.Task;
     }
 
+    private void Navigate(string url, bool replace, string state)
+    {
+        _navigations.Add((url, replace));
+        _states.Add(state);
+    }
+
     private ValueTask Focus()
     {
         _focus++;
         return ValueTask.CompletedTask;
     }
 
-    private Task Start(string url = $"http://host/library/{LibraryData.SongId}") => _search.StartAsync(LibraryLocation.Parse(url));
+    private Task Start(string url = $"http://host/library/{LibraryData.SongId}", string? state = null) => _search.StartAsync(LibraryLocation.Parse(url), state);
+
+    private Task Echo(int index) => Start($"http://host/{_navigations[index].Url}", _states[index]);
 
     [Fact]
     public async Task FirstCharacter_SearchesAfter200Ms_NotBefore()
@@ -75,15 +84,60 @@ public sealed class LiveSearchControllerTests : IDisposable
         _search.Input("ba");
         _search.Input("bass");
 
-        await Start($"http://host/{_navigations[0].Url}");
+        await Echo(0);
         _search.Text.ShouldBe("bass");
-        await Start($"http://host/{_navigations[1].Url}");
+        await Echo(1);
         _search.Text.ShouldBe("bass");
 
         var back = Start($"http://host/library/{LibraryData.SongId}?q=drum");
         _search.Text.ShouldBe("drum");
         _searches[^1].Answer.SetResult(Result("drum"));
         await back;
+    }
+
+    [Fact]
+    public async Task OwnNavigations_CarryAStatePerNavigation_UniqueToTheController()
+    {
+        using var other = new LiveSearchController(new LiveSearchPorts(Search, Navigate, Focus, work => work()), _time);
+        await Start();
+
+        _search.Input("a");
+        _search.Input("ab");
+        other.Input("ab");
+
+        _states.Distinct().Count().ShouldBe(3);
+        await Echo(2);
+        _search.Text.ShouldBe("ab");
+        _searches.Clear();
+        _ = Start($"http://host/library/{LibraryData.SongId}?q=x", _states[2]);
+        _search.Text.ShouldBe("x");
+    }
+
+    [Fact]
+    public async Task ALocationTakenOverAfterAnEcho_ClearsTheLastOne_SoBackToThatEntryCounts()
+    {
+        await Start();
+        _search.Input("bass");
+        await Echo(0);
+        _ = Start($"http://host/library/{LibraryData.SongId}?q=drum");
+        _search.Text.ShouldBe("drum");
+
+        _ = Echo(0);
+
+        _search.Text.ShouldBe("bass");
+    }
+
+    [Fact]
+    public async Task ADebounceStillPending_IsDropped_WhenANavigationClearsTheText()
+    {
+        await Start();
+        _search.Input("ba");
+
+        await Start($"http://host/library/{LibraryData.SongId}");
+        _time.Advance(LiveSearchController.Debounce);
+
+        _searches.ShouldBeEmpty();
+        _search.Busy.ShouldBeFalse();
     }
 
     [Fact]
