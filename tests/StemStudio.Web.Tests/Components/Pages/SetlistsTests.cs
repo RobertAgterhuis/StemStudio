@@ -106,7 +106,8 @@ public sealed class SetlistsTests : PageTestContext
         page.Find("[data-testid=setlist-name]").GetAttribute("value").ShouldBe("Friday rehearsal");
         page.Find("[data-testid=setlist-total]").TextContent.ShouldBe("2 songs, 7:46");
         var first = PracticeFlowData.Setlist().Entries[0];
-        page.Find($"[data-testid=setlist-entry-{first.Id}]").GetAttribute("data-position").ShouldBe("1");
+        page.Find($"[data-testid=setlist-entry-{first.Id}]").GetAttribute("data-position").ShouldBe("0");
+        page.Find($"[data-testid=setlist-entry-{first.Id}] .ss-setlist-title").TextContent.ShouldStartWith("1. Song 1");
         page.Find($"[data-testid=setlist-entry-note-{first.Id}]").GetAttribute("value").ShouldBe("Start slow");
         page.Find("[data-testid=setlist-removed-note]").TextContent.ShouldContain("1 song was removed");
         page.Find($"[data-testid=setlist-entry-up-{first.Id}]").HasAttribute("disabled").ShouldBeTrue();

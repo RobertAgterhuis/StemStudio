@@ -116,11 +116,11 @@ public static class PracticeFlowData
         EndSeconds = end,
     };
 
-    /// <summary>A setlist entry.</summary>
+    /// <summary>A setlist entry; <paramref name="position"/> is the 1-based song number, the DTO position is 0-based (contract).</summary>
     public static SetlistEntryDto Entry(int position, Guid? trackId = null, Guid? mixId = null, string note = "") => new()
     {
         Id = Guid.Parse($"6f000000-0000-4000-8000-00000000000{position}"),
-        Position = position,
+        Position = position - 1,
         TrackId = trackId ?? TestData.TrackId,
         TrackTitle = $"Song {position}",
         Artist = "The Band",
