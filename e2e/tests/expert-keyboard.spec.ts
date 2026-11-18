@@ -79,11 +79,14 @@ test.describe('Expert', () => {
 test.describe('Advanced', () => {
   test.use({ storageState: levelState('advanced') });
 
-  test('Ctrl+/ does nothing, but the help panel opens the overlay', { tag: '@ux' }, async ({ page, help, mixer, uxData }) => {
+  // 014 FR-024 (CTO-DECISIONS "Shortcut overlay level"): Ctrl+/ opens the overlay at every level; 004 had it Expert-only.
+  test('Ctrl+/ opens the overlay, and so does the help panel', { tag: '@ux' }, async ({ page, help, mixer, uxData }) => {
     await mixer.goto(uxData.detailTrack.id);
     await mixer.waitForReady(['vocals']);
     await page.keyboard.press('ControlOrMeta+Slash');
-    await expect(page.getByTestId('shortcut-overlay')).toHaveCount(0);
+    await expect(page.getByTestId('shortcut-overlay')).toBeVisible();
+    await page.getByTestId('shortcut-overlay-close').click();
+    await expect(page.getByTestId('shortcut-overlay')).toBeHidden();
     await help.open('button');
     await help.byId('help-shortcuts').click();
     await expect(page.getByTestId('shortcut-overlay')).toBeVisible();

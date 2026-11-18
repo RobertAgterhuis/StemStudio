@@ -83,9 +83,18 @@ async function expectBarWhilePlaying(mixer: MixerPage, panel: ScorePanel, view: 
   const start = await heardSeconds(page);
   await mixer.play();
   await expect.poll(() => heardSeconds(page), { timeout: 10_000 }).toBeGreaterThan(start + 1.5);
-  await page.getByTestId('transport-play').click();
-  const heard = await heardSeconds(page);
-  await expect.poll(() => panel.barNumber()).toBe(barAt(view, heard)?.number);
+  // Pause (transport-play is not a toggle: clicking it again kept playing, so at 50 % the bar ran on past the read position).
+  await mixer.byId('transport-pause').click();
+  await expect(mixer.byId('transport-pause')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => barsNear(view, await heardSeconds(page)).includes(await panel.barNumber())).toBe(true);
+}
+
+/**
+ * Bar numbers possible at the shown position: `transport-position` floors to 0.1 s (TimeText.Position), so the heard
+ * position lies in [shown, shown + 0.1) and a bar boundary inside that window allows either bar.
+ */
+function barsNear(view: ScoreViewDto, shownSeconds: number): (number | undefined)[] {
+  return [barAt(view, shownSeconds)?.number, barAt(view, shownSeconds + 0.0999)?.number];
 }
 
 /** `data-bar-index` when no bar is current (before the first bar, audio-engine 2.4.0 "Score follower"). */
