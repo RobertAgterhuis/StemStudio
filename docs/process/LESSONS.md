@@ -77,3 +77,13 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   `database is locked` shows up only as an E2E flake. (013 flakes2, 022/023)
 - The specs of a lane must pass on a real stack at the mid-wave checkpoint, not only typecheck: the 022/023 E2E
   failures surfaced only at integration, when every fix costs a full default-suite rerun. (022/023)
+- Watch `main` CI to the very end after every merge, every job: 013's E2E job was red (backups folder EACCES)
+  and nobody noticed through the whole 022+023 round. (014/015)
+- The single CI E2E job reached its 90-minute limit with 014/015 (raised to 150 min as a stopgap); split the
+  default suite from the feature passes (recording, practice-flow, agent, lyric, restart, gpu) into parallel jobs
+  before the next round adds specs. (014/015)
+- Hook requests through the orchestrator worked, but a decision must reach every lane it affects: L5 built
+  extra `shortcut-record`/`shortcut-compare` ids after the orchestrator had chosen the generic ids for L6. (014/015)
+- Decisions a lane asks to be confirmed ("please confirm or redirect") need an explicit answer in the lane's
+  next brief; unanswered ones (and contract wording such as `stopRecording` "stops") surfaced only at
+  integration. (014/015)
