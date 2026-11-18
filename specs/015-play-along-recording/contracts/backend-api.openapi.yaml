@@ -4698,7 +4698,7 @@ paths:
         '409':
           $ref: '#/components/responses/SetlistConflict'
         '503':
-          $ref: '#/components/responses/WorkerUnavailable'
+          $ref: '#/components/responses/SetlistDocumentUnavailable'
         '504':
           $ref: '#/components/responses/DocumentTimeout'
   /api/practice/settings:
@@ -13188,6 +13188,20 @@ components:
             type: https://stemstudio.local/problems/document-timeout
             title: The PDF took too long
             status: 504
+    SetlistDocumentUnavailable:
+      description: |
+        `type` ends in `worker-unavailable` (the worker could not be reached; nothing was made) or
+        `document-failed` (the worker job failed or sent an unusable PDF, for example one above the
+        API's size cap; `detail` carries the worker's text). Try again later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/document-failed
+            title: The PDF could not be made
+            status: 503
+            detail: The setlist PDF could not be made.
     TakeBadRequest:
       description: |
         Unreadable request: `invalid-wav` (not a RIFF/WAVE file or truncated), a missing part,

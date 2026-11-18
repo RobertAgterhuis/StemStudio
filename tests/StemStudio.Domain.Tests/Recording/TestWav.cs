@@ -26,22 +26,26 @@ public static class TestWav
     public static byte[] Tone(long frames, int channels = 1, int value = 100_000) =>
         Samples(Enumerable.Repeat(value, (int)(frames * channels)).ToArray());
 
-    public static byte[] Fmt(ushort format = 1, ushort channels = 1, uint rate = 44_100, ushort bits = 24, ushort? blockAlign = null)
+    /// <summary>A 16-byte fmt chunk body of the take format (PCM, mono, 44.1 kHz, 24-bit).</summary>
+    public static byte[] Fmt() => Fmt(new WavFormat());
+
+    /// <summary>A 16-byte fmt chunk body of the given format.</summary>
+    public static byte[] Fmt(WavFormat format)
     {
         var fmt = new byte[16];
-        BinaryPrimitives.WriteUInt16LittleEndian(fmt, format);
-        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(2), channels);
-        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(4), rate);
-        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(8), rate * (uint)(3 * channels));
-        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(12), blockAlign ?? (ushort)(3 * channels));
-        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(14), bits);
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt, format.Format);
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(2), format.Channels);
+        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(4), format.Rate);
+        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(8), format.Rate * (uint)(3 * format.Channels));
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(12), format.BlockAlign ?? (ushort)(3 * format.Channels));
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(14), format.Bits);
         return fmt;
     }
 
     public static byte[] ExtensibleFmt(ushort channels = 1, byte[]? subformat = null)
     {
         var fmt = new byte[40];
-        Fmt(0xFFFE, channels).CopyTo(fmt, 0);
+        Fmt(new WavFormat { Format = 0xFFFE, Channels = channels }).CopyTo(fmt, 0);
         BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(16), 22);
         BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(18), 24);
         (subformat ?? PcmSubformat).CopyTo(fmt, 24);
@@ -71,7 +75,7 @@ public static class TestWav
     }
 
     /// <summary>A valid take WAV.</summary>
-    public static byte[] Wav(byte[] data, int channels = 1) => Riff(Chunk("fmt ", Fmt(channels: (ushort)channels)), DataChunk(data));
+    public static byte[] Wav(byte[] data, int channels = 1) => Riff(Chunk("fmt ", Fmt(new WavFormat { Channels = (ushort)channels })), DataChunk(data));
 
     /// <summary>A data chunk without the RIFF pad byte (data is always the last chunk).</summary>
     public static byte[] DataChunk(byte[] data, uint? declaredSize = null)
@@ -82,4 +86,23 @@ public static class TestWav
         data.CopyTo(chunk, 8);
         return chunk;
     }
+}
+
+/// <summary>The fields of a WAV fmt chunk; the defaults are the take format.</summary>
+public sealed record WavFormat
+{
+    /// <summary>The audio format tag (1 = PCM, 0xFFFE = extensible).</summary>
+    public ushort Format { get; init; } = 1;
+
+    /// <summary>The channel count.</summary>
+    public ushort Channels { get; init; } = 1;
+
+    /// <summary>The sample rate in Hz.</summary>
+    public uint Rate { get; init; } = 44_100;
+
+    /// <summary>The bits per sample.</summary>
+    public ushort Bits { get; init; } = 24;
+
+    /// <summary>The block align; <see langword="null"/> derives it from the channels.</summary>
+    public ushort? BlockAlign { get; init; }
 }

@@ -146,6 +146,40 @@ public sealed class ScoreFollowEndpointsTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Applier_PageAboveTheSizeCap_FailsTheView_AndKeepsNoPages()
+    {
+        var (_, score) = await ReadyChannelScoreAsync();
+        var jobId = (await FindViewAsync(score.Id))!.WorkerJobId!;
+        Practice.CompleteScoreView(jobId);
+        Practice.DownloadFailure = new WorkerResponseTooLargeException("The processing service sent a file above the size cap.");
+
+        await SyncViewsAsync();
+
+        var view = (await FindViewAsync(score.Id))!;
+        (view.Status, view.Error).ShouldBe((ScoreViewStatus.Failed, ScoreViewJobApplier.TooLarge));
+        Directory.Exists(Path.Combine(Factory.DataDir, "assets", score.Id.ToString("D"), "view")).ShouldBeFalse();
+        Practice.Deleted.ShouldContain(jobId);
+    }
+
+    [Fact]
+    public async Task WorkerRejectingTheJob_StoresFailedWithTheReason_AndARetrySubmitsAgain()
+    {
+        Practice.SubmitFailure = new WorkerRequestException(HttpStatusCode.NotFound, "Input file not found.");
+        var (_, score) = await ReadyChannelScoreAsync();
+        var automatic = (await FindViewAsync(score.Id))!;
+        (automatic.Status, automatic.Error).ShouldBe((ScoreViewStatus.Failed, ScoreViewService.SubmitRejected + " Input file not found."));
+
+        using var rejected = await PostViewAsync(score.Id);
+
+        rejected.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await ContractAssert.MatchesAsync(rejected, "createScoreView");
+        (await rejected.BodyAsync<ScoreViewDto>()).Status.ShouldBe(ScoreViewStatusDto.Failed);
+        Practice.SubmitFailure = null;
+        using var retry = await PostViewAsync(score.Id);
+        (await retry.BodyAsync<ScoreViewDto>()).Status.ShouldBe(ScoreViewStatusDto.Queued);
+    }
+
+    [Fact]
     public async Task Applier_WorkerDown_ChangesNothing()
     {
         var (_, score) = await ReadyChannelScoreAsync();

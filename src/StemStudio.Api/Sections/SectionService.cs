@@ -27,6 +27,9 @@ public sealed class SectionDetectionGate : IDisposable
 /// <param name="clock">Clock.</param>
 public sealed class SectionService(ITrackRepository tracks, ISectionRepository sections, IWorkerPracticeClient worker, SectionDetectionGate gate, TimeProvider clock)
 {
+    /// <summary>Start of the failure text when the worker refuses the section job (4xx); the worker's detail follows.</summary>
+    public const string SubmitRejected = "The processing service could not start finding the sections:";
+
     private const int MaxDetailInputs = 30;
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
@@ -93,10 +96,13 @@ public sealed class SectionService(ITrackRepository tracks, ISectionRepository s
         }
     }
 
-    /// <summary>The automatic start after a separation: only when the set is missing or <c>none</c>; failures leave <c>none</c>.</summary>
+    /// <summary>
+    /// The automatic start after a separation: only when the set is missing or <c>none</c>. An unreachable worker leaves <c>none</c>
+    /// (the mixer triggers it again); a refused job (4xx) stores <c>failed</c> with the reason, so the UI offers a retry.
+    /// </summary>
     /// <param name="track">The completed track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>True when a detection was submitted.</returns>
+    /// <returns>True when the set was stored (queued, or failed after a refusal).</returns>
     public async Task<bool> DetectAutomaticallyAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
@@ -162,21 +168,33 @@ public sealed class SectionService(ITrackRepository tracks, ISectionRepository s
         _ => null,
     };
 
+    /// <summary>Submits the job: null when queued or refused (stored as <c>failed</c>), 503 when the worker cannot be reached.</summary>
     private async Task<IResult?> SubmitAsync(Track track, TrackSections? set, CancellationToken cancellationToken)
     {
-        WorkerSectionJob job;
+        var stored = set ?? TrackSections.Create(track.Id, Now);
         try
         {
-            job = await worker.CreateSectionJobAsync(JobRequest(track), cancellationToken);
+            await StartAsync(stored, track, cancellationToken);
         }
-        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        catch (WorkerUnavailableException)
         {
             return PracticeFlowProblems.WorkerUnavailable();
         }
 
-        var stored = set ?? TrackSections.Create(track.Id, Now);
-        stored.StartDetection(job.JobId, Now);
         await (set is null ? sections.AddAsync(stored, cancellationToken) : sections.SaveAsync(cancellationToken));
         return null;
+    }
+
+    /// <summary>Queues the job, or fails the set with the reason when the worker refuses it (4xx).</summary>
+    private async Task StartAsync(TrackSections stored, Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            stored.StartDetection((await worker.CreateSectionJobAsync(JobRequest(track), cancellationToken)).JobId, Now);
+        }
+        catch (WorkerRequestException rejected)
+        {
+            stored.Fail($"{SubmitRejected} {rejected.Detail}", Now);
+        }
     }
 }

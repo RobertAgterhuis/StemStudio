@@ -29,10 +29,14 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
         return take;
     }
 
-    private Task<HttpResponseMessage> ReplaceAsync(Guid takeId, long start, long length, int adjustment, int value = 90_000) =>
+    private static ReplaceTakeAudioMetadataDto Meta(long start, long length, int adjustment) =>
+        new() { StartSample = start, LengthSamples = length, AdjustmentSamples = adjustment };
+
+    /// <summary>Sends a WAV of <see cref="ReplaceTakeAudioMetadataDto.LengthSamples"/> samples at <paramref name="value"/>.</summary>
+    private Task<HttpResponseMessage> ReplaceAsync(Guid takeId, ReplaceTakeAudioMetadataDto metadata, int value = 90_000) =>
         Client.PutAsync(
             new Uri(ApiRoutes.RecordingTakeAudioOf(takeId), UriKind.Relative),
-            Form(Wav(Samples((int)length, value)), new ReplaceTakeAudioMetadataDto { StartSample = start, LengthSamples = length, AdjustmentSamples = adjustment }),
+            Form(Wav(Samples((int)metadata.LengthSamples, value)), metadata),
             Ct);
 
     private async Task<byte[]> AudioAsync(RecordingTakeDto take) =>
@@ -46,7 +50,7 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
     {
         var take = await ReadyTakeAsync();
 
-        using var response = await ReplaceAsync(take.Id, 0, 28_000, -2_000);
+        using var response = await ReplaceAsync(take.Id, Meta(0, 28_000, -2_000));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted, await response.Content.ReadAsStringAsync(Ct));
         await ContractAssert.MatchesAsync(response, "replaceRecordingTakeAudio");
@@ -69,11 +73,11 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
     public async Task Adjustments_AreSummed_AndEachCountsARevision()
     {
         var take = await ReadyTakeAsync();
-        (await ReplaceAsync(take.Id, 2_441, 30_000, 441)).Dispose();
+        (await ReplaceAsync(take.Id, Meta(2_441, 30_000, 441))).Dispose();
         CompleteRenders(NewFlac);
         await Factory.SyncAssetsAsync();
 
-        using var second = await ReplaceAsync(take.Id, 2_341, 30_000, -100);
+        using var second = await ReplaceAsync(take.Id, Meta(2_341, 30_000, -100));
 
         var again = await second.BodyAsync<RecordingTakeDto>();
         (again.AdjustmentSamples, again.AlignmentRevision, again.StartSample).ShouldBe((341, 2, 2_341L));
@@ -85,7 +89,7 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
         var track = await TrackAsync();
         var take = await CreateAsync(track.Id);
 
-        using var response = await ReplaceAsync(take.Id, 0, 22_050, 0);
+        using var response = await ReplaceAsync(take.Id, Meta(0, 22_050, 0));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await ProblemTypeAsync(response)).ShouldBe(Problem("take-saving"));
@@ -96,7 +100,7 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
     public async Task AFailedRender_KeepsTheOldAudio_AndShowsTheError()
     {
         var take = await ReadyTakeAsync();
-        (await ReplaceAsync(take.Id, 2_100, 30_000, 100)).Dispose();
+        (await ReplaceAsync(take.Id, Meta(2_100, 30_000, 100))).Dispose();
         Worker.OnGetRender = id => Task.FromResult<WorkerRenderJob?>(FakeWorkerClient.RenderJob(id, WorkerRenderJobState.Failed));
 
         await Factory.SyncAssetsAsync();
@@ -112,15 +116,15 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
     {
         var take = await ReadyTakeAsync();
 
-        using var adjustment = await ReplaceAsync(take.Id, 0, 22_050, 9_000);
-        using var tooShort = await ReplaceAsync(take.Id, 0, 22_049, 0);
-        using var silent = await ReplaceAsync(take.Id, 0, 22_050, 0, value: 0);
-        using var outside = await ReplaceAsync(take.Id, 9_395_064, 22_050, 0);
+        using var adjustment = await ReplaceAsync(take.Id, Meta(0, 22_050, 9_000));
+        using var tooShort = await ReplaceAsync(take.Id, Meta(0, 22_049, 0));
+        using var silent = await ReplaceAsync(take.Id, Meta(0, 22_050, 0), value: 0);
+        using var outside = await ReplaceAsync(take.Id, Meta(9_395_064, 22_050, 0));
         using var mismatch = await Client.PutAsync(
             new Uri(ApiRoutes.RecordingTakeAudioOf(take.Id), UriKind.Relative),
             Form(Wav(Samples(25_000)), new ReplaceTakeAudioMetadataDto { StartSample = 0, LengthSamples = 22_050, AdjustmentSamples = 0 }),
             Ct);
-        using var unknown = await ReplaceAsync(Guid.NewGuid(), 0, 22_050, 0);
+        using var unknown = await ReplaceAsync(Guid.NewGuid(), Meta(0, 22_050, 0));
 
         foreach (var response in new[] { adjustment, tooShort, silent, outside, mismatch })
         {
@@ -142,7 +146,7 @@ public sealed class ReplaceTakeAudioEndpointTests : RecordingTestBase
         var take = await ReadyTakeAsync();
         Worker.OnCreateRender = _ => throw new WorkerUnavailableException();
 
-        using var response = await ReplaceAsync(take.Id, 0, 22_050, 0);
+        using var response = await ReplaceAsync(take.Id, Meta(0, 22_050, 0));
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
         (await GetAsync(take.Id)).Status.ShouldBe(TakeStatusDto.Ready);

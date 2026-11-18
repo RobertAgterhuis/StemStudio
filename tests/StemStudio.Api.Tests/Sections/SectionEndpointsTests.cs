@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
+using StemStudio.Api.SongSections;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Tests.Worker;
@@ -165,6 +167,47 @@ public sealed class SectionEndpointsTests : ApiTestBase
 
         await AssertProblemAsync(response, HttpStatusCode.ServiceUnavailable, "worker-unavailable");
         (await Factory.FindSectionsAsync(track.Id)).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, "Not Found")]
+    [InlineData(HttpStatusCode.UnprocessableEntity, "The beat grid is invalid.")]
+    public async Task Detect_WorkerRejectsTheJob_StoresFailedWithAReadableReason_AndARetryQueues(HttpStatusCode status, string detail)
+    {
+        var track = await Factory.SeedAsync(SectionTestData.Completed());
+        Practice.SubmitFailure = new WorkerRequestException(status, detail);
+
+        using var rejected = await DetectAsync(track.Id);
+
+        rejected.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await ContractAssert.MatchesAsync(rejected, "detectSections");
+        var failed = await rejected.BodyAsync<SectionSetDto>();
+        (failed.Status, failed.Error).ShouldBe((SectionSetStatusDto.Failed, SectionService.SubmitRejected + " " + detail));
+        (await Factory.FindSectionsAsync(track.Id))!.Status.ShouldBe(SectionSetStatus.Failed);
+
+        Practice.SubmitFailure = null;
+        using var retry = await DetectAsync(track.Id);
+
+        var queued = await retry.BodyAsync<SectionSetDto>();
+        (queued.Status, queued.Error).ShouldBe((SectionSetStatusDto.Queued, (string?)null));
+    }
+
+    [Fact]
+    public async Task CompletedSeparation_WithTheWorkerRejectingTheJob_StoresFailed_AndDoesNotTryAgainByItself()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
+        Factory.CompleteSeparations();
+        Practice.SubmitFailure = new WorkerRequestException(HttpStatusCode.NotFound, "Not Found");
+
+        await Factory.SyncTracksAsync();
+
+        (await Factory.FindTrackAsync(track.Id))!.Status.ShouldBe(TrackStatus.Completed);
+        var set = (await Factory.FindSectionsAsync(track.Id))!;
+        (set.Status, set.Error).ShouldBe((SectionSetStatus.Failed, SectionService.SubmitRejected + " Not Found"));
+        var stored = await Factory.FindTrackAsync(track.Id);
+        Practice.SubmitFailure = null;
+        (await Factory.WithScopeAsync(sp => sp.GetRequiredService<SectionService>().DetectAutomaticallyAsync(stored!, CancellationToken.None))).ShouldBeFalse();
+        Practice.SectionRequests.ShouldBeEmpty();
     }
 
     [Fact]

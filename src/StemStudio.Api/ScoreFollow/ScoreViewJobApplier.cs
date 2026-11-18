@@ -24,6 +24,9 @@ public sealed partial class ScoreViewJobApplier(IScoreViewRepository views, IWor
     /// <summary>Text when the worker's result breaks the contract limits.</summary>
     public const string InvalidResult = "The score view could not be made.";
 
+    /// <summary>Text when a page is above <see cref="WorkerClient.MaxScoreViewPageBytes"/> (nothing of the view is kept).</summary>
+    public const string TooLarge = "The score view is too large to show; try a shorter range or a simpler score.";
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>One pass over every active view.</summary>
@@ -87,14 +90,35 @@ public sealed partial class ScoreViewJobApplier(IScoreViewRepository views, IWor
             return;
         }
 
-        files.Clear(view.AssetId);
-        for (var page = 1; page <= pages.Count; page++)
+        if (await SavePagesAsync(view.AssetId, jobId, pages.Count, cancellationToken))
         {
-            var number = page;
-            await files.SaveAsync(view.AssetId, number, (stream, ct) => worker.DownloadScoreViewPageAsync(jobId, number, stream, ct), cancellationToken);
+            view.Complete(pages.Count, bars, Now);
         }
+        else
+        {
+            view.Fail(TooLarge, Now);
+        }
+    }
 
-        view.Complete(pages.Count, bars, Now);
+    /// <summary>Replaces the stored pages; false (and no pages kept) when one is above the size cap.</summary>
+    private async Task<bool> SavePagesAsync(Guid assetId, string jobId, int count, CancellationToken cancellationToken)
+    {
+        files.Clear(assetId);
+        try
+        {
+            for (var page = 1; page <= count; page++)
+            {
+                var number = page;
+                await files.SaveAsync(assetId, number, (stream, ct) => worker.DownloadScoreViewPageAsync(jobId, number, stream, ct), cancellationToken);
+            }
+
+            return true;
+        }
+        catch (WorkerResponseTooLargeException)
+        {
+            files.Clear(assetId);
+            return false;
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Score view {AssetId}: processing service unreachable, retrying on the next tick")]

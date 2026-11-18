@@ -11,8 +11,8 @@ public sealed class SectionRulesTests
     private static readonly SectionContext Context = new(64, new HashSet<string>(StringComparer.Ordinal) { "vocals", "guitar", "guitar.electric-guitar" });
     private static readonly Guid TrackId = Guid.NewGuid();
 
-    public static SectionInput Input(double start, double end, SectionKind kind = SectionKind.Verse, string label = "Verse", Guid? id = null, string? instrument = null) =>
-        new(id, kind, label, start, end, instrument);
+    public static SectionInput Input(double start, double end, SectionKind kind = SectionKind.Verse, string label = "Verse") =>
+        new(null, kind, label, start, end);
 
     private static IReadOnlyList<DomainError> Validate(params SectionInput[] sections) => SectionRules.Validate(sections, Context, new HashSet<Guid>());
 
@@ -21,13 +21,13 @@ public sealed class SectionRulesTests
     public static DetectionResult Detected(params DetectedSection[] sections) =>
         new("stems-novelty/1.0.0", SectionSnap.Downbeat, [new SectionWarning("no-vocals", "No vocals.")], sections);
 
-    public static DetectedSection Found(double start, double end, SectionKind kind = SectionKind.Verse, string label = "Verse", double? confidence = 0.8) =>
-        new(kind, label, start, end, null, confidence);
+    public static DetectedSection Found(double start, double end, SectionKind kind = SectionKind.Verse, string label = "Verse") =>
+        new(kind, label, start, end, null, 0.8);
 
     [Fact]
     public void ValidList_HasNoErrors()
     {
-        Validate(Input(0, 8, SectionKind.Intro, "Intro"), Input(8, 40), Input(41, 64, SectionKind.Solo, "Solo", instrument: "guitar.electric-guitar")).ShouldBeEmpty();
+        Validate(Input(0, 8, SectionKind.Intro, "Intro"), Input(8, 40), Input(41, 64, SectionKind.Solo, "Solo") with { Instrument = "guitar.electric-guitar" }).ShouldBeEmpty();
     }
 
     [Fact]
@@ -75,9 +75,9 @@ public sealed class SectionRulesTests
     [Fact]
     public void Instrument_OnlyForSolo_AndOnlyAChannelOfTheTrack()
     {
-        Fields(Validate(Input(0, 10, SectionKind.Verse, instrument: "guitar"))).ShouldBe(["sections[0].instrument"]);
-        Fields(Validate(Input(0, 10, SectionKind.Solo, instrument: "piano"))).ShouldBe(["sections[0].instrument"]);
-        Validate(Input(0, 10, SectionKind.Solo, instrument: "guitar")).ShouldBeEmpty();
+        Fields(Validate(Input(0, 10, SectionKind.Verse) with { Instrument = "guitar" })).ShouldBe(["sections[0].instrument"]);
+        Fields(Validate(Input(0, 10, SectionKind.Solo) with { Instrument = "piano" })).ShouldBe(["sections[0].instrument"]);
+        Validate(Input(0, 10, SectionKind.Solo) with { Instrument = "guitar" }).ShouldBeEmpty();
         Validate(Input(0, 10, SectionKind.Solo)).ShouldBeEmpty();
     }
 
@@ -87,9 +87,9 @@ public sealed class SectionRulesTests
         var own = Guid.NewGuid();
         var owned = new HashSet<Guid> { own };
 
-        Fields(SectionRules.Validate([Input(0, 10, id: Guid.NewGuid())], Context, owned)).ShouldBe(["sections[0].id"]);
-        Fields(SectionRules.Validate([Input(0, 10, id: own), Input(10, 20, id: own)], Context, owned)).ShouldBe(["sections[1].id"]);
-        SectionRules.Validate([Input(0, 10, id: own), Input(10, 20)], Context, owned).ShouldBeEmpty();
+        Fields(SectionRules.Validate([Input(0, 10) with { Id = Guid.NewGuid() }], Context, owned)).ShouldBe(["sections[0].id"]);
+        Fields(SectionRules.Validate([Input(0, 10) with { Id = own }, Input(10, 20) with { Id = own }], Context, owned)).ShouldBe(["sections[1].id"]);
+        SectionRules.Validate([Input(0, 10) with { Id = own }, Input(10, 20)], Context, owned).ShouldBeEmpty();
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class SectionRulesTests
         var (intro, verse) = (set.Sections[0], set.Sections[1]);
 
         set.Replace(
-            new SectionSetUpdate(1, [Input(0, 8, SectionKind.Intro, "Intro", intro.Id), Input(8, 30, id: verse.Id), Input(30, 64, SectionKind.Chorus, "Chorus")]),
+            new SectionSetUpdate(1, [Input(0, 8, SectionKind.Intro, "Intro") with { Id = intro.Id }, Input(8, 30) with { Id = verse.Id }, Input(30, 64, SectionKind.Chorus, "Chorus")]),
             Context,
             Guid.NewGuid,
             T0.AddMinutes(1));
@@ -230,20 +230,26 @@ public sealed class SectionRulesTests
         set.Sections[2].Id.ShouldNotBe(intro.Id);
     }
 
+    /// <summary>The detected intro (0-8 s, "Intro") with one field changed, named by the change.</summary>
+    public static TheoryData<string, SectionInput> IntroChanges => new()
+    {
+        { "kind", Input(0, 8, SectionKind.Bridge, "Intro") },
+        { "label", Input(0, 8, SectionKind.Intro, "Start") },
+        { "end", Input(0, 9, SectionKind.Intro, "Intro") },
+        { "start", Input(1, 8, SectionKind.Intro, "Intro") },
+        { "instrument", Input(0, 8, SectionKind.Solo, "Intro") with { Instrument = "guitar" } },
+    };
+
     [Theory]
-    [InlineData(SectionKind.Bridge, "Intro", 0, 8, null)]
-    [InlineData(SectionKind.Intro, "Start", 0, 8, null)]
-    [InlineData(SectionKind.Intro, "Intro", 0, 9, null)]
-    [InlineData(SectionKind.Intro, "Intro", 1, 8, null)]
-    [InlineData(SectionKind.Solo, "Intro", 0, 8, "guitar")]
-    public void AnyChangeOfKindLabelBoundsOrInstrument_MakesAUserSection(SectionKind kind, string label, double start, double end, string? instrument)
+    [MemberData(nameof(IntroChanges))]
+    public void AnyChangeOfKindLabelBoundsOrInstrument_MakesAUserSection(string change, SectionInput changed)
     {
         var set = ReadySet();
         var intro = set.Sections[0];
 
-        set.Replace(new SectionSetUpdate(1, [Input(start, end, kind, label, intro.Id, instrument), Input(9, 64, id: set.Sections[1].Id)]), Context, Guid.NewGuid, T0);
+        set.Replace(new SectionSetUpdate(1, [changed with { Id = intro.Id }, Input(9, 64) with { Id = set.Sections[1].Id }]), Context, Guid.NewGuid, T0);
 
-        set.Sections[0].Origin.ShouldBe(SectionOrigin.User);
+        set.Sections[0].Origin.ShouldBe(SectionOrigin.User, change);
     }
 
     [Fact]

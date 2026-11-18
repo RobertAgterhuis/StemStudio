@@ -33,6 +33,9 @@ public sealed class ScoreViewService(ITrackRepository tracks, IScoreViewReposito
     /// <summary>Failure text when the score has no tempo grid to place its bars.</summary>
     public const string NoGrid = "The score has no tempo grid, so its bars cannot follow the playback.";
 
+    /// <summary>Start of the failure text when the worker refuses the score view job (4xx); the worker's detail follows.</summary>
+    public const string SubmitRejected = "The processing service could not prepare the score view:";
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary><c>GET /api/tracks/{trackId}/scores</c>: ready score items of the track (directly or through an exported audio item).</summary>
@@ -144,7 +147,7 @@ public sealed class ScoreViewService(ITrackRepository tracks, IScoreViewReposito
         return TypedResults.Accepted((string?)null, ScoreFollowMapper.ToDto(view.AssetId, view, null));
     }
 
-    /// <summary>Submits the job; a score without grid fails at once. Null when the worker cannot take it.</summary>
+    /// <summary>Submits the job; a score without grid or a refused job (4xx) fails at once. Null when the worker cannot be reached.</summary>
     private async Task<ScoreView?> SubmitAsync(ScoreSources sources, ScoreView? stored, CancellationToken cancellationToken)
     {
         var plan = ScoreViewPlanner.Plan(sources);
@@ -155,16 +158,26 @@ public sealed class ScoreViewService(ITrackRepository tracks, IScoreViewReposito
             return view;
         }
 
+        return await SendAsync(view, new WorkerScoreViewJobRequest { Musicxml = plan.MusicXmlPath, Grid = ScoreSubmitter.WorkerGrid(grid), DurationSeconds = plan.DurationSeconds }, cancellationToken);
+    }
+
+    /// <summary>Queued, or failed with the reason when the worker refuses the job (4xx); null when the worker cannot be reached.</summary>
+    private async Task<ScoreView?> SendAsync(ScoreView view, WorkerScoreViewJobRequest request, CancellationToken cancellationToken)
+    {
         try
         {
-            var job = await worker.CreateScoreViewJobAsync(new WorkerScoreViewJobRequest { Musicxml = plan.MusicXmlPath, Grid = ScoreSubmitter.WorkerGrid(grid), DurationSeconds = plan.DurationSeconds }, cancellationToken);
-            view.Submit(job.JobId, Now);
-            return view;
+            view.Submit((await worker.CreateScoreViewJobAsync(request, cancellationToken)).JobId, Now);
         }
-        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        catch (WorkerUnavailableException)
         {
             return null;
         }
+        catch (WorkerRequestException rejected)
+        {
+            view.Fail($"{SubmitRejected} {rejected.Detail}", Now);
+        }
+
+        return view;
     }
 
     private async Task<(ScoreSources? Sources, IResult? Problem)> SourcesAsync(Guid assetId, bool requireReady, CancellationToken cancellationToken)

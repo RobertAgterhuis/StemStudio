@@ -41,7 +41,11 @@ public sealed class RecordingPersistenceTests : IAsyncLifetime
         Recording = new RecordingSource(Guid.NewGuid()),
     }, T0);
 
-    private static RecordingTake Take(Guid trackId, Guid assetId, int number, Guid? mixId = null, Guid? calibrationId = null) => RecordingTake.Create(Guid.NewGuid(), new NewTake
+    private static RecordingTake Take(Guid trackId, Guid assetId, int number) => Take(NewTakeOf(trackId, assetId, number));
+
+    private static RecordingTake Take(NewTake input) => RecordingTake.Create(Guid.NewGuid(), input, T0.AddMinutes(input.Number));
+
+    private static NewTake NewTakeOf(Guid trackId, Guid assetId, int number) => new()
     {
         TrackId = trackId,
         AssetId = assetId,
@@ -56,12 +60,10 @@ public sealed class RecordingPersistenceTests : IAsyncLifetime
         InputChannels = 2,
         LatencySamples = 1102,
         LatencyMethod = LatencyMethod.Manual,
-        CalibrationId = calibrationId,
-        MixId = mixId,
         Scan = new PeakScan(-12.5, 3, false),
         Dropouts = 0,
         RecordedAt = T0,
-    }, T0.AddMinutes(number));
+    };
 
     private static async Task<(Track Track, Asset Asset)> SeedTrackAsync(StemStudioDbContext context)
     {
@@ -182,7 +184,7 @@ public sealed class RecordingPersistenceTests : IAsyncLifetime
             calibration = InputCalibration.Create(Guid.NewGuid(), new CalibrationValues("Focusrite", null, 1102, CalibrationMethod.Manual, null, null, 0), T0);
             context.Mixes.Add(mix);
             context.InputCalibrations.Add(calibration);
-            var take = Take(track.Id, asset.Id, 1, mix.Id, calibration.Id);
+            var take = Take(NewTakeOf(track.Id, asset.Id, 1) with { MixId = mix.Id, CalibrationId = calibration.Id });
             takeId = take.Id;
             context.RecordingTakes.Add(take);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);

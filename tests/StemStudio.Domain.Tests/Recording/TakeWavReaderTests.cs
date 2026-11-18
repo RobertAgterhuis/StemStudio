@@ -49,7 +49,7 @@ public sealed class TakeWavReaderTests
     [Fact]
     public async Task Extensible_ShortFmt_IsInvalid()
     {
-        var refused = await Refused(TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt(0xFFFE)), TestWav.DataChunk(TestWav.Tone(4))));
+        var refused = await Refused(TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt(new WavFormat { Format = 0xFFFE })), TestWav.DataChunk(TestWav.Tone(4))));
 
         refused.Error.ShouldBe(TakeWavError.Invalid);
     }
@@ -65,7 +65,7 @@ public sealed class TakeWavReaderTests
     [Fact]
     public async Task ASecondFmtChunk_IsIgnored()
     {
-        var file = TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt()), TestWav.Chunk("fmt ", TestWav.Fmt(rate: 48_000)), TestWav.DataChunk(TestWav.Tone(5)));
+        var file = TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt()), TestWav.Chunk("fmt ", TestWav.Fmt(new WavFormat { Rate = 48_000 })), TestWav.DataChunk(TestWav.Tone(5)));
 
         (await Read(file)).Channels.ShouldBe(1);
     }
@@ -78,15 +78,21 @@ public sealed class TakeWavReaderTests
         (await Refused(hostile)).Error.ShouldBe(TakeWavError.Invalid);
     }
 
-    [Theory]
-    [InlineData(3, 1, 44_100, 24, "audioFormat")]
-    [InlineData(1, 3, 44_100, 24, "channels")]
-    [InlineData(1, 0, 44_100, 24, "channels")]
-    [InlineData(1, 1, 48_000, 24, "sampleRate")]
-    [InlineData(1, 1, 44_100, 16, "bitsPerSample")]
-    public async Task OtherFormats_AreUnsupported_WithTheField(int format, int channels, int rate, int bits, string field)
+    /// <summary>Formats other than the take format (all with block align 3), with the refused field.</summary>
+    public static TheoryData<string, WavFormat> OtherFormats() => new()
     {
-        var fmt = TestWav.Fmt((ushort)format, (ushort)channels, (uint)rate, (ushort)bits, blockAlign: 3);
+        { "audioFormat", new WavFormat { Format = 3, BlockAlign = 3 } },
+        { "channels", new WavFormat { Channels = 3, BlockAlign = 3 } },
+        { "channels", new WavFormat { Channels = 0, BlockAlign = 3 } },
+        { "sampleRate", new WavFormat { Rate = 48_000, BlockAlign = 3 } },
+        { "bitsPerSample", new WavFormat { Bits = 16, BlockAlign = 3 } },
+    };
+
+    [Theory]
+    [MemberData(nameof(OtherFormats))]
+    public async Task OtherFormats_AreUnsupported_WithTheField(string field, WavFormat format)
+    {
+        var fmt = TestWav.Fmt(format);
 
         var refused = await Refused(TestWav.Riff(TestWav.Chunk("fmt ", fmt), TestWav.DataChunk(TestWav.Tone(4))));
 
@@ -103,7 +109,7 @@ public sealed class TakeWavReaderTests
         { "data before fmt", TestWav.Riff(TestWav.DataChunk(TestWav.Tone(4)), TestWav.Chunk("fmt ", TestWav.Fmt())) },
         { "no data chunk", TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt())) },
         { "short fmt", TestWav.Riff(TestWav.Chunk("fmt ", new byte[14]), TestWav.DataChunk(TestWav.Tone(4))) },
-        { "block align mismatch", TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt(blockAlign: 4)), TestWav.DataChunk(TestWav.Tone(4))) },
+        { "block align mismatch", TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt(new WavFormat { BlockAlign = 4 })), TestWav.DataChunk(TestWav.Tone(4))) },
         { "odd data size", TestWav.Riff(TestWav.Chunk("fmt ", TestWav.Fmt()), TestWav.DataChunk(new byte[7])) },
     };
 

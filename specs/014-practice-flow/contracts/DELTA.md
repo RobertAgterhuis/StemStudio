@@ -66,7 +66,7 @@ Reconciliation items (architect, Phase 0 part 2; none changes 014 behaviour):
 | `PATCH /api/setlists/{setlistId}` | `updateSetlist` | `{name?, note?}` | `200`; `404`; `422` |
 | `DELETE /api/setlists/{setlistId}` | `deleteSetlist` | - | `204`; `404` |
 | `PUT /api/setlists/{setlistId}/entries` | `replaceSetlistEntries` | `{entries[{id?, trackId, mixId?, note?}]}` 0..100 | `200 Setlist`; `404`; `422` (`track-not-found`, `mix-track-mismatch`) |
-| `GET /api/setlists/{setlistId}/pdf` | `getSetlistPdf` | `?lyrics&sections&notes&pageBreakPerSong` (all default true) | `200 application/pdf` attachment; `404`; `409 setlist-empty`; `503`; `504 document-timeout` |
+| `GET /api/setlists/{setlistId}/pdf` | `getSetlistPdf` | `?lyrics&sections&notes&pageBreakPerSong` (all default true) | `200 application/pdf` attachment; `404`; `409 setlist-empty`; `503 worker-unavailable` or `503 document-failed` (job failed or unusable PDF, e.g. above the size cap); `504 document-timeout` |
 | `GET /api/practice/settings` | `getPracticeLogSettings` | - | `200 PracticeLogSettings {enabled, noticeAcknowledged, sessions, updatedAt}` |
 | `PUT /api/practice/settings` | `updatePracticeLogSettings` | `PracticeLogSettingsUpdate {enabled?, noticeAcknowledged?}` | `200`; `422` |
 | `GET /api/practice/sessions` | `listPracticeSessions` | `?trackId&before&limit` | `200 PracticeSession[]`; `422` |
