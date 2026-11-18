@@ -2,8 +2,9 @@
 
 Seconds map to a fractional beat index by linear interpolation over the beats (tempo drift and
 rubato land in the right bar) and by extrapolation with the median period outside them. Bar 1
-starts at the beat nearest to the first downbeat; positions are quarter notes from there,
-snapped to sixteenths or eighths. A manual tempo generates constant beats over the input.
+starts at the beat nearest to the first downbeat inside the input (a range has no empty bars
+before its start); positions are quarter notes from there, snapped to sixteenths or eighths.
+A manual tempo generates constant beats over the input.
 """
 
 import bisect
@@ -147,7 +148,7 @@ class TimeBase:
         if isinstance(grid, ManualTempo):
             beats, index = manual_beats(grid, duration_seconds)
         else:
-            beats, index = grid.beats, _nearest(grid.beats, grid.downbeats[0])
+            beats, index = grid.beats, _nearest(grid.beats, grid.bar_one_downbeat)
         return cls(tuple(beats), index, grid.beats_per_bar, round_bpm(grid.bpm))
 
     @property

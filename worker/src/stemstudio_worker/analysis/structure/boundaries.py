@@ -15,6 +15,7 @@ import numpy as np
 import numpy.typing as npt
 
 from stemstudio_worker.analysis.structure.features import FrameGrid
+from stemstudio_worker.analysis.structure.times import contiguous_spans
 
 MIN_FRAMES: Final = 4
 EDGE_MIN_FRAMES: Final = 2
@@ -83,11 +84,8 @@ def limit_sections(
 
 
 def spans_in_seconds(spans: Sequence[Span], frames: FrameGrid) -> list[tuple[float, float]]:
-    """Segment spans as seconds: first starts at 0, last ends at the duration, inner snapped."""
-    digits = 1 if frames.snap == "time" else 3
-    starts = [0.0] + [round(frames.bounds[start], digits) for start, _ in spans[1:]]
-    ends = [*starts[1:], frames.bounds[-1]]
-    return list(zip(starts, ends, strict=True))
+    """Segment spans as seconds: first starts at 0, last ends at the duration, inner at 0.1 s."""
+    return contiguous_spans([frames.bounds[start] for start, _ in spans[1:]], frames.bounds[-1])
 
 
 def _too_short(bounds: Sequence[Boundary], frames: int) -> int | None:
