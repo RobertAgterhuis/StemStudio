@@ -164,7 +164,7 @@ test.describe('setlist PDF, removed songs and accessibility (014 US5)', { tag: '
     await expect(setlists.byId('setlist-removed-note')).toHaveCount(0);
   });
 
-  test('the setlists page and the editor have no axe violations (SC-008)', async ({ api, page }) => {
+  test('the setlists page and the editor have no axe violations (SC-006)', async ({ api, page }) => {
     const setlists = new SetlistsPage(page);
     const id = await buildSetlist(setlists, await threeSongs(api));
 

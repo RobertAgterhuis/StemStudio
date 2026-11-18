@@ -229,7 +229,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 9: Polish and integration
 
-- [ ] T102 [P] [quality-gate] Run `tools/quality/run_all.py` on the merged wave; refactor requests to owners; SIG report update
+- [x] T102 [P] [quality-gate] Run `tools/quality/run_all.py` on the merged wave; refactor requests to owners; SIG report update
 - [ ] T103 [P] [qa] Visual baselines for section lane, score panel, setlist pages, practice panel and shortcut settings (light/dark, 320 px and desktop); a11y suite extended (axe-core, keyboard-only walk of every new page) (FR-031, SC-006)
 - [ ] T104 [qa] Execute the full E2E suite on the fake stack (all 014 specs + regression); hand-off with results
 - [ ] T105 [CTO] Moderated checks: SC-005 (first-time chorus loop), NVDA browse mode on the mixer (SC-006), label quality on the owner's reference songs (record in STATUS)
