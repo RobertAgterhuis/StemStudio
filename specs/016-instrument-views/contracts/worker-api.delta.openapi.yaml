@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Worker API - instrument views delta (feature 016)
-  version: 1.9.0-delta.1
+  version: 1.9.0-delta.2
   summary: Additive delta of the worker API for chords, drum hits, reference melody, tablature and transposed parts.
   description: |
     * **Standalone, additive delta.** This document contains only what feature 016 adds to the
@@ -24,7 +24,9 @@ info:
       `missing-drum-piece` warnings when the request's `singlePiece` is set.
     * Changelog: 1.9.0-delta.1 (additive, feature 016 planning) - instrument analysis jobs
       (chords with the song key and key regions, S11), tablature, parts, chord symbols in scores,
-      new profiles. See ADR-031..033 and contracts/DELTA.md.
+      new profiles. 1.9.0-delta.2 (016 Phase 0, 2026-11-18): `ScoreChordSymbol` carries pitch
+      classes only (spelling by `preferFlats` at concert pitch, respelled with a part). See
+      ADR-031..033 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -623,7 +625,7 @@ components:
               items:
                 $ref: '#/components/schemas/ScoreChordSymbol'
             - type: 'null'
-          description: Chord symbols placed above the top staff (profiles vocals, guitar, keys, piano, strings, brass, woodwinds); `N` segments are not sent; spelled in the written key.
+          description: Chord symbols placed above the top staff (profiles vocals, guitar, keys, piano, strings, brass, woodwinds); `N` segments are not sent. Pitch classes at concert pitch; the notator spells them with `preferFlats` and transposes them with a part (spelled in the written key).
         preferFlats:
           type: [boolean, 'null']
           description: Spelling hint for the chord symbols at concert pitch (from the chord chart).

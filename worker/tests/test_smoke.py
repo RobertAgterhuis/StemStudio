@@ -47,6 +47,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "render": {"queued": 0, "running": False},
             "transcribe": {"queued": 0, "running": False},
             "practice": {"queued": 0, "running": False},
+            "instrumentAnalysis": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
             "available": True,
@@ -63,7 +64,13 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "font": {"leipzig": False},
         },
         "structure": {"analyzer": "stems-novelty", "version": "1.0.0"},
-        "contractVersion": "1.8.0",
+        # 1.9.0 (016): skeleton defaults until the lane wires the configured engines (T062).
+        "instrumentAnalysis": {
+            "models": {"btc-majmin": "not-downloaded", "btc-large-voca": "not-downloaded"},
+            "chordEngine": "btc",
+            "pitchEngine": "pyin",
+        },
+        "contractVersion": "1.9.0",
     }
 
 
