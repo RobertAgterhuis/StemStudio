@@ -85,7 +85,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T015 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `analysis/structure` imports only `ports`, `schemas`, numpy, scipy, sklearn, librosa, soundfile; `engraving/score_view.py` only `ports`, `schemas`, verovio, stdlib xml; `documents/**` only `ports`, `schemas`, reportlab; `jobs`/`api` import none of them (composition in `main.py`); TS: `src/audio-engine/src/score-follow/**` imports no Blazor interop module; .NET: `Domain.{Sections,Setlists,Practice}` reference nothing from `Api`/`Persistence`
 - [x] T016 [quality-gate] Implement the rules of T015 in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [x] T017 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: synthetic structured audio for sections (one solo per family, SC-002), score-view and PDF assertions, fake analyser for E2E, a11y (axe-core) and keyboard-only E2E for the new pages, request-log check for SC-009; traceability US1..US6 -> test files
-- [ ] T018 [P] [qa] Fixtures `tests/fixtures/` generator: a synthetic structured song (60-90 s, known form and grid, separated-stem layout for the fake stack) with a manifest of expected sections and bar times; `tests/fixtures/tests/` checks the manifest (FR-033)
+- [x] T018 [P] [qa] Fixtures `tests/fixtures/` generator: a synthetic structured song (60-90 s, known form and grid, separated-stem layout for the fake stack) with a manifest of expected sections and bar times; `tests/fixtures/tests/` checks the manifest (FR-033)
 
 ---
 
@@ -93,19 +93,19 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### beat-analysis (`analysis/structure/`, tests first)
 
-- [ ] T020 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_features.py`: frames from a reliable grid (bars, lead-in frame), an unreliable grid (beats grouped), no grid (2 s); chroma/MFCC/RMS shapes per frame; vocal activity ratio on a synthetic vocals stem (on/off sections exact); stem energy shares sum to 1; 4-stem fallback without guitar/piano (FR-001, FR-003)
-- [ ] T021 [beat-analysis] Implement `analysis/structure/features.py` to pass T020
-- [ ] T022 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_novelty_boundaries.py`: checkerboard novelty peaks at block changes of a synthetic self-similarity matrix; peaks >= 4 frames apart; vocal switches holding >= 2 frames become boundaries; union dedupe within 1 frame; merge of segments < 4 frames (first/last < 2) into the more similar neighbour; limit to `maxSections` with `merged-to-limit`; snap to downbeat/beat/0.1 s; first section starts at 0, last ends at the duration (FR-002, FR-003)
-- [ ] T023 [beat-analysis] Implement `analysis/structure/{novelty,boundaries}.py` to pass T022
-- [ ] T024 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_clusters_labels.py`: clustering gives the same letter to repeated synthetic segments; every rule of data-model 2.3 in order (intro/outro, chorus by energy among repeating vocal clusters, verse, bridge after the first chorus, solo with the dominant stem or detail stem, instrumental, `few-repetitions` -> "Part A/B", `no-vocals`), numbering per kind, solo labels with the 004 display names (FR-002)
-- [ ] T025 [beat-analysis] Implement `analysis/structure/{clusters,labels}.py` to pass T024
+- [x] T020 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_features.py`: frames from a reliable grid (bars, lead-in frame), an unreliable grid (beats grouped), no grid (2 s); chroma/MFCC/RMS shapes per frame; vocal activity ratio on a synthetic vocals stem (on/off sections exact); stem energy shares sum to 1; 4-stem fallback without guitar/piano (FR-001, FR-003)
+- [x] T021 [beat-analysis] Implement `analysis/structure/features.py` to pass T020
+- [x] T022 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_novelty_boundaries.py`: checkerboard novelty peaks at block changes of a synthetic self-similarity matrix; peaks >= 4 frames apart; vocal switches holding >= 2 frames become boundaries; union dedupe within 1 frame; merge of segments < 4 frames (first/last < 2) into the more similar neighbour; limit to `maxSections` with `merged-to-limit`; snap to downbeat/beat/0.1 s; first section starts at 0, last ends at the duration (FR-002, FR-003)
+- [x] T023 [beat-analysis] Implement `analysis/structure/{novelty,boundaries}.py` to pass T022
+- [x] T024 [P] [beat-analysis] Failing tests `worker/tests/analysis/structure/test_clusters_labels.py`: clustering gives the same letter to repeated synthetic segments; every rule of data-model 2.3 in order (intro/outro, chorus by energy among repeating vocal clusters, verse, bridge after the first chorus, solo with the dominant stem or detail stem, instrumental, `few-repetitions` -> "Part A/B", `no-vocals`), numbering per kind, solo labels with the 004 display names (FR-002)
+- [x] T025 [beat-analysis] Implement `analysis/structure/{clusters,labels}.py` to pass T024
 
 ### audio-ingest (`engraving/score_view.py`, `documents/`, tests first)
 
-- [ ] T026 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_score_view.py`: a music21 MusicXML of N bars (single staff, grand staff, percussion, with and without pickup) renders to pages whose bar count is N; every box is inside 0..1 and inside its page; grand-staff boxes span both staves; bar times from a `BeatGridTempo` (uneven beats) and a `ManualTempo`; pickup start; last bar ends at the duration; each page contains Verovio's Leipzig `@font-face` (T011: kept, not added); no `<script>`/`foreignObject`/external href; `ScoreViewError` text on unreadable input (FR-010, FR-014, SC-003)
-- [ ] T027 [audio-ingest] Implement `engraving/score_view.py` (`VerovioScoreViewRenderer`) to pass T026
-- [ ] T028 [P] [audio-ingest] Failing tests `worker/tests/documents/test_setlist_pdf.py`: pypdf text of a 3-song request has the overview table in order, per-song headings, facts lines, notes, sections, lyrics stanzas, "No lyrics", "Lyrics shortened"; options switch parts off; `pageBreakPerSong` changes the page count; footer "page n of m"; a CJK character becomes U+FFFD with the overview note; DejaVu missing -> `DocumentError` (fonts check patched); 20 songs with 10,000-character lyrics under 10 s (FR-018, SC-008)
-- [ ] T029 [audio-ingest] Implement `documents/{setlist_pdf,fonts}.py` (`ReportLabSetlistRenderer`) to pass T028
+- [x] T026 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_score_view.py`: a music21 MusicXML of N bars (single staff, grand staff, percussion, with and without pickup) renders to pages whose bar count is N; every box is inside 0..1 and inside its page; grand-staff boxes span both staves; bar times from a `BeatGridTempo` (uneven beats) and a `ManualTempo`; pickup start; last bar ends at the duration; each page contains Verovio's Leipzig `@font-face` (T011: kept, not added); no `<script>`/`foreignObject`/external href; `ScoreViewError` text on unreadable input (FR-010, FR-014, SC-003)
+- [x] T027 [audio-ingest] Implement `engraving/score_view.py` (`VerovioScoreViewRenderer`) to pass T026
+- [x] T028 [P] [audio-ingest] Failing tests `worker/tests/documents/test_setlist_pdf.py`: pypdf text of a 3-song request has the overview table in order, per-song headings, facts lines, notes, sections, lyrics stanzas, "No lyrics", "Lyrics shortened"; options switch parts off; `pageBreakPerSong` changes the page count; footer "page n of m"; a CJK character becomes U+FFFD with the overview note; DejaVu missing -> `DocumentError` (fonts check patched); 20 songs with 10,000-character lyrics under 10 s (FR-018, SC-008)
+- [x] T029 [audio-ingest] Implement `documents/{setlist_pdf,fonts}.py` (`ReportLabSetlistRenderer`) to pass T028
 
 ### stem-separation (`jobs/`, tests first)
 
@@ -145,10 +145,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 3: User Story 1 - Loop a section with one click (P1)
 
-- [ ] T050 [P] [US1] [beat-analysis] Failing test `worker/tests/analysis/structure/test_synthetic_songs.py`: the 6-form synthetic set (generated in the test, T010 forms) through `StemsNoveltyAnalyzer`: recall >= 0.80 and precision >= 0.75 within one bar over the set, solo labelled with the right instrument in >= 5 of 6, runtime < 10 s for a 5-minute song (SC-001, SC-002, FR-033)
-- [ ] T051 [US1] [beat-analysis] Implement `analysis/structure/analyzer.py` (`StemsNoveltyAnalyzer`, progress callbacks) to pass T050
-- [ ] T052 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_section_routes.py`: create/get/delete per the delta; path guard 400 for a non-stem path; 404 missing input; 422 schema errors; completed result shape; progress; analyser errors -> `failed` with the text (FR-001)
-- [ ] T053 [US1] [stem-separation] Implement `jobs/practice_service.py` (section part), `api/practice_routes.py` (section routes), composition and `Health.structure` to pass T052
+- [x] T050 [P] [US1] [beat-analysis] Failing test `worker/tests/analysis/structure/test_synthetic_songs.py`: the 6-form synthetic set (generated in the test, T010 forms) through `StemsNoveltyAnalyzer`: recall >= 0.80 and precision >= 0.75 within one bar over the set, solo labelled with the right instrument in >= 5 of 6, runtime < 10 s for a 5-minute song (SC-001, SC-002, FR-033)
+- [x] T051 [US1] [beat-analysis] Implement `analysis/structure/analyzer.py` (`StemsNoveltyAnalyzer`, progress callbacks) to pass T050
+- [x] T052 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_section_routes.py`: create/get/delete per the delta; path guard 400 for a non-stem path; 404 missing input; 422 schema errors; completed result shape; progress; analyser errors -> `failed` with the text (FR-001)
+- [x] T053 [US1] [stem-separation] Implement `jobs/practice_service.py` (section part), `api/practice_routes.py` (section routes), composition and `Health.structure` to pass T052
 - [x] T054 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/SectionEndpointsTests.cs`: `getSections` (none/queued/ready), `detectSections` (202, 409 `track-not-ready`, `sections-edited`, `detection-running`, 503), the detect trigger after a completed separation (config on/off), `SectionJobApplier` (completed -> new ids, revision + 1; failed -> reason), worker job deleted after applying, re-separation keeps sections; contract tests against the delta (FR-001, FR-007, FR-008)
 - [x] T055 [US1] [backend] Implement `Api/Sections/{SectionEndpoints,SectionService,SectionJobApplier,SectionDetectTrigger}.cs` to pass T054
 - [x] T056 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/LoopSectionIdTests.cs`: save/load a mix with `loop.sectionId`; unknown id read back as null with the loop kept; 1.12.0 clients without the field unaffected (FR-005)
@@ -186,8 +186,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 6: User Story 4 - The score follows the playback (P2)
 
-- [ ] T076 [P] [US4] [stem-separation] Failing tests `worker/tests/api/test_score_view_routes.py`: create/get/pages/delete; allow-list accepts `assets/<id>/score.musicxml` and rejects other files; 409 before completion; result shape (FR-014)
-- [ ] T077 [US4] [stem-separation] Implement the score-view part of `jobs/practice_service.py` and routes to pass T076
+- [x] T076 [P] [US4] [stem-separation] Failing tests `worker/tests/api/test_score_view_routes.py`: create/get/pages/delete; allow-list accepts `assets/<id>/score.musicxml` and rejects other files; 409 before completion; result shape (FR-014)
+- [x] T077 [US4] [stem-separation] Implement the score-view part of `jobs/practice_service.py` and routes to pass T076
 - [x] T078 [P] [US4] [backend] Failing tests `tests/StemStudio.Api.Tests/ScoreFollow/ScoreFollowEndpointsTests.cs`: `listTrackScores` (direct scores and scores from exported audio of the track, not others); view created automatically when a 008 score becomes ready; `createScoreView` idempotent, 409 `not-a-score`/`score-not-ready`, 503; applier stores pages and bars shifted by the range offset (008 range, exported asset range, both); `getScoreViewPage` headers (CSP, nosniff, cache) and 409 before ready; asset delete removes view files (FR-009, FR-014)
 - [x] T079 [US4] [backend] Implement `Api/ScoreFollow/*` to pass T078
 - [x] T080 [P] [US4] [audio-engine] Failing tests `src/audio-engine/tests/score-follow.test.ts`: per data-model 4 and the 2.4.0 delta - bar changes at boundaries on the heard clock, loop wrap jump, seek binary search, speed 50/75/100/120 % (A-012-1), none before the first/after the last bar, highlight percentages, host attributes, scroll once per system change, manual-scroll pause (fake timers), reduced motion, validation errors keep the old follower, detach cleanup, frame cost counter (FR-010, FR-011, SC-003, SC-004)
@@ -201,8 +201,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 7: User Story 5 - Setlists (P2)
 
-- [ ] T086 [P] [US5] [stem-separation] Failing tests `worker/tests/api/test_setlist_document_routes.py`: create/get/file/delete; 422 for >100 songs or long lyrics lines; PDF media type (FR-018)
-- [ ] T087 [US5] [stem-separation] Implement the setlist part of `jobs/practice_service.py` and routes to pass T086
+- [x] T086 [P] [US5] [stem-separation] Failing tests `worker/tests/api/test_setlist_document_routes.py`: create/get/file/delete; 422 for >100 songs or long lyrics lines; PDF media type (FR-018)
+- [x] T087 [US5] [stem-separation] Implement the setlist part of `jobs/practice_service.py` and routes to pass T086
 - [x] T088 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistEndpointsTests.cs`: CRUD, `replaceSetlistEntries` (kept ids, order, field errors `track-not-found`, `mix-track-mismatch`), total duration, `removedEntries` after a track delete and its acknowledgement, mix delete -> `mixId` null (FR-015, FR-016)
 - [x] T089 [US5] [backend] Implement `Api/Setlists/{SetlistEndpoints,SetlistService}.cs` to pass T088
 - [x] T090 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistPdfTests.cs`: `SetlistContentBuilder` (facts, sections, lyrics lines, 10,000-character cut with `shortened`), options from the query, waits for the worker job with polling and timeout (fake time) -> 504 `document-timeout`, 409 `setlist-empty`, 503, file name sanitised, worker job deleted afterwards (FR-018)

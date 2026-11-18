@@ -21,7 +21,7 @@ def test_health_reports_the_practice_lane_and_the_analyser(
     with TestClient(create_app(settings, ApiFakes().adapters())) as client:
         body = client.get("/health").json()
         runtime = client.app.state.runtime  # type: ignore[attr-defined]
-        practice = runtime.lanes.practice
+        practice = runtime.lanes.practice.lane
 
     assert body["lanes"]["practice"] == {"queued": 0, "running": False}
     assert body["structure"] == {"analyzer": name, "version": "1.0.0"}
