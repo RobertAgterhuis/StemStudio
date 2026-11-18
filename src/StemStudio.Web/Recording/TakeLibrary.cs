@@ -113,6 +113,18 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
         }
     }
 
+    /// <summary>
+    /// Announces the strip again once its take has a server id (after the upload), so a mix saved before the take is ready
+    /// already keeps the take channel (FR-012).
+    /// </summary>
+    public void AnnounceSavedStrip()
+    {
+        if (Loaded?.Take is not null)
+        {
+            StripChanged?.Invoke();
+        }
+    }
+
     /// <summary>Binds the strip meter once the strip is rendered.</summary>
     /// <returns>A task that completes when attached.</returns>
     public Task AttachMeterAsync() => audio.AttachMeterAsync(Channel, $"meter-{Channel}");

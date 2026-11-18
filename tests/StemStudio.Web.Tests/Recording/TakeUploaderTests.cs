@@ -202,6 +202,19 @@ public sealed class TakeUploaderTests : RecordingTestContext
     }
 
     [Fact]
+    public async Task AfterTheUpload_TheStripAnnouncesTheSavedTake_SoTheMixCanKeepIt()
+    {
+        // r14 E2E: a mix saved while the take was still being rendered lost its take channel (FR-012), because the strip
+        // was only announced when the capture was loaded (no server id yet) and again when the take was ready.
+        var announced = new List<TakeChannelSettingsDto?>();
+        Session.Takes.StripChanged += () => announced.Add(Session.Takes.MixSettings());
+
+        await RecordAndStopAsync(Capture("c1"));
+
+        announced.ShouldContain(t => t != null && t.TakeId == TakeId);
+    }
+
+    [Fact]
     public async Task SavedTakes_AreListedNewestFirst()
     {
         var older = Take(SecondId, number: 2) with { RecordedAt = new DateTimeOffset(2026, 11, 16, 9, 0, 0, TimeSpan.Zero) };
