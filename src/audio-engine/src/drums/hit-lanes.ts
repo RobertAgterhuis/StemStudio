@@ -4,28 +4,18 @@
  *
  * @packageDocumentation
  */
-import type { FrameLoop } from '../frame-loop';
 import { scaleFor } from '../timeline/bars';
-import { TimelineFrames } from '../timeline/frames';
-import type { TransportListener } from '../transport';
-import type { BeatGrid, DrumHitEvent, HitLaneOptions, PlaybackState } from '../types';
+import { ViewController, type ViewControllerDeps } from '../timeline/view-controller';
+import type { BeatGrid, DrumHitEvent, HitLaneOptions } from '../types';
 import { HitView } from './hit-view';
 import { DEFAULT_HIT_SETTINGS, resolveHitOptions, validateHits, type HitLaneSettings } from './validate';
 
 export { LANE_ORDER } from './validate';
 
 /** Construction parameters of {@link HitLanes}. */
-export interface HitLanesDeps {
-  /** The engine's shared frame loop. */
-  readonly loop: FrameLoop;
-  /** Heard position in ms (the timeline clock). */
-  readonly clock: { positionMs(): number };
-  /** Whether the transport is playing. */
-  readonly playing: () => boolean;
+export interface HitLanesDeps extends ViewControllerDeps {
   /** Beat grid of the loaded track (reduced-motion pages). */
   readonly grid: () => BeatGrid | null;
-  /** Document holding the host; default `globalThis.document`. */
-  readonly document?: Document;
 }
 
 /** Draw counters (frame budget diagnostics). */
@@ -37,20 +27,17 @@ export interface HitLaneStats {
 }
 
 /** The engine's hit lanes; listens to the transport. */
-export class HitLanes implements TransportListener {
-  private readonly frames: TimelineFrames;
-  private view: HitView | null = null;
+export class HitLanes extends ViewController<HitView> {
   private settings: HitLaneSettings = DEFAULT_HIT_SETTINGS;
-  private drawn = 0;
 
   /** @param deps - Loop, clock, transport state, grid and document. */
   public constructor(private readonly deps: HitLanesDeps) {
-    this.frames = new TimelineFrames({ loop: deps.loop, playing: deps.playing, draw: this.draw });
+    super(deps);
   }
 
   /** Draw counters. */
   public get stats(): HitLaneStats {
-    return { frames: this.drawn, primitives: this.view?.primitives ?? 0 };
+    return { frames: this.framesDrawn, primitives: this.view?.primitives ?? 0 };
   }
 
   /**
@@ -64,17 +51,13 @@ export class HitLanes implements TransportListener {
   public attach(elementId: string, hits: readonly DrumHitEvent[], options: HitLaneOptions = {}): void {
     const checked = validateHits(hits);
     const settings = resolveHitOptions(options, DEFAULT_HIT_SETTINGS);
-    const host = (this.deps.document ?? globalThis.document).getElementById(elementId);
-    if (host === null) {
-      throw new Error(`Hit lane host not found: ${elementId}`);
-    }
+    const host = this.host(elementId, 'Hit lane');
     this.detach();
     this.settings = settings;
     const requestFrame = (): void => {
-      this.frames.redraw();
+      this.redraw();
     };
-    this.view = new HitView({ host, hits: checked, scale: scaleFor(this.deps.grid()), settings, requestFrame });
-    this.frames.start();
+    this.show(new HitView({ host, hits: checked, scale: scaleFor(this.deps.grid()), settings, requestFrame }));
   }
 
   /**
@@ -86,41 +69,7 @@ export class HitLanes implements TransportListener {
     if (this.view !== null) {
       this.settings = settings;
       this.view.configure(settings);
-      this.frames.redraw();
+      this.redraw();
     }
   }
-
-  /** Removes the canvas and the host attributes; no-op when none is attached. */
-  public detach(): void {
-    this.frames.stop();
-    this.view?.dispose();
-    this.view = null;
-  }
-
-  /** Draws one frame when attached. */
-  public redraw(): void {
-    this.frames.redraw();
-  }
-
-  /** {@inheritDoc TransportListener.onStateChanged} */
-  public onStateChanged(state: PlaybackState): void {
-    this.frames.onStateChanged(state);
-  }
-
-  /** {@inheritDoc TransportListener.onReposition} */
-  public onReposition(): void {
-    this.frames.onReposition();
-  }
-
-  /** {@inheritDoc TransportListener.onTimingChanged} */
-  public onTimingChanged(): void {
-    this.frames.onTimingChanged();
-  }
-
-  private readonly draw = (): void => {
-    if (this.view !== null) {
-      this.drawn += 1;
-      this.view.draw(this.deps.clock.positionMs());
-    }
-  };
 }

@@ -4,11 +4,9 @@
  *
  * @packageDocumentation
  */
-import type { FrameLoop } from '../frame-loop';
 import { SecondScale, scaleFor, type TimeScale } from '../timeline/bars';
-import { TimelineFrames } from '../timeline/frames';
-import type { TransportListener } from '../transport';
-import type { BeatGrid, ChordChartData, ChordLaneOptions, PlaybackState } from '../types';
+import { ViewController, type ViewControllerDeps } from '../timeline/view-controller';
+import type { BeatGrid, ChordChartData, ChordLaneOptions } from '../types';
 import { DomWriter } from '../views/dom-writer';
 import { prepareChart } from './chart';
 import { SpelledChart, type ChordDisplayState } from './display';
@@ -22,19 +20,11 @@ export const DEFAULT_BARS_AHEAD = 6;
 const SECONDS_WINDOW: LaneWindow = { behind: 4, ahead: 12 };
 
 /** Construction parameters of {@link ChordLane}. */
-export interface ChordLaneDeps {
-  /** The engine's shared frame loop. */
-  readonly loop: FrameLoop;
-  /** Heard position in ms (the timeline clock). */
-  readonly clock: { positionMs(): number };
-  /** Whether the transport is playing. */
-  readonly playing: () => boolean;
+export interface ChordLaneDeps extends ViewControllerDeps {
   /** Beat grid of the loaded track. */
   readonly grid: () => BeatGrid | null;
   /** Shared chord display state. */
   readonly display: ChordDisplayState;
-  /** Document holding the host; default `globalThis.document`. */
-  readonly document?: Document;
 }
 
 /** Draw counters (frame budget diagnostics). */
@@ -62,15 +52,12 @@ export function laneWindow(scale: TimeScale, options: ChordLaneOptions): LaneWin
 }
 
 /** The engine's chord lane; listens to the transport. */
-export class ChordLane implements TransportListener {
-  private readonly frames: TimelineFrames;
+export class ChordLane extends ViewController<LaneView> {
   private readonly writer = new DomWriter();
-  private view: LaneView | null = null;
-  private drawn = 0;
 
   /** @param deps - Loop, clock, transport state, grid, display state and document. */
   public constructor(private readonly deps: ChordLaneDeps) {
-    this.frames = new TimelineFrames({ loop: deps.loop, playing: deps.playing, draw: this.draw });
+    super(deps);
     deps.display.onChange(() => {
       this.redraw();
     });
@@ -78,7 +65,7 @@ export class ChordLane implements TransportListener {
 
   /** Draw counters. */
   public get stats(): ViewStats {
-    return { frames: this.drawn, writes: this.writer.writes };
+    return { frames: this.framesDrawn, writes: this.writer.writes };
   }
 
   /**
@@ -91,10 +78,7 @@ export class ChordLane implements TransportListener {
    */
   public attach(elementId: string, chart: ChordChartData, options: ChordLaneOptions = {}): void {
     const prepared = prepareChart(chart);
-    const host = (this.deps.document ?? globalThis.document).getElementById(elementId);
-    if (host === null) {
-      throw new Error(`Chord lane host not found: ${elementId}`);
-    }
+    const host = this.host(elementId, 'Chord lane');
     this.detach();
     const scale = scaleFor(this.deps.grid());
     const spelled = new SpelledChart(prepared, this.deps.display);
@@ -102,41 +86,6 @@ export class ChordLane implements TransportListener {
       this.redraw();
     };
     const window = laneWindow(scale, options);
-    this.view = new LaneView({ host, chart: spelled, scale, window, reducedMotion: options.reducedMotion, writer: this.writer, requestFrame });
-    this.frames.start();
+    this.show(new LaneView({ host, chart: spelled, scale, window, reducedMotion: options.reducedMotion, writer: this.writer, requestFrame }));
   }
-
-  /** Removes the lane; no-op when none is attached. */
-  public detach(): void {
-    this.frames.stop();
-    this.view?.dispose();
-    this.view = null;
-  }
-
-  /** Draws one frame when attached. */
-  public redraw(): void {
-    this.frames.redraw();
-  }
-
-  /** {@inheritDoc TransportListener.onStateChanged} */
-  public onStateChanged(state: PlaybackState): void {
-    this.frames.onStateChanged(state);
-  }
-
-  /** {@inheritDoc TransportListener.onReposition} */
-  public onReposition(): void {
-    this.frames.onReposition();
-  }
-
-  /** {@inheritDoc TransportListener.onTimingChanged} */
-  public onTimingChanged(): void {
-    this.frames.onTimingChanged();
-  }
-
-  private readonly draw = (): void => {
-    if (this.view !== null) {
-      this.drawn += 1;
-      this.view.draw(this.deps.clock.positionMs());
-    }
-  };
 }
