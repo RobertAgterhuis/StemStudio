@@ -118,8 +118,8 @@ def test_the_stem_count_must_be_one_to_four(tmp_path: Path, count: int) -> None:
 
 
 def test_an_empty_stem_gives_silence_of_the_other_stems_length(tmp_path: Path) -> None:
-    empty = tmp_path / "empty.flac"
-    sf.write(str(empty), np.zeros((0, 2)), SR, format="FLAC")
+    empty = tmp_path / "empty.wav"
+    sf.write(str(empty), np.zeros((0, 2)), SR, format="WAV")
     other = _flac(tmp_path / "other.flac", _tone(110.0, 1.0, 0.5))
     audio = SoundfileHarmonicMixer().mix([empty, other], CHORD_SAMPLE_RATE)
     assert len(audio) == pytest.approx(CHORD_SAMPLE_RATE, abs=2)
