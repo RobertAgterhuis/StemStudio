@@ -30,11 +30,17 @@ from .conftest import T0
 S = RenderJobStatus
 TRACK = "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a"
 CHORDS = ChordsJobRequest(kind="chords", inputs=[f"{TRACK}/stems/guitar.flac"], vocabulary="simple")
-DRUMS = DrumHitsJobRequest(kind="drum-hits", drum_inputs=DrumInputs(kick=f"{TRACK}/detail/drums/kick.flac"))
-PITCH = VocalPitchJobRequest(kind="vocal-pitch", input=f"{TRACK}/stems/vocals.flac", source="vocals")
+DRUMS = DrumHitsJobRequest(
+    kind="drum-hits", drum_inputs=DrumInputs(kick=f"{TRACK}/detail/drums/kick.flac")
+)
+PITCH = VocalPitchJobRequest(
+    kind="vocal-pitch", input=f"{TRACK}/stems/vocals.flac", source="vocals"
+)
 
 
-def _record(job_id: str, status: S = S.QUEUED, request=CHORDS, age: timedelta = timedelta()) -> StoredAnalysisJob:  # type: ignore[no-untyped-def]
+def _record(
+    job_id: str, status: S = S.QUEUED, request=CHORDS, age: timedelta = timedelta()
+) -> StoredAnalysisJob:  # type: ignore[no-untyped-def]
     job = InstrumentAnalysisJob(
         analysis_job_id=job_id,
         kind=request.kind,
