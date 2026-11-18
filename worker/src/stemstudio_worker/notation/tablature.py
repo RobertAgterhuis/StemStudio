@@ -3,7 +3,8 @@
 :class:`ViterbiTabFingerer` fits every event into the tuning (octave moves, chord notes beyond
 the string count dropped), lists the string/fret candidates of each event (chords: distinct
 strings, the 64 cheapest), and picks the path with the lowest cost: hand-position change (mean
-fretted fret; open strings are free) + 0.3 x stretch + 0.05 x frets above 12 + 2 for a chord
+fretted fret; open strings are free) + 0.1 x hand position + 0.3 x stretch + 0.05 x frets
+above 12 + 2 for a chord
 span over 4 frets (rejected when another candidate exists). Ties prefer lower frets, then
 lower-pitched strings. :func:`fit_notes` applies the same range fit to the notator's notes
 before the score is built, keeping the loudest chord notes.
@@ -23,6 +24,10 @@ MAX_CANDIDATES: Final = 64
 STRETCH_COST: Final = 0.3
 HIGH_FRET_COST: Final = 0.05
 HIGH_FRET: Final = 12
+POSITION_COST: Final = 0.1
+"""Cost per fret of the hand position: without it a path of zero hand movement high up the
+neck (fret 12) beats a one-fret move in the first position (016 T037 finding; an addition to
+the R-08 cost terms)."""
 WIDE_COST: Final = 2.0
 MAX_SPAN: Final = 4
 """A chord whose fretted frets span more than 4 frets (``max - min >= 4``) is a wide stretch."""
@@ -86,7 +91,8 @@ def _cost(positions: tuple[Position, ...]) -> _Candidate:
     wide = len(positions) > 1 and stretch >= MAX_SPAN
     cost = STRETCH_COST * stretch + HIGH_FRET_COST * sum(max(0, f - HIGH_FRET) for f in fretted)
     hand = sum(fretted) / len(fretted) if fretted else None
-    return _Candidate(positions, cost + (WIDE_COST if wide else 0.0), hand, wide)
+    cost += POSITION_COST * (hand or 0.0) + (WIDE_COST if wide else 0.0)
+    return _Candidate(positions, cost, hand, wide)
 
 
 def _options(pitch: int, tuning: Tuning, capo: int) -> list[Position]:
