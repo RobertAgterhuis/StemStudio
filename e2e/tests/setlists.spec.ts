@@ -29,7 +29,7 @@ test.afterEach(async () => {
   await context.dispose();
 });
 
-/** Three completed songs; the first one gets a mix named for this run. */
+/** Three completed songs; the first one gets a mix named for this run and test (mix names are unique per track). */
 interface Songs {
   readonly tracks: readonly [TrackDto, TrackDto, TrackDto];
   readonly mixName: string;
@@ -41,7 +41,7 @@ async function threeSongs(api: StemStudioApi): Promise<Songs> {
     await api.ensureCompleted('music_100bpm_20s.mp3', fakeJobTimeoutMs),
     await api.ensureCompleted('music_100bpm_20s.flac', fakeJobTimeoutMs),
   ] as const;
-  const mixName = `Band night ${runId()}`;
+  const mixName = `Band night ${runId()} ${test.info().testId}`;
   await api.createMix(tracks[0].id, mixSettings({ name: mixName }));
   return { tracks, mixName };
 }

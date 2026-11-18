@@ -5,6 +5,7 @@ import type { StemStudioApi } from '../support/api';
 import { fakeStems } from '../support/detail';
 import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
 import { expectLoop } from '../support/expert-flow';
+import { practiceFlowFixturePath } from '../support/fixtures';
 import { blurActiveElement } from '../support/help';
 import { positionSeconds } from '../support/levels';
 import {
@@ -96,8 +97,8 @@ test.describe('section lane after import (014 US1)', { tag: '@practice-flow' }, 
   });
 
   test('a grid the analyser does not trust shows the uncertain-grid note (scenario 5)', async ({ api, mixer, page }) => {
-    // Digital silence has no reliable beat grid (TEST-STRATEGY fixture table): the fake analyser warns grid-unreliable.
-    const track = await api.ensureCompleted('silence_5s.wav', fakeJobTimeoutMs);
+    // A chord pad without drums or onsets has no reliable beat grid (014 T018 fixture): the analyser warns grid-unreliable.
+    const track = await api.ensureFileCompleted(practiceFlowFixturePath('practice-song-free.wav'), fakeJobTimeoutMs);
     expect(track.beatGrid?.reliable ?? false, 'the fixture has no reliable beat grid').toBe(false);
     const set = await flow.waitForSections(track.id);
     const lane = new SectionLane(page);

@@ -11,7 +11,8 @@ import { expect, test } from '../support/test';
 
 // Feature 014 US6 (T100; FR-025..FR-028, SC-009): the local practice log. The recorder saves at most every 30 s and when
 // playback stops or the mixer is left, so each test leaves the mixer before reading the API. Every browser request of the
-// spec goes to the app's own origin (SC-009, ADR-023 D6).
+// spec goes to the app's own origins, the web app and its configured API (stems, artwork), and nowhere else (SC-009,
+// ADR-023 D6).
 const fixture = 'music_100bpm_20s.flac';
 
 let context: APIRequestContext;
@@ -23,10 +24,10 @@ test.beforeEach(async ({ playwright, page }) => {
   context = await playwright.request.newContext({ baseURL: apiBaseUrl });
   flow = new PracticeFlowApi(context);
   await flow.setPracticeLog(true);
-  const own = new URL(webBaseUrl).origin;
+  const own = new Set([new URL(webBaseUrl).origin, new URL(apiBaseUrl).origin]);
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (url.protocol.startsWith('http') && url.origin !== own) {
+    if (url.protocol.startsWith('http') && !own.has(url.origin)) {
       foreignRequests.push(request.url());
     }
   });
@@ -117,7 +118,10 @@ test.describe('practice log off and delete (014 US6)', { tag: '@practice-flow' }
     await expect(practicePage.enabled).toHaveAttribute('aria-checked', 'false');
     await mixer.goto(track.id);
     await mixer.waitForReady(fakeStems);
-    await expect(new PracticeLogPanel(page).byId('practice-log-off-note')).toBeAttached();
+    const log = new PracticeLogPanel(page);
+    await log.open();
+    await expect(log.byId('practice-log-off-note')).toBeVisible();
+    await expect(log.byId('practice-log-turn-on')).toBeVisible();
 
     await playFor(mixer, page, 2);
     await page.goto('/');
