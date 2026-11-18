@@ -106,10 +106,22 @@ public sealed class PreferencesState(IPreferencesStore store, IWebInterop intero
     /// <returns>A task that completes when applied.</returns>
     public Task ResetHelpAsync() => UpdateAsync(p => p with { Help = HelpProgress.Empty });
 
-    /// <summary>Replaces the shortcut preferences (014: settings page, Preferences switch, pedal setup).</summary>
+    /// <summary>
+    /// Replaces the shortcut preferences (014: settings page, Preferences switch, pedal setup) and saves them at once, without
+    /// the debounce: a remap is a single deliberate edit, and a reload or a typed URL right after it must keep the new key.
+    /// </summary>
     /// <param name="shortcuts">The new shortcut preferences.</param>
-    /// <returns>A task that completes when applied.</returns>
-    public Task SetShortcutsAsync(ShortcutPreferences shortcuts) => UpdateAsync(p => p with { Shortcuts = shortcuts });
+    /// <returns>A task that completes when applied and saved.</returns>
+    public async Task SetShortcutsAsync(ShortcutPreferences shortcuts)
+    {
+        Current = Current with { Shortcuts = shortcuts };
+        await PublishAsync();
+        CancelSave();
+        if (StorageAvailable)
+        {
+            await store.SaveAsync(Current);
+        }
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
