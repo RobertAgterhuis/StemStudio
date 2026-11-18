@@ -351,13 +351,17 @@ export class Recording implements RecordingSurface {
     };
   }
 
-  /** The engine's own output as a stream (E2E `testInput: 'loopback'`, research R-13), created once. */
+  /**
+   * The engine's own output as a stream (E2E `testInput: 'loopback'`, research R-13). The destination node is created
+   * once; every open gets a clone of its stream, because closing an input stops the input's tracks and a stopped
+   * loopback track would make every later open (a mode change reopens) capture digital silence.
+   */
   private loopbackStream(): MediaStream {
     if (this.loopback === null) {
       this.loopback = this.host.context.createMediaStreamDestination();
       this.host.mixer.tap().connect(this.loopback);
     }
-    return this.loopback.stream;
+    return this.loopback.stream.clone();
   }
 
   private selected(): AudioNode {

@@ -5,7 +5,7 @@ import { CALIBRATION_TAIL_SECONDS, chirpTemplate, clickSchedule } from '../../sr
 import type { MockAudioBufferSourceNode } from '../mocks/audio-context';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 import { FetchStub } from '../mocks/fetch';
-import { FakeMediaDevices, RecordingContext } from '../mocks/media';
+import { FakeMediaDevices, RecordingContext, type FakeStream, type FakeTrack } from '../mocks/media';
 
 /** `calibrateLatency` in the engine (contract 2.5.0, research R-04, FR-007). */
 const SR = 44100;
@@ -191,12 +191,23 @@ describe('testInput loopback (research R-13)', () => {
     expect(destination).toBeDefined();
     const master = rig.ctx.analysers.find((a) => a.connections.includes(rig.ctx.destination));
     expect(master?.connections).toContain(destination);
-    expect(rig.ctx.mediaSources[0]?.stream).toBe(destination?.stream);
+    expect((rig.ctx.mediaSources[0]?.stream as FakeStream | undefined)?.tracks[0]?.label).toBe('loopback');
     loopback(rig, 0);
     await calibrate(rig);
     expect(clickSources(rig).every((s) => s.connections.includes(destination as never))).toBe(true);
     rig.engine.closeInput();
     await rig.engine.openInput({ deviceId: null, mode: 'stereo' });
     expect(rig.ctx.mediaDestinations).toHaveLength(1);
+  });
+
+  it('a reopen (mono-1 -> stereo) gets a live loopback stream: closing an input never stops the loopback itself', async () => {
+    const rig = await makeRig('loopback');
+    await rig.engine.openInput({ deviceId: null, mode: 'stereo' });
+    const loopbackTracks = (): FakeTrack[] => rig.ctx.mediaDestinations[0]?.stream.tracks ?? [];
+    const [first, second] = rig.ctx.mediaSources.map((source) => source.stream as FakeStream);
+    expect([first?.tracks[0]?.stopped, second?.tracks[0]?.stopped]).toEqual([true, false]);
+    expect(loopbackTracks().map((track) => track.stopped)).toEqual([false]);
+    rig.engine.closeInput();
+    expect(loopbackTracks().map((track) => track.stopped)).toEqual([false]);
   });
 });

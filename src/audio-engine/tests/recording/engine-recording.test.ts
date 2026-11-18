@@ -25,7 +25,11 @@ interface Rig {
   readonly devices: FakeMediaDevices;
   readonly engine: AudioEngine;
   fed: number;
+  /** Channels of every fed 2,048-frame block. */
+  block: () => Float32Array[];
 }
+
+const monoBlock = (): Float32Array[] => [new Float32Array(2048).fill(0.5)];
 
 function makeRig(): Rig {
   const ctx = new RecordingContext();
@@ -41,7 +45,7 @@ function makeRig(): Rig {
     mediaDevices: devices,
     timeStretchFactory: (context) => Promise.resolve(new FakeStretchStage(context)),
   });
-  return { ctx, ref, stub, devices, engine, fed: 0 };
+  return { ctx, ref, stub, devices, engine, fed: 0, block: monoBlock };
 }
 
 async function loaded(beatGrid: BeatGrid | null = null): Promise<Rig> {
@@ -59,7 +63,7 @@ async function opened(): Promise<Rig> {
 function feed(rig: Rig): void {
   const to = Math.floor(rig.ctx.currentTime * SR);
   while (rig.fed + 2048 <= to) {
-    rig.ctx.captureNodes().at(-1)?.port.reply({ type: 'block', frame: rig.fed, channels: [new Float32Array(2048).fill(0.5)] });
+    rig.ctx.captureNodes().at(-1)?.port.reply({ type: 'block', frame: rig.fed, channels: rig.block() });
     rig.fed += 2048;
   }
 }
@@ -242,6 +246,44 @@ describe('recording', () => {
     await vi.advanceTimersByTimeAsync(3000);
     const [takes] = rig.ref.argsOf('OnTakesCaptured') as CapturedTake[][];
     expect([takes?.[0]?.partial, states(rig).at(-1)]).toEqual([true, 'closed']);
+  });
+});
+
+/** Peak per channel of a 24-bit WAV (channels interleaved after the 44-byte header). */
+async function wavChannelPeaks(blob: Blob): Promise<number[]> {
+  const view = new DataView(await blob.arrayBuffer());
+  const channels = view.getUint16(22, true);
+  const peaks = Array.from({ length: channels }, () => 0);
+  for (let at = 44, i = 0; at + 3 <= view.byteLength; at += 3, i++) {
+    const value = (view.getUint8(at) | (view.getUint8(at + 1) << 8) | (view.getInt8(at + 2) << 16)) / 2 ** 23;
+    peaks[i % channels] = Math.max(peaks[i % channels] ?? 0, Math.abs(value));
+  }
+  return peaks;
+}
+
+describe('stereo capture (014+015 E2E: stereo takes were digital silence)', () => {
+  const cases: [string, number, number][] = [
+    ['both channels', 0.5, 0.25],
+    ['left only', 0.5, 0],
+    ['right only', 0, 0.25],
+  ];
+  it.each(cases)('keeps %s through capture, mapping and the 24-bit WAV', async (_name, left, right) => {
+    const rig = await loaded();
+    await rig.engine.openInput({ deviceId: 'usb', mode: 'stereo' });
+    rig.block = () => [new Float32Array(2048).fill(left), new Float32Array(2048).fill(right)];
+    const take = first(await record(rig));
+    expect([take.channels, take.inputMode]).toEqual([2, 'stereo']);
+    const peaks = await wavChannelPeaks(rig.engine.captureWav(take.captureKey));
+    expect(peaks.map((peak) => Math.round(peak * 1000) / 1000)).toEqual([left, right]);
+  });
+
+  it('a reopen from mono-1 to stereo captures both channels of the new input', async () => {
+    const rig = await opened();
+    await rig.engine.openInput({ deviceId: 'usb', mode: 'stereo' });
+    rig.block = () => [new Float32Array(2048).fill(0.5), new Float32Array(2048).fill(0.25)];
+    const take = first(await record(rig));
+    expect(rig.ctx.captureNodes().at(-1)?.options.channelCount).toBe(2);
+    expect(await wavChannelPeaks(rig.engine.captureWav(take.captureKey))).toEqual([0.5, 0.25]);
   });
 });
 
