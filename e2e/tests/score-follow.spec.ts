@@ -88,6 +88,9 @@ async function expectBarWhilePlaying(mixer: MixerPage, panel: ScorePanel, view: 
   await expect.poll(() => panel.barNumber()).toBe(barAt(view, heard)?.number);
 }
 
+/** `data-bar-index` when no bar is current (before the first bar, audio-engine 2.4.0 "Score follower"). */
+const noBar = '-1';
+
 /** Loop bounds over bars `from`..`to` (indexes) of a view. */
 function loopOverBars(view: ScoreViewDto, from: number, to: number): { readonly start: number; readonly end: number } {
   const [first, last] = [view.bars[from], view.bars[to]];
@@ -173,7 +176,7 @@ test.describe('score follow with loops, speed and ranges (014 US4)', { tag: '@pr
     expect(view.offsetSeconds).toBe(6);
     expect(view.bars[0]?.startSeconds ?? 0).toBeGreaterThanOrEqual(6);
     await mixer.seek(2);
-    await expect(panel.view).not.toHaveAttribute('data-bar-index', /\d/u);
+    await expect(panel.view).toHaveAttribute('data-bar-index', noBar); // before the first bar (audio-engine "Score follower")
     await mixer.seek(7);
     await expect.poll(() => panel.barNumber()).toBe(barAt(view, 7)?.number);
   });

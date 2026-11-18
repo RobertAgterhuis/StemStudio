@@ -70,12 +70,15 @@ async function pressOutsideFields(page: Page, key: string): Promise<void> {
   await page.keyboard.press(key);
 }
 
-/** Every section after the first starts on a downbeat of the reliable grid (FR-003). */
+/** The worker rounds section times to 0.1 s at its output (r14 worker fix, CTO-DECISIONS "Section time precision"). */
+const sectionTimeStepSeconds = 0.1;
+
+/** Every section after the first starts on a downbeat of the reliable grid (FR-003), within half a rounding step. */
 function expectOnDownbeats(set: SectionSetDto, downbeats: readonly number[]): void {
   expect(set.snap).toBe('downbeat');
   for (const section of set.sections.slice(1)) {
     const nearest = Math.min(...downbeats.map((downbeat) => Math.abs(downbeat - section.startSeconds)));
-    expect(nearest, `section ${section.label} starts on a downbeat`).toBeLessThan(0.01);
+    expect(nearest, `section ${section.label} starts on a downbeat`).toBeLessThanOrEqual(sectionTimeStepSeconds / 2 + 1e-6);
   }
 }
 
