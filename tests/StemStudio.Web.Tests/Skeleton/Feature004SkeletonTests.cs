@@ -89,7 +89,7 @@ public sealed class Feature004SkeletonTests
 
     [Fact]
     public void ShortcutScopes_AreGlobalAndMixer() =>
-        Enum.GetNames<ShortcutScope>().ShouldBe(["Global", "Mixer", "Library"]);
+        Enum.GetNames<ShortcutScope>().ShouldBe(["Global", "Mixer", "Library", "Setlist"]);
 
     [Fact]
     public void WelcomeTopic_IsEmbeddedAndValidatesAgainstTheTopicSchema()

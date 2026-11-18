@@ -17,4 +17,8 @@ public enum AssetOriginDto
     /// <summary>A take of a generation (feature 009).</summary>
     [JsonStringEnumMemberName("generation")]
     Generation,
+
+    /// <summary>A play-along take (feature 015, backend-api 1.14.0); hidden from the library list unless asked for.</summary>
+    [JsonStringEnumMemberName("recording")]
+    Recording,
 }

@@ -12,6 +12,8 @@
 | `GET /api/lyric-assist/status` (023) | Dictionary layer (`available`) and model layer (ready, or the reason and fix, for example *"The GPU is busy ..."*); the model layer mirrors the agent status |
 | `GET /api/library/folders` (022) | `pendingFiling` is `0` once every item is filed; above 0 the library shows *Sorting your library (n left)* |
 | `scripts/check-soundtouch-served.sh [BASE_URL]` (012) | `soundtouch.wasm` served as `application/wasm` with the expected SHA-256 and the complete LGPL folder `/third-party/soundtouch/` |
+| Worker `/health` `lanes.practice`, `structure` (014) | Queued and running practice jobs; the section analyser (`stems-novelty` or `fake`) and its version |
+| `scripts/check-worker-fonts.{sh,ps1} [--build] [image]` (008, 014) | Leipzig and DejaVu Sans listed by `fc-list`; `verovio`, `cairosvg`, `music21` and `reportlab` import |
 | Windows without Docker | `scripts/dev.ps1 -SmokeTest` waits for all three health endpoints |
 
 When the worker is down, imports answer 503 and existing tracks and mixes keep working.
@@ -89,6 +91,44 @@ up the pinned newer version when the project updates it.
   busy); `claude-notice-required` means the notice was not acknowledged; `assist-active` means
   another check is still running (cancel it in the pane); a refused sheet (`not-own-lyrics`) matched
   library lyrics, see the own-work confirmation in the user manual.
+
+## Practice flow (014)
+
+- **Sections** are detected on the worker's `practice` lane right after each separation (switch
+  `STEMSTUDIO_SECTION_DETECT_ON_COMPLETE`); tracks separated before 014 get them when their mixer
+  is first opened. When the worker is unreachable the status stays `none` and the next mixer open
+  tries again; a refused job is stored as `failed` with the reason and the UI offers **Try again**.
+  A job takes a few seconds on the CPU; the job sync polls the worker every 2 s while jobs exist.
+- **Score views** are made when a score item becomes ready and on first open for older items. A
+  restore of a backup brings the scores but not their `view/` pages; they are made again lazily.
+- **Setlist PDFs** need a running worker: `503 worker-unavailable` means it cannot be reached,
+  `503 document-failed` that the document job failed or produced an unusable PDF (for example
+  above 16 MiB), `504 document-timeout` that it took longer than
+  `StemStudio__Practice__SetlistPdfTimeoutSeconds` (default 30 s). The target for a 20-song setlist
+  with lyrics is under 10 s (014 SC-008).
+- **Fonts**: a worker image without DejaVu Sans cannot make setlist PDFs and one without Leipzig
+  renders scores without music glyphs; check with `scripts/check-worker-fonts.{sh,ps1}`.
+- **Practice log**: nothing to operate. It lives in the database (part of every backup), is never
+  sent anywhere and is deleted by the user on the Practice page.
+
+## Play-along recording (015)
+
+- **Where it works**: only in Chrome or Edge (Firefox with 44.1 kHz devices) on the StemStudio
+  computer itself, at `http://localhost:8080` or `http://127.0.0.1:8080`. A user on another device
+  sees *Not on this computer*; this is by design, not a fault.
+- **Storage**: a stereo take uploads about 15.9 MB per minute (24-bit WAV), stored as FLAC under
+  `assets/<assetId>/` with a transient `capture.wav`. Uploads need 1 GiB plus twice the upload
+  free on the data drive (`409 insufficient-disk-space`); raise or lower the upload cap with
+  `STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES` (compose sets the API and web values together). The
+  storage overview of Library care lists takes as recordings; backups include them unless the
+  recordings part is left out.
+- **A take stays at *Saving***: the worker's render lane is busy or down; the take shows an error
+  with **Try again** when the render fails (the capture is kept for that). `capture-missing` means
+  the capture file is gone; record again.
+- **Out of time**: ask the user to calibrate the latency again (the calibration is stored per
+  input device label) and to use direct monitoring instead of browser monitoring.
+- **Test stacks**: `docker-compose.e2e.yml` sets `StemStudio__Recording__TestLoopback=true`, a
+  digital loopback in place of a microphone; never set it in a normal installation.
 
 ## Library folders (022)
 

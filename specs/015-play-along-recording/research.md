@@ -26,6 +26,17 @@ clock.
 gap-free for 10 minutes (frame stamps contiguous); measure CPU. In Firefox, check whether
 `createMediaStreamSource` still throws `NotSupportedError` for a rate mismatch (ADR-024 D8).
 
+**S-01 result (Phase 0, 2026-11-17, partial)**: Playwright 1.65.1 on the reference machine, Chromium
+159 (full build, fake capture device) and Firefox 159 (fake stream), a spike worklet that posts the
+`currentFrame` of every 2,048-frame batch into a 44.1 kHz context: **60 s capture with 0 gaps** in
+both browsers (1,292 batches; Chromium track settings 44,100 Hz, 2 channels, `latency` 0.01 s,
+`baseLatency` 0.01 s; Firefox fake stream 1 channel, no `latency` setting). Not covered yet: a real
+48 kHz USB interface for 10 minutes, CPU load, and the Firefox rate-mismatch case (the Firefox fake
+stream runs at the context rate, so it cannot provoke `NotSupportedError`). These move to the owner
+checks of the CTO (T089, SC-005) with a real interface; the engine handles the Firefox error path
+(`unsupported:` / `rateMismatch`) by unit test with a fake that throws `NotSupportedError`.
+Secure-context matrix of the same run: audio-engine.md "Browser constraints".
+
 ## R-02 Input constraints and channels
 
 **Decision**: constraints `{ deviceId: { exact }, channelCount: { ideal: 2 },
@@ -141,6 +152,21 @@ handles hundreds of MB; CORS stays GET-only.
 **Sizes**: 1 minute stereo = 15.9 MB, mono = 7.9 MB; 15 minutes stereo = 238 MB (limit 256
 MiB). **Spike S-02**: stream a 240 MB WAV through the interop and the API on the reference
 machine; target < 15 s for 5 minutes stereo (SC-004).
+
+**S-02 result (Phase 0, 2026-11-17, browser half)**: in Chromium 159, encoding 5 minutes of stereo
+float audio to 24-bit WAV with a plain `DataView` loop takes **207 ms** (79,380,044 bytes);
+reading that `Blob` through `blob.stream()` takes **291 ms**, and a 240 MiB `Blob` streams in **138
+ms**. The browser side is therefore negligible against SC-004 (15 s). Facts for the .NET half
+(Microsoft Learn, ASP.NET Core 10): `DotNet.createJSStreamReference` accepts a `Blob`;
+`IJSStreamReference.OpenReadStreamAsync(maxAllowedSize)` defaults to 512,000 bytes, so the Web
+must pass `StemStudio:Recording:MaxStreamBytes`; zero-length streams are refused; the stream is
+transferred over the circuit in segments, not limited by the SignalR message size
+(https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/call-dotnet-from-javascript?view=aspnetcore-10.0#stream-from-javascript-to-net,
+https://learn.microsoft.com/aspnet/core/blazor/fundamentals/signalr?view=aspnetcore-10.0#maximum-receive-message-size).
+The Blazor-circuit + API half cannot be measured before the upload path exists: the frontend lane
+adds a timing test of the real path (`TakeUploader` -> API, a 5-minute stereo WAV, Release build) at
+its US1 hand-off, and the CTO repeats it on the reference machine (T089, SC-004). If it exceeds
+15 s, the fallback is a chunked upload over the same interop (no CORS change) - decided then.
 
 **Alternatives**: browser FLAC (WASM dependency, e.g. libflac.js; also not needed because the
 worker writes FLAC); Float32 WAV (larger, and the integer path keeps the bit-exact guarantee);

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - practice flow delta (feature 014)
-  version: 1.13.0-delta.1
+  version: 1.13.0-delta.2
   summary: Additive delta of the backend API for song sections, score follow, setlists and the practice log.
   description: |
     * **Standalone, additive delta.** This document contains only the operations and schemas that
@@ -23,7 +23,11 @@ info:
     * Changelog: 1.13.0-delta.1 (additive, feature 014 planning) - sections (read, replace,
       detect), score list per track and score views (bar map + SVG pages), setlists (CRUD,
       entries, PDF), practice log (settings, sessions, summary, overview, delete),
-      `LoopRegion.sectionId`. See ADR-023 and contracts/DELTA.md.
+      `LoopRegion.sectionId`. 1.13.0-delta.2 (Phase 0 part 2, 2026-11-17) - the practice log
+      settings are `PracticeLogSettings` / `PracticeLogSettingsUpdate` with operation ids
+      `getPracticeLogSettings` / `updatePracticeLogSettings` (012's 1.11.0 already defines
+      `PracticeSettings` for the speed of a mix; path and fields unchanged); the score view
+      example URL is quoted. See ADR-023 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -382,13 +386,13 @@ paths:
         '409':
           $ref: '#/components/responses/SetlistConflict'
         '503':
-          $ref: '#/components/responses/WorkerUnavailable'
+          $ref: '#/components/responses/SetlistDocumentUnavailable'
         '504':
           $ref: '#/components/responses/DocumentTimeout'
   /api/practice/settings:
     get:
       tags: [practice]
-      operationId: getPracticeSettings
+      operationId: getPracticeLogSettings
       summary: Whether the practice log is on, and its size.
       responses:
         '200':
@@ -396,24 +400,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PracticeSettings'
+                $ref: '#/components/schemas/PracticeLogSettings'
     put:
       tags: [practice]
-      operationId: updatePracticeSettings
+      operationId: updatePracticeLogSettings
       summary: Switch the log on or off; acknowledge the first-use notice.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PracticeSettingsUpdate'
+              $ref: '#/components/schemas/PracticeLogSettingsUpdate'
       responses:
         '200':
           description: The stored settings.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PracticeSettings'
+                $ref: '#/components/schemas/PracticeLogSettings'
         '422':
           $ref: '#/components/responses/ValidationProblem'
   /api/practice/sessions:
@@ -683,6 +687,20 @@ components:
             type: https://stemstudio.local/problems/document-timeout
             title: The PDF took too long
             status: 504
+    SetlistDocumentUnavailable:
+      description: |
+        `type` ends in `worker-unavailable` (the worker could not be reached; nothing was made) or
+        `document-failed` (the worker job failed or sent an unusable PDF, for example one above the
+        API's size cap; `detail` carries the worker's text). Try again later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/document-failed
+            title: The PDF could not be made
+            status: 503
+            detail: The setlist PDF could not be made.
   schemas:
     ProblemDetails:
       type: object
@@ -864,10 +882,7 @@ components:
       type: object
       additionalProperties: false
       required: [start, end, enabled]
-      description: |
-        Requires 0 <= start < end <= track duration. **1.13.0**: optional `sectionId` - the section
-        the loop was set from (one-click loop), cleared by the UI when A or B is moved by hand. An id
-        that no longer exists is returned as null; the loop stays.
+      description: Requires 0 <= start < end <= track duration.
       properties:
         start:
           type: number
@@ -881,6 +896,9 @@ components:
           type: [string, 'null']
           format: uuid
           default: null
+          description: |
+            1.13.0: the section the loop was set from (one-click loop), cleared by the UI when A or
+            B is moved by hand. An id that no longer exists is returned as null; the loop stays.
     ScoreProfile:
       type: string
       description: The 008 instrument profile.
@@ -1154,7 +1172,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-    PracticeSettings:
+    PracticeLogSettings:
       type: object
       additionalProperties: false
       required: [enabled, noticeAcknowledged, sessions, updatedAt]
@@ -1171,7 +1189,7 @@ components:
         updatedAt:
           type: [string, 'null']
           format: date-time
-    PracticeSettingsUpdate:
+    PracticeLogSettingsUpdate:
       type: object
       additionalProperties: false
       minProperties: 1
@@ -1436,7 +1454,7 @@ components:
         offsetSeconds: 0
         error: null
         pages:
-          - {page: 1, url: /api/assets/9a8b7c6d-1111-4222-8333-444455556666/score-view/pages/1?v=1, widthPx: 840, heightPx: 1188}
+          - {page: 1, url: "/api/assets/9a8b7c6d-1111-4222-8333-444455556666/score-view/pages/1?v=1", widthPx: 840, heightPx: 1188}
         bars:
           - {index: 0, number: 0, page: 1, x: 0.0571, y: 0.1012, width: 0.0702, height: 0.0248, startSeconds: 6.1, endSeconds: 8.1}
           - {index: 1, number: 1, page: 1, x: 0.1273, y: 0.1012, width: 0.1695, height: 0.0248, startSeconds: 8.1, endSeconds: 10.1}

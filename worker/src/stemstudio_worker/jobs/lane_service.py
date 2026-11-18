@@ -10,6 +10,7 @@ import logging
 import shutil
 import threading
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
@@ -38,12 +39,16 @@ class LaneJobService[R: BaseModel]:
     CANCELLED: ClassVar[type[Exception]]
     ERRORS: ClassVar[tuple[type[Exception], ...]]
 
-    def __init__(self, name: str, store: LaneJobStore[R], clock: Clock) -> None:
-        """Serve ``store`` on a lane called ``name``, stamping times with ``clock``."""
+    def __init__(self, lane: str | LaneScheduler, store: LaneJobStore[R], clock: Clock) -> None:
+        """Serve ``store`` on a new lane named ``lane`` (or a shared lane), times from ``clock``.
+
+        A shared lane (feature 014's ``practice`` lane) is started and stopped by its owner; jobs
+        reach it through :meth:`_submit` with this service's :meth:`process`.
+        """
         self._store = store
         self._clock = clock
         self._lock = threading.RLock()
-        self._lane = LaneScheduler(name, self.process)
+        self._lane = LaneScheduler(lane, self.process) if isinstance(lane, str) else lane
 
     def process(self, job_id: str) -> None:
         """Run one job to a terminal state (lane thread)."""
@@ -85,6 +90,23 @@ class LaneJobService[R: BaseModel]:
             job = _job(record).model_copy(update={**changes, "updated_at": self._clock()})
             self._store.save(record.model_copy(update={"job": job}))
             return True
+
+    def _submit(self, job_id: str) -> None:
+        """Queue ``process(job_id)`` on this service's lane (also when the lane is shared)."""
+        self._lane.submit_call(self.process, job_id)
+
+    def _run_job(self, job_id: str, work: Callable[[R, Path], Outcome]) -> None:
+        """Run ``work(record, folder)`` of a pending job (lane thread); others are skipped.
+
+        The job is ``running`` meanwhile; the outcome is stored by :meth:`_finish`.
+        """
+        record = self._pending(job_id)
+        if record is None:
+            return
+        out_dir = self._store.output_dir(job_id)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        self.update(job_id, status=_S.RUNNING)
+        self._finish(job_id, self._guarded(job_id, lambda: work(record, out_dir)))
 
     def _pending(self, job_id: str) -> R | None:
         """The record of a job that still has to run (unknown and finished jobs: None)."""

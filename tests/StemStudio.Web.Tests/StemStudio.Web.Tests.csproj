@@ -16,6 +16,13 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Default key map catalogue (web-interop 1.1.0, feature 014 T006, architect one-time edit): read by KeyMapDefaultsTests
+         directly and through a web-root file provider (Practice/webroot/js/). -->
+    <None Include="..\..\src\StemStudio.Web\wwwroot\js\keymap-defaults.json" Link="Practice\keymap-defaults.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\StemStudio.Web\wwwroot\js\keymap-defaults.json" Link="Practice\webroot\js\keymap-defaults.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Practice\keymap-override-cases.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Recorded agent event streams (backend-api 1.10.0, feature 011) for the SSE reader and client tests. -->
     <None Include="Agent\Fixtures\*.sse" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

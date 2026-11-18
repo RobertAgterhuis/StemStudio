@@ -43,6 +43,11 @@ public sealed class AssetLibraryService(IAssetRepository assets, IAssetFileStore
             return AssetProblems.NotFound(id);
         }
 
+        if (AssetOriginPolicy.ManagedElsewhere(asset) is { } managed)
+        {
+            return managed;
+        }
+
         await CancelRenderAsync(asset, cancellationToken);
         await assets.RemoveAsync(asset, cancellationToken);
         files.DeleteAll(id);

@@ -1,9 +1,10 @@
 using StemStudio.Web.Experience;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Preferences;
 
 /// <summary>
-/// Immutable user preferences mirroring the stored record (data-model.md 1.1, schema version 1).
+/// Immutable user preferences mirroring the stored record (data-model.md 1.1, schema version 2 since 014).
 /// </summary>
 /// <param name="Level">Chosen level, or <see langword="null"/> when not chosen yet.</param>
 /// <param name="Theme">Theme choice.</param>
@@ -20,6 +21,9 @@ public sealed record UserPreferences(
     /// <summary>Defaults of data-model.md 1.1 (level not chosen, system theme, auto density, system motion).</summary>
     public static UserPreferences Default { get; } = new(
         null, ThemePreference.System, DensityPreference.Auto, MotionPreference.System, HelpProgress.Empty);
+
+    /// <summary>Shortcut preferences (014 data-model 5.1).</summary>
+    public ShortcutPreferences Shortcuts { get; init; } = ShortcutPreferences.Default;
 
     /// <summary>The level the UI renders: <see cref="Level"/>, or Beginner when not chosen.</summary>
     public ExperienceLevel EffectiveLevel => Level ?? ExperienceLevel.Beginner;

@@ -1,0 +1,55 @@
+{
+  "jobId": "89abcdef0123456789abcdef01234567",
+  "status": "completed",
+  "progress": 1,
+  "error": null,
+  "createdAt": "2026-11-16T10:12:05Z",
+  "result": {
+    "pages": [
+      {
+        "page": 1,
+        "widthPx": 840,
+        "heightPx": 1188
+      }
+    ],
+    "bars": [
+      {
+        "index": 0,
+        "number": 1,
+        "page": 1,
+        "x": 0.0571,
+        "y": 0.1012,
+        "width": 0.1702,
+        "height": 0.0248,
+        "startSeconds": 0,
+        "endSeconds": 2.1
+      },
+      {
+        "index": 1,
+        "number": 2,
+        "page": 1,
+        "x": 0.2273,
+        "y": 0.1012,
+        "width": 0.1695,
+        "height": 0.0248,
+        "startSeconds": 2.1,
+        "endSeconds": 4.1
+      },
+      {
+        "index": 2,
+        "number": 3,
+        "page": 1,
+        "x": 0.3968,
+        "y": 0.1012,
+        "width": 0.1544,
+        "height": 0.0248,
+        "startSeconds": 4.1,
+        "endSeconds": 6.1
+      }
+    ],
+    "engine": {
+      "name": "verovio",
+      "version": "6.4.0"
+    }
+  }
+}

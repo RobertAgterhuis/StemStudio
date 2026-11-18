@@ -1,0 +1,119 @@
+{
+  "manifestVersion": 1,
+  "licence": "CC0-1.0",
+  "sampleRate": 44100,
+  "song": {
+    "file": "practice-song.wav",
+    "channels": 2,
+    "seconds": 82.0,
+    "bpm": 120,
+    "beatsPerBar": 4,
+    "firstDownbeatSeconds": 0.5,
+    "downbeats": [
+      0.5,
+      2.5,
+      4.5,
+      6.5,
+      8.5,
+      10.5,
+      12.5,
+      14.5,
+      16.5,
+      18.5,
+      20.5,
+      22.5,
+      24.5,
+      26.5,
+      28.5,
+      30.5,
+      32.5,
+      34.5,
+      36.5,
+      38.5,
+      40.5,
+      42.5,
+      44.5,
+      46.5,
+      48.5,
+      50.5,
+      52.5,
+      54.5,
+      56.5,
+      58.5,
+      60.5,
+      62.5,
+      64.5,
+      66.5,
+      68.5,
+      70.5,
+      72.5,
+      74.5,
+      76.5,
+      78.5
+    ],
+    "sections": [
+      {
+        "kind": "intro",
+        "label": "Intro",
+        "startSeconds": 0.0,
+        "bars": 4,
+        "startBar": 1,
+        "endSeconds": 8.5
+      },
+      {
+        "kind": "verse",
+        "label": "Verse",
+        "startSeconds": 8.5,
+        "bars": 8,
+        "startBar": 5,
+        "endSeconds": 24.5
+      },
+      {
+        "kind": "chorus",
+        "label": "Chorus 1",
+        "startSeconds": 24.5,
+        "bars": 8,
+        "startBar": 13,
+        "endSeconds": 40.5
+      },
+      {
+        "kind": "solo",
+        "label": "Guitar solo",
+        "startSeconds": 40.5,
+        "bars": 8,
+        "startBar": 21,
+        "endSeconds": 56.5
+      },
+      {
+        "kind": "chorus",
+        "label": "Chorus 2",
+        "startSeconds": 56.5,
+        "bars": 8,
+        "startBar": 29,
+        "endSeconds": 72.5
+      },
+      {
+        "kind": "outro",
+        "label": "Outro",
+        "startSeconds": 72.5,
+        "bars": 4,
+        "startBar": 37,
+        "endSeconds": 82.0
+      }
+    ],
+    "stems": {
+      "vocals": "stems/vocals.flac",
+      "drums": "stems/drums.flac",
+      "bass": "stems/bass.flac",
+      "guitar": "stems/guitar.flac",
+      "piano": "stems/piano.flac",
+      "other": "stems/other.flac"
+    }
+  },
+  "free": {
+    "file": "practice-song-free.wav",
+    "channels": 2,
+    "seconds": 30.0,
+    "expectReliableGrid": false
+  }
+}

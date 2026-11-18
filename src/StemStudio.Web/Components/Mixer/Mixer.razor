@@ -1,4 +1,7 @@
 @page "/tracks/{Id:guid}/mixer"
+@using StemStudio.Web.Components.Recording
+@using StemStudio.Web.Components.Practice
+@using StemStudio.Contracts.Sections
 
 <PageTitle>Mixer - StemStudio</PageTitle>
 
@@ -15,7 +18,7 @@ else if (State is null)
 else
 {
     <SectionContent SectionName="@ContextBar.JourneySection"><JourneyRail Stage="JourneyStages.ForMixer(State.MixId is not null, State.IsDirty)" /></SectionContent>
-    <div class="ss-console">
+    <div class="ss-console" data-testid="mixer-console" data-track-id="@State.TrackId">
         <header class="ss-console-head">
             <TrackArtwork Track="_track!" TestId="mixer-cover" HelpId="artwork" />
             <div class="ss-console-title">
@@ -35,6 +38,7 @@ else
             </div>
             <div class="ss-mix-actions">
                 <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
+                <RecordingToolbarToggle Mixer="this" />
                 @if (!IsBeginner)
                 {
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
@@ -79,6 +83,54 @@ else
             <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
         }
 
+        <SectionLane TrackId="Id" Set="State.SectionSet" Position="Position" Loop="State.Loop" OnLoaded="OnSectionsLoaded" OnLoop="LoopSectionAsync"
+                     OnCommand="SectionCommandAsync">
+            <Actions>
+                <LevelGate Feature="sections.edit">
+                    <RadzenButton Text="Edit sections" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(State.SectionSet?.Status != SectionSetStatusDto.Ready)"
+                                  Click="OpenSectionEditor" aria-expanded="@(EditingSections ? "true" : "false")" data-testid="section-edit" data-help-id="section-editor" />
+                </LevelGate>
+                <LevelGate Feature="sections.detect-again">
+                    <RadzenButton Text="Detect again" Icon="auto_awesome" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="DetectAgainAsync"
+                                  data-testid="section-detect-again" data-help-id="section-status" />
+                </LevelGate>
+            </Actions>
+            <ItemExtra Context="section">
+                <LevelGate Feature="sections.confidence">
+                    @if (section.Confidence is { } confidence)
+                    {
+                        <span class="ss-muted ss-section-confidence" data-testid="@($"section-confidence-{section.Id}")">@ConfidenceText(confidence)</span>
+                    }
+                </LevelGate>
+            </ItemExtra>
+        </SectionLane>
+        <div class="ss-section-nav">
+            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(ShowScore ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(ShowScore ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
+            <RadzenButton Text="Practice log" Icon="timer" Size="ButtonSize.Small" ButtonStyle="@(ShowPracticeLog ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(ShowPracticeLog ? "true" : "false")" Click="TogglePracticeLog" data-testid="practice-log-panel-toggle"
+                          data-help-id="practice-log-panel" />
+        </div>
+        @if (ShowPracticeLog)
+        {
+            <PracticeLogPanel TrackId="Id" OnSettingsChanged="OnLogSettingsChanged" />
+        }
+        @if (ShowScore)
+        {
+            <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
+                        Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync" />
+        }
+        @if (EditingSections && State.SectionSet is { } editing)
+        {
+            <SectionEditor TrackId="Id" Set="editing" Duration="State.Duration" BeatGrid="_track?.BeatGrid" Position="Position"
+                           Channels="@(State.Channels.Select(c => c.Stem).ToList())" OnSaved="OnSectionsSaved" OnCancel="CloseSectionEditor" />
+        }
+        @if (ConfirmOverwrite)
+        {
+            <ConfirmModal Title="Replace your edited sections?" Message="Detecting again replaces the sections you edited with new detected ones."
+                          ConfirmText="Replace" TestIdPrefix="section-overwrite" OnConfirm="() => DetectAsync(true)" OnCancel="() => ConfirmOverwrite = false" />
+        }
+
         <div class="ss-console-panels">
             <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
                           Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
@@ -88,10 +140,12 @@ else
                 <CountInControl Settings="State.Practice.CountIn" LastBars="State.LastCountInBars" Available="@(TrackBpm is not null)"
                                 LoopProblem="@PracticeRules.LoopProblem(State.Loop)" OnToggle="ToggleCountInAsync" OnBars="SetCountInBarsAsync"
                                 OnEveryPass="SetCountInEveryPassAsync" />
-                <SpeedTrainerPanel Settings="State.Practice.Trainer" Status="PracticeLive.Trainer" LoopProblem="@PracticeRules.LoopProblem(State.Loop)"
+                <SpeedTrainerPanel Settings="State.Practice.Trainer" Status="PracticeLive.Trainer" LoopProblem="@PracticeRules.LoopProblem(State.Loop)" RegionLabel="@TrainerRegion"
                                    Unavailable="StretchUnavailable" OnChange="SetTrainerAsync" OnToggle="ToggleTrainerAsync" />
             </PracticePanel>
         </div>
+
+        <RecordingArea Mixer="this" />
 
         @if (State.KeepsRemovedDetailSettings)
         {
@@ -121,6 +175,7 @@ else
                                    OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
                     }
                 }
+                <TakeStripSlot Mixer="this" />
             </section>
             <div class="ss-console-master">
                 <MasterSection Volume="State.MasterVolume" OnVolume="SetMasterAsync" />

@@ -126,13 +126,7 @@ class RenderService(LaneJobService[StoredRenderJob]):
 
     def process(self, job_id: str) -> None:
         """Render one job to a terminal state (lane thread); skips unknown and finished jobs."""
-        record = self._pending(job_id)
-        if record is None:
-            return
-        out_dir = self._store.output_dir(job_id)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        self.update(job_id, status=_S.RUNNING)
-        self._finish(job_id, self._guarded(job_id, lambda: self._render(record, out_dir)))
+        self._run_job(job_id, self._render)
 
     def _render(self, record: StoredRenderJob, out_dir: Path) -> dict[str, Any]:
         reporter = _Reporter(self, record.job.render_job_id)

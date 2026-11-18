@@ -21,6 +21,9 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
     /// <summary>Role of the audio file.</summary>
     public const string AudioRole = "audio";
 
+    /// <summary>The stored format of a take's audio (feature 015, data-model 2.2): FLAC 24-bit.</summary>
+    public static readonly Domain.Rendering.ExportFormat TakeFormat = new(Domain.Rendering.AudioFormat.Flac, 24, null);
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>Applies the job state (not saved).</summary>
@@ -38,7 +41,12 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
     private Task CompleteAsync(Asset asset, WorkerRenderJob job, CancellationToken cancellationToken) => AssetJobState.StoreAsync(
         () => StoreAsync(asset, job.RenderJobId, job.Result ?? throw new InvalidDataException("The completed job has no result."), cancellationToken),
         FailureReason,
-        AssetJobState.Discard(asset, files, Now));
+        OnStoreFailure(asset));
+
+    /// <summary>A failed copy deletes the item's files, except for a take: its capture (and previous audio) stay for "Try again" (feature 015).</summary>
+    private Action<string> OnStoreFailure(Asset asset) => asset.Provenance.Origin == AssetOrigin.Recording
+        ? reason => asset.Fail(reason, Now)
+        : AssetJobState.Discard(asset, files, Now);
 
     private async Task StoreAsync(Asset asset, string renderJobId, WorkerRenderResult result, CancellationToken cancellationToken)
     {
@@ -49,7 +57,7 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
             throw new InvalidDataException(DamagedFile);
         }
 
-        var format = asset.Provenance.Recipe!.Format;
+        var format = asset.Provenance.Recipe?.Format ?? TakeFormat;
         var audio = new AudioFacts(format.Format, format.BitDepth, format.Mp3BitrateKbps, result.DurationSeconds, result.PeakDbfs, result.AppliedGainDb);
         asset.Complete([new AssetFile(AudioRole, fileName, result.ContentType, stored.SizeBytes, stored.Sha256)], audio, Now);
     }

@@ -1,0 +1,18 @@
+@* Mixer toolbar button that opens and closes the recording panel (ui-test-ids 1.14.0 mixer-record-panel-toggle, Beginner).
+   Closing the panel releases the microphone (FR-003). *@
+
+<RadzenButton Text="Record" Icon="mic" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="ToggleAsync"
+              aria-expanded="@(Session.PanelOpen ? "true" : "false")" aria-controls="rec-panel"
+              data-testid="mixer-record-panel-toggle" data-help-id="recording" />
+
+@code {
+    /// <summary>The mixer's recording session.</summary>
+    [Parameter, EditorRequired]
+    public RecordingSession Session { get; set; } = default!;
+
+    private async Task ToggleAsync()
+    {
+        await Session.TogglePanelAsync();
+        await Session.RefreshAsync();
+    }
+}

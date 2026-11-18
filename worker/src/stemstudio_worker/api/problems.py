@@ -1,6 +1,6 @@
 """RFC 9457 problem details (``application/problem+json``) for every error response."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from stemstudio_worker.ports import InputNotFoundError, InputPathError
 from stemstudio_worker.schemas import ProblemDetails
 
 PROBLEM_JSON = "application/problem+json"
@@ -95,3 +96,19 @@ def validation_errors(errors: Sequence[Any]) -> dict[str, list[str]]:
 
 def _title(status: int) -> str:
     return {404: "Not found", 405: "Method not allowed"}.get(status, "Bad request")
+
+
+INVALID_INPUT_PATH = ProblemKind("invalid-input-path", 400, "Invalid input path")
+"""The path guard refused an input path (render 1.4.0, practice 1.8.0)."""
+INPUT_NOT_FOUND = ProblemKind("input-not-found", 404, "Input not found")
+"""An input file does not exist."""
+
+
+def path_guarded[T](create: Callable[[], T]) -> T:
+    """``create()`` with the path guard's errors as ``invalid-input-path`` / ``input-not-found``."""
+    try:
+        return create()
+    except InputPathError as exc:
+        raise TypedProblemError(INVALID_INPUT_PATH, str(exc)) from exc
+    except InputNotFoundError as exc:
+        raise TypedProblemError(INPUT_NOT_FOUND, str(exc)) from exc

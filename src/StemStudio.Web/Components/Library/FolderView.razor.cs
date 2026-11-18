@@ -44,6 +44,9 @@ public sealed partial class FolderView
 
     private bool Missing { get; set; }
 
+    /// <summary>The API answered 404: the folder may appear once a fresh item is filed into it, so it is asked again.</summary>
+    private bool _notFound;
+
     private string? Error { get; set; }
 
     private LibraryViewSettings Settings { get; set; } = LibraryViewSettings.Default;
@@ -73,7 +76,7 @@ public sealed partial class FolderView
 
     /// <inheritdoc />
     protected override bool NeedsPolling =>
-        _maintenance || View is { PendingFiling: > 0 } || View?.Items.Any(a => a.Status is AssetStatusDto.Queued or AssetStatusDto.Rendering) == true;
+        _maintenance || _notFound || View is { PendingFiling: > 0 } || View?.Items.Any(a => a.Status is AssetStatusDto.Queued or AssetStatusDto.Rendering) == true;
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
@@ -104,6 +107,7 @@ public sealed partial class FolderView
         {
             var view = await FetchAsync(knownRevision);
             (View, Error, _maintenance) = (view ?? View, null, false);
+            (Missing, _notFound) = (Missing && View is null, false);
         }
         catch (ApiException ex)
         {
@@ -133,7 +137,7 @@ public sealed partial class FolderView
 
         if (error.IsNotFound)
         {
-            (Missing, View) = (true, null);
+            (Missing, View, _notFound) = (true, null, true);
             return;
         }
 

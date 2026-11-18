@@ -70,8 +70,11 @@ that time 0 is the input's start (beats before 0 are kept for interpolation).
 - `period` = median of beat differences (manual: `60 / bpm`).
 - `b(t)` = `interp(t, beats, 0..n-1)` for `beats[0] <= t <= beats[n-1]`; else linear extrapolation
   with `period`.
-- `k0` = index of the beat nearest to `downbeats[0]` (manual: the generated beat at
-  `firstDownbeatSeconds`); `q(t) = b(t) - k0` in quarter notes.
+- `k0` = index of the beat nearest to the **bar-one downbeat**: the first downbeat at or after 0
+  of the (shifted) grid, tolerance 1 ms, else the last downbeat (`BeatGridTempo.bar_one_downbeat`;
+  manual: the generated beat at `firstDownbeatSeconds`); `q(t) = b(t) - k0` in quarter notes. For an
+  unranged input this is `downbeats[0]`; for a range it is the range's first downbeat, so earlier
+  notes of the range become the pickup (014 round, CTO decision 2026-11-18).
 - Snap: `round(q·d)/d` with `d = 4` (1/16) or `2` (1/8).
 - Bar `m` (1-based) starts at `q = (m-1)·beatsPerBar`; notes with `q < 0` go to a pickup bar of
   `ceil(-min q / beatsPerBar)·beatsPerBar` beats, shortened to the used length.

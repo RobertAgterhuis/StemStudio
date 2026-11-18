@@ -12,9 +12,10 @@ versions:
 Later features add their documents to `specs/NNN-*/contracts/` in their Phase 0; until then
 each folder holds a `DELTA.md` with the planned changes.
 
-The versions above are the first deliveries. The current labels (backend API 1.23.0, UI test ids
-1.23.0, tool catalogue 1.2.0, web interop 1.2.0) are listed in chapter 2, "Contracts and
-versions".
+The versions above are the first deliveries. The current labels (backend API 1.14.0, worker API 1.8.0, audio engine 2.5.0, UI test ids
+1.14.0, web interop 1.1.0, render vectors 1.1.0, tool catalogue 1.2.0) are listed in chapter 2,
+"Contracts and versions". Labels identify merged deltas, not an order: backend 1.14.0 contains
+1.23.0.
 
 ## Backend API (port 8081)
 
@@ -158,6 +159,51 @@ the same revision too (`Revision` is a concurrency token). Problem types: `langu
 `assist-ended`, `too-long`, `mark-limit`, `word-limit`. Problem details never echo sheet text.
 Input limits: raw text 65,536 characters, 100 ids per request, words of at most 40 characters.
 
+### Practice flow (014, backend API 1.13.0; tags `sections`, `score-follow`, `setlists`, `practice`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET`, `PUT /api/tracks/{trackId}/sections` | The section set (status `none`, `queued`, `detecting`, `ready`, `failed`; origin `detected` or `edited`; revision, analyser, snap, warnings) and its replacement as a whole (`revision` must match: `409 sections-changed`; `409 track-not-ready`, `detection-running`; `422` field errors: 1-64 sections, sorted, not overlapping, each at least 1 s, labels 1-40 characters, a solo instrument must be a channel of the track) |
+| `POST /api/tracks/{trackId}/sections/detect` | Detect again (`{overwrite}`); `202` with the queued set; `409 sections-edited` (edited and no overwrite), `detection-running`, `track-not-ready`; `503 worker-unavailable` |
+| `GET /api/tracks/{trackId}/scores` | Ready score items of the track (directly or through an export of it), newest first, with profile, name, the range start of a partial score and the score view status |
+| `GET`, `POST /api/assets/{assetId}/score-view` | The score view (pages, bar map in track seconds, offset, status); `POST` creates it for an older item (`202`, idempotent while queued or rendering; `409 not-a-score`, `score-not-ready`; `503`) |
+| `GET /api/assets/{assetId}/score-view/pages/{page}` | One page as `image/svg+xml` with `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; font-src data:`, `nosniff` and an immutable cache for the `?v=` URL; `409 score-view-not-ready` |
+| `GET`, `POST /api/setlists`; `GET`, `PATCH`, `DELETE /api/setlists/{setlistId}` | Setlists (name 1-80, note up to 2,000 characters); `GET …?acknowledgeRemoved=true` resets the count of entries removed by a track delete |
+| `PUT /api/setlists/{setlistId}/entries` | Replace the ordered entries (0-100; `trackId`, optional `mixId` of that track, note up to 1,000 characters); `422 track-not-found`, `mix-track-mismatch` |
+| `GET /api/setlists/{setlistId}/pdf` | The A4 PDF as an attachment; options `lyrics`, `sections`, `notes`, `pageBreakPerSong` (all default `true`); `409 setlist-empty`; `503 worker-unavailable` when the worker cannot be reached, `503 document-failed` when the document job failed or the PDF is unusable (for example above the 16 MiB cap); `504 document-timeout` |
+| `GET`, `PUT /api/practice/settings` | Practice log on or off and the notice acknowledgement (`PracticeLogSettings`; a `PUT` with neither field is `422`) |
+| `GET`, `DELETE /api/practice/sessions` | List sessions (`trackId`, `before`, `limit`) and delete them (`trackId`, or all when absent; `200 {deleted}`) |
+| `PUT`, `DELETE /api/practice/sessions/{sessionId}` | Upsert a session with cumulative values and its section times (`409 practice-log-off` while the log is off; `422` for a mix of another track) and delete one |
+| `GET /api/practice/summary`, `GET /api/practice/overview` | Totals of a track (today, last 7 days, total, `days[]`, `sections[]`, `tempo[]`; `days` 1-365, default 30; `utcOffsetMinutes` -840..840 for local days) and the totals per track |
+
+Existing schemas change additively: `LoopRegion.sectionId` (the loop came from a section; an id
+that no longer exists reads as `null`). Sections, setlists and the practice log are reachable for
+the agent through the HTTP API, but the tool catalogue has no tools for them yet.
+
+### Play-along recording (015, backend API 1.14.0; tag `recording`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET`, `POST /api/tracks/{trackId}/takes` | List the takes (newest first, with the total size) and upload one: multipart `audio` (24-bit PCM WAV, 44.1 kHz, 1-2 channels, at most `StemStudio:Recording:MaxUploadBytes`, default 256 MiB) and `metadata`; `202` with status `saving`. Errors: `400 invalid-wav`; `409 track-not-ready`, `take-limit-reached` (200 per track), `insufficient-disk-space`; `413`; `415 unsupported-wav-format`; `422 silent-take`, `take-outside-track`, `length-mismatch`, `recording-speed`; `503` |
+| `POST /api/tracks/{trackId}/takes/delete` | Delete several takes (`takeIds` 1-200; unknown ids and ids of other tracks are ignored) |
+| `GET`, `PATCH`, `DELETE /api/takes/{takeId}` | Read, change (`name` 1-80 characters, `favorite`, `part`) and delete one take |
+| `PUT /api/takes/{takeId}/audio` | Replace the take audio after a timing adjustment (multipart `audio` + `startSample`, `lengthSamples`, `adjustmentSamples`); `409 take-saving`; the previous audio stays until the new one is ready |
+| `POST /api/takes/{takeId}/retry` | Render a failed take again from its `capture.wav` (`409 take-not-failed`, `capture-missing`) |
+| `GET`, `PUT /api/recording/calibrations`; `DELETE …/{calibrationId}` | Latency calibrations per input device (upsert by `deviceLabel`: latency 0-44,100 samples, method `loopback` or `manual`, spread, clicks found, output latency) |
+
+Take audio is served by the existing `GET /api/assets/{assetId}/files/audio` (Range, ETag) through
+`RecordingTake.audioUrl`: a FLAC padded with silence from the song start, so the take starts at
+`startSample`. Additions to existing operations: `AssetOrigin` `recording` and the optional
+`Provenance.recording`; `listAssets` excludes `recording` assets unless `origin=recording` is
+asked for; rename, delete and retry of a take asset through `/api/assets` answer
+`409 managed-by-take`; `CreateAudioExportRequest.takeId` with the export channel `take`
+(`ExportChannelId`; raw mode = the take trimmed to its span; mix mode = the take as one more
+channel; `404`, `409 take-not-ready`, `422 take-not-in-track`, `take-required`);
+`MixSettings.take` (`takeId`, volume, pan, mute, solo) and `Track.takeCount` (both absent when
+empty); `deleteTrack` also deletes the takes. The delete, batch delete and audio replace of takes
+carry the 013 write gate (`409 backup-running`, `503 library-maintenance`). The agent tool
+catalogue is unchanged: no tool accepts `take`.
+
 ## Worker API (port 8000, internal)
 
 | Method and path | Purpose |
@@ -177,6 +223,9 @@ Input limits: raw text 65,536 characters, 100 ids per request, words of at most 
 | `GET /v1/storage` | 013: disk use of the worker data and model volumes (cache entries, job files, scratch, model folders) |
 | `POST /v1/storage/cleanup` | 013: remove cache entries, scratch and old job files no job uses (under the queue lock) |
 | `POST /v1/jobs/rehydrate` | 013: re-create a completed standard job and its cache entry from the library stems (read-only `/library`) |
+| `POST /v1/section-jobs`, `GET`, `DELETE /v1/section-jobs/{id}` | 014: section detection on the `practice` lane (stems, kept detail stems, beat grid, duration, `maxSections` 1-64); result: analyser, snap, sections with kind, label, times, cluster, instrument and confidence, and warnings (`grid-unreliable`, `no-grid`, `few-repetitions`, `no-vocals`, `merged-to-limit`) |
+| `POST /v1/score-view-jobs`, `GET`, `DELETE /v1/score-view-jobs/{id}`, `GET …/pages/{page}` | 014: score view of `assets/<uuid>/score.musicxml` (new allow-list entry): SVG pages (at most 200, 840 × 1188 px) with bar boxes and times (at most 2,000 bars) |
+| `POST /v1/setlist-document-jobs`, `GET`, `DELETE /v1/setlist-document-jobs/{id}`, `GET …/file` | 014: setlist PDF with ReportLab (content inline, no paths; up to 100 songs) |
 
 ### Render lane (007)
 
@@ -205,6 +254,14 @@ LRCLIB (006) is on the same allow list (`lrclib.net`); a lyrics lookup asks at m
 (get with album, get, search), at least 500 ms apart, and accepts a record whose duration is within
 2 s of the track. Lyrics never appear in logs: a backend test scans the log output for the fake
 provider's words (FR-010).
+
+### Practice lane (014)
+
+Section, score-view and setlist-document jobs share one FIFO thread (`Health.lanes.practice`),
+separate from separation, render and transcription. `Health.structure` reports the analyser
+(`stems-novelty` or `fake`) and its version. Job states are those of the render lane, jobs are
+kept 24 h, and on restart a queued or running practice job fails with *"interrupted by
+restart"*; the API deletes every job after it has copied the result.
 
 ## Generator API (port 8010, internal)
 

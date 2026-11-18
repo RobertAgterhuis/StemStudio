@@ -1,0 +1,20 @@
+@page "/setlists/{SetlistId:guid}/play/{Position:int}"
+@* Setlist play mode (014 US5, FR-017): the setlist bar and the mixer of the entry with its mix; a new mixer per song. *@
+@implements IAsyncDisposable
+@using StemStudio.Web.Components.Practice
+
+<PageTitle>Setlist - StemStudio</PageTitle>
+
+@if (Error is not null)
+{
+    <ErrorState TestId="setlist-save-error" Message="@Error"><a href="setlists">Back to setlists</a></ErrorState>
+}
+else if (Setlist is null)
+{
+    <Skeleton Lines="3" />
+}
+else if (Entry is { } entry)
+{
+    <SetlistBar Setlist="Setlist" Position="Position" OnPrevious="() => Go(Position - 1)" OnNext="() => Go(Position + 1)" OnExit="Exit" />
+    <StemStudio.Web.Components.Mixer.Mixer @key="entry.Id" Id="entry.TrackId" SetlistMixId="entry.MixId" />
+}

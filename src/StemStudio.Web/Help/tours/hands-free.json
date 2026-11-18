@@ -1,0 +1,29 @@
+{
+  "id": "hands-free",
+  "version": 1,
+  "title": "Hands-free practice",
+  "route": "/tracks/{id}/mixer",
+  "levels": [
+    "advanced"
+  ],
+  "steps": [
+    {
+      "target": "section-loop-current",
+      "topic": "shortcuts",
+      "title": "Keys for every part",
+      "text": "Shift+L loops the part you hear, N and Shift+N move to the next or previous part, Backspace goes back to its start."
+    },
+    {
+      "target": "preferences",
+      "topic": "foot-pedals",
+      "title": "Your keys and pedals",
+      "text": "Preferences, then Change shortcuts and foot pedals: choose your own keys and set up a two-pedal page turner."
+    },
+    {
+      "target": "score-panel",
+      "topic": "mixer-score-follow",
+      "title": "Hands off the page",
+      "text": "Score shows the sheet music; the bar you hear is marked and the page turns by itself."
+    }
+  ]
+}

@@ -166,6 +166,11 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `StemStudio__LyricAssist__BlockLines` | api | `8` | 023: lyric lines per model block (1-40); the event stream also reads `StemStudio__LyricAssist__StreamIdleSeconds` (`1800`) |
 | `StemStudio__LyricAssist__BlockTimeoutSeconds` | api | `60` local, `90` Claude | 023: per block; a block that times out is skipped with a note |
 | `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` | api | unset | 023, **test stacks only** (backend `fake`): a file or a folder of scripted model answers (`<title-slug>-<kind>.json`, else `<kind>.json`); `docker-compose.e2e.yml` mounts `e2e/lyric-scripts/` read-only at `/lyric-scripts` and sets it |
+| `STEMSTUDIO_STRUCTURE_ANALYZER` | worker | empty | 014: section analyser, `real` (`stems-novelty`, from the stems, no download) or `fake` (fixed 8-bar sections); empty means `fake` with the fake separator, else `real` |
+| `STEMSTUDIO_SECTION_DETECT_ON_COMPLETE` (`StemStudio__Practice__SectionDetectOnComplete`) | api | `true` | 014: detect the sections right after every separation; `false` leaves detection to the first mixer open or an explicit detect |
+| `StemStudio__Practice__SetlistPdfTimeoutSeconds` | api | `30` | 014: wait for a setlist PDF (5-120 s) before `504 document-timeout` |
+| `STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES` | compose | `268435456` (256 MiB) | 015: largest take upload; compose passes the same value to the api as `StemStudio__Recording__MaxUploadBytes` (`StemStudio:Recording:MaxUploadBytes`, body limit of the two take upload endpoints; the global 200 MiB upload limit is unchanged) and to the web app as `StemStudio__Recording__MaxStreamBytes` (`StemStudio:Recording:MaxStreamBytes`, the largest take the browser streams), so the browser never sends more than the API accepts |
+| `StemStudio__Recording__TestLoopback` | web | `false` | 015, **test stacks only** (`docker-compose.e2e.yml`): the engine's input is its own output (digital loopback for the calibration and alignment tests); no microphone is opened |
 
 Online lookups (005) identify themselves with the User-Agent
 `StemStudio/<worker version> ( <STEMSTUDIO_CONTACT_URL> )`, or
@@ -234,6 +239,38 @@ heavy GPU job holds the GPU the lyric model is **unavailable** (no CPU fallback 
 the spelling check, syllables and rhyme finder keep working. In the fake stack, the
 `api` service reads `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` (a folder mounted read-only; the worker
 has no access to it); the variable only has an effect with `STEMSTUDIO_AGENT_BACKEND=fake`.
+
+### Practice flow (014)
+
+Nothing is downloaded for 014: section detection is signal processing on the CPU (librosa,
+no model), score views use the installed Verovio, and setlist PDFs use ReportLab 5.1.0 with the
+DejaVu fonts of the worker image. Both worker variants (CPU and GPU) install
+`fonts-dejavu-core` (DejaVu Sans and DejaVu Sans Bold in `/usr/share/fonts/truetype/dejavu`)
+next to the Leipzig font in `/usr/local/share/fonts/verovio`. `scripts/check-worker-fonts.sh`
+(or `.ps1`) checks an image in throwaway containers without network: `fc-list` must list
+Leipzig and DejaVu Sans, and `verovio`, `cairosvg`, `music21` and `reportlab` must import as
+the worker user (`--build` builds the CPU image first; the CI job `cpu-image-guard` runs it).
+The fake stack (`STEMSTUDIO_SEPARATOR=fake`) uses the fake section analyser; score views and
+PDFs are real there.
+
+### Play-along recording (015)
+
+Recording needs no new container, no worker change and no download: the API stores takes and
+renders their FLAC with the 007 render lane. The browser side has two requirements:
+
+- **Secure context.** Browsers expose `navigator.mediaDevices` and `AudioWorklet` only in a
+  secure context. StemStudio serves plain HTTP, so recording works only when the browser runs on
+  the StemStudio computer and opens `http://localhost:8080` or `http://127.0.0.1:8080`. From
+  another device (`http://<LAN address>:8080`) the panel reports `insecureContext` (*Not on this
+  computer*); playback of existing takes still works there.
+- **Browser.** Chromium-based browsers (Chrome, Edge) are supported and tested (the E2E suite
+  runs Chromium with a fake capture device). Firefox captured without gaps in the Phase 0
+  measurement, but refuses an input device that does not run at 44.1 kHz (the engine's context
+  rate); the panel then reports the browser as not supported. Browsers expose at most two input
+  channels, and the 012 time-stretch stage needs the same secure context.
+
+A proxy added later in front of the API must accept take uploads up to
+`STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES` plus multipart overhead.
 
 Variables named `STEMSTUDIO_FAKE_*` are for the fake test stack only.
 

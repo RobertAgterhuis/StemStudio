@@ -45,7 +45,7 @@ Exports (added):
 |---|---|---|
 | `registerShortcuts` | `(dotnet, scope, keyMap?: KeyMap) => Disposable` | without `keyMap`: the 1.0.0 behaviour; with it: only the given bindings of that scope |
 | `updateShortcuts` | `(handle: Disposable, keyMap: KeyMap) => void` | swaps the map without re-registering |
-| `defaultKeyMap` | `(scope) => KeyMap` | the defaults of spec FR-020 (single source of truth for C# tests: exported as JSON in `wwwroot/js/keymap-defaults.json` at build) |
+| `defaultKeyMap` | `(scope) => KeyMap` | the defaults of spec FR-020, read from the catalogue `src/StemStudio.Web/wwwroot/js/keymap-defaults.json` (architect, T006; imported at build time; the same file `KeyMapDefaults` reads in C#) |
 | `captureChord` | `(dotnet, options: {timeoutMs: 1000..30000}) => Disposable` | "Learn": the next keydown anywhere (except Escape, which cancels) is reported once by `dotnet.invokeMethodAsync("OnChordCaptured", chord \| null)` and prevented |
 | `isReservedChord` | `(chord) => string \| null` | the reason text when reserved (ADR-023 D5 list), else null |
 

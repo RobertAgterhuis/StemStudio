@@ -44,6 +44,17 @@
 #                                           at first use
 #   STEMSTUDIO_TRANSCRIBE_THREADS=1..64     intra-op threads of the transcribe lane (default 8)
 #   The image installs the Leipzig music font (check: scripts/check-worker-fonts.{sh,ps1}).
+# Practice flow (feature 014; specs/014-practice-flow/quickstart.md), worker only, optional:
+#   STEMSTUDIO_STRUCTURE_ANALYZER=real|fake empty (default) = fake with the fake separator, else real
+#                                           (section detection from the stems; no download)
+#   Setlist PDFs use the DejaVu fonts of the image (check: scripts/check-worker-fonts.{sh,ps1}).
+#   STEMSTUDIO_SECTION_DETECT_ON_COMPLETE=true|false   api: detect sections right after a separation
+#                                           (default true; StemStudio__Practice__SectionDetectOnComplete)
+# Play-along recording (feature 015; specs/015-play-along-recording/quickstart.md), optional:
+#   STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES=N largest take upload in bytes (default 268435456 = 256 MiB);
+#                                           api StemStudio__Recording__MaxUploadBytes and web
+#                                           StemStudio__Recording__MaxStreamBytes get the same value
+# See .env.example for every optional variable in one place.
 # AI composer agent (feature 011; specs/011-ai-composer-agent/quickstart.md), api only, optional:
 #   STEMSTUDIO_AGENT_BACKEND=ollama|claude|none|fake   initial backend (default ollama) when no
 #                                           settings row exists; the settings page changes it later
@@ -118,6 +129,8 @@ services:
       # Feature 008 (sheet music): empty = automatic (fake with the fake separator, else real).
       STEMSTUDIO_TRANSCRIBER: ${STEMSTUDIO_TRANSCRIBER:-}
       STEMSTUDIO_TRANSCRIBE_THREADS: ${STEMSTUDIO_TRANSCRIBE_THREADS:-8}
+      # Feature 014 (practice flow): empty = automatic (fake with the fake separator, else real).
+      STEMSTUDIO_STRUCTURE_ANALYZER: ${STEMSTUDIO_STRUCTURE_ANALYZER:-}
     expose:
       - "8000"
     volumes:
@@ -156,6 +169,10 @@ services:
       # Feature 013 (library care): backups folder (bind mount below) and the host path the UI shows.
       - StemStudio__BackupDir=/backups
       - StemStudio__BackupHostDirHint=${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}
+      # Feature 014 (practice flow): section detection after every separation (default on).
+      - StemStudio__Practice__SectionDetectOnComplete=${STEMSTUDIO_SECTION_DETECT_ON_COMPLETE:-true}
+      # Feature 015 (play-along recording): largest take upload (bytes; default 256 MiB).
+      - StemStudio__Recording__MaxUploadBytes=${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
       # Bare name: the host's value when set, otherwise the variable is absent in the container.
       - ANTHROPIC_API_KEY
     # host.docker.internal resolves to the host on Linux too (Docker Desktop has it built in).
@@ -195,6 +212,8 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       StemStudio__ApiBaseUrl: http://api:8081
       StemStudio__PublicApiBaseUrl: http://localhost:8081
+      # Feature 015: the browser never streams a take larger than the api accepts.
+      StemStudio__Recording__MaxStreamBytes: ${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
     ports:
       - "8080:8080"
     volumes:

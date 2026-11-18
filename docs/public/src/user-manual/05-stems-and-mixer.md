@@ -149,7 +149,8 @@ the reason, and everything else keeps working at the original speed and key.
 ### Speed trainer (Advanced)
 
 The speed trainer turns the A-B loop into an exercise. Set A and B around the hard part,
-turn **Loop** on and then **Speed trainer** on, and choose:
+turn **Loop** on (or loop a song section with one click, chapter 7) and then **Speed trainer**
+on, and choose:
 
 | Setting | Meaning | Default |
 |---|---|---|
@@ -193,13 +194,26 @@ and come back when you load it. Mixes saved before this feature open at 100 % an
 semitones. **Exports to the library always use the original speed and key**; the export
 dialog says so.
 
-Shortcuts (chapter 17): <kbd>-</kbd> and <kbd>=</kbd> (or <kbd>+</kbd>) speed −5/+5 %,
-<kbd>,</kbd> and <kbd>.</kbd> transpose −1/+1, <kbd>R</kbd> original speed and key,
-<kbd>C</kbd> count-in and <kbd>T</kbd> speed trainer (Advanced).
+Shortcuts (chapter 22): <kbd>-</kbd> and <kbd>=</kbd> (or <kbd>+</kbd>) speed −5/+5 %,
+<kbd>,</kbd> and <kbd>.</kbd> transpose −1/+1, <kbd>0</kbd> original speed and key,
+<kbd>Shift</kbd>+<kbd>K</kbd> count-in and <kbd>T</kbd> speed trainer (Advanced). The count-in and
+*Original speed and key* used to be <kbd>C</kbd> and <kbd>R</kbd>; those keys are now used for
+recording (chapter 11).
 
 Time stretching uses SoundTouch 2.4.1 (LGPL-2.1) as a separate, replaceable module; its
 licence and complete source are linked from the help topic *Sound quality at other speeds*
 (`/third-party/soundtouch/index.html`).
+
+## More practice tools in the mixer
+
+The next chapters describe the other practice tools of the mixer:
+
+- the **section lane** above the panels, to loop a verse, chorus or solo with one click
+  (chapter 7);
+- the **Score** panel, where the sheet music follows the playback (chapter 8);
+- the **setlist bar** while you play a setlist (chapter 9);
+- the **Practice log** of the song (chapter 10);
+- **Record**, to record yourself over the mix (chapter 11).
 
 ## Unsaved changes
 

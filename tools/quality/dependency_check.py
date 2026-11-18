@@ -24,6 +24,9 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
     Web/Library, Web/Components/Library, Web/Components/Lyrics/Assist -> Contracts and Web.* only,
         no HttpClient (the API client in Web/Api is the one door) and not each other's UI
     Agent/LyricAssist -/- {Api, Domain, Persistence, Web, WeCantSpell}   (Agent -> Contracts only)
+    Domain/{Sections, Setlists, Practice} -/- {Api, Persistence, Web}             (014 T015)
+    Api/Assets, Api/Tracks -/- Api.Recording (only their own IAssetOriginPolicy /
+        ITrackTakesCleanup; Recording implements them)                            (015 T007)
 
 .NET feature-folder allow-lists (same references; only names below the scope root count)::
 
@@ -59,6 +62,13 @@ Worker third-party imports (feature 008; the standard library is always allowed)
     the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
     ImageNormalizer injected); no module imports render (feature 007: jobs gets the
     RenderExecutor injected); main.py is the composition root and may import every module.
+    documents -> ports, schemas and (third party) reportlab only (feature 014)
+
+Worker scopes (feature 014 T015, file level, stricter than their top-level module)::
+
+    analysis/structure/** -> ports, schemas, analysis.structure and numpy, scipy, sklearn,
+        librosa, soundfile only;  engraving/score_view.py -> ports, schemas, engraving and
+        verovio only (stdlib xml for the SVG);  jobs and api import none of them nor documents
 
 Generator (imports inside ``stemstudio_generator``, features 009/010)::
 
@@ -75,6 +85,8 @@ TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` file
     audio-engine/{transport, mixer} -/- audio-engine/karaoke   (feature 006, module level)
     audio-engine/{transport, mixer, metronome, karaoke} -/- audio-engine/{practice, stretch}
     audio-engine/practice -/- audio-engine/karaoke                (feature 012, module level)
+    audio-engine/score-follow -/- audio-engine/{callbacks, index}  (014: no Blazor interop module)
+    audio-engine/recording <- audio-engine/engine only            (015 T007: importer allow-list)
 
 Worklet scope (feature 012, file level inside ``src/audio-engine/src/stretch/``)::
 
@@ -173,10 +185,14 @@ def _web_ui(*siblings: str) -> frozenset[str]:
     return others | set(siblings)
 
 
+_PRACTICE_DOMAIN = frozenset({"StemStudio.Api", "StemStudio.Persistence", "StemStudio.Web"})
+"""Feature 014: the practice domain folders reference no outer layer."""
+
 DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "StemStudio.Api/Metadata": frozenset({"StemStudio.Web"}),
     "StemStudio.Api/Artwork": frozenset({"StemStudio.Web"}),
-    "StemStudio.Api/Assets": frozenset({"StemStudio.Web"}),
+    "StemStudio.Api/Assets": frozenset({"StemStudio.Web", "StemStudio.Api.Recording"}),
+    "StemStudio.Api/Tracks": frozenset({"StemStudio.Web", "StemStudio.Api.Recording"}),
     "StemStudio.Domain/Rendering": frozenset(
         {"StemStudio.Api", "StemStudio.Persistence", "StemStudio.Web", "StemStudio.Contracts"}
     ),
@@ -198,6 +214,9 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
         "StemStudio.Web.Library", "StemStudio.Web.Components.Library"
     ),
     "StemStudio.Agent/LyricAssist": _projects_except("Agent", "Contracts") | {"WeCantSpell"},
+    "StemStudio.Domain/Sections": _PRACTICE_DOMAIN,
+    "StemStudio.Domain/Setlists": _PRACTICE_DOMAIN,
+    "StemStudio.Domain/Practice": _PRACTICE_DOMAIN,
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it).
 
@@ -286,6 +305,7 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "transcription": _ADAPTER,
     "notation": frozenset({"ports", "schemas"}),
     "engraving": frozenset({"ports", "schemas"}),
+    "documents": frozenset({"ports", "schemas"}),
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "storage": _ADAPTER | {"jobs"},
@@ -305,9 +325,35 @@ PYTHON_SUBMODULES_ALLOWED: Mapping[str, frozenset[str]] = {
 PYTHON_EXTERNAL_ALLOWED: Mapping[str, frozenset[str]] = {
     "notation": frozenset({"music21"}),
     "engraving": frozenset({"verovio", "cairosvg", "pypdf"}),
+    "documents": frozenset({"reportlab"}),
 }
 """Third-party top-level packages a worker module may import (only modules listed here are
 restricted; the standard library and ``stemstudio_worker`` itself are never third party)."""
+
+
+@dataclass(frozen=True, slots=True)
+class PythonScope:
+    """Imports allowed in the files of one worker scope (stricter than its top-level module).
+
+    ``internal`` are dotted families below the package (``analysis.structure`` allows
+    ``analysis.structure.names``); ``external`` third-party top-level names. The standard library
+    is always allowed.
+    """
+
+    internal: frozenset[str]
+    external: frozenset[str]
+
+
+PYTHON_SCOPES: Mapping[str, PythonScope] = {
+    "analysis/structure/": PythonScope(
+        frozenset({"ports", "schemas", "analysis.structure"}),
+        frozenset({"numpy", "scipy", "sklearn", "librosa", "soundfile"}),
+    ),
+    "engraving/score_view.py": PythonScope(
+        frozenset({"ports", "schemas", "engraving"}), frozenset({"verovio"})
+    ),
+}
+"""Feature 014 (T015): worker scopes by package-relative path (a folder ends with ``/``)."""
 
 STDLIB = frozenset(sys.stdlib_module_names) | {"__future__"}
 """Top-level names of the standard library."""
@@ -362,6 +408,15 @@ TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
 }
 """Allowed sibling packages per TypeScript package below ``src/`` (none: they are independent)."""
 
+TS_DATA_IMPORTS_ALLOWED: Mapping[str, frozenset[str]] = {
+    "web-interop": frozenset({"StemStudio.Web/wwwroot/js/keymap-defaults.json"}),
+}
+"""Data files (paths below ``src/``) a TypeScript package may import across packages.
+
+Feature 014 (web-interop 1.1.0 sections 5.1/5.4): ``defaultKeyMap`` reads the key map catalogue
+at build time, the same JSON file ``KeyMapDefaults`` reads in C#. Data, not code: no edge.
+"""
+
 _PRACTICE = frozenset({"audio-engine/practice", "audio-engine/stretch"})
 
 TS_MODULE_FORBIDDEN: Mapping[str, frozenset[str]] = {
@@ -370,6 +425,7 @@ TS_MODULE_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "audio-engine/metronome": _PRACTICE,
     "audio-engine/karaoke": _PRACTICE,
     "audio-engine/practice": frozenset({"audio-engine/karaoke"}),
+    "audio-engine/score-follow": frozenset({"audio-engine/callbacks", "audio-engine/index"}),
 }
 """Forbidden module edges inside a TypeScript package (``<package>/<top-level module>``).
 
@@ -378,6 +434,13 @@ practice controller drives transport, metronome and the stretch stage through na
 none of them (nor karaoke) imports ``practice/`` or ``stretch/``; ``practice/`` never imports
 ``karaoke/``.
 """
+
+
+TS_MODULE_IMPORTERS: Mapping[str, frozenset[str]] = {
+    "audio-engine/recording": frozenset({"audio-engine/engine"}),
+}
+"""Modules only the listed modules (and the module itself) may import (feature 015, T007:
+the recording core is reached through ``engine.ts`` only, never from ``index.ts``/``callbacks``)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -811,7 +874,10 @@ def _ts_file_edges(ts_file: Path, package: Path, root: Path) -> Iterator[Edge]:
     rel_path = relative(ts_file, root)
     for pattern in _TS_IMPORTS:
         for match in pattern.finditer(text):
-            target = _ts_target(match.group("spec"), ts_file, package.parent)
+            spec = match.group("spec")
+            if _allowed_data_import(spec, ts_file, package):
+                continue
+            target = _ts_target(spec, ts_file, package.parent)
             if target is not None and target != package.name:
                 line = text.count("\n", 0, match.start()) + 1
                 yield Edge(package.name, target, rel_path, line)
@@ -819,6 +885,18 @@ def _ts_file_edges(ts_file: Path, package: Path, root: Path) -> Iterator[Edge]:
 
 def _keep_newlines(match: re.Match[str]) -> str:
     return "\n" * match.group().count("\n")
+
+
+def _allowed_data_import(spec: str, ts_file: Path, package: Path) -> bool:
+    """True for a relative import of a data file listed in ``TS_DATA_IMPORTS_ALLOWED``."""
+    allowed = TS_DATA_IMPORTS_ALLOWED.get(package.name, frozenset())
+    if not spec.startswith(".") or not allowed:
+        return False
+    try:
+        rel = (ts_file.parent / spec).resolve().relative_to(package.parent.resolve())
+    except ValueError:
+        return False
+    return rel.as_posix() in allowed
 
 
 def _ts_target(spec: str, ts_file: Path, src_dir: Path) -> str | None:
@@ -960,14 +1038,67 @@ def run(root: Path) -> list[Finding]:
     worker_dir = root / WORKER.path
     if worker_dir.is_dir():
         findings.extend(check_external(read_external_edges(worker_dir, root)))
+        findings.extend(check_scopes(worker_dir, root, PYTHON_SCOPES))
     return findings
+
+
+def check_importers(
+    edges: Sequence[Edge], importers: Mapping[str, frozenset[str]]
+) -> list[Finding]:
+    """Return an error for every edge into a guarded module from a module not allowed to."""
+    return [
+        Finding("dependency", Severity.ERROR, edge.path, edge.line,
+                f"{_FORBIDDEN} {edge.source} -> {edge.target} (imported only by "
+                f"{', '.join(sorted(importers[edge.target]))})")
+        for edge in edges
+        if edge.target in importers and edge.source not in importers[edge.target]
+    ]  # fmt: skip
+
+
+def check_scopes(package_dir: Path, root: Path, scopes: Mapping[str, PythonScope]) -> list[Finding]:
+    """Return an error per import of a scoped worker file outside its scope's allow-lists."""
+    findings: list[Finding] = []
+    for module in _python_modules(package_dir, root):
+        key = _scope_of(module.rel.as_posix(), scopes)
+        if key is not None:
+            findings.extend(_scope_findings(module, key, scopes[key]))
+    return list(dict.fromkeys(findings))
+
+
+def _scope_of(rel: str, scopes: Mapping[str, PythonScope]) -> str | None:
+    folder = (key for key in scopes if key.endswith("/") and rel.startswith(key))
+    return rel if rel in scopes else next(folder, None)
+
+
+def _scope_findings(module: "_Module", key: str, scope: PythonScope) -> Iterator[Finding]:
+    yield from _scope_internal(module, key, scope.internal)
+    yield from _scope_external(module, key, scope.external)
+
+
+def _scope_internal(module: "_Module", key: str, allowed: frozenset[str]) -> Iterator[Finding]:
+    for parts, line in _imports(module.tree, module.rel, PYTHON_PACKAGE):
+        if parts and not _in_family(".".join(parts), allowed):
+            yield _scope_finding(module, line, f"{_FORBIDDEN} {key} -> {'.'.join(parts)}")
+
+
+def _scope_external(module: "_Module", key: str, allowed: frozenset[str]) -> Iterator[Finding]:
+    for target, line in _external_imports(module.tree):
+        if target not in {PYTHON_PACKAGE, *STDLIB, *allowed}:
+            message = f"forbidden third-party dependency {key} -> {target}"
+            yield _scope_finding(module, line, message)
+
+
+def _scope_finding(module: "_Module", line: int, message: str) -> Finding:
+    return Finding("dependency", Severity.ERROR, module.path, line, message)
 
 
 def check_typescript(root: Path) -> list[Finding]:
     """Check the TypeScript packages: package edges, module edges and the worklet scope."""
     src_dir = root / "src"
     findings = check_edges(read_ts_edges(src_dir, root), TS_ALLOWED)
-    findings.extend(check_forbidden(read_ts_module_edges(src_dir, root), TS_MODULE_FORBIDDEN))
+    module_edges = read_ts_module_edges(src_dir, root)
+    findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))
+    findings.extend(check_importers(module_edges, TS_MODULE_IMPORTERS))
     findings.extend(check_worklet(src_dir, root))
     return findings
 

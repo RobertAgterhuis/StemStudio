@@ -1,0 +1,25 @@
+{
+  "$comment": "Shared cases of the shortcut override rules (014 T046): read by src/web-interop/tests/preferences-v2.test.ts (validateOverrides) and Practice/KeyMapValidatorTests.cs (KeyMapValidator), so both sides apply the same rules to keymap-defaults.json.",
+  "cases": [
+    { "name": "remap to a free key", "input": { "mixer.section.next": [{ "key": "j" }] }, "overrides": { "mixer.section.next": [{ "key": "j" }] }, "dropped": [] },
+    { "name": "conflict with a default", "input": { "mixer.section.next": [{ "key": "l" }] }, "overrides": { "mixer.section.next": [] }, "dropped": ["mixer.section.next: conflicts with mixer.loop.toggle"] },
+    { "name": "a key freed by another override", "input": { "mixer.loop.toggle": [{ "key": "j" }], "mixer.section.next": [{ "key": "l" }] }, "overrides": { "mixer.loop.toggle": [{ "key": "j" }], "mixer.section.next": [{ "key": "l" }] }, "dropped": [] },
+    { "name": "reserved browser chord", "input": { "mixer.stop": [{ "key": "f5" }] }, "overrides": { "mixer.stop": [] }, "dropped": ["mixer.stop: Reloads the page"] },
+    { "name": "reserved mod chord", "input": { "mixer.stop": [{ "key": "w", "mod": true }] }, "overrides": { "mixer.stop": [] }, "dropped": ["mixer.stop: Browser shortcut"] },
+    { "name": "015 commands are overridable once released", "input": { "mixer.record.toggle": [{ "key": "j" }] }, "overrides": { "mixer.record.toggle": [{ "key": "j" }] }, "dropped": [] },
+    { "name": "a 015 default chord is taken", "input": { "mixer.stop": [{ "key": "r" }] }, "overrides": { "mixer.stop": [] }, "dropped": ["mixer.stop: conflicts with mixer.record.toggle"] },
+    { "name": "plain g starts a sequence", "input": { "mixer.stop": [{ "key": "g" }] }, "overrides": { "mixer.stop": [] }, "dropped": ["mixer.stop: Starts the \"G then\" sequences"] },
+    { "name": "mod+g is free", "input": { "mixer.stop": [{ "key": "g", "mod": true }] }, "overrides": { "mixer.stop": [{ "key": "g", "mod": true }] }, "dropped": [] },
+    { "name": "three chords", "input": { "mixer.stop": [{ "key": "j" }, { "key": "u" }, { "key": "y" }] }, "overrides": {}, "dropped": ["mixer.stop: not an overridable command or too many chords"] },
+    { "name": "unknown command and a sequence", "input": { "mixer.fly": [{ "key": "j" }], "go.import": [{ "key": "u" }] }, "overrides": {}, "dropped": ["mixer.fly: not an overridable command or too many chords", "go.import: not an overridable command or too many chords"] },
+    { "name": "not a list", "input": { "mixer.stop": { "key": "j" } }, "overrides": {}, "dropped": ["mixer.stop: not an overridable command or too many chords"] },
+    { "name": "invalid chord shapes", "input": { "mixer.stop": [{ "key": "" }, { "key": "J" }], "mixer.loop.a": [{ "key": "abcdefghijklmnopqrstu" }, { "key": "j", "mod": "yes" }], "mixer.loop.b": [{ "key": "u", "layer": "foot" }, 7] }, "overrides": { "mixer.stop": [], "mixer.loop.a": [], "mixer.loop.b": [] }, "dropped": ["mixer.stop: invalid chord", "mixer.stop: invalid chord", "mixer.loop.a: invalid chord", "mixer.loop.a: invalid chord", "mixer.loop.b: invalid chord", "mixer.loop.b: invalid chord"] },
+    { "name": "pedal layer", "input": { "mixer.play-pause": [{ "key": " " }, { "key": "b", "layer": "pedal" }] }, "overrides": { "mixer.play-pause": [{ "key": " " }, { "key": "b", "layer": "pedal" }] }, "dropped": [] },
+    { "name": "two overrides want the same key", "input": { "mixer.stop": [{ "key": "j" }], "mixer.loop.a": [{ "key": "j" }] }, "overrides": { "mixer.stop": [{ "key": "j" }], "mixer.loop.a": [] }, "dropped": ["mixer.loop.a: conflicts with mixer.stop"] },
+    { "name": "chord of another feature", "input": { "mixer.stop": [{ "key": "f8", "shift": false }] }, "overrides": { "mixer.stop": [] }, "dropped": ["mixer.stop: Used elsewhere: Next suggestion"] },
+    { "name": "empty list unbinds", "input": { "mixer.stop": [] }, "overrides": { "mixer.stop": [] }, "dropped": [] },
+    { "name": "shift rule of letters", "input": { "mixer.stop": [{ "key": "l", "shift": true }], "mixer.loop.a": [{ "key": "y", "shift": true }] }, "overrides": { "mixer.stop": [], "mixer.loop.a": [{ "key": "y", "shift": true }] }, "dropped": ["mixer.stop: conflicts with mixer.loop.section"] },
+    { "name": "nulls from .NET are cleaned", "input": { "mixer.stop": [{ "key": "j", "mod": null, "shift": null, "layer": null }] }, "overrides": { "mixer.stop": [{ "key": "j" }] }, "dropped": [] },
+    { "name": "not an object", "input": [1, 2], "overrides": {}, "dropped": [] }
+  ]
+}

@@ -9,7 +9,7 @@
 # when soundtouch.wasm has been built, the engine's Node WASM suite (test:wasm). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
-# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e] [--agent-e2e]
+# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e] [--agent-e2e] [--recording-e2e]
 #   --gpu-e2e  also start a fake stack as compose project stemstudio-e2e twice, with a fake GPU
 #              (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and run the
 #              Playwright @gpu specs each time (feature 003); needs ports 8080/8081 free and the Playwright
@@ -17,24 +17,33 @@
 #   --agent-e2e  also start a fake stack (STEMSTUDIO_AGENT_BACKEND=none) as compose project
 #              stemstudio-e2e and run scripts/agent-e2e.sh fake, then none (feature 011, T059); same
 #              prerequisites, the project and its volumes are removed afterwards
+#   --recording-e2e  also generate the 015 capture fixtures, start a fake stack with the e2e override
+#              (web StemStudio__Recording__TestLoopback=true) as compose project stemstudio-e2e and run
+#              npm run test:recording (project `recording`, full Chromium build, E2E_RECORDING_LOOPBACK=1;
+#              feature 015, T010); same prerequisites, the project and its volumes are removed afterwards
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTINUE=0
 GPU_E2E=0
 AGENT_E2E=0
+RECORDING_E2E=0
 E2E_PROJECT=stemstudio-e2e
 for arg in "$@"; do
   case "$arg" in
     --continue-on-error) CONTINUE=1 ;;
     --gpu-e2e) GPU_E2E=1 ;;
     --agent-e2e) AGENT_E2E=1 ;;
+    --recording-e2e) RECORDING_E2E=1 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 REDOCLY=@redocly/cli@2.78.0
-CONTRACTS=specs/008-sheet-music/contracts  # 008 documents contain 006's and 007's unchanged
-RENDER_VECTORS=specs/007-export-library/contracts/generate_render_vectors.py  # 008 has no vectors file
+# Round 014+015: the newest full backend document is 015's 1.14.0 (= 014's 1.13.0 + the recording
+# delta); the worker document is 014's 1.8.0. Render vectors 1.1.0 (007's + the take cases) are 015's.
+CONTRACTS=specs/015-play-along-recording/contracts
+RENDER_VECTORS=specs/015-play-along-recording/contracts/generate_render_vectors.py
+PRACTICE_FLOW_CONTRACTS=specs/014-practice-flow/contracts  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
 GENERATIVE_CONTRACTS=(specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts)
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
@@ -123,8 +132,11 @@ step "web-interop lint" src/web-interop npm run lint
 step "web-interop typecheck" src/web-interop npm run typecheck
 step "web-interop test:coverage" src/web-interop npm run test:coverage
 step "web-interop build" src/web-interop npm run build
-step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
-  "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
+step "contracts lint (015-play-along-recording)" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
+  "$CONTRACTS/backend-api.openapi.yaml" "$CONTRACTS/recording-api.openapi.yaml"
+step "contracts lint (014-practice-flow)" . npx --yes "$REDOCLY" lint --config "$PRACTICE_FLOW_CONTRACTS/redocly.yaml" \
+  "$PRACTICE_FLOW_CONTRACTS/backend-api.openapi.yaml" "$PRACTICE_FLOW_CONTRACTS/worker-api.openapi.yaml" \
+  "$PRACTICE_FLOW_CONTRACTS/practice-api.openapi.yaml" "$PRACTICE_FLOW_CONTRACTS/worker-practice.openapi.yaml"
 for dir in "${GENERATIVE_CONTRACTS[@]}"; do
   feature="${dir#specs/}"
   step "contracts lint (${feature%%/*})" . npx --yes "$REDOCLY" lint --config "$dir/redocly.yaml"     "$dir/generator-api.openapi.yaml" "$dir/backend-api.openapi.yaml"
@@ -141,6 +153,14 @@ step "contracts lint (022-library-folders)" . npx --yes "$REDOCLY" lint --config
 step "contracts lint (023-lyric-writing-assistant)" . npx --yes "$REDOCLY" lint --config "$LYRIC_ASSIST_CONTRACTS/redocly.yaml"   "$LYRIC_ASSIST_CONTRACTS/backend-api.openapi.yaml" "$LYRIC_ASSIST_CONTRACTS/backend-api.delta.openapi.yaml"
 step "contracts merge check (022 full 1.22.0)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_FOLDERS_CONTRACTS/merge_full.py" --check
 step "contracts merge check (023 full 1.23.0)" . uv run --no-project --with "$PYYAML" python -I "$LYRIC_ASSIST_CONTRACTS/merge_full.py" --check
+step "contracts superset (014 contains 1.23.0)" . uv run --no-project --with "$PYYAML" python -I "$PRACTICE_FLOW_CONTRACTS/check_superset.py"
+step "contracts superset (014 contains its delta)" . uv run --no-project --with "$PYYAML" python -I "$PRACTICE_FLOW_CONTRACTS/check_superset.py" \
+  "$PRACTICE_FLOW_CONTRACTS/practice-api.openapi.yaml" "$PRACTICE_FLOW_CONTRACTS/backend-api.openapi.yaml"
+step "contracts merge check (014 full 1.13.0)" . uv run --no-project --with "$PYYAML" python -I "$PRACTICE_FLOW_CONTRACTS/merge_full.py" --check
+step "contracts superset (015 contains 1.13.0)" . uv run --no-project --with "$PYYAML" python -I "$CONTRACTS/check_superset.py"
+step "contracts superset (015 contains its delta)" . uv run --no-project --with "$PYYAML" python -I "$CONTRACTS/check_superset.py" \
+  "$CONTRACTS/recording-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
+step "contracts merge check (015 full 1.14.0)" . uv run --no-project --with "$PYYAML" python -I "$CONTRACTS/merge_recording_delta.py" --check
 step "contracts output schema (023 check_output_schema.py)" . uv run --no-project --with "$JSONSCHEMA" python -I "$LYRIC_ASSIST_CONTRACTS/check_output_schema.py"
 step "contracts merge tests (023 test_merge_full.py)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest "$LYRIC_ASSIST_CONTRACTS"
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
@@ -193,6 +213,15 @@ if [[ $AGENT_E2E -eq 1 ]]; then
     step "agent e2e: lyric assistant ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/lyric-e2e.sh "$backend"
   done
   docker compose -p "$E2E_PROJECT" down -v
+fi
+if [[ $RECORDING_E2E -eq 1 ]]; then
+  # 015: the capture inputs come from a committed generator (module run from tests/fixtures).
+  step "recording e2e: capture fixtures" tests/fixtures uv run --project ../../worker --frozen \
+    python -m recording.generate_recording_fixtures
+  step "recording e2e: fake stack up (e2e override)" . env STEMSTUDIO_SEPARATOR=fake \
+    docker compose -p "$E2E_PROJECT" -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait --wait-timeout 300
+  step "recording e2e: playwright @recording" e2e env E2E_RECORDING_LOOPBACK=1 npm run test:recording
+  docker compose -p "$E2E_PROJECT" -f docker-compose.yml -f docker-compose.e2e.yml down -v
 fi
 
 echo -e "\n=== summary ==="

@@ -70,3 +70,18 @@ export function fixturePath(name: FixtureName | DetailFixtureName): string {
   }
   return file;
 }
+
+/** Files of `tests/fixtures/practice-flow/` (feature 014 T018, `generate_practice_flow_fixture.py`). */
+export type PracticeFlowFixtureName = 'practice-song.wav' | 'practice-song-free.wav';
+
+/**
+ * Absolute path of a generated practice-flow fixture (`practice-song-free.wav` has no reliable beat grid).
+ * @throws Error naming the generator command when the audio has not been generated yet.
+ */
+export function practiceFlowFixturePath(name: PracticeFlowFixtureName): string {
+  const file = path.join(fixtureRoot, 'practice-flow', name);
+  if (!existsSync(file)) {
+    throw new Error(`Fixture ${name} is missing; run: uv run --project worker python tests/fixtures/practice-flow/generate_practice_flow_fixture.py`);
+  }
+  return file;
+}

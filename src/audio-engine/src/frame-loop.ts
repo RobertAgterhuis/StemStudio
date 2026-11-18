@@ -115,3 +115,38 @@ export class FrameLoop {
     }
   }
 }
+
+/**
+ * A drawing that follows the transport on the shared loop (karaoke banner, score follower): every frame while
+ * playing, plus one frame after each event.
+ */
+export class FrameSubscription {
+  /**
+   * @param loop - The shared frame loop.
+   * @param draw - The drawing.
+   */
+  public constructor(
+    private readonly loop: FrameLoop,
+    private readonly draw: FrameCallback,
+  ) {}
+
+  /** @param playing - Draw every frame (true) or stop; one frame is drawn either way. */
+  public follow(playing: boolean): void {
+    if (playing) {
+      this.loop.add(this.draw);
+    } else {
+      this.loop.remove(this.draw);
+    }
+    this.loop.once(this.draw);
+  }
+
+  /** Draws one frame. */
+  public redraw(): void {
+    this.loop.once(this.draw);
+  }
+
+  /** Stops drawing every frame. */
+  public stop(): void {
+    this.loop.remove(this.draw);
+  }
+}

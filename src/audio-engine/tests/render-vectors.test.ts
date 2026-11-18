@@ -1,5 +1,6 @@
 /**
- * Consumer of the shared render vectors of feature 007 (`render-vectors.json` 1.0.0, T046).
+ * Consumer of the shared render vectors of features 007 and 015 (`render-vectors.json` 1.1.0: the 1.0.0 cases plus
+ * the take cases, 015 T073; first written for 007 T046).
  *
  * The engine owns the audible gate (mode `mix`, `channels = null`: what you hear) and the channel
  * strip `Gain(volume x gate) -> StereoPanner(pan) -> master Gain`. Every vector is checked against
@@ -36,6 +37,9 @@ interface VectorInput {
   readonly pan: number;
 }
 
+/** The take strip of a mix (015). */
+type VectorTakeChannel = Omit<VectorChannel, 'stem'> & { readonly takeId: string };
+
 interface GateVector {
   readonly name: string;
   readonly track: { readonly stems: readonly string[]; readonly split: Record<string, readonly string[]> };
@@ -44,6 +48,7 @@ interface GateVector {
     readonly channels: readonly VectorChannel[];
     readonly detailChannels: readonly VectorDetailChannel[];
     readonly expanded: readonly string[];
+    readonly take?: VectorTakeChannel;
   };
   readonly mode: 'mix' | 'raw';
   readonly channels: readonly string[] | null;
@@ -67,7 +72,7 @@ interface RenderVectors {
 
 const VECTORS_PATH = resolve(
   import.meta.dirname,
-  '../../../specs/007-export-library/contracts/render-vectors.json',
+  '../../../specs/015-play-along-recording/contracts/render-vectors.json',
 );
 const VECTORS = JSON.parse(readFileSync(VECTORS_PATH, 'utf8')) as RenderVectors;
 
@@ -81,13 +86,14 @@ function isAudibleCase(v: GateVector): boolean {
   return v.mode === 'mix' && v.channels === null;
 }
 
-/** Channel ids of the vector's track in mixer order: standard stems, then detail stems. */
+/** Channel ids of the vector's track in mixer order: standard stems, then detail stems, then the take strip (015). */
 function channelIds(v: GateVector): ChannelId[] {
   const details = v.track.stems.flatMap((p) => (v.track.split[p] ?? []).map((d) => `${p}.${d}`));
-  return [...v.track.stems, ...details] as ChannelId[];
+  const take = v.mix.take === undefined ? [] : ['take'];
+  return [...v.track.stems, ...details, ...take] as ChannelId[];
 }
 
-function toSettings(c: VectorChannel): ChannelSettings {
+function toSettings(c: Omit<VectorChannel, 'stem'>): ChannelSettings {
   return { volume: c.volume, pan: c.pan, mute: c.mute, solo: c.solo };
 }
 
@@ -96,6 +102,9 @@ function settingsOf(v: GateVector): Map<ChannelId, ChannelSettings> {
   const map = new Map<ChannelId, ChannelSettings>(channelIds(v).map((id) => [id, MIX_DEFAULT]));
   v.mix.channels.forEach((c) => map.set(c.stem as ChannelId, toSettings(c)));
   v.mix.detailChannels.forEach((c) => map.set(`${c.parent}.${c.stem}` as ChannelId, toSettings(c)));
+  if (v.mix.take !== undefined) {
+    map.set('take', toSettings(v.mix.take));
+  }
   return map;
 }
 
@@ -151,11 +160,12 @@ function stereoPannerMatrix(pan: number): number[][] {
 /** The gate cases of 1.0.0 that the engine's audible gate decides. */
 const AUDIBLE_CASES = ['no-solo', 'solo-standard', 'solo-hidden-ignored', 'mute-and-solo'].concat(
   ['expanded-muted-detail', 'collapsed-details-hidden', 'nothing-audible', 'four-stem-model'],
+  ['take-no-solo', 'take-solo-only', 'take-muted', 'take-compare-my-take', 'take-volume-zero'],
 );
 
 describe('render-vectors.json', () => {
-  it('is version 1.0.x with gate and pan cases', () => {
-    expect(VECTORS.version).toMatch(/^1\.0\.\d+$/);
+  it('is version 1.1.x with gate and pan cases', () => {
+    expect(VECTORS.version).toMatch(/^1\.1\.\d+$/);
     expect(VECTORS.gate.length).toBeGreaterThan(0);
     expect(VECTORS.pan.length).toBeGreaterThan(0);
   });
@@ -172,15 +182,14 @@ describe('render-vectors.json', () => {
 describe.each(VECTORS.gate.filter(isAudibleCase).map((v) => [v.name, v] as const))(
   'audible gate vector %s',
   (_name, vector) => {
-    it('gate.ts: gatesOf gives 1 exactly for the expected inputs', () => {
+    it('gate.ts: a channel is audible (gate 1 and volume > 0) exactly for the expected inputs', () => {
       const expanded = new Set(vector.mix.expanded as ParentStemName[]);
       const settings = settingsOf(vector);
       const ids = channelIds(vector);
       const gates = gatesOf(ids.map((id) => ({ settings: settings.get(id) ?? MIX_DEFAULT, hidden: isHidden(id, expanded) })));
       const expected = expectedInputs(vector);
-      expect(Object.fromEntries(ids.map((id, i) => [id, gates[i]]))).toEqual(
-        Object.fromEntries(ids.map((id) => [id, expected.has(id) ? 1 : 0])),
-      );
+      const audible = (id: ChannelId, i: number): boolean => (gates[i] ?? 0) * (settings.get(id)?.volume ?? 0) > 0;
+      expect(Object.fromEntries(ids.map((id, i) => [id, audible(id, i)]))).toEqual(Object.fromEntries(ids.map((id) => [id, expected.has(id)])));
     });
 
     it('Mixer: per-channel gain (volume x gate), pan and master match the vector', () => {

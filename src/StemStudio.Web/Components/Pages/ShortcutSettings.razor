@@ -1,0 +1,87 @@
+@page "/settings/shortcuts"
+@* Shortcut settings (014 US2, FR-019, FR-021..FR-023; ui-test-ids 1.13.0 shortcut-*, pedal-*): change or clear the keys of
+   every command (Learn), reset all, and the two-pedal setup with presets, Learn, pedal mode and a test indicator.
+   Advanced and Expert; Beginners see where to switch. *@
+@using StemStudio.Web.Practice
+@inherits StemStudio.Web.Components.Shell.PreferencesAware
+
+<PageTitle>Shortcuts - StemStudio</PageTitle>
+
+<div class="ss-page ss-shortcut-settings" data-testid="shortcut-settings" data-help-id="shortcut-settings">
+    <header class="ss-page-head">
+        <h1>Shortcuts and foot pedals <HelpHint HelpId="shortcuts-custom" /></h1>
+        <p class="ss-help">Choose your own keys. A key can do one thing only; keys the browser or a screen reader needs cannot be used.</p>
+    </header>
+    @if (!CanEdit)
+    {
+        <p class="ss-notice" role="note">Changing keys and setting up foot pedals is available at the Advanced and Expert levels.</p>
+    }
+    <LevelGate Feature="shortcuts.settings">
+        @if (Capturing is not null)
+        {
+            <div class="ss-notice" role="status" data-testid="shortcut-capture">
+                Press the new key for "@CaptureLabel" now. Escape cancels.
+                <RadzenButton Text="Cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="CancelCaptureAsync" data-testid="shortcut-capture-cancel" />
+            </div>
+        }
+        @if (Conflict is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="shortcut-conflict">@Conflict</div>
+        }
+        @foreach (var group in Groups)
+        {
+            <table class="ss-shortcut-table ss-shortcut-edit-table">
+                <caption>@group.Title</caption>
+                <thead><tr><th scope="col">Action</th><th scope="col">Keys</th><th scope="col"><span class="ss-sr-only">Change</span></th></tr></thead>
+                <tbody>
+                    @foreach (var line in group.Lines.Where(l => !l.IsSequence))
+                    {
+                        <tr data-keys="@line.DataKeys">
+                            <th scope="row">@line.Label</th>
+                            <td><kbd>@line.Text</kbd></td>
+                            <td class="ss-shortcut-actions">
+                                <RadzenButton Text="@($"Change {line.Label}")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                              Click="() => CaptureCommandAsync(line.Command)" data-testid="@($"shortcut-edit-{line.TestId}")" />
+                                <RadzenButton Text="@($"Clear {line.Label}")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                              Click="() => ClearAsync(line.Command)" data-testid="@($"shortcut-clear-{line.TestId}")" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <RadzenButton Text="Reset all shortcuts" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="ResetAllAsync" data-testid="shortcut-reset-all" />
+
+        <section class="ss-console-panel ss-pedal-setup" aria-labelledby="pedal-title" data-testid="pedal-setup" data-help-id="pedal-setup">
+            <h2 id="pedal-title" class="ss-panel-title">Foot pedals <HelpHint HelpId="foot-pedals" /></h2>
+            <label class="ss-inline-label" for="pedal-preset">Pedals do
+                <select id="pedal-preset" class="rz-dropdown ss-select" value="@Shortcuts.PedalPreset" @onchange="PresetAsync" data-testid="pedal-preset">
+                    @foreach (var preset in ShortcutKeys.Catalogue.Pedal.Presets)
+                    {
+                        <option value="@preset.Id">@preset.Label</option>
+                    }
+                </select>
+            </label>
+            <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(Shortcuts.PedalMode ? "true" : "false")"
+                    aria-describedby="pedal-mode-help" @onclick="TogglePedalModeAsync" data-testid="pedal-mode">Pedal mode</button>
+            <p id="pedal-mode-help" class="ss-help">On: the pedals also work while a slider or button has the focus (never in a text field).</p>
+            @if (Custom)
+            {
+                <p class="ss-help" role="note">Custom: change a command above and press the pedal to give it that pedal.</p>
+            }
+            else
+            {
+                @foreach (var side in Sides)
+                {
+                    <div class="ss-pedal-side">
+                        <span>@SideName(side) pedal: <kbd data-testid="@($"pedal-{SideId(side)}-key")">@KeyChords.Display(PedalPresets.KeyOf(ShortcutKeys.Catalogue, Shortcuts, side))</kbd>
+                            - @ShortcutEditor.Label(ShortcutKeys.Catalogue, PedalPresets.CommandOf(ShortcutKeys.Catalogue, Shortcuts, side)!)</span>
+                        <RadzenButton Text="@($"Learn {SideName(side).ToLowerInvariant()} pedal")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                      Click="() => CapturePedalAsync(side)" data-testid="@($"pedal-learn-{SideId(side)}")" />
+                    </div>
+                }
+            }
+            <p class="ss-muted" role="status" aria-live="polite" data-testid="pedal-test">@(PedalTest ?? "Press a pedal to test it.")</p>
+        </section>
+    </LevelGate>
+</div>

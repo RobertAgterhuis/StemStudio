@@ -1,0 +1,233 @@
+/* Practice flow (feature 014): section lane, section editor, score panel, setlists, practice log, shortcut settings.
+   Tokens of the 004 design system only; state is never shown by colour alone (outline, pattern, text). */
+
+.ss-sections {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  /* Stretch, not the panel's centre: centred column items take their max-content width and overflow at 320 px. */
+  align-items: stretch;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
+
+.ss-section-lane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-section-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-section {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ss-section-kind {
+  color: var(--ss-color-muted);
+  font-size: 0.85em;
+}
+
+/* Current: thick inner outline plus a leading bar; looped: primary fill plus a striped pattern. */
+.ss-section-current {
+  box-shadow: inset 0 0 0 2px var(--ss-color-ink);
+  border-inline-start-width: 4px;
+}
+
+.ss-section-looped {
+  border-color: var(--ss-color-primary);
+  background-image: repeating-linear-gradient(135deg, var(--ss-color-sunken) 0 6px, var(--ss-color-raised) 6px 12px);
+}
+
+.ss-section-looped .ss-section-label {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.ss-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+}
+
+.ss-section-confidence {
+  font-size: 0.85em;
+}
+
+.ss-section-editor-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding-inline-start: var(--ss-space-5);
+}
+
+.ss-section-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+  padding-block: var(--ss-space-1);
+  border-block-end: 1px solid var(--ss-color-divider);
+}
+
+/* Score follow (US4): pages scroll inside the panel; bar click targets over the image; the engine's highlight
+   (.score-highlight, pointer-events none) is an outline plus a hatched translucent fill, not colour alone. */
+.ss-score-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+}
+
+.ss-score-view {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-base);
+}
+
+.ss-score-page {
+  position: relative;
+  margin-block-end: var(--ss-space-3);
+}
+
+.ss-score-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ss-score-bar {
+  position: absolute;
+  cursor: pointer;
+}
+
+.ss-score-page .score-highlight {
+  border: 3px solid var(--ss-color-focus);
+  border-radius: var(--ss-radius-control);
+  background-image: repeating-linear-gradient(45deg, var(--ss-color-scrim) 0 3px, var(--ss-color-none) 3px 8px);
+  opacity: 0.6;
+}
+
+.ss-score-page .score-highlight[data-state="idle"] {
+  display: none;
+}
+
+/* Setlists (US5). */
+.ss-setlist-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-setlist-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  cursor: grab;
+}
+
+.ss-setlist-title {
+  flex: 1 1 12rem;
+}
+
+.ss-setlist-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-setlist-bar-note {
+  flex: 1 1 10rem;
+  font-style: italic;
+}
+
+.ss-add-to-setlist,
+.ss-add-to-setlist-menu {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Long labels ("Add <mix name> to setlist", section navigation) wrap instead of widening the page at 320 px (WCAG 1.4.10). */
+.ss-add-to-setlist .rz-button,
+.ss-section-nav .rz-button {
+  max-width: 100%;
+  height: auto;
+}
+
+.ss-add-to-setlist .rz-button-text,
+.ss-section-nav .rz-button-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.ss-link-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+  text-decoration: none;
+}
+
+/* Practice log (US6): totals and bar charts (outline plus fill, the table view carries the numbers). */
+.ss-practice-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-4);
+  margin: 0;
+}
+
+.ss-practice-totals dd {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.ss-chart {
+  width: 100%;
+  height: 6rem;
+  border-block-end: 1px solid var(--ss-color-divider);
+}
+
+.ss-chart-bar {
+  fill: var(--ss-color-primary);
+  stroke: var(--ss-color-ink);
+  stroke-width: 0.3;
+}
+
+.ss-chart-bar-tempo {
+  fill: var(--ss-color-success);
+}

@@ -36,7 +36,7 @@ public sealed class AssetService(IAssetRepository assets, IAssetFileStore files,
             return AssetProblems.NotFound(id);
         }
 
-        return Rename(asset, request?.Name) ?? await SaveAsync(asset, cancellationToken);
+        return AssetOriginPolicy.ManagedElsewhere(asset) ?? Rename(asset, request?.Name) ?? await SaveAsync(asset, cancellationToken);
     }
 
     private IResult? Rename(Asset asset, string? name)
@@ -58,7 +58,7 @@ public sealed class AssetService(IAssetRepository assets, IAssetFileStore files,
         return TypedResults.Ok(await ToDtoAsync(asset, cancellationToken));
     }
 
-    /// <summary>Serves a file of a ready item with Range, ETag (the quoted SHA-256) and <c>Content-Disposition</c>.</summary>
+    /// <summary>Serves a stored file of an item (ready, or a take being stored again with its previous audio, feature 015) with Range, ETag (the quoted SHA-256) and <c>Content-Disposition</c>.</summary>
     /// <param name="id">Item ID.</param>
     /// <param name="role">File role.</param>
     /// <param name="inline">True for <c>inline</c> (player).</param>
@@ -67,7 +67,7 @@ public sealed class AssetService(IAssetRepository assets, IAssetFileStore files,
     public async Task<IResult> GetFileAsync(Guid id, string role, bool inline, CancellationToken cancellationToken)
     {
         var asset = await assets.FindAsync(id, cancellationToken);
-        var file = asset is { Status: AssetStatus.Ready } ? asset.Files.FirstOrDefault(entry => entry.Role == role) : null;
+        var file = asset?.Files.FirstOrDefault(entry => entry.Role == role);
         var stored = file is null ? null : files.Find(id, file.FileName);
         return stored is null ? ApiProblems.NotFound($"Library item {id} has no ready file '{role}'.") : Serve(asset!, file!, stored, inline);
     }

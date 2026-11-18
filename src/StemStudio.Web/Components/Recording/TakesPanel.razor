@@ -1,0 +1,61 @@
+@* The takes of the track, newest first (FR-010..FR-014; ui-test-ids 1.14.0 takes-panel, takes-empty, takes-total-size, and from
+   Advanced takes-session-<sessionId> with data-passes and takes-keep-starred-<sessionId>). The rows form one radio group (fieldset):
+   the chosen take plays in the take strip. *@
+
+@{
+    RenderFragment<TakeItem> row = item =>
+        @<TakeRow Item="item" Selected="IsLoaded(item)" Editing="IsEditing(item)" RenameError="@_renameError"
+                  OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" OnPlayFrom="() => PlayFromAsync(item)"
+                  OnRenameStart="() => StartRename(item)" OnRename="name => RenameAsync(item, name)" OnRenameCancel="CancelRename"
+                  OnExport="() => OnExport.InvokeAsync(item)" OnDelete="() => DeleteAsync(item)" OnRetry="() => RetryAsync(item)" />;
+}
+
+<section class="ss-console-panel" aria-labelledby="takes-title" data-testid="takes-panel">
+    <h2 id="takes-title" class="ss-panel-title">Takes <HelpHint HelpId="recording" /></h2>
+    @if (Takes.Items.Count == 0)
+    {
+        <p class="ss-help" data-testid="takes-empty">No takes yet. Press Record to make one.</p>
+    }
+    else
+    {
+        <p class="ss-muted" data-testid="takes-total-size">@StemStudio.Web.Services.ByteSize.Format(Takes.TotalSizeBytes) in @Takes.Count @(Takes.Count == 1 ? "take" : "takes")</p>
+        @* A fieldset groups the native radios (one name); the rows stay a plain list, so every li is a valid list item. *@
+        <fieldset class="ss-take-group">
+        <legend class="ss-sr-only">Take in the take strip</legend>
+        <ul class="ss-take-list">
+            @foreach (var session in Takes.Sessions())
+            {
+                @if (ShowsGroup(session))
+                {
+                    <li data-testid="@($"takes-session-{session.SessionId:D}")" data-passes="@session.Takes.Count" data-help-id="recording-loop-takes">
+                        <span>Loop session, @session.Takes.Count passes</span>
+                        @if (session.CanKeepStarred)
+                        {
+                            <RadzenButton Text="Delete the other passes" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                          Click="() => KeepStarredAsync(session)" data-testid="@($"takes-keep-starred-{session.SessionId:D}")" />
+                        }
+                        <ul class="ss-take-list">
+                            @foreach (var item in session.Takes)
+                            {
+                                @row(item)
+                            }
+                        </ul>
+                    </li>
+                }
+                else
+                {
+                    @foreach (var item in session.Takes)
+                    {
+                        @row(item)
+                    }
+                }
+            }
+        </ul>
+        </fieldset>
+    }
+    @if (Takes.Error is { } error)
+    {
+        <p class="ss-notice" role="alert" data-testid="takes-error">@error</p>
+    }
+    @ChildContent
+</section>

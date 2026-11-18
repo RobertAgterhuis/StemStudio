@@ -111,6 +111,26 @@ public sealed class LibraryFolderPageTests : LibraryTestContext
         page.FindAll("[data-testid=library-error]").ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// "Open in library" right after an export links to the song folder of the preview placement; that folder exists only
+    /// once the item is filed. The view keeps asking every 2 s and shows the folder when it appears (main CI: export.spec
+    /// waited 60 s for a row on a page that had stopped polling at its first 404).
+    /// </summary>
+    [Fact]
+    public void FolderNotThereYet_IsAskedAgainEveryTwoSeconds_AndShownWhenTheItemIsFiled()
+    {
+        Folder(LibraryData.SongId, () => throw Problem(HttpStatusCode.NotFound, "This folder is empty now"), LibraryData.SongView);
+        var page = RenderFolder(LibraryData.SongId);
+        page.Find("[data-testid=library-folder-missing]").ShouldNotBeNull();
+
+        Time.Advance(FolderViewPollEvery);
+        Timer.Tick();
+
+        page.WaitForAssertion(() => page.FindAll("[data-testid=library-folder-missing]").ShouldBeEmpty());
+        page.Find("[data-testid=library-folder-title]").TextContent.ShouldNotBeEmpty();
+        FolderRequests(LibraryData.SongId).Count().ShouldBe(2);
+    }
+
     [Fact]
     public void InvalidFolderId_IsNotSentToTheApi()
     {

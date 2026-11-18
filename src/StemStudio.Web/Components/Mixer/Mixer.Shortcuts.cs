@@ -1,21 +1,25 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Mixer;
+using StemStudio.Web.Practice;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Mixer;
 
 /// <summary>
-/// Mixer keyboard commands (design-spec.md 6, FR-019) and the mixer's command-palette actions. Every command calls
-/// the same method as the matching button; channel keys select a standard strip (<c>data-selected</c>) for M/S.
+/// Mixer keyboard commands (design-spec.md 6, 014 FR-019/FR-020) and the mixer's command-palette actions. The key map is
+/// data (web-interop 1.1.0, <see cref="ShortcutKeys"/>); every command id goes through <see cref="MixerCommandRegistry"/>
+/// to the same method as its control. Channel keys select a standard strip (<c>data-selected</c>) for M/S.
+/// Other features register their commands in partial methods (015: <c>RegisterRecordingCommands</c>).
 /// </summary>
 public sealed partial class Mixer
 {
     private readonly List<IDisposable> _actions = [];
+    private readonly MixerCommandRegistry _commands = new();
     private IAsyncDisposable? _mixerKeys;
 
     [Inject]
-    private IWebInterop Web { get; set; } = default!;
+    private ShortcutKeys Keys { get; set; } = default!;
 
     [Inject]
     private PageCommands Commands { get; set; } = default!;
@@ -23,13 +27,38 @@ public sealed partial class Mixer
     /// <summary>Engine channel id of the selected standard strip, or <see langword="null"/>.</summary>
     private string? SelectedStem { get; set; }
 
+    /// <summary>Hook of feature 015 (<c>Mixer.Recording.cs</c>): registers <c>mixer.record.toggle</c> and <c>mixer.compare.cycle</c>.</summary>
+    /// <param name="commands">The mixer's command registry.</param>
+    partial void RegisterRecordingCommands(MixerCommandRegistry commands);
+
     private async Task RegisterKeysAsync()
     {
-        _mixerKeys = await Web.RegisterShortcutsAsync(ShortcutScope.Mixer, id => InvokeAsync(() => OnMixerCommandAsync(id)));
+        RegisterCommands();
+        _mixerKeys = await Keys.RegisterAsync(ShortcutScope.Mixer, id => InvokeAsync(() => OnMixerCommandAsync(id)));
         _actions.Add(Commands.Register("mixer-save", "Save mix", () => ActionAsync(SaveAsync)));
         _actions.Add(Commands.Register("mixer-save-as", "Save mix as", () => ActionAsync(() => SaveCommandAsync("mixer.save-as"))));
         _actions.Add(Commands.Register("mixer-play", "Play or pause", () => ActionAsync(TogglePlaybackAsync)));
         RegisterPracticeActions();
+    }
+
+    private void RegisterCommands()
+    {
+        _commands.Add("mixer.play-pause", TogglePlaybackAsync);
+        _commands.Add("mixer.stop", StopAsync);
+        _commands.Add("mixer.seek", seconds => SeekAsync(Math.Clamp(Position + seconds, 0, State!.Duration)));
+        _commands.Add("mixer.loop.a", () => SetLoopStartAsync(Position));
+        _commands.Add("mixer.loop.b", () => SetLoopEndAsync(Position));
+        _commands.Add("mixer.loop.toggle", ToggleLoopAsync);
+        _commands.Add("mixer.metronome.toggle", () => SetMetronomeAsync(State!.Metronome with { Enabled = !State.Metronome.Enabled }));
+        _commands.Add("mixer.channel.select", channel => Select((int)channel));
+        _commands.Add("mixer.channel.mute", () => SelectedStem is { } stem ? ToggleMuteAsync(stem) : Task.CompletedTask);
+        _commands.Add("mixer.channel.solo", () => SelectedStem is { } stem ? ToggleSoloAsync(stem) : Task.CompletedTask);
+        _commands.Add("mixer.save", SaveAsync);
+        _commands.Add("mixer.save-as", () => SaveCommandAsync("mixer.save-as"));
+        RegisterPracticeCommands(_commands);
+        RegisterSectionCommands(_commands);
+        RegisterScoreCommands(_commands);
+        RegisterRecordingCommands(_commands);
     }
 
     private Task ActionAsync(Func<Task> action) => InvokeAsync(async () =>
@@ -47,28 +76,11 @@ public sealed partial class Mixer
 
     private async Task OnMixerCommandAsync(string commandId)
     {
-        var parts = commandId.Split(':', 2);
-        var argument = parts.Length > 1 ? double.Parse(parts[1], CultureInfo.InvariantCulture) : 0;
-        await (parts[0] switch
+        if (State is not null && await _commands.DispatchAsync(commandId))
         {
-            "mixer.stop" => StopAsync(),
-            "mixer.seek" => SeekAsync(Math.Clamp(Position + argument, 0, State!.Duration)),
-            "mixer.loop.a" => SetLoopStartAsync(Position),
-            "mixer.loop.b" => SetLoopEndAsync(Position),
-            "mixer.loop.toggle" => ToggleLoopAsync(),
-            _ => ChannelCommandAsync(parts[0], (int)argument),
-        });
-        StateHasChanged();
+            StateHasChanged();
+        }
     }
-
-    private Task ChannelCommandAsync(string command, int channel) => command switch
-    {
-        "mixer.metronome.toggle" => SetMetronomeAsync(State!.Metronome with { Enabled = !State.Metronome.Enabled }),
-        "mixer.channel.select" => Select(channel),
-        "mixer.channel.mute" => SelectedStem is { } stem ? ToggleMuteAsync(stem) : Task.CompletedTask,
-        "mixer.channel.solo" => SelectedStem is { } soloed ? ToggleSoloAsync(soloed) : Task.CompletedTask,
-        _ => PracticeCommandAsync(command, channel),
-    };
 
     private Task SaveCommandAsync(string command)
     {

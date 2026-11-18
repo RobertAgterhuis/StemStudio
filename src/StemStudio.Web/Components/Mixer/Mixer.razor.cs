@@ -19,7 +19,6 @@ public sealed partial class Mixer : IAsyncDisposable
     private const string NotReadyMessage = "This track is not ready yet. Open the mixer once processing has completed.";
     private TrackDto? _track;
     private bool _engineStarted;
-    private IAsyncDisposable? _spaceKey;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -29,9 +28,6 @@ public sealed partial class Mixer : IAsyncDisposable
 
     [Inject]
     private IConfirmService Confirm { get; set; } = default!;
-
-    [Inject]
-    private IKeyboardShortcuts Shortcuts { get; set; } = default!;
 
     [Inject]
     private ToastService Toasts { get; set; } = default!;
@@ -47,6 +43,10 @@ public sealed partial class Mixer : IAsyncDisposable
     /// <summary>Optional mix to load (<c>?mixId=</c>).</summary>
     [SupplyParameterFromQuery]
     public Guid? MixId { get; set; }
+
+    /// <summary>The mix to load when the mixer is hosted by setlist play mode (014 US5); wins over <see cref="MixId"/>.</summary>
+    [Parameter]
+    public Guid? SetlistMixId { get; set; }
 
     private MixerState? State { get; set; }
 
@@ -73,7 +73,7 @@ public sealed partial class Mixer : IAsyncDisposable
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
         ReleasePractice();
         ReleaseAgentTools();
-        await (_spaceKey?.DisposeAsync() ?? ValueTask.CompletedTask);
+        await CloseRecorderAsync();
         await ReleaseKeysAsync();
         await Engine.DisposeAsync();
     }
@@ -102,13 +102,17 @@ public sealed partial class Mixer : IAsyncDisposable
         }
 
         _engineStarted = true;
-        _spaceKey = await Shortcuts.RegisterSpaceAsync(() => InvokeAsync(TogglePlaybackAsync));
         await RegisterKeysAsync();
         SubscribeEngine();
         await StartEngineAsync(State);
+        OnEngineStarted();
+        await StartRecorderAsync();
         RegisterAgentTools();
         StateHasChanged();
     }
+
+    /// <summary>Hook of feature 015 (<c>Mixer.Recording.cs</c>): runs once after the engine has loaded the track.</summary>
+    partial void OnEngineStarted();
 
     private async Task StartEngineAsync(MixerState state)
     {
@@ -161,6 +165,8 @@ public sealed partial class Mixer : IAsyncDisposable
         _ = InvokeAsync(() =>
         {
             Position = seconds;
+            RecordContext();
+            RecordPosition(seconds);
             StateHasChanged();
         });
 
@@ -168,6 +174,7 @@ public sealed partial class Mixer : IAsyncDisposable
         _ = InvokeAsync(() =>
         {
             Playback = state;
+            RecordPlayback(state);
             StateHasChanged();
         });
 

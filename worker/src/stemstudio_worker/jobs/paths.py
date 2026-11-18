@@ -142,6 +142,21 @@ class DataPaths:
         """Transcription job files ``<id>.json`` and score files ``<id>/score.*`` (feature 008)."""
         return self.root / "transcription-jobs"
 
+    @property
+    def section_jobs(self) -> Path:
+        """Section job files ``<id>.json`` of the ``practice`` lane (feature 014)."""
+        return self.root / "section-jobs"
+
+    @property
+    def score_view_jobs(self) -> Path:
+        """Score-view job files ``<id>.json`` and pages ``<id>/page-NNN.svg`` (feature 014)."""
+        return self.root / "score-view-jobs"
+
+    @property
+    def setlist_document_jobs(self) -> Path:
+        """Setlist job files ``<id>.json`` and PDFs ``<id>/setlist.pdf`` (feature 014)."""
+        return self.root / "setlist-document-jobs"
+
     def lyrics_result(self, job_id: str) -> Path:
         """Result of a completed lyrics job (copyrighted text; deleted after the backend copy)."""
         return self.lyrics_job_dir(job_id) / "result.json"

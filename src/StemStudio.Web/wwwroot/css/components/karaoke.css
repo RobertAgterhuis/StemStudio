@@ -5,14 +5,26 @@
  * themes (TokenContrastTests).
  */
 
-/* Dock: the banner and the transport stick to the bottom of the viewport together; the banner never covers the transport. */
+/* Dock: the banner and the transport form one fixed bar at the bottom of the viewport, beside the rail; the banner never
+   covers the transport. Fixed, not sticky (014 integration, WCAG 2.5.8): a sticky dock is part of the page flow, so a
+   target that had scrolled half under it counted as overlapped by the dock's controls. The page reserves the dock's
+   measured inset instead (mixer.css, js/dock-inset.js), so the end of the console still scrolls above it. */
 .ss-mixer-dock {
-  position: sticky;
+  position: fixed;
+  right: 0;
   bottom: 0;
+  left: calc(var(--ss-rail-width) + 1px);
   z-index: var(--ss-z-transport);
   display: grid;
-  margin: 0 calc(-1 * var(--ss-gutter));
   background: var(--ss-color-base);
+}
+
+/* A docked help or agent panel (>= 1280 px, help.css, agent.css) narrows the content; the dock ends where it starts. */
+@media (min-width: 1280px) {
+  .ss-shell-help-open .ss-mixer-dock,
+  .ss-shell-agent-open .ss-mixer-dock {
+    right: var(--ss-help-width);
+  }
 }
 
 .ss-mixer-dock > .ss-transport-dock {
@@ -193,9 +205,10 @@ html[data-motion="reduced"] .ss-karaoke-host .karaoke-word[data-state="current"]
 }
 
 @media (max-width: 767.98px) {
+  /* The rail is the bottom navigation bar here: the dock spans the width above it. */
   .ss-mixer-dock {
     bottom: 3.5rem;
-    margin: 0 calc(-1 * var(--ss-space-4));
+    left: 1px;
   }
 
   .ss-karaoke {

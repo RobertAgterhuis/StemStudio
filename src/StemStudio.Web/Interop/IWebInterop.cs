@@ -1,4 +1,5 @@
 using System.Text.Json;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Interop;
 
@@ -42,6 +43,25 @@ public interface IWebInterop
     /// <param name="onCommand">Receives command ids such as <c>help.open</c> or <c>mixer.channel.select:3</c>.</param>
     /// <returns>Disposing removes the key listeners.</returns>
     ValueTask<IAsyncDisposable> RegisterShortcutsAsync(ShortcutScope scope, Func<string, Task> onCommand);
+
+    /// <summary><c>registerShortcuts(dotnet, scope, keyMap)</c> (web-interop 1.1.0): only the given bindings of the scope fire.</summary>
+    /// <param name="scope">Key map scope.</param>
+    /// <param name="keyMap">The effective key map (<see cref="KeyMapBuilder"/>).</param>
+    /// <param name="onCommand">Receives command ids.</param>
+    /// <returns>Disposing removes the key listener; pass it to <see cref="UpdateShortcutsAsync"/> to swap the map.</returns>
+    ValueTask<IAsyncDisposable> RegisterShortcutsAsync(ShortcutScope scope, KeyMap keyMap, Func<string, Task> onCommand);
+
+    /// <summary><c>updateShortcuts(handle, keyMap)</c>: swaps the key map of a registration without re-registering.</summary>
+    /// <param name="registration">A registration returned by the key map overload of <c>RegisterShortcutsAsync</c>.</param>
+    /// <param name="keyMap">The new key map.</param>
+    /// <returns>A task that completes when swapped (ignored for other registrations).</returns>
+    ValueTask UpdateShortcutsAsync(IAsyncDisposable registration, KeyMap keyMap);
+
+    /// <summary><c>captureChord(dotnet, {timeoutMs})</c>: "Learn" - the next key press is reported once, Escape and the timeout report null.</summary>
+    /// <param name="timeout">Timeout (1..30 s).</param>
+    /// <param name="onCaptured">Receives the chord, or null.</param>
+    /// <returns>Disposing stops capturing without a report.</returns>
+    ValueTask<IAsyncDisposable> CaptureChordAsync(TimeSpan timeout, Func<KeyChordData?, Task> onCaptured);
 
     /// <summary><c>startTour(dotnet, tour)</c>: runs a tour with driver.js; hidden or missing targets are skipped.</summary>
     /// <param name="tour">Tour with texts resolved from the help topics.</param>

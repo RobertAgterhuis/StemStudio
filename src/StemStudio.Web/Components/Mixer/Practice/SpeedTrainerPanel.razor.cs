@@ -26,6 +26,10 @@ public sealed partial class SpeedTrainerPanel
     [Parameter]
     public string? LoopProblem { get; set; }
 
+    /// <summary>The trainer region named by the loop ("Region: Guitar solo (0:40-0:56)"; 014 A-012-3), or null without a loop.</summary>
+    [Parameter]
+    public string? RegionLabel { get; set; }
+
     /// <summary>True while the time-stretch stage is unavailable.</summary>
     [Parameter]
     public bool Unavailable { get; set; }

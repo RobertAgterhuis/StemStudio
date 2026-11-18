@@ -21,7 +21,14 @@ import { webBaseUrl } from './env';
 export type { DensityPreference, Level, MotionPreference, ThemePreference };
 
 /** Ids of the five tours of design-spec.md 7. */
-export type TourId = 'import-basics' | 'track-basics' | 'mixer-basics' | 'mixer-advanced' | 'expert-keyboard';
+export type TourId =
+  | 'import-basics'
+  | 'track-basics'
+  | 'mixer-basics'
+  | 'mixer-advanced'
+  | 'expert-keyboard'
+  | 'practice-section'
+  | 'hands-free';
 
 /** One stored tour result (data-model.md 1.1 `help.tours`). */
 export interface StoredTourRecord {
@@ -91,6 +98,9 @@ export const tourVersions: Readonly<Record<TourId, number>> = {
   'mixer-basics': 2,
   'mixer-advanced': 2,
   'expert-keyboard': 1,
+  // 014: the section-loop and hands-free tours.
+  'practice-section': 1,
+  'hands-free': 1,
 };
 
 /** Fixed timestamp, so stored records (and screenshots of anything derived) are deterministic. */

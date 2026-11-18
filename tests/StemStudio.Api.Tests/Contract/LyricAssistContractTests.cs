@@ -22,7 +22,8 @@ public sealed partial class LyricAssistContractTests
 
     private static OpenApiContract Delta => LazyDelta.Value;
 
-    private static OpenApiContract Backend => OpenApiContract.Backend;
+    // The 1.23.0 document under test (linked as Contract/023); the current full document is 014's 1.13.0 on top of it.
+    private static OpenApiContract Backend => Backend023;
 
     // The full document 1.23.0 was merged onto: 022's 1.22.0 (= 013's 1.12.0 + 022; 012's 1.11.0 in the 023 Phase 0), re-pointed at
     // the 022+023 round start (DELTA.md section 5, merge_full.py); every assertion below proves "base + exactly the 023 delta".

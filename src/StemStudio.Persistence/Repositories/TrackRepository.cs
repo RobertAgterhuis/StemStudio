@@ -86,6 +86,7 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     /// <inheritdoc />
     public async Task RemoveAsync(Track track, CancellationToken cancellationToken)
     {
+        await SetlistRemovals.CountAsync(context, track.Id, cancellationToken);
         context.Tracks.Remove(track);
         await UnitOfWork.SaveAsync(context, cancellationToken);
     }
@@ -95,6 +96,7 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     {
         context.Mixes.RemoveRange(await context.Mixes.Where(mix => mix.TrackId == track.Id).ToListAsync(cancellationToken));
         await RemoveOrphanedArtistAsync(track, cancellationToken);
+        await SetlistRemovals.CountAsync(context, track.Id, cancellationToken);
         context.Tracks.Remove(track);
         await UnitOfWork.SaveAsync(context, cancellationToken);
     }

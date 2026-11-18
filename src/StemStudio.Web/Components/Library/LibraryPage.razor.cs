@@ -4,6 +4,7 @@ using StemStudio.Web.Api;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Library;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Components.Library;
 
@@ -31,7 +32,7 @@ public sealed partial class LibraryPage
     private TimeProvider Time { get; set; } = default!;
 
     [Inject]
-    private IWebInterop Web { get; set; } = default!;
+    private ShortcutKeys Keys { get; set; } = default!;
 
     /// <summary>The cascaded level.</summary>
     [CascadingParameter]
@@ -86,7 +87,7 @@ public sealed partial class LibraryPage
     {
         if (firstRender)
         {
-            _shortcuts = await Web.RegisterShortcutsAsync(ShortcutScope.Library, command => InvokeAsync(() => OnCommandAsync(command)));
+            _shortcuts = await Keys.RegisterAsync(ShortcutScope.Library, command => InvokeAsync(() => OnCommandAsync(command)));
         }
     }
 

@@ -64,6 +64,14 @@ metronome so you can mute the guitar and play it yourself.
   continuations and title ideas, counts syllables against a rhythm target and finds rhymes. Poetic
   licence is never an error. Spelling, syllables and rhymes use dictionaries on your computer; the
   rest uses the agent's local model (or Claude, only after a notice). Own lyrics only.
+- **Practice flow** (feature 014): the song's sections (intro, verse, chorus ...) are found after the
+  separation and shown as a lane in the mixer; one click loops a section, sections can be edited. The
+  score follows playback bar by bar, setlists play song after song (with a PDF for the music stand),
+  every practice command has a key you can change (foot pedals that send keys work too), and an
+  optional practice log on this computer shows what you practised.
+- **Play-along recording** (feature 015): record yourself over the mix (vocals, guitar or bass, acoustic,
+  keys in stereo, drums) with latency calibration, loop takes, a Takes panel, compare take and original,
+  fine timing adjustment and export with the take. Recordings stay on this computer.
 
 ### Online lookups (feature 005, 006)
 
@@ -128,9 +136,9 @@ consent statement; library audio is refused as a voice sample. Results are for p
 
 The **Practice tempo** panel in the mixer changes the speed (50-120 %, keys `-` / `=`) and the key
 (-12..+12 semitones, keys `,` / `.`) of the whole mix; every stem stays in sync and the click,
-the karaoke ball and the position follow the stretched music. **Original speed and key** (`R`)
+the karaoke ball and the position follow the stretched music. **Original speed and key** (`0`; feature 014 moved it from `R`, which now records)
 goes back. At Advanced level the **speed trainer** (`T`) loops the A-B part from a start speed up
-to a target in steps, and the **count-in** (`C`) gives one or two bars of clicks before playing,
+to a target in steps, and the **count-in** (`Shift+K`) gives one or two bars of clicks before playing,
 optionally before every loop pass. Time stretching uses SoundTouch 2.4.1 (LGPL-2.1) in a
 separate, replaceable `soundtouch.wasm`; the web image builds it offline from a pinned source
 (`scripts/build-soundtouch.{sh,ps1}` for the non-Docker path) and serves the licence and complete

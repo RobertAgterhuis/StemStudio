@@ -129,7 +129,7 @@ font licence) covers Latin, Greek and Cyrillic; CJK is a documented limitation (
 spec.md). The worker image already installs fontconfig; devops adds the package (T014).
 ReportLab's optional `accel`, `pycairo`, `bidi` and `shaping` extras are not needed. Its runtime
 dependencies (pillow, charset-normalizer) are already in `worker/uv.lock` (pillow 13.0.0,
-charset-normalizer 3.5.2); Phase 0 part 2 (T009) locks ReportLab and records what it adds.
+charset-normalizer 3.5.2); Phase 0 part 2 (T002) locks ReportLab and records what it adds (R-12).
 
 ## R-07 Keyboard, screen readers and pedals (S7)
 
@@ -173,6 +173,72 @@ Radzen Blazor (MIT, already used) has `RadzenChart` with column and line series;
 local SVG, no external service. Every chart gets a "Show as table" toggle (table with the same
 data) and a text summary for screen readers ("12 minutes today, 48 this week").
 
+## R-10 Spike T010: segmentation thresholds on the 6-form synthetic set (Phase 0 part 2, 2026-11-17)
+
+Material (throw-away script, worker environment, librosa 1.0.1, scikit-learn 1.9.1): six synthetic
+songs at 120 BPM, 4/4 (bar = 2 s), separate stems (vocals, drums, bass, guitar, piano, other with an
+`other.woodwinds` detail stem), 3 % bleed of the mix into every stem. Forms (bars): guitar solo
+`I4 V8 C8 V8 C8 S8 C8 O4`; piano solo `I4 V8 C8 S8 V8 C8 O4`; bass solo `I4 V8 C8 V8 S8 C8 O4`;
+woodwinds detail solo `I4 V8 C8 S8 C8 O4`; vocals-led bridge `I4 V8 C8 V8 C8 B4 C8 O4`; drums-only break
+`I4 V8 C8 D4 C8 O4`. Verse and chorus differ in harmony, brightness and drum level; in a solo the other
+instruments drop to 35 %. Grid known (downbeats every 2 s).
+
+| Setting | Values tried | Frozen |
+|---|---|---|
+| checkerboard half size (bars) | 2, 3, 4, 6 | **6** |
+| novelty `delta` | 0, 0.05, 0.1 | **0** (`pre/post_max 3`, `pre/post_avg 2`, `wait 3`) |
+| vocal activity threshold (x p95 of the vocals RMS) | 0.1, 0.2 | **0.1** (no difference) |
+| stack memory | 1, 2 | **2** |
+| minimum section (bars; first/last) | 3, 4 | **4** (2) (no difference) |
+| cluster distance (cosine, average linkage) | 0.10, 0.15, 0.25, 0.35 | **0.25** |
+| solo rule | absolute RMS >= 1.5 x median (data-model draft); share >= 1.3/1.5/2.0 x median share | **share >= 0.4 and >= 1.3 x the source's median share** |
+
+| Configuration | Boundary recall (+-1 bar) | Precision (+-1 bar) | Solo/bridge/break kind right | Section kinds right |
+|---|---|---|---|---|
+| Phase 0 part 1 draft (half 4, absolute RMS rule) | 0.78 | 0.80 | 4/6 | - |
+| half 6, absolute RMS rule | 0.97 | 0.97 | 4/6 (guitar and bass solos missed: their RMS is only 1.3x / 1.0x their median) | 37/42 |
+| **frozen** (half 6, cluster 0.25, share rule 1.3) | **0.97** | **0.97** | **6/6** | **41/42** |
+
+Runtime: 1.9 s for a 296 s song (features + analysis, one core), inside the SC-001 budget of 10 s.
+Remaining miss: one boundary in 34 lands two bars off (bass song, chorus -> bass solo), and one verse is
+labelled as an instrumental part. On synthetic stems the margins of the share rule are thin (bass solo
+share 0.69 vs a median share of about 0.5); the SC-002 target (5 of 6) leaves room for one miss on real
+songs. The constants are frozen in data-model 2.2/2.3 and become the defaults of the beat-analysis tests
+(T020-T025, T050).
+
+## R-11 Check T011: the Leipzig font in score-view pages shown as images (2026-11-17)
+
+A Verovio 6.4.0 page (008 options) with a tempo mark (`MetronomeMark` "quarter = 96") was rendered as an
+`<img>` (data URI) in Chromium 159.0.8154.6 and Firefox 159.0 (Playwright 1.65.1). Findings:
+
+- Verovio 6.4.0 **already embeds** the full Leipzig WOFF2 as an `@font-face` in a `<style>` of every page
+  (58,635 bytes of an 82,261-byte page); the tempo glyph (`U+ECA5` in a `tspan font-family="Leipzig"`)
+  renders correctly in both browsers.
+- A probe SVG with only that glyph: with the `@font-face` both browsers draw the note; without it Chromium
+  draws an empty box and Firefox a hex box, so the embedded font is what makes it work (the host has no
+  Leipzig font installed).
+- Adding Verovio's `Leipzig.css` again would add another 58.6 KB per page for nothing.
+
+Consequence: data-model 2.5 step 4 changes from "insert the `@font-face`" to "keep Verovio's embedded
+`@font-face` and verify that it is present" (the T026 test asserts its presence instead of a first-child
+position). The fallback (strip the Leipzig text, tempo in the panel header) is not needed. Page size per
+view page about 80-260 KB (the font accounts for 58.6 KB of each).
+
+**Correction (wave, audio-ingest polish; integration 2026-11-18):** Verovio 6.4.0 embeds the `@font-face` only
+in pages that contain Leipzig **text** (the tempo mark, normally page 1); later pages draw every glyph as `<use>`
+paths and carry no font. The check is therefore "every page that uses `font-family="Leipzig"` has the
+`@font-face`" (data-model 2.5 step 4), not "every page has it"; pages without Leipzig text are smaller.
+
+## R-12 ReportLab lock (T002, 2026-11-17)
+
+`reportlab==5.1.0` (PyPI upload 2026-10-22, 26 days before the lock; newest release; pure-Python wheel
+`reportlab-5.1.0-py3-none-any.whl`) is locked in `worker/pyproject.toml` and `worker/uv.lock`. Licence:
+"BSD license (see license.txt)", classifier "OSI Approved :: BSD License" (the ReportLab open-source
+licence is BSD-3-Clause style). PyPI lists no known vulnerabilities for 5.1.0. Runtime requirements
+`pillow>=9.0.0` and `charset-normalizer` are already locked (pillow 13.0.0, charset-normalizer 3.5.2), so
+`uv lock` added **only** `reportlab` (15 lines in `uv.lock`); no extras (`accel`, `pycairo`, `bidi`,
+`shaping`). mypy: `reportlab.*` is in the `ignore_missing_imports` overrides (no type information).
+
 ## Sources
 
 - all-in-one: https://github.com/mir-aidj/all-in-one (MIT code; NATTEN and madmom install notes)
@@ -184,3 +250,4 @@ data) and a text summary for screen readers ("12 minutes today, 48 this week").
 - ReportLab 5.1.0 on PyPI (BSD): https://pypi.org/project/reportlab/
 - WCAG 2.2 SC 2.1.4 Character Key Shortcuts: https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html
 - Verovio toolkit options (`svgBoundingBoxes`): https://book.verovio.org/toolkit-reference/toolkit-options.html
+- ReportLab 5.1.0 release files and classifiers: https://pypi.org/pypi/reportlab/5.1.0/json (checked 2026-11-17)

@@ -21,7 +21,18 @@ export interface ViolationSummary {
 
 /** Scans the page and returns its violations (empty when compliant). */
 export async function axeViolations(page: Page): Promise<ViolationSummary[]> {
+  await transitionsDone(page);
   return summarise(await new AxeBuilder({ page }).withTags([...wcagTags]).analyze());
+}
+
+/**
+ * Waits until no CSS transition or animation is running (at most 2 s), so colour contrast is measured on the final colours:
+ * Firefox scanned the level switch of the setlists page mid-transition (014+015 integration, `level-beginner`).
+ */
+async function transitionsDone(page: Page): Promise<void> {
+  await page
+    .waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== 'running'), undefined, { timeout: 2_000 })
+    .catch(() => undefined);
 }
 
 /**
@@ -40,6 +51,7 @@ const crashingRules: Readonly<Record<string, readonly string[]>> = { firefox: ['
 export async function axeViolationsIn(page: Page, selector: string): Promise<ViolationSummary[]> {
   const browser = page.context().browser()?.browserType().name() ?? '';
   const skipped = crashingRules[browser] ?? [];
+  await transitionsDone(page);
   const builder = new AxeBuilder({ page }).include(selector).withTags([...wcagTags]);
   return summarise(await (skipped.length > 0 ? builder.disableRules([...skipped]) : builder).analyze());
 }

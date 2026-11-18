@@ -40,6 +40,8 @@ dependencies = [
     "pypdf==6.21.4",               # BSD-3-Clause; 7.x is < 2 weeks old
     "torchlibrosa==0.1.0",         # MIT (piano CRNN feature layers)
     "soxr==1.1.0",
+    # Feature 014 (ADR-023): setlist PDFs; pure-Python wheel, deps pillow + charset-normalizer already locked.
+    "reportlab==5.1.0",            # BSD-3-Clause-style ReportLab licence; no extras (accel, pycairo, bidi, shaping)
 ]
 
 [project.scripts]
@@ -163,7 +165,8 @@ plugins = ["pydantic.mypy"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["librosa.*", "soundfile.*", "demucs.*", "yt_dlp.*", "spotdl.*", "julius.*", "numba.*"]
+module = ["librosa.*", "soundfile.*", "demucs.*", "yt_dlp.*", "spotdl.*", "julius.*", "numba.*",
+          "sklearn.*"]  # sklearn: feature 014 section clusters (a librosa dependency)
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -180,6 +183,7 @@ ignore_missing_imports = true
 module = [
     "stable_whisper.*", "whisper.*", "torchaudio.*", "music21.*", "verovio.*", "cairosvg.*",
     "torchlibrosa.*", "fontTools.*",
+    "reportlab.*",  # feature 014 setlist PDFs (ADR-023); ReportLab ships no type information
 ]
 ignore_missing_imports = true
 

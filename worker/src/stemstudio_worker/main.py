@@ -21,11 +21,13 @@ from fastapi import FastAPI
 
 from stemstudio_worker.alignment import alignment_status, create_aligner, create_vocal_loader
 from stemstudio_worker.analysis import LibrosaDrumTranscriber, create_beat_analyzer
+from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNoveltyAnalyzer
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
     lyrics_routes,
     metadata_routes,
+    practice_routes,
     render_routes,
     storage,
     transcription_routes,
@@ -35,10 +37,13 @@ from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
 from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
+from stemstudio_worker.documents import ReportLabSetlistRenderer
 from stemstudio_worker.engraving import create_score_engraver, fonts
+from stemstudio_worker.engraving.score_view import VerovioScoreViewRenderer
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
+from stemstudio_worker.jobs.practice_lane import PracticeParts
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
     OnlineParts,
@@ -74,6 +79,9 @@ from stemstudio_worker.ports import (
     PipelineAdapters,
     RenderExecutor,
     ScoreEngraver,
+    ScoreViewRenderer,
+    SetlistDocumentRenderer,
+    StructureAnalyzer,
 )
 from stemstudio_worker.render import create_library_reader, create_render_executor
 from stemstudio_worker.schemas import CONTRACT_VERSION, ScoreProfile
@@ -96,6 +104,7 @@ _ROUTERS = (
     lyrics_routes.router,
     transcription_routes.router,
     storage.router,
+    practice_routes.router,
 )
 
 
@@ -116,6 +125,9 @@ class AppOverrides:
             ``transcription.create_transcription_engines``).
         notator: Notes -> score (default ``notation.create_notator``).
         score_engraver: MusicXML -> PDF (default ``engraving.create_score_engraver``).
+        structure_analyzer: Section analyser (default :func:`create_structure_analyzer`).
+        score_view_renderer: Score views (default ``engraving.score_view``).
+        setlist_renderer: Setlist PDFs (default ``documents.ReportLabSetlistRenderer``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -129,6 +141,9 @@ class AppOverrides:
     transcription_engines: TranscriptionEnginesPort | None = None
     notator: Notator | None = None
     score_engraver: ScoreEngraver | None = None
+    structure_analyzer: StructureAnalyzer | None = None
+    score_view_renderer: ScoreViewRenderer | None = None
+    setlist_renderer: SetlistDocumentRenderer | None = None
 
 
 def create_app(
@@ -236,7 +251,8 @@ class _Parts:
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
         scores = default_transcription(settings, self.overrides, devices, render.library)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores)
+        practice = default_practice(settings, self.overrides)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice)
         return WorkerRuntime.start_with(settings, parts)
 
 
@@ -264,6 +280,21 @@ def default_transcription(
     engraver = overrides.score_engraver or create_score_engraver()
     return TranscriptionParts(engines, notator, engraver, SCORE_RULES, library,
                               fonts.leipzig_available)  # fmt: skip
+
+
+def create_structure_analyzer(settings: WorkerSettings) -> StructureAnalyzer:
+    """The configured section analyser: ``fake`` or ``real`` (``stems-novelty``, feature 014)."""
+    if settings.structure_analyzer == "fake":
+        return FakeStructureAnalyzer()
+    return StemsNoveltyAnalyzer()
+
+
+def default_practice(settings: WorkerSettings, overrides: AppOverrides) -> PracticeParts:
+    """The feature 014 parts: the injected ones, else the configured analyser and renderers."""
+    analyzer = overrides.structure_analyzer or create_structure_analyzer(settings)
+    views = overrides.score_view_renderer or VerovioScoreViewRenderer()
+    documents = overrides.setlist_renderer or ReportLabSetlistRenderer()
+    return PracticeParts(analyzer=analyzer, score_views=views, documents=documents)
 
 
 class _GpuModels:

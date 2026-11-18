@@ -53,7 +53,11 @@ describe('resolveAppearance (web-interop.md 1)', () => {
     expect(resolveAppearance({ schemaVersion: 1, level }, none).level).toBe(expected);
   });
 
-  it.each([[null], ['x'], [{ schemaVersion: 2, theme: 'light' }], [[]]])('uses defaults for %j', (raw) => {
+  it('reads schema version 2 records (014)', () => {
+    expect(resolveAppearance({ schemaVersion: 2, theme: 'dark' }, () => false).theme).toBe('dark');
+  });
+
+  it.each([[null], ['x'], [{ schemaVersion: 3, theme: 'light' }], [[]]])('uses defaults for %j', (raw) => {
     expect(resolveAppearance(raw, none)).toEqual({ theme: 'light', density: 'comfortable', motion: 'full', level: 'beginner' });
   });
 

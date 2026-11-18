@@ -9,6 +9,13 @@
   padding-bottom: 0;
 }
 
+/* The fixed mixer dock (karaoke.css) covers the bottom of the viewport: the page ends its measured inset (sticky offset +
+   height, js/dock-inset.js; the karaoke fallback before the first measurement) plus the console gap lower, so the last
+   console controls scroll above the dock and the page end looks as it did with the dock in the flow. */
+.ss-main:has(.ss-mixer-dock) {
+  padding-bottom: calc(var(--ss-dock-inset, calc(var(--ss-transport-height) + 9rem)) + var(--ss-space-4));
+}
+
 /* The sticky transport never covers the focused element (WCAG 2.4.11): the padding follows the dock's measured height
    (js/dock-inset.js: sticky offset + height), else the transport height. */
 html:has(.ss-transport-dock) {
@@ -288,6 +295,15 @@ html:has(.ss-transport-dock) {
   box-shadow: inset 0 4px 0 var(--ss-color-danger);
 }
 
+/* Input meter of the recording panel (015): a line of its own with a definite height. The strip wrap's height: 100 %
+   would resolve against the panel's grid row, make the meter as tall as the panel and push the rest of the panel
+   (Record, options) out of it, under the channel strips. */
+.ss-meter-wrap.ss-input-meter {
+  flex: 0 0 100%;
+  align-items: flex-start;
+  height: calc(4rem * var(--ss-density));
+}
+
 /* Transport dock: sticky at the bottom of the viewport. */
 .ss-transport-dock {
   position: sticky;
@@ -323,12 +339,6 @@ html:has(.ss-transport-dock) {
 }
 
 @media (max-width: 767.98px) {
-  /* The dock sticks 3.5rem up (above the bottom navigation bar): the console ends that much higher, so at the end of the
-     page the dock does not cover the last controls (WCAG 2.4.11). */
-  .ss-main:has(.ss-console) {
-    padding-bottom: 3.5rem;
-  }
-
   .ss-transport-dock {
     bottom: 3.5rem;
     margin: 0 calc(-1 * var(--ss-space-4));
@@ -412,4 +422,12 @@ html:has(.ss-transport-dock) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 015 Takes panel: the fieldset only groups the take radios (no frame); min-width 0 keeps reflow at 320 px. */
+.ss-take-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }

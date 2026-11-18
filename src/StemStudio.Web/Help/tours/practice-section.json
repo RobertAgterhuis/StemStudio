@@ -1,0 +1,29 @@
+{
+  "id": "practice-section",
+  "version": 1,
+  "title": "Practise a section",
+  "route": "/tracks/{id}/mixer",
+  "levels": [
+    "beginner"
+  ],
+  "steps": [
+    {
+      "target": "section-lane",
+      "topic": "mixer-sections",
+      "title": "The parts of the song",
+      "text": "StemStudio finds the verse, chorus, solo and the other parts. Click one to loop it."
+    },
+    {
+      "target": "section-loop-current",
+      "topic": "mixer-sections",
+      "title": "Loop what is playing",
+      "text": "Loop this section repeats the part you hear now. Next section moves the loop on."
+    },
+    {
+      "target": "practice-log-panel",
+      "topic": "mixer-practice-log",
+      "title": "See your progress",
+      "text": "Practice log shows how long you practised this song and each section."
+    }
+  ]
+}

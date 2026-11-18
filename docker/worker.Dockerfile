@@ -2,7 +2,8 @@
 # StemStudio worker: FastAPI + yt-dlp/spotDL + Demucs (CPU torch) + librosa, plus the detail
 # models' runtimes (onnxruntime CPU, rotary-embedding-torch), lyrics alignment (006: stable-ts,
 # openai-whisper, torchaudio) and sheet music (008: music21, verovio, cairosvg + libcairo2, pypdf,
-# the Leipzig music font as a system font). No model weights are baked in: they download at first
+# the Leipzig music font as a system font) and setlist PDFs (014: reportlab, the DejaVu fonts of
+# fonts-dejavu-core). No model weights are baked in: they download at first
 # use into /models (STEMSTUDIO_MODEL_DIR, HF_HOME, TORCH_HOME; a volume), e.g. Whisper turbo into
 # /models/whisper (1.6 GB) and the piano/basic-pitch weights (008) below /models.
 # Build context: repository root.  docker build -f docker/worker.Dockerfile .
@@ -96,11 +97,13 @@ FROM ${PYTHON_IMAGE} AS runtime
 # Default STEMSTUDIO_DEVICE of the image: cpu (CPU variant) or auto (GPU variant).
 ARG WORKER_DEVICE=cpu
 # ffmpeg provides both ffmpeg and ffprobe on PATH; libcairo2 is cairosvg's native library and
-# fontconfig makes the Leipzig font visible to Cairo (scripts/check-worker-fonts.* checks fc-list).
+# fontconfig makes the Leipzig font visible to Cairo (scripts/check-worker-fonts.* checks fc-list);
+# fonts-dejavu-core (Bitstream Vera / public-domain licence) provides DejaVu Sans and DejaVu Sans
+# Bold in /usr/share/fonts/truetype/dejavu for the setlist PDFs (feature 014, both variants).
 COPY --from=deno /deno /usr/local/bin/deno
 COPY --from=font /opt/fonts/Leipzig.ttf /usr/local/share/fonts/verovio/Leipzig.ttf
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg libsndfile1 libcairo2 fontconfig \
+ && apt-get install -y --no-install-recommends ffmpeg libsndfile1 libcairo2 fontconfig fonts-dejavu-core \
  && rm -rf /var/lib/apt/lists/* \
  && fc-cache -f /usr/local/share/fonts \
  && groupadd --gid 10001 stemstudio \

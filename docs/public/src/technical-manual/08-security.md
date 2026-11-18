@@ -172,10 +172,68 @@ Threat model: the sheet text, the model's answer and the agent's arguments are a
   suggestions; `find_rhymes` needs a word that is in a user message; the `origin` of an assist
   started through the agent is a log label only.
 
+## Practice flow (014)
+
+Untrusted input: worker results, request bodies and the browser preferences record.
+
+- **Worker results are capped.** Section results: at most 64 sections, labels trimmed and cut
+  at 40 characters, unknown kinds become `other`, unknown warning codes and snaps are dropped.
+  Score views: 1-200 pages and 1-2,000 bars, else the view fails. Files downloaded from the
+  worker are size-capped while they stream: **8 MiB per score SVG page** and **16 MiB per
+  setlist PDF** (`WorkerClient.MaxScoreViewPageBytes`, `MaxSetlistDocumentBytes`); a larger PDF
+  answers `503 document-failed`.
+- **Score pages are inert.** Page paths are built from the asset GUID and an integer page
+  number (1 to the page count) and checked for containment in the data folder; pages are written
+  atomically and served as `image/svg+xml` under `Content-Security-Policy: default-src 'none';
+  style-src 'unsafe-inline'; font-src data:` with `nosniff`, so a script in an SVG cannot run even
+  when the page is opened directly. The Web app shows them as images.
+- **The score-view job reads only** `assets/<uuid>/score.musicxml` (a new line in the worker's
+  library path allow-list); section jobs only the track's stem and detail-stem paths. The
+  setlist document request carries its content inline, with no paths.
+- **PDF file name**: only letters, digits, space, `-`, `_` and `.`, trimmed, at most 80
+  characters (tested with `../`, quotes, CR/LF header injection and Unicode).
+- **Practice log is local.** Practice data is stored only in SQLite, is never logged above debug
+  level, and no practice endpoint makes an outgoing request (a spy-handler test proves it). The
+  log can be switched off (writes then answer `409 practice-log-off`) and deleted per track or
+  completely; a track delete removes its sessions.
+- **Concurrency**: one lock each around check, submit and save for detection and score views,
+  and around find and insert of a practice session; section edits use the `revision` check.
+- **Key map**: the browser preferences record is validated field by field in TypeScript and C#
+  (at most 16 KB); reserved chords (focus, activation, screen reader and browser keys) and Alt
+  chords can never be bound.
+
+## Play-along recording (015)
+
+- **Audio stays on the machine.** The browser sends captured audio only to the local API; the
+  capture works only in a secure context (`localhost` or `127.0.0.1` on the StemStudio
+  computer), so it never crosses the network in plain HTTP. An E2E network assertion checks that
+  recording and saving contact no origin other than the web app and the API. Takes are never
+  offered to the agent (no tool accepts `take`), never part of an LLM request, and are
+  registered in the audio-hash index, so a take is refused as a voice sample (`422 library-audio`).
+- **WAV upload validation.** The two take upload endpoints have their own body limit
+  (`StemStudio:Recording:MaxUploadBytes`, default 256 MiB, plus multipart overhead) and stream
+  the body: the WAV header is checked **before any data is stored** (RIFF/WAVE, PCM or
+  `WAVE_FORMAT_EXTENSIBLE` with PCM, 1-2 channels, 44,100 Hz, 24 bits, `blockAlign` = 3 x
+  channels, at most 64 KiB of chunks before `data`, `data` a multiple of the block size), the data
+  is spooled to disk without buffering, and the metadata JSON is read with a 64 KiB cap. An
+  unreadable file is `400 invalid-wav`, another format `415 unsupported-wav-format`, too large
+  `413`; hostile input leaves no file behind. The API scans the samples once (peak, clipped
+  samples, all zero) and refuses silent takes, takes outside the track and a length that does not
+  match the frames.
+- **Paths** of take files come from the asset GUID only; the render job request is a normal 007
+  request whose single input `assets/<assetId>/capture.wav` passes the worker's allow-list.
+- **Limits**: 200 takes per track, free disk of 1 GiB plus twice the upload size, names 1-80
+  characters without control characters, device labels at most 200 characters.
+- **Library gate**: deleting, batch deleting and replacing take audio respect the 013 write gate;
+  take assets cannot be renamed, deleted or retried through the generic asset endpoints
+  (`409 managed-by-take`).
+
 ## Privacy
 
 Audio never leaves the machine. Online lookups (005) send only title, artist, duration and
 ISRC, LRCLIB lyrics lookups (006) title, artist, album and duration, with a User-Agent that contains no personal data, and can be switched off
 with `STEMSTUDIO_ONLINE_LOOKUPS=off`. Lyrics are never logged or included in list responses.
 Voice samples (010) stay local, require recorded consent and are deleted with their profile.
-The Claude backend receives text only. The lyric assistant (023) sends the text of a sheet to Anthropic only when Claude is the selected backend and the notice was acknowledged; otherwise its dictionaries, syllable counter, rhyme finder and local model run on the computer and nothing leaves it. Library folders (022) send nothing anywhere.
+The Claude backend receives text only. The lyric assistant (023) sends the text of a sheet to Anthropic only when Claude is the selected backend and the notice was acknowledged; otherwise its dictionaries, syllable counter, rhyme finder and local model run on the computer and nothing leaves it. Library folders (022) send nothing anywhere. The practice log (014) is stored only in the local
+database and setlist PDFs are made by the local worker; play-along recordings (015) go only from
+the browser to the local API and are stored as library files on this computer.

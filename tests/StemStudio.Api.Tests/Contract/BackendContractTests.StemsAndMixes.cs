@@ -110,7 +110,8 @@ public sealed partial class BackendContractTests
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
             .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations)
-            .Except(PendingLibraryCareOperations).Except(PendingLibraryOperations).Except(PendingLyricAssistOperations).ToList();
+            .Except(PendingLibraryCareOperations).Except(PendingLibraryOperations).Except(PendingLyricAssistOperations)
+            .Except(PendingPracticeFlowOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
@@ -146,6 +147,16 @@ public sealed partial class BackendContractTests
     // library, revert, discard), T055 (getStorageOverview), T059 (previewCleanup, executeCleanup).
     private static readonly string[] PendingLibraryCareOperations =
     [
+    ];
+
+    // Feature 015 (backend 1.14.0, staged in the 015 Phase 0, T002): the backend removes each id in the task that serves it
+    // (tasks.md: calibrations in US2, list/upload/get in US1, update/delete/batch delete in US5, retry in US1, replace audio in US7).
+    // All are served since US1-US7 of the 015 backend lane; the name stays because Contract_EveryOperationHasAnOperationId lists
+    // the recording operations through it.
+    private static readonly string[] PendingRecordingOperations =
+    [
+        "listRecordingTakes", "createRecordingTake", "deleteRecordingTakes", "getRecordingTake", "updateRecordingTake", "deleteRecordingTake",
+        "replaceRecordingTakeAudio", "retryRecordingTake", "listInputCalibrations", "upsertInputCalibration", "deleteInputCalibration",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>

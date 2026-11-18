@@ -1,0 +1,8 @@
+{
+  "jobId": "0123456789abcdef0123456789abcdef",
+  "status": "failed",
+  "progress": 0.2,
+  "error": "The stems of this track could not be read.",
+  "result": null,
+  "createdAt": "2026-11-16T10:11:48Z"
+}

@@ -7,6 +7,7 @@ using StemStudio.Web.Components.Layout;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Practice;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Tests.Fakes;
 
@@ -23,54 +24,92 @@ public sealed class ShortcutOverlayTests : PageTestContext
 
     private static IElement Id(IRenderedComponent<MainLayout> shell, string testId) => shell.Find($"[data-testid={testId}]");
 
-    [Fact]
-    public async Task ModSlash_AtExpert_OpensTheOverlay_WithTheGlobalKeys()
+    private async Task<IElement> OpenAsync(IRenderedComponent<MainLayout> shell)
     {
-        var shell = RenderShell(ExperienceLevel.Expert);
-
         await shell.InvokeAsync(() => Interop.CommandAsync(ShortcutScope.Global, "shortcuts.open"));
+        return Id(shell, "shortcut-overlay");
+    }
 
-        var overlay = Id(shell, "shortcut-overlay");
+    [Theory]
+    [InlineData(ExperienceLevel.Beginner)]
+    [InlineData(ExperienceLevel.Advanced)]
+    [InlineData(ExperienceLevel.Expert)]
+    public async Task ModSlash_OpensTheOverlay_AtEveryLevel_WithTheGlobalKeys(ExperienceLevel level)
+    {
+        var shell = RenderShell(level);
+
+        var overlay = await OpenAsync(shell);
+
         overlay.GetAttribute("role").ShouldBe("dialog");
-        overlay.TextContent.ShouldContain("Command palette");
-        overlay.TextContent.ShouldNotContain("Loop on or off");
+        Id(shell, "shortcut-row-palette-open").GetAttribute("data-keys").ShouldBe("mod+k");
+        Id(shell, "shortcut-row-go-import").GetAttribute("data-keys").ShouldBe("g i");
+        Id(shell, "shortcut-row-go-import").TextContent.ShouldContain("G then I");
+        overlay.QuerySelector("[data-testid=shortcut-group-transport]").ShouldBeNull();
     }
 
     [Fact]
-    public async Task ModSlash_BelowExpert_DoesNothing()
-    {
-        var shell = RenderShell(ExperienceLevel.Advanced);
-
-        await shell.InvokeAsync(() => Interop.CommandAsync(ShortcutScope.Global, "shortcuts.open"));
-
-        shell.FindAll("[data-testid=shortcut-overlay]").ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task OnTheMixer_ListsTheMixerKeys()
+    public async Task OnTheMixer_ListsTheMixerGroupsAndRows_FromTheKeyMap()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
         var shell = RenderShell(ExperienceLevel.Expert);
 
-        await shell.InvokeAsync(() => Interop.CommandAsync(ShortcutScope.Global, "shortcuts.open"));
+        var overlay = await OpenAsync(shell);
 
-        Id(shell, "shortcut-overlay").TextContent.ShouldContain("Loop on or off");
+        overlay.QuerySelectorAll("table").Select(t => t.GetAttribute("data-testid"))
+            .ShouldBe(["shortcut-group-transport", "shortcut-group-loop-sections", "shortcut-group-speed", "shortcut-group-channels",
+                "shortcut-group-setlist", "shortcut-group-score", "shortcut-group-navigation"]);
+        Id(shell, "shortcut-row-mixer-play-pause").GetAttribute("data-keys").ShouldBe("space|pagedown");
+        Id(shell, "shortcut-row-mixer-play-pause").TextContent.ShouldContain("Space or PageDown (pedal)");
+        Id(shell, "shortcut-row-mixer-seek--5").GetAttribute("data-keys").ShouldBe("arrowleft");
+        Id(shell, "shortcut-row-mixer-practice-reset").GetAttribute("data-keys").ShouldBe("0");
+        Id(shell, "shortcut-row-mixer-countin-toggle").GetAttribute("data-keys").ShouldBe("shift+k");
+        Id(shell, "shortcut-row-setlist-next").GetAttribute("data-keys").ShouldBe("mod+arrowright");
+        Id(shell, "shortcut-group-speed").TextContent.ShouldContain("Speed +5 %");
     }
 
     [Fact]
-    public async Task OnTheMixer_ListsThePracticeKeys_InTheirOwnGroup()
+    public async Task RemappedAndPedalKeys_AreShown_AndReservedRowsHidden()
+    {
+        Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
+        var overrides = new Dictionary<string, IReadOnlyList<ShortcutChord>>
+        {
+            ["mixer.section.next"] = [new ShortcutChord("j"), new ShortcutChord("b", Layer: KeyLayer.Pedal)],
+            ["mixer.stop"] = [],
+        };
+        Store.Snapshot = new(UserPreferences.Default with { Level = ExperienceLevel.Advanced, Shortcuts = ShortcutPreferences.Default with { Overrides = overrides, SingleKey = false } }, true);
+        var shell = Render<MainLayout>(p => p.Add(l => l.Body, (RenderFragment)(b => b.AddMarkupContent(0, "<h1>Page</h1>"))));
+
+        var overlay = await OpenAsync(shell);
+
+        Id(shell, "shortcut-row-mixer-section-next").GetAttribute("data-keys").ShouldBe("j|b");
+        Id(shell, "shortcut-row-mixer-stop").GetAttribute("data-keys").ShouldBe(string.Empty);
+        Id(shell, "shortcut-row-mixer-stop").TextContent.ShouldContain("-");
+        overlay.TextContent.ShouldContain("Single-key shortcuts are off");
+        shell.FindAll("[data-testid=shortcut-row-mixer-record-toggle]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AtExpert_TheRecordAndCompareRowsUseTheGeneric014Ids()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
         var shell = RenderShell(ExperienceLevel.Expert);
 
-        await shell.InvokeAsync(() => Interop.CommandAsync(ShortcutScope.Global, "shortcuts.open"));
+        await OpenAsync(shell);
 
-        var practice = shell.FindAll("[data-testid=shortcut-overlay] table").Single(t => t.QuerySelector("caption")!.TextContent == "Practice");
-        practice.TextContent.ShouldContain("Speed -5 % or +5 %");
-        practice.TextContent.ShouldContain("Key down or up one semitone");
-        practice.TextContent.ShouldContain("Original speed and key");
-        practice.TextContent.ShouldContain("Count-in on or off");
-        practice.TextContent.ShouldContain("Speed trainer on or off (Advanced)");
+        Id(shell, "shortcut-row-mixer-record-toggle").TextContent.ShouldContain("Record / stop recording");
+        Id(shell, "shortcut-row-mixer-compare-cycle").GetAttribute("data-keys").ShouldBe("c");
+        shell.FindAll("[data-testid=shortcut-record], [data-testid=shortcut-compare]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task OnTheLibrary_ListsTheLibrarySearchKey()
+    {
+        Services.GetRequiredService<NavigationManager>().NavigateTo("library");
+        var shell = RenderShell(ExperienceLevel.Beginner);
+
+        await OpenAsync(shell);
+
+        Id(shell, "shortcut-row-library-search-focus").GetAttribute("data-keys").ShouldBe("/");
     }
 
     [Theory]

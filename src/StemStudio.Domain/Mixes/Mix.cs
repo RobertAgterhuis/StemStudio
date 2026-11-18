@@ -9,6 +9,7 @@ public sealed class Mix
     private List<string> _expanded = [];
     private List<DetailChannelSettings> _detailChannels = [];
     private PracticeSettings? _practice;
+    private TakeChannelSettings? _take;
 
     private Mix()
     {
@@ -50,6 +51,9 @@ public sealed class Mix
     /// <summary>Practice tempo (feature 012); mixes saved before 012 (no stored value) read <see cref="PracticeSettings.Default"/>.</summary>
     public PracticeSettings Practice => _practice ?? PracticeSettings.Default;
 
+    /// <summary>The take channel (feature 015), or null.</summary>
+    public TakeChannelSettings? Take => _take;
+
     /// <summary>Creation time (UTC).</summary>
     public DateTime CreatedAt { get; private set; }
 
@@ -67,6 +71,7 @@ public sealed class Mix
         Expanded = Expanded,
         DetailChannels = DetailChannels,
         Practice = Practice,
+        Take = Take,
     };
 
     /// <summary>Creates a mix after validating the settings against the track.</summary>
@@ -127,7 +132,17 @@ public sealed class Mix
     {
         (Name, NormalizedName) = (settings.Name.Trim(), MixNaming.Normalize(settings.Name));
         (MasterVolume, _channels, Metronome, Loop) = (settings.MasterVolume, settings.Channels.ToList(), settings.Metronome, settings.Loop);
-        (_expanded, _detailChannels, _practice) = (settings.Expanded.ToList(), settings.DetailChannels.ToList(), settings.Practice);
+        (_expanded, _detailChannels, _practice, _take) = (settings.Expanded.ToList(), settings.DetailChannels.ToList(), settings.Practice, settings.Take);
         UpdatedAt = nowUtc;
+    }
+
+    /// <summary>Removes the take channel when it shows the given take (the take was deleted); <see cref="UpdatedAt"/> is kept.</summary>
+    /// <param name="takeId">The deleted take.</param>
+    /// <returns>True when the channel was removed.</returns>
+    public bool RemoveTake(Guid takeId)
+    {
+        var removed = _take?.TakeId == takeId;
+        _take = removed ? null : _take;
+        return removed;
     }
 }

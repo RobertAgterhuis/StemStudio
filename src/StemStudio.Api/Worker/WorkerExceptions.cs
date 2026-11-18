@@ -67,3 +67,31 @@ public sealed class WorkerRequestException : Exception
     /// <summary>Readable problem detail from the worker.</summary>
     public string Detail { get; }
 }
+
+/// <summary>
+/// A worker file (score view page, setlist PDF) is larger than the API accepts (014 security hardening): the download stops at
+/// the cap, so nothing above it is ever buffered or stored.
+/// </summary>
+public sealed class WorkerResponseTooLargeException : Exception
+{
+    /// <summary>Creates the exception.</summary>
+    public WorkerResponseTooLargeException()
+        : base("The processing service sent a file above the size cap.")
+    {
+    }
+
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">Message.</param>
+    public WorkerResponseTooLargeException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">Message.</param>
+    /// <param name="innerException">Cause.</param>
+    public WorkerResponseTooLargeException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}

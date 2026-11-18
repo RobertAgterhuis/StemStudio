@@ -12,7 +12,8 @@ addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 source = [
     "generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures",
     "generate_lyrics_fixtures", "sung_voice", "generate_score_fixtures",
-    "generate_voice_fixtures",
+    "generate_voice_fixtures", "recording.generate_recording_fixtures",
+    "tests/fixtures/practice-flow",  # 014 T018: a folder (its name is no module name)
 ]
 branch = true
 

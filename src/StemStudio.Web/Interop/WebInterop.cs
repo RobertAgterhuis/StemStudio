@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.JSInterop;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Interop;
 
@@ -41,6 +42,24 @@ public sealed class WebInterop(IJSRuntime js) : IWebInterop, IAsyncDisposable
         RegisterAsync("registerShortcuts", new InteropCallbacks { Text = onCommand }, scope.ToString().ToLowerInvariant());
 
     /// <inheritdoc />
+    public ValueTask<IAsyncDisposable> RegisterShortcutsAsync(ShortcutScope scope, KeyMap keyMap, Func<string, Task> onCommand) =>
+        RegisterAsync("registerShortcuts", new InteropCallbacks { Text = onCommand }, scope.ToString().ToLowerInvariant(), keyMap);
+
+    /// <inheritdoc />
+    public async ValueTask UpdateShortcutsAsync(IAsyncDisposable registration, KeyMap keyMap)
+    {
+        if (registration is Registration own)
+        {
+            var module = await ModuleAsync();
+            await Registration.SafeAsync(() => module.InvokeVoidAsync("updateShortcuts", own.Handle, keyMap));
+        }
+    }
+
+    /// <inheritdoc />
+    public ValueTask<IAsyncDisposable> CaptureChordAsync(TimeSpan timeout, Func<KeyChordData?, Task> onCaptured) =>
+        RegisterAsync("captureChord", new InteropCallbacks { Chord = onCaptured }, new CaptureOptions((int)timeout.TotalMilliseconds));
+
+    /// <inheritdoc />
     public ValueTask<IAsyncDisposable> StartTourAsync(TourRuntime tour, Func<TourEnded, Task> onEnded) =>
         RegisterAsync("startTour", new InteropCallbacks { Tour = onEnded }, tour);
 
@@ -67,16 +86,20 @@ public sealed class WebInterop(IJSRuntime js) : IWebInterop, IAsyncDisposable
     private Task<IJSObjectReference> ModuleAsync() =>
         _module ??= js.InvokeAsync<IJSObjectReference>("import", ModulePath).AsTask();
 
-    private async ValueTask<IAsyncDisposable> RegisterAsync(string method, InteropCallbacks callbacks, object? argument = null)
+    private async ValueTask<IAsyncDisposable> RegisterAsync(string method, InteropCallbacks callbacks, params object?[] arguments)
     {
         var receiver = DotNetObjectReference.Create(callbacks);
-        object?[] args = argument is null ? [receiver] : [receiver, argument];
+        object?[] args = [receiver, .. arguments];
         var handle = await (await ModuleAsync()).InvokeAsync<IJSObjectReference>(method, args);
         return new Registration(handle, receiver);
     }
 
+    private sealed record CaptureOptions(int TimeoutMs);
+
     private sealed class Registration(IJSObjectReference handle, IDisposable? receiver) : IAsyncDisposable
     {
+        public IJSObjectReference Handle => handle;
+
         public static async ValueTask SafeAsync(Func<ValueTask> call)
         {
             try
@@ -112,6 +135,15 @@ public sealed class InteropCallbacks
 
     /// <summary>Receives the end of a tour.</summary>
     internal Func<TourEnded, Task>? Tour { get; init; }
+
+    /// <summary>Receives a captured chord (or null).</summary>
+    internal Func<KeyChordData?, Task>? Chord { get; init; }
+
+    /// <summary>Called by <c>captureChord</c> once with the captured chord, or null after Escape or the timeout.</summary>
+    /// <param name="chord">The chord.</param>
+    /// <returns>The handler's task.</returns>
+    [JSInvokable]
+    public Task OnChordCaptured(KeyChordData? chord) => Chord!(chord);
 
     /// <summary>Called by <c>watchPreferences</c> with the new record of another tab.</summary>
     /// <param name="json">The validated record as JSON.</param>

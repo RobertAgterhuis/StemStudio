@@ -48,6 +48,7 @@ The take channel strip uses the key `take` in every existing strip pattern.
 | | `take-adjust-apply`, `take-adjust-reset` | buttons | Expert |
 | | `take-adjust-note` | "Timing adjusted by X ms" | Advanced |
 | Takes panel (mixer) | `takes-panel`, `takes-empty`, `takes-total-size` | - | Beginner |
+| | `takes-error` | readable error of the Takes panel (loading or changing takes), `role="alert"`; only while shown | Beginner |
 | | `takes-session-<sessionId>` | group of a loop session (`data-passes`) | Advanced |
 | | `takes-keep-starred-<sessionId>` | "Delete the other passes" (only when a pass is starred) | Advanced |
 | | `rec-take-row-<takeId>` | row; attributes `data-status` (`saving`, `ready`, `failed`, `local` before the upload finished), `data-selected` | Beginner |
@@ -70,7 +71,7 @@ The take channel strip uses the key `take` in every existing strip pattern.
 | | `export-channel-take` | checkbox of the take in "Selected channels" | Advanced |
 | | `export-take-saving` | "The take is still being saved" (export disabled) | Beginner |
 | Track detail | `track-delete-takes-note` | "This also deletes N takes" in the delete confirmation (only when N > 0) | Beginner |
-| Shortcut overview | `shortcut-record`, `shortcut-compare` | rows of the 004/014 shortcut overview | Expert |
+| Shortcut overview | `shortcut-row-mixer-record-toggle`, `shortcut-row-mixer-compare-cycle` | the generic 014 rows (`shortcut-row-<command>` with `data-keys`) of the record and compare commands; no extra ids | Expert |
 
 Help ids (`data-help-id`) used by these elements: data-model.md 5.
 

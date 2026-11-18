@@ -105,6 +105,8 @@ SoundTouch code; they load the module through the documented ABI (`third_party/s
 | Vendored inference code: piano_transcription_inference subset (ByteDance, Kong et al.) | - | MIT (LICENSE + NOTICE in `worker/src/stemstudio_worker/transcription/vendor/piano_transcription/`) | https://github.com/qiuqiangkong/piano_transcription_inference |
 | Leipzig music font (shipped with verovio; converted to `Leipzig.ttf` at image build) | from verovio 6.4.0 | **OFL-1.1** | https://github.com/rism-digital/leipzig |
 | fontTools[woff] + brotli (**build stage only**, converts the font; not in the runtime image) | 4.68.0 | MIT | https://github.com/fonttools/fonttools |
+| ReportLab (setlist PDFs; feature 014, ADR-023; no extras: no accel, pycairo, bidi or shaping) | 5.1.0 | BSD-3-Clause-style ReportLab licence | https://www.reportlab.com/dev/opensource/ |
+| DejaVu Sans / DejaVu Sans Bold (Debian `fonts-dejavu-core`, system fonts of the worker image for the setlist PDFs; feature 014) | distro | Bitstream Vera font licence (permissive) + public-domain changes by the DejaVu authors | https://dejavu-fonts.github.io/License.html |
 
 | onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
 | rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |

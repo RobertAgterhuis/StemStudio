@@ -1,0 +1,13 @@
+@* "This also deletes N takes" in the track delete confirmation (FR-018; ui-test-ids 1.14.0 track-delete-takes-note, only when
+   N > 0). Rendered by the track detail page next to its confirmation text. *@
+
+@if (Count > 0)
+{
+    <span data-testid="track-delete-takes-note" data-help-id="recording">This also deletes @Count @(Count == 1 ? "take" : "takes") you recorded.</span>
+}
+
+@code {
+    /// <summary>The track's <c>takeCount</c>.</summary>
+    [Parameter]
+    public int Count { get; set; }
+}

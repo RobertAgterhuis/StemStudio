@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { TransportListener } from './transport';
-import type { DotNetCallbacks, DotNetObjectReference, PlaybackState, PracticeStatus } from './types';
+import type { CapturedTake, DotNetCallbacks, DotNetObjectReference, LoopPassInfo, PlaybackState, PracticeStatus, RecordingProgress, RecordingState } from './types';
 
 /** Interval of position reports while playing (10 Hz). UI feedback only, never audible timing. */
 export const POSITION_REPORT_INTERVAL_MS = 100;
@@ -108,4 +108,59 @@ export class PracticeNotifier {
     // A disconnected circuit rejects; the engine must keep working regardless.
     this.ref.invokeMethodAsync('OnPracticeChanged', this.status()).catch(() => undefined);
   }
+}
+
+/**
+ * Sends `OnLoopPass` (contract 2.4.0): at most one call per completed loop pass, so no rate limit is needed.
+ *
+ * @param ref - .NET object implementing the callbacks.
+ * @returns The report function handed to the loop-pass tracker.
+ */
+export function loopPassNotifier(ref: DotNetObjectReference): (info: LoopPassInfo) => void {
+  return (info) => {
+    // A disconnected circuit rejects; the engine must keep working regardless.
+    ref.invokeMethodAsync('OnLoopPass', info).catch(() => undefined);
+  };
+}
+
+/** The recording callbacks to .NET (contract 2.5.0). */
+export interface RecordingNotifier {
+  /** `OnRecordingStateChanged`. */
+  state(state: RecordingState): void;
+  /** `OnRecordingProgress` (the recorder sends at most 4 Hz). */
+  progress(progress: RecordingProgress): void;
+  /** `OnTakesCaptured`. */
+  takes(takes: CapturedTake[]): void;
+  /** `OnInputLost`. */
+  inputLost(reason: string): void;
+  /** `OnInputDevicesChanged`. */
+  devicesChanged(): void;
+}
+
+/**
+ * @param ref - .NET object implementing the callbacks.
+ * @returns The recording notifier.
+ */
+export function recordingNotifier(ref: DotNetObjectReference): RecordingNotifier {
+  const send = (method: DotNetCallbacks, ...args: unknown[]): void => {
+    // A disconnected circuit rejects; the engine must keep working regardless.
+    ref.invokeMethodAsync(method, ...args).catch(() => undefined);
+  };
+  return {
+    state: (state) => {
+      send('OnRecordingStateChanged', state);
+    },
+    progress: (progress) => {
+      send('OnRecordingProgress', progress);
+    },
+    takes: (takes) => {
+      send('OnTakesCaptured', takes);
+    },
+    inputLost: (reason) => {
+      send('OnInputLost', reason);
+    },
+    devicesChanged: () => {
+      send('OnInputDevicesChanged');
+    },
+  };
 }

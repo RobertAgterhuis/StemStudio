@@ -37,6 +37,13 @@ public sealed partial class PreferencesMenu
 
     private void Toggle() => Open = !Open;
 
+    private void Close() => Open = false;
+
+    private bool SingleKey => Preferences.Current.Shortcuts.SingleKey;
+
+    // WCAG 2.2 SC 2.1.4 (014 FR-022): reachable at every level.
+    private Task ToggleSingleKeyAsync() => Preferences.SetShortcutsAsync(Preferences.Current.Shortcuts with { SingleKey = !SingleKey });
+
     private async Task KeyAsync(KeyboardEventArgs args)
     {
         if (args.Key == "Escape")

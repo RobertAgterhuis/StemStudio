@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace StemStudio.Contracts.Assets;
 
 /// <summary>The normalised export request, stored with the item and used by retry (backend contract 1.5.0).</summary>
@@ -20,4 +22,8 @@ public sealed record ExportRecipeDto
 
     /// <summary>Output format with defaults filled in.</summary>
     public required ExportFormatDto Format { get; init; }
+
+    /// <summary>The take the export used (1.14.0, amended in round 014+015); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? TakeId { get; init; }
 }

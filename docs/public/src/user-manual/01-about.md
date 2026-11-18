@@ -2,7 +2,7 @@
 
 This manual explains StemStudio for the people who use it: musicians who want to practise
 along with a song by turning instruments up, down or off. It covers the complete product as
-planned in features 001 to 013, 022 and 023. Features that are still being built are clearly
+planned in features 001 to 015, 022 and 023. Features that are still being built are clearly
 marked, so you always know what you can use today.
 
 ## Feature status
@@ -32,11 +32,13 @@ of the sources the PDF was built from.
 - Chapter 2 gets StemStudio running with one command.
 - Chapters 3 to 6 cover the core of the product: experience levels, importing songs, stems
   and the mixer, and saving mixes.
-- Chapters 7 to 16 describe the features that build on the core: cover art and band info,
+- Chapters 7 to 11 cover practising with the mixer: song sections, the score that follows the
+  playback, setlists, the practice log and play-along recording.
+- Chapters 12 to 21 describe the features that build on the core: cover art and band info,
   karaoke lyrics, the export library, the library by artist and album, sheet music, style
   transfer, songs from your own lyrics, the lyric writing assistant, the AI composer agent
   and library care (backups, restore and disk space).
-- Chapters 17 to 20 are reference material: keyboard shortcuts, help and tours,
+- Chapters 22 to 25 are reference material: keyboard shortcuts and foot pedals, help and tours,
   troubleshooting, and the legal notice.
 
 Names of buttons and screens are printed in **bold**. Keys are shown like <kbd>Space</kbd>.

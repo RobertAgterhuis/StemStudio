@@ -1,0 +1,35 @@
+@* Part, mute-original, count-in and monitoring (FR-004..FR-006; ui-test-ids 1.14.0 rec-part-select, rec-mute-original,
+   rec-count-in, rec-monitoring, rec-monitoring-volume Advanced, rec-monitoring-warning). Every family is offered equally. *@
+
+<div class="ss-practice-row">
+    <label for="rec-part">I am recording</label>
+    <select id="rec-part" class="rz-dropdown" value="@WireName.Of(Settings.Part)" disabled="@Disabled" @onchange="PartChanged"
+            data-testid="rec-part-select" data-help-id="recording">
+        @foreach (var (part, label) in RecordingText.Parts)
+        {
+            <option value="@WireName.Of(part)">@label</option>
+        }
+    </select>
+    <input id="rec-mute-original" type="checkbox" checked="@Settings.MuteOriginal" disabled="@(Disabled || Settings.Part == RecordingPartDto.None)"
+           @onchange="MuteChanged" data-testid="rec-mute-original" />
+    <label class="ss-inline-label" for="rec-mute-original">Mute the original part while recording</label>
+</div>
+<div class="ss-practice-row">
+    <label for="rec-count-in">Count-in</label>
+    <select id="rec-count-in" class="rz-dropdown ss-number" value="@Settings.CountInBars" disabled="@Disabled" @onchange="CountInChanged"
+            data-testid="rec-count-in" data-help-id="recording">
+        <option value="0">None</option>
+        <option value="1">1 bar</option>
+        <option value="2">2 bars</option>
+    </select>
+    <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(Settings.Monitoring ? "true" : "false")"
+            @onclick="ToggleMonitoring" data-testid="rec-monitoring" data-help-id="recording-monitoring">Monitoring</button>
+    <LevelGate Feature="recording.monitoring-volume">
+        <input type="range" class="ss-pan" min="0" max="100" step="1" value="@Volume" aria-valuenow="@Volume" aria-valuemin="0" aria-valuemax="100"
+               aria-label="Monitoring volume" @onchange="VolumeChanged" data-testid="rec-monitoring-volume" data-help-id="recording-monitoring" />
+    </LevelGate>
+</div>
+@if (Settings.Monitoring)
+{
+    <p class="ss-help" role="note" data-testid="rec-monitoring-warning" data-help-id="recording-monitoring">@RecordingText.MonitoringWarning</p>
+}

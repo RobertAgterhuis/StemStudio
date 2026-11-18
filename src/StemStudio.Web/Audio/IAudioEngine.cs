@@ -131,4 +131,23 @@ public interface IAudioEngine : IAsyncDisposable
     /// <summary>Removes the karaoke DOM and stops drawing it; a no-op without an attached banner or engine.</summary>
     /// <returns>A task that completes when the call is delivered.</returns>
     Task DetachKaraokeAsync();
+
+    /// <summary>Raised once per completed pass of an enabled loop, when the wrap is heard (2.4.0 <c>OnLoopPass</c>).</summary>
+    event EventHandler<LoopPassInfo>? LoopPassed;
+
+    /// <summary><c>attachScoreFollower</c> (2.4.0): highlights the heard bar in the host's page containers.</summary>
+    /// <param name="elementId">Host element id (with <c>[data-score-page]</c> page containers).</param>
+    /// <param name="view">Pages and bars.</param>
+    /// <param name="options">Follow options.</param>
+    /// <returns>A task that completes when attached; an invalid view throws <see cref="AudioEngineException"/>.</returns>
+    Task AttachScoreFollowerAsync(string elementId, ScoreViewMap view, ScoreFollowOptions options);
+
+    /// <summary><c>setScoreFollowOptions</c> (2.4.0).</summary>
+    /// <param name="options">Follow options; <c>Follow = true</c> ends a manual-scroll pause.</param>
+    /// <returns>A task that completes when applied.</returns>
+    Task SetScoreFollowOptionsAsync(ScoreFollowOptions options);
+
+    /// <summary><c>detachScoreFollower</c> (2.4.0); no-op when the engine is not running.</summary>
+    /// <returns>A task that completes when detached.</returns>
+    Task DetachScoreFollowerAsync();
 }

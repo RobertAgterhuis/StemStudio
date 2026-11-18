@@ -4,19 +4,22 @@
  *
  * @packageDocumentation
  */
-import { DotNetNotifier, PracticeNotifier } from './callbacks';
+import { DotNetNotifier, PracticeNotifier, loopPassNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
-import { KaraokeClock } from './karaoke/clock';
+import { KaraokeClock, heardTime } from './karaoke/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
+import { LoopPassTracker } from './loop-pass';
 import { Meters } from './meters';
 import { ClickPlayer } from './metronome/clicks';
 import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
 import { PracticeController } from './practice/controller';
+import { Recording } from './recording/surface';
+import { ScoreFollower } from './score-follow/follower';
 import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
@@ -24,20 +27,33 @@ import { Transport } from './transport';
 import type {
   AudioEngine,
   BeatGrid,
+  CalibrationOptions,
+  CalibrationResult,
+  CapturedTake,
   ChannelId,
   ChannelSettings,
   DotNetObjectReference,
   EngineOptions,
+  InputDevice,
+  InputInfo,
   KaraokeLyrics,
   KaraokeOptions,
+  LoadTakeRequest,
   LoadTrackRequest,
   LoopRegion,
   MeterTarget,
   MetronomeSettings,
+  MonitoringSettings,
+  OpenInputRequest,
   ParentStemName,
   PlaybackState,
   PracticeSettings,
   PracticeStatus,
+  ScoreFollowOptions,
+  ScoreViewMap,
+  RecordOptions,
+  RecordingSupport,
+  TakeCompareMode,
 } from './types';
 
 /** Default delay of the shared `when` (s). */
@@ -57,9 +73,14 @@ interface Parts {
   readonly metronome: MetronomeScheduler;
   readonly clicks: ClickPlayer;
   readonly karaoke: Karaoke;
+  readonly passes: LoopPassTracker;
+  readonly score: ScoreFollower;
 }
 
-function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
+/** Meter tap of the recording input, read when a meter is attached or drawn. */
+type InputTap = () => AnalyserNode | undefined;
+
+function createParts(ref: DotNetObjectReference, options: EngineOptions, inputTap: InputTap): Parts {
   const context = (options.audioContextFactory ?? (() => new AudioContext({ sampleRate: 44100 })))();
   const mixer = new Mixer(context);
   const transport = new Transport({
@@ -69,11 +90,30 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   });
   const notifier = createNotifier(ref, transport);
   const frames = new FrameLoop();
-  const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
+  const meters = new Meters({ source: (target) => (target === 'input' ? inputTap() : mixer.analyser(target)), loop: frames });
   const clicks = new ClickPlayer(context);
-  const metronome = createMetronome({ context, transport, clicks }, options);
+  const passes = createLoopPasses({ context, transport, frames }, ref);
+  const metronome = createMetronome({ context, transport, clicks, onTick: passes.observe }, options);
   const karaoke = createKaraoke(context, transport, frames);
-  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke };
+  const score = createScoreFollower(context, transport, frames);
+  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke, passes, score };
+}
+
+function createScoreFollower(context: AudioContext, transport: Transport, loop: FrameLoop): ScoreFollower {
+  const position = (): number => transport.positionAt(heardTime(context, performance.now()));
+  const score = new ScoreFollower({ loop, position, playing: () => transport.state === 'playing' });
+  transport.addListener(score);
+  return score;
+}
+
+function createLoopPasses(
+  { context, transport, frames }: { context: AudioContext; transport: Transport; frames: FrameLoop },
+  ref: DotNetObjectReference,
+): LoopPassTracker {
+  const now = (): number => heardTime(context, performance.now());
+  const passes = new LoopPassTracker({ transport, frames, now, report: loopPassNotifier(ref) });
+  transport.addListener(passes);
+  return passes;
 }
 
 function createNotifier(ref: DotNetObjectReference, transport: Transport): DotNetNotifier {
@@ -89,14 +129,19 @@ function createKaraoke(context: AudioContext, transport: Transport, loop: FrameL
   return karaoke;
 }
 
-function createMetronome(
-  { context, transport, clicks }: { context: AudioContext; transport: Transport; clicks: ClickPlayer },
-  options: EngineOptions,
-): MetronomeScheduler {
+interface MetronomeParts {
+  readonly context: AudioContext;
+  readonly transport: Transport;
+  readonly clicks: ClickPlayer;
+  readonly onTick: () => void;
+}
+
+function createMetronome({ context, transport, clicks, onTick }: MetronomeParts, options: EngineOptions): MetronomeScheduler {
   const metronome = new MetronomeScheduler({
     context,
     clock: transport,
     output: clicks,
+    onTick,
     aheadSeconds: options.scheduleAheadSeconds ?? DEFAULT_SCHEDULE_AHEAD_SECONDS,
     intervalMs: options.schedulerIntervalMs ?? DEFAULT_SCHEDULER_INTERVAL_MS,
   });
@@ -127,6 +172,7 @@ export class Engine implements AudioEngine {
   private readonly fetchFn: typeof fetch;
   private readonly practice: PracticeController;
   private readonly practiceNotifier: PracticeNotifier;
+  private readonly recording: Recording;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -136,11 +182,12 @@ export class Engine implements AudioEngine {
    * @param options - Test overrides (context factory, fetch, timing).
    */
   public constructor(ref: DotNetObjectReference, options: EngineOptions = {}) {
-    this.parts = createParts(ref, options);
+    this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
+    this.recording = this.createRecording(ref, options);
   }
 
   /** Validated metronome settings. */
@@ -156,6 +203,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.loadTrack} */
   public async loadTrack(request: LoadTrackRequest): Promise<number> {
     this.alive();
+    this.recording.assertIdle();
     const groups = request.groups ?? [];
     validateGroups(request.stems, groups);
     const buffers = await this.load(request.stems);
@@ -165,6 +213,8 @@ export class Engine implements AudioEngine {
     this.grid = request.beatGrid;
     this.parts.metronome.configure(this.metronome, this.grid);
     this.practice.onTrackLoaded();
+    this.recording.onTrackLoaded();
+    this.parts.passes.reset();
     return this.parts.transport.duration;
   }
 
@@ -184,13 +234,16 @@ export class Engine implements AudioEngine {
   public stop(): void {
     this.alive();
     this.parts.transport.stop();
+    this.parts.passes.reset();
   }
 
   /** {@inheritDoc AudioEngine.seek} */
   public seek(seconds: number): void {
     this.alive();
+    this.recording.assertIdle();
     const max = this.parts.transport.duration;
     this.parts.transport.seek(clampChecked(seconds, { min: 0, max, name: 'position' }));
+    this.parts.passes.reset();
   }
 
   /** {@inheritDoc AudioEngine.getPosition} */
@@ -226,9 +279,12 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.setLoop} */
   public setLoop(loop: LoopRegion): void {
     this.alive();
+    this.recording.assertIdle();
     setLoopChecked(this.parts.transport, loop);
     this.practice.onLoopChanged();
+    this.parts.passes.onLoopChanged();
     this.parts.karaoke.redraw();
+    this.parts.score.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -272,6 +328,7 @@ export class Engine implements AudioEngine {
   public async setPractice(settings: PracticeSettings): Promise<void> {
     await Promise.resolve();
     this.alive();
+    this.recording.assertIdle();
     await this.practice.apply(settings);
   }
 
@@ -281,18 +338,121 @@ export class Engine implements AudioEngine {
     return this.practice.status();
   }
 
+  /** {@inheritDoc AudioEngine.attachScoreFollower} */
+  public attachScoreFollower(elementId: string, view: ScoreViewMap, options: ScoreFollowOptions): void {
+    this.alive();
+    this.parts.score.attach(elementId, view, options);
+  }
+
+  /** {@inheritDoc AudioEngine.setScoreFollowOptions} */
+  public setScoreFollowOptions(options: ScoreFollowOptions): void {
+    this.alive();
+    this.parts.score.setOptions(options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachScoreFollower} */
+  public detachScoreFollower(): void {
+    this.alive();
+    this.parts.score.detach();
+  }
+
+  /** {@inheritDoc AudioEngine.recordingSupport} */
+  public recordingSupport(): Promise<RecordingSupport> {
+    this.alive();
+    return this.recording.recordingSupport();
+  }
+
+  /** {@inheritDoc AudioEngine.listInputDevices} */
+  public listInputDevices(): Promise<InputDevice[]> {
+    this.alive();
+    return this.recording.listInputDevices();
+  }
+
+  /** {@inheritDoc AudioEngine.openInput} */
+  public openInput(request: OpenInputRequest): Promise<InputInfo> {
+    this.alive();
+    return this.recording.openInput(request);
+  }
+
+  /** {@inheritDoc AudioEngine.closeInput} */
+  public closeInput(): void {
+    this.alive();
+    this.recording.closeInput();
+  }
+
+  /** {@inheritDoc AudioEngine.setMonitoring} */
+  public setMonitoring(settings: MonitoringSettings): void {
+    this.alive();
+    this.recording.setMonitoring(settings);
+  }
+
+  /** {@inheritDoc AudioEngine.calibrateLatency} */
+  public calibrateLatency(options?: CalibrationOptions): Promise<CalibrationResult> {
+    this.alive();
+    return this.recording.calibrateLatency(options);
+  }
+
+  /** {@inheritDoc AudioEngine.startRecording} */
+  public startRecording(options: RecordOptions): Promise<void> {
+    this.alive();
+    return this.recording.startRecording(options);
+  }
+
+  /** {@inheritDoc AudioEngine.stopRecording} */
+  public stopRecording(): Promise<CapturedTake[]> {
+    this.alive();
+    return this.recording.stopRecording();
+  }
+
+  /** {@inheritDoc AudioEngine.captureWav} */
+  public captureWav(captureKey: string): Blob {
+    this.alive();
+    return this.recording.captureWav(captureKey);
+  }
+
+  /** {@inheritDoc AudioEngine.releaseCapture} */
+  public releaseCapture(captureKey: string): void {
+    this.alive();
+    this.recording.releaseCapture(captureKey);
+  }
+
+  /** {@inheritDoc AudioEngine.loadTake} */
+  public loadTake(request: LoadTakeRequest): Promise<void> {
+    this.alive();
+    return this.recording.loadTake(request);
+  }
+
+  /** {@inheritDoc AudioEngine.unloadTake} */
+  public unloadTake(): void {
+    this.alive();
+    this.recording.unloadTake();
+  }
+
+  /** {@inheritDoc AudioEngine.setTakeAdjustment} */
+  public setTakeAdjustment(samples: number): void {
+    this.alive();
+    this.recording.setTakeAdjustment(samples);
+  }
+
+  /** {@inheritDoc AudioEngine.setTakeCompare} */
+  public setTakeCompare(mode: TakeCompareMode): void {
+    this.alive();
+    this.recording.setTakeCompare(mode);
+  }
+
   /** {@inheritDoc AudioEngine.dispose} */
   public async dispose(): Promise<void> {
     if (this.disposed) {
       return;
     }
     this.disposed = true;
-    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context } = this.parts;
-    [transport, this.groups, mixer, notifier, meters].forEach((part) => {
+    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context, passes } = this.parts;
+    [transport, this.groups, mixer, notifier, meters, passes].forEach((part) => {
       part.dispose();
     });
     karaoke.detach();
-    [frames, metronome, this.practice, this.practiceNotifier].forEach((part) => {
+    this.parts.score.detach();
+    [frames, metronome, this.practice, this.practiceNotifier, this.recording].forEach((part) => {
       part.dispose();
     });
     await context.close();
@@ -312,6 +472,18 @@ export class Engine implements AudioEngine {
       practice.onRestart();
     });
     return practice;
+  }
+
+  private createRecording(ref: DotNetObjectReference, options: EngineOptions): Recording {
+    const { context, transport, mixer } = this.parts;
+    const practice = {
+      status: () => this.practice.status(),
+      overrideCountIn: (bars: number | null) => {
+        this.practice.overrideCountIn(bars);
+      },
+      play: () => this.practice.play(),
+    };
+    return new Recording({ context, transport, mixer, practice, fetch: this.fetchFn, ref, options });
   }
 
   /** Fetches and decodes files; rejects when the engine was disposed meanwhile. */

@@ -1,0 +1,63 @@
+@* Practice log panel of the mixer (014 US6, FR-025..FR-028; ui-test-ids 1.13.0 practice-log-*): today / week / total, time
+   per section (Advanced), the charts, the off note with "Turn on", the first-use notice and deleting the log of this song. *@
+@using StemStudio.Web.Practice
+
+<section class="ss-console-panel ss-practice-log" role="region" aria-label="Practice log" data-testid="practice-log-panel" data-help-id="practice-log-panel">
+    <h2 class="ss-panel-title">Practice log <HelpHint HelpId="mixer-practice-log" /></h2>
+    @if (Error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="practice-log-error">@Error</div>
+    }
+    @if (Settings is { Enabled: false })
+    {
+        <p class="ss-notice" role="note" data-testid="practice-log-off-note">
+            The practice log is off: nothing is recorded.
+            <RadzenButton Text="Turn on" Size="ButtonSize.Small" Click="() => UpdateAsync(enabled: true)" data-testid="practice-log-turn-on" />
+        </p>
+    }
+    else if (Settings is { NoticeAcknowledged: false })
+    {
+        <div class="ss-notice" role="note" data-testid="practice-log-notice">
+            <p>StemStudio keeps a log of how long you practise each song and section, only on this computer. It is never sent anywhere.</p>
+            <RadzenButton Text="OK" Size="ButtonSize.Small" Click="() => UpdateAsync(acknowledged: true)" data-testid="practice-log-notice-ok" />
+            <RadzenButton Text="Turn the log off" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => UpdateAsync(enabled: false, acknowledged: true)"
+                          data-testid="practice-log-notice-turn-off" />
+        </div>
+    }
+    @if (Summary is { } summary)
+    {
+        <dl class="ss-practice-totals">
+            <div><dt>Today</dt><dd data-testid="practice-log-today">@PracticeLogText.Duration(summary.TodaySeconds)</dd></div>
+            <div><dt>Last 7 days</dt><dd data-testid="practice-log-week">@PracticeLogText.Duration(summary.Last7DaysSeconds)</dd></div>
+            <div><dt>Total</dt><dd data-testid="practice-log-total">@PracticeLogText.Duration(summary.TotalSeconds)</dd></div>
+        </dl>
+        <LevelGate Feature="practice.log-sections">
+            @if (summary.Sections.Count > 0)
+            {
+                <table class="ss-table" data-testid="practice-log-sections-table">
+                    <caption>Time per section</caption>
+                    <thead><tr><th scope="col">Section</th><th scope="col">Time</th><th scope="col">Loops</th><th scope="col">Best trainer speed</th></tr></thead>
+                    <tbody>
+                        @foreach (var section in summary.Sections)
+                        {
+                            <tr>
+                                <th scope="row">@section.Label</th>
+                                <td>@PracticeLogText.Duration(section.Seconds)</td>
+                                <td>@section.LoopPasses</td>
+                                <td>@BestText(section.BestTrainerPercent)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </LevelGate>
+        <PracticeCharts Summary="summary" />
+        <RadzenButton Text="Delete the log of this song" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(summary.Sessions == 0)"
+                      Click="() => ConfirmDelete = true" data-testid="practice-log-delete-track" />
+    }
+    @if (ConfirmDelete)
+    {
+        <ConfirmModal Title="Delete the practice log" Message="Delete every practice session of this song? This cannot be undone." TestIdPrefix="practice-log-delete"
+                      OnConfirm="DeleteAsync" OnCancel="() => ConfirmDelete = false" />
+    }
+</section>

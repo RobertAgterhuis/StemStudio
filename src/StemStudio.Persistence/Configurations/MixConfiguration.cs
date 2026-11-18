@@ -34,6 +34,7 @@ public sealed class MixConfiguration : IEntityTypeConfiguration<Mix>
         builder.Ignore(mix => mix.DetailChannels);
         builder.ComplexCollection<List<DetailChannelSettings>, DetailChannelSettings>("_detailChannels", collection => collection.ToJson("DetailChannels"));
         ConfigurePractice(builder);
+        ConfigureTake(builder);
     }
 
     /// <summary>Practice tempo (012) as one nullable JSON column; NULL (mixes saved before 012) reads as the defaults in the Domain.</summary>
@@ -46,5 +47,12 @@ public sealed class MixConfiguration : IEntityTypeConfiguration<Mix>
             practice.ComplexProperty(settings => settings.Trainer);
             practice.ComplexProperty(settings => settings.CountIn);
         });
+    }
+
+    /// <summary>The take channel (feature 015) as one nullable JSON column <c>TakeChannel</c>; NULL = no take in the mix.</summary>
+    private static void ConfigureTake(EntityTypeBuilder<Mix> builder)
+    {
+        builder.Ignore(mix => mix.Take);
+        builder.ComplexProperty<TakeChannelSettings>("_take", take => take.ToJson("TakeChannel"));
     }
 }

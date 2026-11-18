@@ -1,8 +1,9 @@
-// Mixer dock inset (012 integration, WCAG 2.4.11 Focus Not Obscured). The karaoke banner, the count-in slot and the
-// transport stick to the bottom of the viewport together (above the bottom navigation bar on small screens); their
+// Mixer dock inset (012 integration, WCAG 2.4.11 Focus Not Obscured; fixed bar since 014). The karaoke banner, the count-in slot and the
+// transport form one fixed bar at the bottom of the viewport (above the bottom navigation bar on small screens); their
 // height depends on the banner's text size, the lyrics and the width. This keeps `--ss-dock-inset` on <html> equal to
-// the distance from the viewport bottom to the dock's top (sticky offset + height), so `scroll-padding-bottom`
-// (css/components/mixer.css, karaoke.css) scrolls every focused control above the dock. Visual layout only; without
+// the distance from the viewport bottom to the dock's top (bottom offset + height), so `scroll-padding-bottom`
+// (css/components/mixer.css, karaoke.css) scrolls every focused control above the dock and the page reserves that much
+// space at its end (padding-bottom, mixer.css). Visual layout only; without
 // this script the CSS falls back to the fixed transport height.
 (() => {
   const root = document.documentElement;

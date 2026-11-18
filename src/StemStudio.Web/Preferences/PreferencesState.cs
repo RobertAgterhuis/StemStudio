@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Preferences;
 
@@ -104,6 +105,25 @@ public sealed class PreferencesState(IPreferencesStore store, IWebInterop intero
     /// <summary>Shows the welcome panel, tours and hints again.</summary>
     /// <returns>A task that completes when applied.</returns>
     public Task ResetHelpAsync() => UpdateAsync(p => p with { Help = HelpProgress.Empty });
+
+    /// <summary>
+    /// Replaces the shortcut preferences (014: settings page, Preferences switch, pedal setup) and saves them at once, without
+    /// the debounce, before the change is shown: a remap is a single deliberate edit, and a reload or a typed URL right after
+    /// the page shows it must keep the new key.
+    /// </summary>
+    /// <param name="shortcuts">The new shortcut preferences.</param>
+    /// <returns>A task that completes when applied and saved.</returns>
+    public async Task SetShortcutsAsync(ShortcutPreferences shortcuts)
+    {
+        Current = Current with { Shortcuts = shortcuts };
+        CancelSave();
+        if (StorageAvailable)
+        {
+            await store.SaveAsync(Current);
+        }
+
+        await PublishAsync();
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

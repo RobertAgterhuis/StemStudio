@@ -34,6 +34,9 @@ runs:
         for generator in tests/fixtures/generate_*.py; do
           uv run --project worker --frozen python "${generator}"
         done
+        # 015 recording inputs (module run from tests/fixtures) and the 014 practice-flow song.
+        (cd tests/fixtures && uv run --project ../../worker --frozen python -m recording.generate_recording_fixtures)
+        uv run --project worker --frozen python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
     - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
       shell: bash
       # Owner uid 1654 (the api), group = the runner's group with setgid and group write, so the

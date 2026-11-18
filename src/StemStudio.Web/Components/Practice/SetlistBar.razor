@@ -1,0 +1,42 @@
+@* Setlist play mode bar above the mixer (014 US5, FR-017; ui-test-ids 1.13.0 setlist-bar-*): position, the entry note,
+   previous / next song (also Ctrl+Left / Ctrl+Right and a pedal preset) and exit. The mixer's unsaved-changes guard
+   applies to every move. *@
+@using StemStudio.Contracts.Setlists
+
+<div class="ss-setlist-bar ss-console-panel" role="region" aria-label="Setlist" data-testid="setlist-bar" data-help-id="setlist-bar"
+     data-setlist-id="@Setlist.Id" data-position="@Position" data-count="@Setlist.Entries.Count">
+    <span class="ss-setlist-bar-place"><strong>@Setlist.Name</strong>: song @Position of @Setlist.Entries.Count</span>
+    @if (!string.IsNullOrWhiteSpace(Entry.Note))
+    {
+        <span class="ss-setlist-bar-note" data-testid="setlist-bar-note">@Entry.Note</span>
+    }
+    <RadzenButton Text="Previous song" Icon="skip_previous" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(Position <= 1)"
+                  Click="OnPrevious" data-testid="setlist-bar-previous" />
+    <RadzenButton Text="Next song" Icon="skip_next" Size="ButtonSize.Small" Disabled="@(Position >= Setlist.Entries.Count)"
+                  Click="OnNext" data-testid="setlist-bar-next" />
+    <RadzenButton Text="Exit setlist" Icon="logout" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnExit" data-testid="setlist-bar-exit" />
+</div>
+
+@code {
+    /// <summary>The setlist being played.</summary>
+    [Parameter, EditorRequired]
+    public SetlistDto Setlist { get; set; } = default!;
+
+    /// <summary>1-based position.</summary>
+    [Parameter]
+    public int Position { get; set; }
+
+    /// <summary>Previous song.</summary>
+    [Parameter]
+    public EventCallback OnPrevious { get; set; }
+
+    /// <summary>Next song.</summary>
+    [Parameter]
+    public EventCallback OnNext { get; set; }
+
+    /// <summary>Back to the setlist.</summary>
+    [Parameter]
+    public EventCallback OnExit { get; set; }
+
+    private SetlistEntryDto Entry => Setlist.Entries[Position - 1];
+}
