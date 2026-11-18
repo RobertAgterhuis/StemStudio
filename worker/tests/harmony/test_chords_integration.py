@@ -33,6 +33,7 @@ from stemstudio_worker.ports import (
     ChordFrames,
     PostProcessOptions,
 )
+from stemstudio_worker.schemas import BeatGridTempo
 
 SR = CHORD_SAMPLE_RATE
 CHORD_SECONDS = 2.0
@@ -137,12 +138,19 @@ def _check_chart_and_key(
         print("harmony.postprocess / harmony.key not installed: chart and key not checked")  # noqa: T201
         return
     processor, estimator = post.BeatSnapPostProcessor(), key.HmmKeyEstimator()
-    share = chart_share(processor.segments(frames, PostProcessOptions(None, "simple")), truth)
+    grid = beat_grid(len(truth) * CHORD_SECONDS)
+    share = chart_share(processor.segments(frames, PostProcessOptions(grid, "simple")), truth)
     keys = [_key_found(recognizer, (processor, estimator), tonic, minor)
             for tonic, minor in KEY_SET]  # fmt: skip
     print(f"chart majmin time {share:.1%}; keys {sum(keys)}/{len(keys)}")  # noqa: T201
     assert share >= CHART_TARGET
     assert sum(keys) / len(keys) >= KEY_TARGET
+
+
+def beat_grid(seconds: float) -> BeatGridTempo:
+    """The reliable 120 BPM 4/4 grid of the synthetic set (one chord per bar)."""
+    beats = [i * 0.5 for i in range(int(seconds / 0.5))]
+    return BeatGridTempo(bpm=120, beats_per_bar=4, beats=beats, downbeats=beats[::4])
 
 
 def chart_share(chart: Any, truth: list[tuple[int, bool]]) -> float:
@@ -170,8 +178,9 @@ def _cadence(tonic: int, minor: bool) -> npt.NDArray[np.float32]:
 def _key_found(recognizer: BtcRecognizer, parts: tuple[Any, Any], tonic: int, minor: bool) -> bool:
     processor, estimator = parts
     frames = recognizer.recognize(_cadence(tonic, minor), "simple", lambda _f: None)
-    chart = processor.segments(frames, PostProcessOptions(None, "simple"))
-    found = estimator.estimate(frames.chroma, chart.segments, None).key
+    grid = beat_grid(8 * CHORD_SECONDS)
+    chart = processor.segments(frames, PostProcessOptions(grid, "simple"))
+    found = estimator.estimate(frames.chroma, chart.segments, grid).key
     mode = "minor" if minor else "major"
     return found is not None and (found.tonic, found.mode) == (tonic, mode)
 
