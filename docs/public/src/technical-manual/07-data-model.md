@@ -21,7 +21,10 @@ channels (stem, volume 0 to 1, default 0.8, pan −1 to 1, mute, solo), metronom
 volume, BPM override 30 to 300, offset −2000 to 2000 ms, beats per bar), loop (start, end,
 enabled), expanded parents and detail channels; from 012 the practice tempo (speed 50 to
 120 %, transpose −12 to +12, speed trainer start/step/target/passes, count-in bars 0 to 2 and
-before every pass), stored as nullable JSON; `NULL` reads as the defaults.
+before every pass), stored as nullable JSON; `NULL` reads as the defaults. From 014 the loop
+carries `sectionId` (inside the settings JSON, no column; an id that no longer exists reads as
+`null`), and from 015 the take channel `TakeChannel` (nullable JSON: take id, volume 0 to 1,
+pan −1 to 1, mute, solo; a take that no longer exists is ignored on load; duplicates copy it).
 
 **Track artwork and metadata (005)**: the chosen picture (source `user`, `spotify`,
 `embedded`, `coverartarchive` or `youtube`, version) and the best automatic one, the lookup
@@ -82,6 +85,32 @@ Deleting a sheet cancels its active assist and deletes its assists, suggestions,
 and assisted lines (cascade). Sheets from before 023 load unchanged: their first revision row is
 written at their first change.
 
+**Practice flow (014)**:
+
+| Table | Content |
+|---|---|
+| `TrackSections` | One row per track: status (`none`, `queued`, `detecting`, `ready`, `failed`), origin (`detected` or `edited` after the first user save), `Revision` (+1 on every replace; the concurrency check of `PUT`), analyser, snap (`downbeat`, `beat`, `time`), warnings, worker job id, error, time |
+| `Sections` | Position 0-63, kind (intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other), label 1-40, start and end seconds (sorted, not overlapping, at least 1 s), solo instrument (a channel of the track), confidence, origin (`detected` or `user`); ids are kept across edits |
+| `ScoreViews` | One row per score asset: status (`queued`, `rendering`, `ready`, `failed`), track id, `OffsetSeconds` (track time of the score's input start), page count 0-200, the bar map with track times (JSON), worker job id, error, revision |
+| `Setlists`, `SetlistEntries` | Name 1-80, note 0-2,000, `RemovedEntries` (entries removed by a track delete, reset when acknowledged); entries with position 0-99, track (cascade), optional mix (set null), note 0-1,000; the same track may appear more than once |
+| `PracticeLogSettings` | One row (Id 1, seeded): `Enabled` (default on) and `NoticeAcknowledged` |
+| `PracticeSessions`, `PracticeSectionTimes` | A session (id made by the browser, track, optional mix, start and end UTC, at most 12 h, played seconds, loop passes, highest speed) and per section its label and kind snapshot, played seconds, loop passes and the highest trainer speed of a completed pass; `SectionId` has no foreign key, so the times survive a new detection |
+
+Deleting a track deletes its sections, setlist entries (counted in `RemovedEntries`) and practice
+sessions; deleting a score asset deletes its view and `view/` files.
+
+**Play-along recording (015)**:
+
+| Table | Content |
+|---|---|
+| `RecordingTakes` | One take: track (cascade), asset (unique; the library item with `audio.flac`), number per track (never reused), name 1-80, part (`none`, `vocals`, `guitar`, `bass`, `piano`, `drums`, `other`), session id and pass 1-50, `Partial`, `StartSample` and `LengthSamples` (44.1 kHz, at least 0.5 s, inside the track), input mode (`mono-1`, `mono-2`, `stereo`) and channels, latency used and its method (`loopback`, `manual`, `estimated`), calibration (set null), device label, mix (set null), favourite, peak dBFS, clipped samples, dropouts, adjustment samples and `AlignmentRevision`, times. Status, error and size come from the asset. At most 200 per track |
+| `InputCalibrations` | Per input device label (unique): latency 0-44,100 samples, method (`loopback`, `manual`), spread (at most 44 samples) and clicks found (6-12) for a loopback, output latency at the time, time |
+
+A take's asset has origin `recording`, the recipe `Provenance.recording` (`takeId`,
+`captureFile`) and the audio facts of the FLAC (24-bit, 44.1 kHz, 2 channels, padded from the song
+start). Deleting a take removes its asset, files, audio-hash entries and the take channel of mixes
+that pointed at it; deleting a track deletes its takes in the same unit of work.
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -101,6 +130,8 @@ written at their first change.
 | `20261116211814_AddMixPractice` | 012 | `Mixes.Practice` (nullable JSON: speed, transpose, trainer, count-in); older mixes keep `NULL` = defaults |
 | `20261117111150_AddLibraryFolders` | 022 | `Assets`: placement columns (`Folder*`, `Folder*Key`, `Folder*Source`, `FolderYear`, `Placement_Discriminator`), `Library*` names, `FiledVersion`, `FiledAt`; `Tracks`: `Library*` names; indexes `IX_Assets_Folder`, `IX_Assets_FiledVersion`, `IX_Assets_FiledAt`, `IX_Assets_UpdatedAt`. Existing items stay unfiled (`FiledVersion` 0) until the start-up backfill files them |
 | `20261117115929_AddLyricAssist` | 023 | `LyricsSheets`: `Revision` (existing rows 1), `Sensitivity`, `RhythmTarget`, `OwnWorkOverride`, `LastCause`; tables `LyricAssists`, `LyricSuggestions`, `LyricsSheetRevisions`, `LyricsIntentionalMarks`, `LyricsAssistedLines`, `LyricWords`, `LyricAssistSettings`, `LyricAssistEvents`; indexes on assist sheet and status, suggestion assist and status, and unique language and word |
+| `20261117212542_AddPracticeFlow` | 014 | Tables `TrackSections`, `Sections`, `ScoreViews`, `Setlists`, `SetlistEntries`, `PracticeLogSettings` (seeded), `PracticeSessions`, `PracticeSectionTimes`; the loop `sectionId` lives in the existing mix settings JSON |
+| `20261117215712_AddRecordingTakes` | 015 | `Mixes.TakeChannel` (nullable JSON); tables `InputCalibrations` and `RecordingTakes` with indexes on track and creation time, track and session, unique track and number, unique asset |
 
 ## File layout
 
@@ -113,6 +144,9 @@ tracks/<trackId>/stems/<stem>.flac
 tracks/<trackId>/detail/<parent>/<name>.flac
 tracks/<trackId>/artwork/{auto,user}/{cover,thumb}.jpg     (005)
 assets/<assetId>/audio.<ext> | score.{pdf,musicxml,mid}   (007, 008)
+assets/<assetId>/view/page-NNN.svg                         (014, score view pages)
+assets/<assetId>/audio.flac                                (015, a take; origin recording)
+assets/<assetId>/capture.wav                               (015, transient padded upload)
 generations/<id>/take-<n>.flac                             (009)
 voices/<id>/sample.flac                                    (010)
 library-care/jobs/<jobId>.json                             (013, library jobs)
@@ -121,6 +155,14 @@ library-care/staging/<jobId>/                              (013, unpacked archiv
 library-care/previous/<id>/                                (013, library kept aside)
 library-care/cleanup/<planId>.json                         (013, clean-up plans)
 ```
+
+Takes (015) are library assets: `capture.wav` is the uploaded WAV padded with silence to the
+song position; the render job turns it into `audio.flac`, after which `capture.wav` is deleted
+(it is kept while a take is failed, for **Try again**). A backup selects only the `audio.flac` of
+ready takes, in the optional category **recordings**, together with the `RecordingTakes` rows; the
+storage overview counts them per track as recordings. `InputCalibrations`, sections, setlists and
+the practice log travel with the database. The score view pages (`view/`) are not archived: after a
+restore they are made again on first open.
 
 The library folders (022) and the lyric assistant (023) add no files to the data folder: their data
 lives in the database and is therefore part of a backup (013); folder art references the existing
@@ -134,6 +176,8 @@ and `manifest.json` last (SHA-256 and size of every entry, consent proof per voi
 `schema.migrations` from `__EFMigrationsHistory`).
 
 Worker data folder (volume `worker-data`): `jobs/<jobId>.json`, `detail-jobs/<id>.json`,
+from 014 `section-jobs/<id>.json`, `score-view-jobs/<id>/` (`job.json`, `page-NNN.svg`,
+`bars.json`) and `setlist-document-jobs/<id>/` (`job.json`, `setlist.pdf`),
 `work/<jobId>/`, `uploads/<jobId>/`, the result cache `cache/by-source/` and
 `cache/by-audio/<sha>/` and detail checkpoints. On restart, non-terminal jobs are marked
 failed (*interrupted by restart*); detail retries reuse checkpoints. Models live in the
@@ -146,4 +190,11 @@ Stems are FLAC, 44.1 kHz, stereo, 16-bit (ADR-001).
 User preferences are not in the database. They live in the browser under the
 `localStorage` key `stemstudio.preferences` (schema version 1: level, theme, density,
 motion, help state). From 006 the karaoke banner adds `stemstudio.karaoke.visible` and
-`stemstudio.karaoke.size`.
+`stemstudio.karaoke.size`. From 014 the record has schema version 2 with `shortcuts`:
+`singleKey` (default on), `pedalMode`, `pedalPreset` (`play-section-start`, `next-previous-section`,
+`next-previous-song`, `faster-slower`, `custom`) and `overrides` (command id to at most two key
+chords, each in the `keys` or `pedal` layer); a version 1 record reads with the default keys, and
+invalid or clashing overrides are dropped and reported once (record at most 16 KB). From 015
+`stemstudio.recording` keeps the recording panel's choices (last input, channel mode, part,
+mute the original part, count-in bars 0-2 with default 1, monitoring and its volume).
+Nothing in browser storage is sent to the API.

@@ -17,7 +17,7 @@ together with two models (see the technical manual, chapter 3):
 
 StemStudio never downloads models itself. If Ollama is not running or a model is missing, the
 panel says so and tells you the fix, for example *"Model qwen3.5:9b is not pulled."* with
-the command `ollama pull qwen3.5:9b` (chapter 19).
+the command `ollama pull qwen3.5:9b` (chapter 24).
 
 ## Opening the agent
 
@@ -78,11 +78,11 @@ undone; ask the agent to delete them, which asks for confirmation.
 
 ## Library and lyrics
 
-The agent can browse a library folder, search the library (chapter 10), open a folder for you
+The agent can browse a library folder, search the library (chapter 15), open a folder for you
 and change **library info**. Folder and item names count as text from outside: after the agent
 has read them, changing library info asks for your approval.
 
-For your own lyrics sheets (chapter 14) it can start a check or writing help, list the
+For your own lyrics sheets (chapter 19) it can start a check or writing help, list the
 suggestions (line numbers, categories and states), look up rhymes for a word you name, count syllables and open
 the lyrics editor. Its answers carry counts and ids, never the lyric text. **Applying** suggestions
 always shows an approval card, whatever the plan allows. The card lists each change as before
@@ -94,10 +94,12 @@ into a sheet.
 ## What the agent does not do
 
 - It never creates or deletes a voice profile and never gives consent. It can convert a take
-  to **your own** voice only with a profile you already made with consent (chapter 13), and
+  to **your own** voice only with a profile you already made with consent (chapter 18), and
   only after you approve the card.
 - It refuses requests to imitate an artist; styles describe genres and sounds.
 - It has no access to files, the shell, the internet at large or the settings.
+- It has no tools yet for song sections, setlists or the practice log, and it never sees or
+  records your takes (chapter 11).
 
 ## Local AI or Claude
 

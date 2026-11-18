@@ -28,7 +28,7 @@ presets, saving, the mix library, preferences, shortcuts and the legal notice.
 
 The glossary explains the terms used in StemStudio: stem, detail stem, BPM (tempo), beat
 grid, downbeat, time signature, pan, solo, mute, loop, metronome offset, peak meter,
-clipping, dBFS, and GPU and CPU.
+clipping, dBFS, GPU and CPU, count-in, semitone, the speed-trainer region and section.
 
 ## Guided tours
 
@@ -42,6 +42,8 @@ themselves, and each tour is offered once per version.
 | Mixer basics | Mixer | Beginner |
 | Mixer in depth | Mixer | Advanced |
 | Keyboard first | Mixer | Expert |
+| Practise a section | Mixer | Beginner |
+| Hands-free practice | Mixer | Advanced |
 
 Move with **Next** (<kbd>→</kbd>) and **Back** (<kbd>←</kbd>); <kbd>Esc</kbd> ends the tour.
 Steps whose control is not on the screen are skipped. All tours are also listed in the help
@@ -50,4 +52,7 @@ panel under *Guided tours*. **Reset help and tours** in the preferences offers t
 ![A tour step highlighting a control (dark theme)](../../../design-review/004/tour-step-dark.png)
 
 Every new feature adds its own help topics (for example *Band info*, *Karaoke*, *Library*,
-*Sheet music*, *Style library*, *Voice profiles* and the agent) to the same panel.
+*Sheet music*, *Style library*, *Voice profiles* and the agent) to the same panel. The practice
+features add topics on song sections, the score, setlists, the practice log and its privacy, your
+own keys and foot pedals, and one topic per step of play-along recording, including one per
+instrument family (vocals, guitar and bass, keys, drums, acoustic and other instruments).

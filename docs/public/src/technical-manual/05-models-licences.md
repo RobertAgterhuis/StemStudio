@@ -79,6 +79,11 @@ build tool only.
 yt-dlp (Unlicense), spotDL (MIT), Radzen Blazor (MIT), driver.js (MIT), Markdig (BSD-2),
 Archivo font (OFL-1.1), Leipzig music font (OFL-1.1, 008), music21 (BSD-3, 008),
 Microsoft.Extensions.AI and OllamaSharp (MIT, 011), Anthropic C# SDK (Apache-2.0, 011), the OpenTaal, SCOWL and CMU dictionaries (BSD-3-Clause, SCOWL notice and BSD-2-Clause, 023).
+From 014: ReportLab 5.1.0 for the setlist PDFs (BSD-3-Clause-style ReportLab licence; installed
+without extras, so no accelerator, pycairo, bidi or shaping code) and the DejaVu Sans fonts of
+Debian `fonts-dejavu-core` in the worker image (Bitstream Vera font licence plus public-domain
+changes). Section detection (014) needs no model: it uses librosa, SciPy and scikit-learn (BSD-3-Clause),
+which were already installed with librosa. Play-along recording (015) adds no dependency.
 
 The documentation build (`tools/docs`) uses markdown-it (MIT) with its dependencies
 (argparse PSF-2.0, entities BSD-2-Clause, linkify-it, mdurl, punycode.js and uc.micro MIT),

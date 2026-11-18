@@ -88,7 +88,7 @@ approval.
 
 - **"The backups folder is not available" or "read-only"**: create the folder (`./backups` next
   to `docker-compose.yml`, or the folder in `STEMSTUDIO_BACKUP_HOST_DIR`) and make it writable;
-  on Linux `sudo chown 1654 ./backups` (chapter 16).
+  on Linux `sudo chown 1654 ./backups` (chapter 21).
 - **Not enough space**: the estimate needs the archive size plus a small reserve free in the
   backups folder; a restore needs the unpacked size free on the library volume.
 - **A restore lists active jobs**: wait for the listed imports, splits, exports or generations,
@@ -99,13 +99,13 @@ approval.
 ## The library or its search shows something unexpected
 
 - **An item is in the wrong folder, or under *Unknown artist* or *Unknown album***: use
-  **Library info** on the song folder or the item to set the names (chapter 10). A name you set
+  **Library info** on the song folder or the item to set the names (chapter 15). A name you set
   is never changed by StemStudio; automatic names follow the band info when it is found later.
 - **The library says *Sorting your library (n items left)***: StemStudio is filing items that
   were saved before the folders existed, or after a restore of an older backup. Wait a moment;
   it finishes by itself.
 - **The search finds nothing**: it needs every word you typed in the same result. Remove a
-  word, check the spelling, or look at what the search covers (chapter 10). *guitar* does not
+  word, check the spelling, or look at what the search covers (chapter 15). *guitar* does not
   find bass; use *bass*. A search of more than 100 characters is cut in the box.
 - **A folder disappeared**: a folder exists only while it holds an item. Its items were
   deleted or filed elsewhere; search for the song by name.
@@ -114,13 +114,13 @@ approval.
 ## The lyric assistant does not work
 
 - **The buttons are disabled**: the sheet must be saved and its language must be Dutch or
-  English. For *unknown* choose the language first (chapter 14).
+  English. For *unknown* choose the language first (chapter 19).
 - ***The assistant works on your own lyrics only***: the sheet matches the lyrics of a track in
   your library. If the text is your own, use **This is my own text**.
 - ***Grammar, flow and writing help need the AI model***: the model is switched off in
   **Settings**, Ollama is not running, or the graphics card is busy with another job. The
   spelling check, the syllable counts and the rhyme finder still work. Fix the cause named in
-  the pane (chapter 15 explains the backends) and press the button again.
+  the pane (chapter 20 explains the backends) and press the button again.
 - ***A check is running***: only one assist runs at a time; wait for it or press **Cancel**.
 - **Suggestions are outdated**: you changed the text or the language after the check. Check
   again.
@@ -129,19 +129,69 @@ approval.
 - **Dutch suggestions are weaker than English ones**: the local model is less good in Dutch;
   read every suggestion before you accept it.
 
+## Sections, score or setlists look wrong
+
+- **The section lane says it is still finding the sections, or shows *Try again***: the
+  processing service was busy or unavailable. Wait a moment or press **Try again**; restart
+  StemStudio when the worker is down (chapter 7).
+- **The boundaries are a little off, or the lane says the tempo grid is uncertain**: the song has
+  no steady beat. Move the boundaries in **Edit sections** (Advanced).
+- **The labels are wrong**: they are a guess from the music. Rename the sections or change their
+  kind (Advanced). Your edits stay until you choose **Detect again** (Expert).
+- ***The sections were changed in another window***: the newer version is loaded; make your
+  changes again.
+- **The score panel lists no sheet music**: make sheet music on the song page first (chapter 16).
+  Sheet music made from a library item without its song cannot follow the playback.
+- **The marked bar runs ahead or behind**: the sheet music was made with a tempo you typed; make
+  it again when the song has a reliable beat grid, or follow it by ear (chapter 8).
+- **The setlist PDF cannot be made**: *"Add songs first"* means the setlist is empty. When the
+  processing service is unavailable, restart StemStudio and try again (chapter 9).
+
+## Keys or foot pedals do something unexpected
+
+- **<kbd>R</kbd> or <kbd>C</kbd> no longer change the speed or the count-in**: they are the
+  recording keys now. *Original speed and key* is <kbd>0</kbd>, the count-in
+  <kbd>Shift</kbd>+<kbd>K</kbd> (chapter 22).
+- **No single-letter key works**: **Single-key shortcuts** is switched off in Preferences.
+- **A key cannot be chosen**: the browser, a screen reader or the lyrics editor needs it, or
+  another command uses it; StemStudio names that command.
+- **The pedal does nothing**: use **Learn left pedal** or **Learn right pedal** when it sends other
+  keys than <kbd>PgUp</kbd> and <kbd>PgDn</kbd>, and switch **Pedal mode** on when a button or
+  slider has the focus. Pedals never work in a text field.
+- **Your own keys are gone**: they are stored in this browser. Another browser, a private window
+  or cleared site data starts with the default keys.
+
+## Recording does not work
+
+- **Not on this computer**: open StemStudio as `http://localhost:8080` on the computer it runs
+  on. Browsers allow the microphone only there (chapter 11).
+- **Blocked**, **No input found** or **In use**: allow the microphone for the site, connect the
+  input, or close the other program that holds it, then **Try again**.
+- **Browser not supported** or no interface found: use Chrome or Edge. Firefox may refuse
+  interfaces that do not run at 44.1 kHz.
+- **Record is disabled**: the speed is not 100 %, the song is transposed or the speed trainer
+  runs. Press **Set to 100 %**.
+- **The take is late or early**: calibrate the latency again, especially when *Your audio setup
+  changed* appears. At the Expert level you can shift a single take by up to 200 ms.
+- **You hear yourself twice or with an echo**: switch monitoring off and use the direct monitoring
+  of your interface, and use headphones.
+- **The take is refused as silent, or marked quiet or clipped**: set the gain on the interface so
+  the meter moves without reaching clip.
+- **A take shows an error**: press **Try again** in the Takes panel.
+
 ## Frequently asked questions
 
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
-the online lookups for cover art and band info (chapter 7) send the title, artist, duration
-and ISRC code, and lyrics lookups (chapter 8) the title, artist, album and duration; both
-can be switched off. The optional Claude backend for the agent (chapter 15) sends text only,
+the online lookups for cover art and band info (chapter 12) send the title, artist, duration
+and ISRC code, and lyrics lookups (chapter 13) the title, artist, album and duration; both
+can be switched off. The optional Claude backend for the agent (chapter 20) sends text only,
 never audio, and only when you select it.
 
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
 vocals and the remaining instruments further. Several guitars of the same kind cannot be
 separated from each other.
 
-**How do I move my library to another computer?** Make a backup (chapter 16), copy the
+**How do I move my library to another computer?** Make a backup (chapter 21), copy the
 archive into the backups folder of the other computer and restore it there. A stored Claude
 key must be entered again on the other computer: its encryption keys never leave the first one.
 
@@ -157,10 +207,17 @@ original speed and key; the practice tempo is only for listening and is saved wi
 **Does the lyric assistant send my lyrics anywhere?** Not by default: the dictionary, the
 syllable counter, the rhyme finder and the local model run on your computer. Only when you
 select Claude and press **I agree** in the notice is the text of the sheet sent to Anthropic,
-for the check you asked for (chapter 14).
+for the check you asked for (chapter 19).
 
 **Does the library create folders on my disk?** No. Artist, album and song folders exist inside
-StemStudio only; downloads, exports and backups are not changed (chapter 10).
+StemStudio only; downloads, exports and backups are not changed (chapter 15).
+
+**Is my practice log or a recording sent anywhere?** No. The practice log is stored in
+StemStudio's own database and recordings on the StemStudio server, both on this computer. Takes
+are never given to the AI agent and cannot be used as a voice sample (chapters 10 and 11).
+
+**Can I record at a slower speed?** No. Recording works at the original speed and key so the
+take lines up with the stems; playing it back works at any speed and key (chapter 11).
 
 **Which browsers are supported?** Chrome, Edge and Firefox are tested; Safari works on a
-best-effort basis.
+best-effort basis. For play-along recording use Chrome or Edge.

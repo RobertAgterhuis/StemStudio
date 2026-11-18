@@ -15,6 +15,8 @@ on one machine, so there are no accounts or passwords.
   *Settings → Resources*.
 - Optional: an **NVIDIA graphics card** (GPU) for much faster processing. See section 2.3.
 - A current version of Chrome, Edge or Firefox. Safari works on a best-effort basis.
+- Optional, for play-along recording (chapter 11): a microphone or an audio interface,
+  headphones, and Chrome or Edge on the computer that runs StemStudio.
 
 ## Start StemStudio with one command
 
@@ -64,7 +66,7 @@ StemStudio checks the GPU when it starts. If anything is wrong (no GPU, old driv
 card is busy with a game or another AI program), it simply uses the CPU and tells you why
 on the import screen under **Processing device**. You never lose a job because of the GPU.
 
-The generative features (style transfer and songs from your own lyrics, chapters 12 and 13)
+The generative features (style transfer and songs from your own lyrics, chapters 17 and 18)
 need an NVIDIA GPU with enough free memory and are started with an extra compose option
 (see the technical manual, "Generative services").
 
@@ -90,3 +92,4 @@ STEMSTUDIO_SEPARATOR=fake docker compose up --build
 ```
 
 The stems then all sound the same, so this mode is only useful for exploring the interface.
+The song sections (chapter 7) are then fixed parts of eight bars instead of a real detection.

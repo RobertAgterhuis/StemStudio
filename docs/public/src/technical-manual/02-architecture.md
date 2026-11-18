@@ -9,14 +9,14 @@ product; it must not be exposed to the internet (ADR-002).
 | Component | Technology | Port | Responsibility |
 |---|---|---|---|
 | Web (`src/StemStudio.Web`) | Blazor Web App, Interactive Server, Radzen | 8080 | All screens; SignalR to the browser; typed API client |
-| Audio engine (`src/audio-engine`) | TypeScript, Web Audio API | in browser | Sample-locked multi-stem playback, gain, pan, mute/solo, meters, loop, metronome; from 012 the practice tempo (speed, transpose, speed trainer, count-in) |
+| Audio engine (`src/audio-engine`) | TypeScript, Web Audio API | in browser | Sample-locked multi-stem playback, gain, pan, mute/solo, meters, loop, metronome; from 012 the practice tempo (speed, transpose, speed trainer, count-in); from 014 the score follower and the loop-pass callback; from 015 input capture (a second AudioWorklet), latency calibration and the take channel |
 | Time-stretch stage (012, `src/audio-engine/src/stretch`, `third_party/soundtouch`) | AudioWorklet + SoundTouch 2.4.1 compiled to `soundtouch.wasm` (LGPL-2.1) | in browser | Speed and pitch of the summed mix; separate, replaceable module (ADR-021) |
-| Web interop (`src/web-interop`) | TypeScript | in browser | Preferences, first paint, theme, shortcuts, tours (driver.js), focus |
-| API (`src/StemStudio.Api`) | ASP.NET Core 10 Minimal API, EF Core + SQLite | 8081 | System of record: tracks, stems, mixes; job synchronisation; from 013 library care (`LibraryCare/`: backup, verify, restore, storage overview, clean-up); from 022 the library folders (`Library/`: filing, folder views, search, library info); from 023 the lyric assistant (`LyricAssist/`: runner, suggestions, vendored dictionaries) |
+| Web interop (`src/web-interop`) | TypeScript | in browser | Preferences, first paint, theme, shortcuts (from 014 a data-driven key map with user overrides and foot pedals, `keymap-defaults.json`), tours (driver.js), focus |
+| API (`src/StemStudio.Api`) | ASP.NET Core 10 Minimal API, EF Core + SQLite | 8081 | System of record: tracks, stems, mixes; job synchronisation; from 013 library care (`LibraryCare/`: backup, verify, restore, storage overview, clean-up); from 022 the library folders (`Library/`: filing, folder views, search, library info); from 023 the lyric assistant (`LyricAssist/`: runner, suggestions, vendored dictionaries); from 014 `Sections/`, `ScoreFollow/`, `Setlists/`, `Practice/`; from 015 `Recording/` (takes, upload validation, calibrations) |
 | Domain (`src/StemStudio.Domain`) | .NET, no infrastructure, no packages | — | Aggregates and rules; from 022 `Library/` (folder keys and ids, placement rules), from 023 `Lyrics/Assist/` (anchors, suggestion filter, syllables, rhymes) |
 | Contracts (`src/StemStudio.Contracts`) | .NET DTOs | — | Shared wire types for Web and API |
 | Persistence (`src/StemStudio.Persistence`) | EF Core, SQLite | — | DbContext and migrations |
-| Worker (`worker/`) | Python 3.12, FastAPI | 8000 (internal) | Ingest (yt-dlp, spotDL, ffmpeg), Demucs separation, detail models, beat analysis |
+| Worker (`worker/`) | Python 3.12, FastAPI | 8000 (internal) | Ingest (yt-dlp, spotDL, ffmpeg), Demucs separation, detail models, beat analysis; from 014 the `practice` lane (section detection, score views, setlist PDFs) |
 | Generator (`generator/`) | Python 3.12, FastAPI, ACE-Step | 8010 (internal) | Style transfer and song generation (009, 010) |
 | Singer (`generator/`, variant `soulx`) | Python, SoulX-Singer | 8010 (internal) | Voice-sample checks and voice conversion (010) |
 | Agent (`src/StemStudio.Agent`) | .NET library hosted in the API | — | AI composer agent loop and tool registry (011); from 023 `LyricAssist/` (prompts, output parser, suggestion validator, model client) |
@@ -45,7 +45,7 @@ product; it must not be exposed to the internet (ADR-002).
 
 Later features add worker lanes rather than new paths: a network-only lane for metadata (005;
 LRCLIB lyrics lookups in 006), a render lane for exports (007), lyrics alignment on the device
-lane (006) and a transcription lane (008).
+lane (006), a transcription lane (008) and the `practice` lane (014).
 Generative work runs in the separate generator and singer containers (009, 010) because of
 their size and incompatible dependencies. The agent (011) runs inside the API and calls the
 public API over loopback, so it has exactly the capabilities of a user.
@@ -120,6 +120,56 @@ fall back to the smaller CPU model for lyrics (it produced no valid output in th
 assist answers `model-unavailable` with a fix text, and `check` still runs the dictionary layer.
 A GPU job that starts during an assist stops it with `backend-unavailable`.
 
+### Practice flow (014, ADR-023)
+
+The worker has a fourth CPU lane, `practice`: one thread, FIFO across three short job kinds
+(section detection, score views and setlist documents), with its own stores under `section-jobs/`,
+`score-view-jobs/` and `setlist-document-jobs/` and the 007 rules for restarts (*interrupted by
+restart*), deletes and the 24 h sweep (`Health.lanes.practice`). No 014 job needs a GPU or the
+network.
+
+- **Sections**: after the job sync stores a completed separation (`ITrackCompletionHook`,
+  `SectionDetectTrigger`; switch `StemStudio:Practice:SectionDetectOnComplete`) the API submits a
+  section job with the track's stems, kept detail stems and beat grid. The analyser
+  `stems-novelty` 1.0.0 (`STEMSTUDIO_STRUCTURE_ANALYZER`, reported as `Health.structure`) builds
+  bar-level features (chroma, MFCC, RMS, vocal activity, stem shares), a self-similarity novelty
+  curve and vocal switches, clusters the segments and labels them; boundaries snap to downbeats,
+  beats or 0.1 s. `SectionJobApplier` replaces the sections on completion; user edits
+  (`Origin = edited`) are only replaced by an explicit detect with `overwrite`.
+- **Score views**: when a 008 score asset becomes ready (`IAssetReadyHook`, `ScoreViewReadyHook`)
+  or on first open, Verovio renders `assets/<id>/score.musicxml` to SVG pages plus a bar map
+  (boxes and times from the 008 tempo grid). The API stores the pages under
+  `assets/<id>/view/` and the bar map with **track** times; the engine's score follower
+  (2.4.0) highlights the bar from the heard position, the same clock as the karaoke banner.
+- **Setlist PDFs**: the API sends the content inline (no paths) and the worker renders it with
+  ReportLab and DejaVu Sans; the API polls every 200 ms up to
+  `StemStudio:Practice:SetlistPdfTimeoutSeconds` (default 30), streams the file and deletes the job.
+- **Practice log**: the Web app's `PracticeRecorder` sums playing time per section in the browser
+  and upserts the session cumulatively every 30 s; the API stores it in SQLite and computes the
+  summary on read. No practice endpoint makes an outgoing request.
+- **Keys**: one catalogue, `src/StemStudio.Web/wwwroot/js/keymap-defaults.json` (web-interop
+  1.1.0), feeds C# and TypeScript; user overrides, the single-key switch and the pedal preset live
+  in the browser preferences.
+
+### Play-along recording (015, ADR-024)
+
+Recording is browser-side capture plus API-side storage; the worker API is unchanged.
+
+- The engine opens the input with `getUserMedia` (echo cancellation, noise suppression and AGC
+  off), captures it in a second AudioWorklet and maps every captured frame to a song sample
+  through the transport segments (play start, loop pass starts, count-in gaps). Compensation is
+  the measured round-trip latency `L`; the tempo-stage latency is already in the heard anchors.
+  Loop recording cuts one take per pass.
+- Calibration plays 8 clicks and finds them in the input (6 to 12 clicks, spread at most 1 ms);
+  the result is stored per input device label (`InputCalibrations`).
+- The browser uploads each take as 24-bit PCM WAV (44.1 kHz, 1-2 channels) with its metadata.
+  The API validates the header before storing any data, pads the capture to the song position
+  (`capture.wav`) and runs a normal 007 render job (gain 1, FLAC 24-bit, no dither) that writes
+  `audio.flac`; the take is a library asset with origin `recording`, hidden from the library list.
+- The take plays as an extra channel (`take`) through the same gate, tempo stage and meters as
+  the stems; compare modes mute the take or the part stem sample-exactly. Exports with the take
+  use the 007 planner with `ExportChannelId` (`take`) and `takeId`.
+
 ## Dependency rules
 
 - .NET: Web → Contracts ← Api → Domain ← Persistence, and Api → Persistence. Web never
@@ -147,14 +197,14 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.23.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
-| Worker API (`worker-api.openapi.yaml`) | 1.7.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration) | — |
+| Backend API (`backend-api.openapi.yaml`) | 1.14.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0) + 014 (1.13.0: sections, score views, setlists, practice log) + 015 (1.14.0: takes, calibrations, export with `take`); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
+| Worker API (`worker-api.openapi.yaml`) | 1.8.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration, 014: 1.8.0 practice lane with section, score-view and setlist-document jobs, `Health.structure`, `Health.lanes.practice`) | — |
 | Backup archive (`backup-archive.md` + `backup-manifest.schema.json`) | 1.0.0 (013) | a new major only for an incompatible layout |
-| Audio engine (`audio-engine.md`) | 2.3.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1) | — |
-| UI test ids (`ui-test-ids.md`) | 1.23.0 (022: 1.22.0, 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
+| Audio engine (`audio-engine.md`) | 2.5.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1; 014: 2.4.0 score follower and `OnLoopPass`; 015: 2.5.0 recording, calibration, take channel and five recording callbacks) | — |
+| UI test ids (`ui-test-ids.md`) | 1.14.0 (014: 1.13.0, 015: 1.14.0, merged after 022: 1.22.0 and 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
 | Help content (`help-content.md` + schemas) | 1.0.0 (004) | additive topics per feature |
-| Web interop (`web-interop.md`) | 1.2.0 (004: 1.0.0; 022: scope `library`, key `/` -> `library.search.focus`; 1.1.0 stays allocated to 014) | - |
-| Render vectors (`render-vectors.json`) | 1.0.0 (007) | — |
+| Web interop (`web-interop.md`) | 1.1.0, which contains 1.0.0 (004), 1.2.0 (022: scope `library`, key `/` -> `library.search.focus`) and 1.1.0 (014: data-driven key map `keymap-defaults.json`, scope `setlist`, preferences schema version 2) | - |
+| Render vectors (`render-vectors.json`) | 1.1.0 (007: 1.0.0; 015: 1.1.0 adds eight take cases) | — |
 | Generator API (`generator-api.openapi.yaml`) | 1.1.0 (009: 1.0.0, 010: 1.1.0) | — |
 | Agent tool catalogue (`tool-catalogue.md`, 69 tools), agent E2E script schema (`agent-script.schema.json`), evaluation set (`eval-set.md`, 40 scored cases), lyric output schema (`lyric-assist-output.schema.json`) | catalogue 1.2.0 = 1.0.0 + 012 (1.3.0: `practice` read-only in `get_mix` / `mixer_get_state`) + 022 (1.1.0: four library tools) + 023 (1.2.0: eight lyric tools); evaluation set 1.1.0; script schema 1.0.0 (023 adds the `{{context.lyricsId}}` and `{{result.<tool>.ids:<category>}}` placeholders in its descriptions); lyric output schema 1.0.0 | - |
 

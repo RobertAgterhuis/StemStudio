@@ -52,3 +52,8 @@ notes are found at all, the item fails with *"No notes were detected in this aud
 
 The piano model is published under CC BY 4.0; its attribution is shown with every piano
 item.
+
+## Reading along in the mixer
+
+Open **Score** in the mixer to read the sheet music while you play: the bar you hear is marked
+and the page scrolls along (chapter 8).

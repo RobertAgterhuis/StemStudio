@@ -60,3 +60,7 @@ runs, Ollama would resolve to the CPU model, which produced no valid lyric outpu
 60 s block timeout in the spike (0 of 19 replies). The assistant then answers `model-unavailable`
 ("The GPU is busy ... The spelling check still works"); `check` still runs the dictionary layer.
 A GPU job that starts during an assist stops the assist with `backend-unavailable`.
+
+The practice flow (014) and play-along recording (015) never use the GPU: section detection,
+score views and setlist PDFs run on the CPU `practice` lane of the worker, which does not take the
+GPU lease, and recording is browser capture plus a CPU render job on the 007 render lane.

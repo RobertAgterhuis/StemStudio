@@ -61,6 +61,8 @@ on Chromium and Firefox:
 | `@real` | `npm run test:real` | Real models; weekly workflow `e2e-real.yml` |
 | `@agent` | `scripts/agent-e2e.{ps1,sh} fake` / `none` | Agent panel flows with scripted model turns (one api start per `e2e/agent-scripts/<name>.json`, tag `@<name>`), then the unavailable state with backend `none`; excluded from the default suite |
 | `@lyric-assist` | `scripts/lyric-e2e.{ps1,sh} fake` / `none` | Lyric assistant flows (023) with scripted model answers from `e2e/lyric-scripts/` (mounted read-only at `/lyric-scripts`), then the unavailable state with backend `none`; the Claude case self-skips without a Claude double; excluded from the default suite |
+| `@practice-flow` | `npm run test:practice-flow` (`test:practice-flow-no-detect` for scenario 4 on a stack with `STEMSTUDIO_SECTION_DETECT_ON_COMPLETE=false`) | 014: sections, score follow per instrument family, setlists and the PDF, every shortcut and the pedals, the practice log and its off/delete rules |
+| `@recording` | `npm run test:recording` | 015: play-along recording on the Chromium project `recording` with a fake capture device and `StemStudio__Recording__TestLoopback=true` (calibration, alignment within 2 samples, loop takes, compare, export, one case per instrument family, no request to another origin) |
 | `@library-db` | `npm run test:library-db` | 022: a 5,000-item library database swapped into the stopped api (search and folder timing at scale); Chromium, excluded from the default suite |
 
 ## Agent evaluation (011, manual, never in CI)

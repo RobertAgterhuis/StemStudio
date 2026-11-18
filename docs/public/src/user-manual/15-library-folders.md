@@ -1,6 +1,6 @@
 # Library by artist and album
 
-Everything you save to the library (chapter 9) is filed automatically in folders:
+Everything you save to the library (chapter 14) is filed automatically in folders:
 **Artist > Album > Song**, for example *Metallica > Master of Puppets > Battery*. You do not
 create, move or name folders yourself. Open **Library** in the navigation to browse them, or
 type a word in the search box to find an artist, an album, a song or a stem such as "snare".
@@ -32,7 +32,7 @@ example "Master of Puppets, album, 1986, 8 songs, 21 items".
 
 ## Inside a song folder
 
-A song folder lists its items, with the actions of chapter 9: **Play**, **Download**,
+A song folder lists its items, with the actions of chapter 14: **Play**, **Download**,
 **Rename**, **Delete** (after you confirm) and **Retry** for a failed item. Status changes show
 without reloading the page. The items come in the order of the mixer: the six standard stems,
 the detail stems, mixes, sheet music and generated takes, then newest first.
@@ -48,7 +48,7 @@ For each level StemStudio takes the first name it has, in this order:
 
 1. A name you set yourself for the item (see *Correcting names* below).
 2. A name you set for the track.
-3. The artist, album and title found by the band info lookup (chapter 7), when that lookup
+3. The artist, album and title found by the band info lookup (chapter 12), when that lookup
    found a match.
 4. The names reported by the import (YouTube, Spotify or the file tags).
 5. A fallback: *Unknown artist*, *Unknown album* and the title of the track.
@@ -56,7 +56,7 @@ For each level StemStudio takes the first name it has, in this order:
 Names that differ only in capitals, accents, spaces, quotes, dashes or a leading "The" share
 one folder, so *Motörhead* and *MOTORHEAD* are the same artist. "feat." parts in an artist
 name are left out when filing; "Various Artists" is ignored. A song made from your own lyrics
-(chapter 13) is filed under **My songs > Songs from my lyrics**.
+(chapter 18) is filed under **My songs > Songs from my lyrics**.
 
 The name shown on a folder is the spelling from the band info when one of its items was filed
 from a match, otherwise the spelling most of its items use. Names that StemStudio chose
@@ -66,7 +66,7 @@ never changed automatically.
 ## Sorting your library (n left)
 
 The first time you start StemStudio after this feature was added, and after you restore an
-older backup (chapter 16), StemStudio files all existing items in the background. Until that is
+older backup (chapter 21), StemStudio files all existing items in the background. Until that is
 done the library shows **Sorting your library (n items left)** and updates by itself. You can
 keep working; a library of 5,000 items is normally ready within seconds. New items are filed in
 the same moment they are saved, so they never wait.
@@ -81,7 +81,7 @@ the same moment they are saved, so they never wait.
 - A folder without any picture shows its first letter on a colour (a question mark for
   unknown folders).
 
-To change a picture, open the track and choose another one (chapter 7); the folders follow.
+To change a picture, open the track and choose another one (chapter 12); the folders follow.
 StemStudio has no artist photos. Pictures are shown in the app only: they are never part of a
 download, an export or a backup.
 
@@ -150,7 +150,7 @@ page (a link in the dialog); the automatic names then follow.
 the level you are in, and for albums also *Year* (the default). The choice is remembered per
 level on this device.
 
-**All items** is the flat list of chapter 9 with its filters (**All tracks**, **All kinds**,
+**All items** is the flat list of chapter 14 with its filters (**All tracks**, **All kinds**,
 **Search items**); every row now shows its path. **Back to the folders** returns to the artist
 level. Links from before this feature (a confirmation that opened a single item) open this list
 with that item highlighted.
@@ -163,7 +163,7 @@ each level and **Open in library**, which opens the song folder at that item.
 
 ## Backups and the agent
 
-Filing and the names you set live in the database, so a backup (chapter 16) keeps them; folder
-pictures need nothing extra. The AI composer agent (chapter 15) can browse a folder, search
+Filing and the names you set live in the database, so a backup (chapter 21) keeps them; folder
+pictures need nothing extra. The AI composer agent (chapter 20) can browse a folder, search
 the library, open a folder for you and change library info. Folder and item names count as
 text from outside, so after the agent has read them it asks before changing anything.
