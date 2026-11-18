@@ -311,3 +311,16 @@ def test_the_real_repository_is_clean() -> None:
     from common import REPO_ROOT  # noqa: PLC0415
 
     assert instrument_rules.run(REPO_ROOT) == []
+
+
+def test_generated_folders_are_not_checked(tmp_path: Path) -> None:
+    write_module(tmp_path, "__pycache__/x.py", "torch.load(p, weights_only=False)\n")
+    write_file(tmp_path, f"{ENGINE}/pitch/node_modules/y.ts", "window.x = 1;\n")
+
+    assert _messages(tmp_path) == []
+
+
+def test_main_returns_the_exit_code(tmp_path: Path) -> None:
+    assert instrument_rules.main(["--root", str(tmp_path)]) == 0
+    write_module(tmp_path, "x.py", "torch.load(p, weights_only=False)\n")
+    assert instrument_rules.main(["--root", str(tmp_path)]) == 1
