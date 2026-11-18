@@ -24,4 +24,5 @@ Press **Edit sections** below the section lane.
 Names such as "Verse 2" are renumbered when you add or remove a verse; names you typed yourself stay as they are.
 
 **Done** saves all changes at once, **Cancel** throws them away. When another window saved the sections first, StemStudio
-tells you; open the editor again to see the newest version. Your edits stay until you detect the sections again.
+tells you and loads the newest version into the editor; make your changes again. Your edits stay until you detect the sections
+again.

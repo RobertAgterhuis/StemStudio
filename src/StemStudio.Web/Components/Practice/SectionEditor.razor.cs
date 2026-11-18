@@ -12,7 +12,7 @@ namespace StemStudio.Web.Components.Practice;
 public sealed partial class SectionEditor
 {
     /// <summary>Message of a 409 <c>sections-changed</c>.</summary>
-    public const string ChangedMessage = "Another window saved the sections first. Cancel and open the editor again to see them.";
+    public const string ChangedMessage = "The sections were changed in another window. The newer version is loaded; make your changes again.";
 
     private static readonly SectionKindDto[] Kinds = Enum.GetValues<SectionKindDto>();
 
@@ -99,11 +99,25 @@ public sealed partial class SectionEditor
         }
         catch (ApiException ex)
         {
-            Error = ex.Error.IsConflict && ex.Error.Code == PracticeFlowProblemTypes.SectionsChanged ? ChangedMessage : ex.Error.UserMessage;
+            Error = ex.Error.IsConflict && ex.Error.Code == PracticeFlowProblemTypes.SectionsChanged ? await ReloadNewerAsync() : ex.Error.UserMessage;
         }
         finally
         {
             Saving = false;
+        }
+    }
+
+    // US3 scenario 5: after a 409 sections-changed the draft starts again from the version the other window saved.
+    private async Task<string> ReloadNewerAsync()
+    {
+        try
+        {
+            Draft = new SectionDraft(await Api.GetSectionsAsync(TrackId), Duration, BeatGrid);
+            return ChangedMessage;
+        }
+        catch (ApiException ex)
+        {
+            return ex.Error.UserMessage;
         }
     }
 }
