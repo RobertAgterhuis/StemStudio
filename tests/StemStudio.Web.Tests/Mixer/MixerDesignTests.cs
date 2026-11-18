@@ -122,6 +122,25 @@ public sealed class MixerDesignTests : MixerTestContext
     }
 
     [Fact]
+    public void MixerDock_IsAFixedBar_AndTheContentReservesItsInset()
+    {
+        var karaoke = RepoPaths.ReadWeb("wwwroot/css/components/karaoke.css");
+        var mixer = RepoPaths.ReadWeb("wwwroot/css/components/mixer.css");
+
+        // 014 integration (WCAG 2.5.8, axe target-size): a sticky dock is part of the page flow, so a target that
+        // scrolled half under it counted as overlapped by the dock's controls. The dock is a fixed bar beside the rail
+        // (and left of a docked help or agent panel), and the content ends the measured dock inset higher instead.
+        var dock = RepoPaths.CssRule(karaoke, ".ss-mixer-dock {");
+        dock.ShouldContain("position: fixed;");
+        dock.ShouldContain("left: calc(var(--ss-rail-width) + 1px);");
+        dock.ShouldNotContain("position: sticky");
+        karaoke.ShouldContain(".ss-shell-help-open .ss-mixer-dock,");
+        RepoPaths.CssRule(karaoke, ".ss-shell-agent-open .ss-mixer-dock {").ShouldContain("right: var(--ss-help-width);");
+        RepoPaths.CssRule(mixer, ".ss-main:has(.ss-mixer-dock) {")
+            .ShouldContain("padding-bottom: calc(var(--ss-dock-inset, calc(var(--ss-transport-height) + 9rem)) + var(--ss-space-4));");
+    }
+
+    [Fact]
     public void DockInsetScript_MeasuresTheStickyDock_AndIsLoadedByTheApp()
     {
         var script = RepoPaths.ReadWeb("wwwroot/js/dock-inset.js");
