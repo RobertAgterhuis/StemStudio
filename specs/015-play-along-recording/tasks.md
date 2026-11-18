@@ -214,7 +214,7 @@ and `polish`, with real test and coverage output.
 - [x] T088 [CTO] Integration run (SC-010: existing tests pass unchanged): all suites (legacy, ux, recording, recording-loopback, a11y, visual), `scripts/test-all.ps1`
 - [ ] T089 [CTO] Owner checks on the reference machine: cable loopback 5 calibrations within 0.5 ms and a take within 1 ms (SC-002); 5-min stereo take stored <= 15 s (SC-004); 10 min recording without dropouts (SC-005); one real input per available family (vocal mic, guitar DI, stereo keys)
 - [x] T090 [CTO] `/speckit-analyze`; `docs/STATUS.md`; merge preparation
-- [ ] T091 [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1): user manual chapter "Play-along recording" (setup per instrument family, calibration, loop takes, compare, export, privacy, limits), technical manual (endpoints, `StemStudio:Recording:*` settings, browser support, storage layout); `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes
+- [x] T091 [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1): user manual chapter "Play-along recording" (setup per instrument family, calibration, loop takes, compare, export, privacy, limits), technical manual (endpoints, `StemStudio:Recording:*` settings, browser support, storage layout); `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -274,5 +274,5 @@ devops 2 (T010, T086), stem-separation 2 (T011, T086), quality-gate 3 (T007, T00
 - [x] No new dependency; recordings local only (network assertion); takes refused as voice samples and absent from the agent (IV)
 - [x] Limits documented in help (100 % speed rule, two channels, browser support, hardware gain, acoustic loopback accuracy) (V)
 - [ ] Help topics per instrument family present and linked; levels per data-model 6; a11y clean
-- [ ] docs/public manuals updated and PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
+- [x] docs/public manuals updated and PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [x] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer
