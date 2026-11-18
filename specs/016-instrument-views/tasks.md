@@ -173,10 +173,10 @@ text, the row wins.
 
 ### frontend (tests first)
 
-- [ ] T057 [P] [frontend] Failing tests `FamilyMixServiceTests.cs`: minus-one per family mutes every family channel (expanded or not), unmutes/unsolos others, keeps volumes/pans; stored previous flags and restore; `play-along-<stem>` presets now family-wide (DELTA 6) (FR-032, FR-060)
-- [ ] T058 [frontend] Implement `InstrumentViews/FamilyMixService.cs` and the preset change to pass T057
-- [ ] T059 [P] [frontend] Failing tests of the API client additions (chords, sheet, ChordPro, key, capo suggestions, drum hits, vocal pitch, catalogue with caching, score extensions, `listAssets` channel)
-- [ ] T060 [frontend] Implement the client methods to pass T059
+- [x] T057 [P] [frontend] Failing tests `FamilyMixServiceTests.cs`: minus-one per family mutes every family channel (expanded or not), unmutes/unsolos others, keeps volumes/pans; stored previous flags and restore; `play-along-<stem>` presets now family-wide (DELTA 6) (FR-032, FR-060)
+- [x] T058 [frontend] Implement `InstrumentViews/FamilyMixService.cs` and the preset change to pass T057
+- [x] T059 [P] [frontend] Failing tests of the API client additions (chords, sheet, ChordPro, key, capo suggestions, drum hits, vocal pitch, catalogue with caching, score extensions, `listAssets` channel)
+- [x] T060 [frontend] Implement the client methods to pass T059
 
 **Checkpoint**: HO:foundational for every owner with foundational tasks.
 
