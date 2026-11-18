@@ -32,7 +32,7 @@ public sealed class TabChoice(ScoreTablatureOptionsDto options, int capo)
     public TabLayoutChoice Layout { get; set; } = TabLayoutChoice.NotationAndTab;
 
     /// <summary>The chosen tuning; the backend's default at first.</summary>
-    public TuningIdDto Tuning { get; set; } = options.DefaultTuning ?? options.Tunings.FirstOrDefault();
+    public TuningIdDto Tuning { get; set; } = options.DefaultTuning ?? (options.Tunings.Count > 0 ? options.Tunings[0] : default);
 
     /// <summary>True when a capo may be set (guitar).</summary>
     public bool CapoAllowed => options.CapoAllowed;
