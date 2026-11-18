@@ -24,8 +24,9 @@ test.afterEach(async ({ recordingApi }) => {
 test.describe('timing adjustment', { tag: '@recording' }, () => {
   test('-10.0 ms applied moves the start 441 samples earlier, revision 1 (US7)', async ({ mixer, recording, recordingApi, shell }) => {
     await mixer.goto(track.id);
-    await shell.setLevel('expert');
+    // Interactive first: a click on the prerendered level switch before the circuit is up does nothing.
     await mixer.waitForReady(fakeStems);
+    await shell.setLevel('expert');
     await recording.openWithInput();
     await recording.chooseCountIn(0);
     await mixer.seek(5);

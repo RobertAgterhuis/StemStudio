@@ -64,10 +64,20 @@ test.describe('recording without permission', { tag: '@recording' }, () => {
 
   test('a denied microphone shows rec-unavailable "denied" and the mixer still plays (FR-003)', async ({ context, mixer, recording }) => {
     await context.clearPermissions();
+    // The site's microphone is blocked in the browser. The E2E stack records from the digital loopback
+    // (StemStudio__Recording__TestLoopback), which never asks the browser for a microphone, so "Allow microphone" would
+    // open the loopback whatever the context permits (the case passed or failed with what ran before it). The browser's
+    // answer is therefore given by the page: the permission query says "denied" and getUserMedia refuses.
+    await context.addInitScript(() => {
+      const blocked = { state: 'denied', onchange: null, addEventListener: () => undefined, removeEventListener: () => undefined };
+      const query = navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query = (descriptor) =>
+        descriptor.name === ('microphone' as PermissionName) ? Promise.resolve(blocked as unknown as PermissionStatus) : query(descriptor);
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+    });
     await mixer.goto(track.id);
     await mixer.waitForReady(fakeStems);
     await recording.open();
-    await recording.byId('rec-allow-mic').click();
 
     await recording.expectUnavailable('denied');
     await expect(recording.byId('rec-retry-permission')).toBeVisible();

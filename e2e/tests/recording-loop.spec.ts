@@ -28,8 +28,9 @@ test.describe('loop recording', { tag: '@recording' }, () => {
     mixer, recording, recordingApi, shell,
   }) => {
     await mixer.goto(track.id);
-    await shell.setLevel('advanced');
+    // Interactive first: a click on the prerendered level switch before the circuit is up does nothing.
     await mixer.waitForReady(fakeStems);
+    await shell.setLevel('advanced');
     await mixer.setLoop(4, 8, true);
     await mixer.seek(4);
     await recording.openWithInput();
