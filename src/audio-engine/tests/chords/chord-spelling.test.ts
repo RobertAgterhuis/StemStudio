@@ -115,7 +115,7 @@ describe('keyAt (region keys)', () => {
   it('falls back to the global key outside the regions and without regions, then to no key', () => {
     expect(keyAt(chart, 25_000)).toEqual({ tonic: 0, mode: 'major' });
     expect(keyAt({ ...chart, keyRegions: [] }, 5000)).toEqual({ tonic: 0, mode: 'major' });
-    const { keyRegions: _, ...withoutRegions } = chart;
+    const withoutRegions: ChordChartData = { segments: [], keyTonic: 0, keyMode: 'major' };
     expect(keyAt(withoutRegions, 5000)).toEqual({ tonic: 0, mode: 'major' });
     expect(keyAt({ segments: [], keyTonic: null, keyMode: null }, 5000)).toBeNull();
     expect(keyAt({ segments: [], keyTonic: 3, keyMode: null }, 5000)).toBeNull();
