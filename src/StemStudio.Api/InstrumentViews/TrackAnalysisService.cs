@@ -91,6 +91,14 @@ public sealed record AnalysisView(Track Track, AnalysisKind Kind, TrackAnalysis?
     }
 }
 
+/// <summary>A start request of the API.</summary>
+/// <param name="TrackId">Track id.</param>
+/// <param name="Kind">Kind.</param>
+/// <param name="Options">Options.</param>
+/// <param name="OverwriteEdits">Replace edited chords.</param>
+/// <param name="KindText">What the analysis finds, for the problem texts ("chords", "drum hits", "reference melody").</param>
+public sealed record AnalysisStart(Guid TrackId, AnalysisKind Kind, AnalysisOptions Options, bool OverwriteEdits, string KindText = "analysis");
+
 /// <summary>The result of a start request.</summary>
 /// <param name="Outcome">The outcome.</param>
 /// <param name="View">The analysis when stored.</param>
@@ -123,18 +131,18 @@ public sealed class TrackAnalysisService(
         await tracks.FindAsync(trackId, cancellationToken) is { } track ? AnalysisView.Of(track, kind, await analyses.FindAsync(trackId, kind, cancellationToken)) : null;
 
     /// <summary>Starts (or re-runs) an analysis on request.</summary>
-    /// <param name="trackId">Track id.</param>
-    /// <param name="kind">Kind.</param>
-    /// <param name="options">Run options.</param>
-    /// <param name="overwriteEdits">The user confirmed replacing edited chords.</param>
+    /// <param name="request">Track, kind, options and the overwrite confirmation.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The outcome.</returns>
-    public Task<StartResult> StartAsync(Guid trackId, AnalysisKind kind, AnalysisOptions options, bool overwriteEdits, CancellationToken cancellationToken) =>
-        gate.RunAsync(
-            async () => await tracks.FindAsync(trackId, cancellationToken) is { } track
-                ? await StartLockedAsync(new StartRequest(track, kind, options, overwriteEdits), cancellationToken)
+    public Task<StartResult> StartAsync(AnalysisStart request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return gate.RunAsync(
+            async () => await tracks.FindAsync(request.TrackId, cancellationToken) is { } track
+                ? await StartLockedAsync(new StartRequest(track, request.Kind, request.Options, request.OverwriteEdits), cancellationToken)
                 : new StartResult(StartOutcome.TrackNotFound, null),
             cancellationToken);
+    }
 
     /// <summary>
     /// The automatic start (data-model 7.3): only over a missing, none, unavailable or edit-free stale analysis. A missing

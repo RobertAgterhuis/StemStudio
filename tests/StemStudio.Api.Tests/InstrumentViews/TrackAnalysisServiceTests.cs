@@ -20,7 +20,7 @@ public sealed class TrackAnalysisServiceTests : ApiTestBase
     private FakeWorkerAnalysisClient Analysis => Factory.AnalysisWorker;
 
     private Task<StartResult> StartAsync(Guid trackId, AnalysisKind kind, AnalysisOptions? options = null, bool overwrite = false) =>
-        Factory.WithServiceAsync<StartResult, TrackAnalysisService>(service => service.StartAsync(trackId, kind, options ?? TrackAnalysisService.DefaultOptions(kind), overwrite, Ct));
+        Factory.WithServiceAsync<StartResult, TrackAnalysisService>(service => service.StartAsync(new AnalysisStart(trackId, kind, options ?? TrackAnalysisService.DefaultOptions(kind), overwrite), Ct));
 
     private Task<AnalysisView?> GetAsync(Guid trackId, AnalysisKind kind) =>
         Factory.WithServiceAsync<AnalysisView?, TrackAnalysisService>(service => service.GetAsync(trackId, kind, Ct));
@@ -134,13 +134,15 @@ public sealed class TrackAnalysisServiceTests : ApiTestBase
     }
 
     [Theory]
-    [InlineData(AnalysisKind.Chords, null, false, null, 12)]
-    [InlineData(AnalysisKind.Chords, "chroma-hmm", false, null, 9)]
-    [InlineData(AnalysisKind.Chords, null, true, null, 8)]
-    [InlineData(AnalysisKind.Chords, null, false, "btc-majmin", 27)]
-    [InlineData(AnalysisKind.VocalPitch, null, false, null, 13)]
-    public async Task Estimates_FollowKindEngineDeviceAndWeights(AnalysisKind kind, string? engine, bool gpu, string? missingModel, int seconds)
+    [InlineData("chords btc cpu ready", 12)]
+    [InlineData("chords chroma-hmm cpu ready", 9)]
+    [InlineData("chords btc gpu ready", 8)]
+    [InlineData("chords btc cpu btc-majmin", 27)]
+    [InlineData("vocalPitch - cpu ready", 13)]
+    public async Task Estimates_FollowKindEngineDeviceAndWeights(string scenario, int seconds)
     {
+        var parts = scenario.Split(' ');
+        var (kind, engine, gpu, missingModel) = (Enum.Parse<AnalysisKind>(parts[0], ignoreCase: true), parts[1] == "chroma-hmm" ? parts[1] : null, parts[2] == "gpu", parts[3]);
         Worker.OnGetHealth = () => Task.FromResult(FakeWorkerClient.Health(new WorkerDeviceInfo { Kind = gpu ? ProcessingDeviceKind.Gpu : ProcessingDeviceKind.Cpu }) with
         {
             InstrumentAnalysis = new WorkerInstrumentAnalysisHealth(
@@ -195,7 +197,7 @@ public sealed class TrackAnalysisServiceTests : ApiTestBase
     public async Task EditedChords_AreOnlyReplacedWhenConfirmed()
     {
         var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
-        await Factory.SeedReadyAsync(track.Id, AnalysisKind.Chords, Chart(edited: true), new string('1', 64));
+        await Factory.SeedReadyAsync(track.Id, Chart(edited: true), new string('1', 64));
 
         (await StartAsync(track.Id, AnalysisKind.Chords)).Outcome.ShouldBe(StartOutcome.EditsExist);
         (await StartAsync(track.Id, AnalysisKind.Chords, overwrite: true)).View!.Status.ShouldBe(AnalysisStatus.Queued);
@@ -387,8 +389,8 @@ public sealed class TrackAnalysisServiceTests : ApiTestBase
     public async Task AStaleChartWithEdits_StaysStale_AndAStaleMelodyIsNotRerun()
     {
         var track = await Factory.SeedAsync(SyncTestData.DetailCompleted());
-        await Factory.SeedReadyAsync(track.Id, AnalysisKind.Chords, Chart(edited: true), new string('1', 64));
-        await Factory.SeedReadyAsync(track.Id, AnalysisKind.VocalPitch, new VocalPitchDocument { Engine = "pyin", Frames = [0], Source = VocalSource.Vocals }, new string('1', 64));
+        await Factory.SeedReadyAsync(track.Id, Chart(edited: true), new string('1', 64));
+        await Factory.SeedReadyAsync(track.Id, new VocalPitchDocument { Engine = "pyin", Frames = [0], Source = VocalSource.Vocals }, new string('1', 64));
 
         await Factory.WithServiceAsync<bool, AnalysisAutoStarter>(async starter =>
         {

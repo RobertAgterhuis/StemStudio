@@ -72,10 +72,16 @@ internal static class AnalysisTestData
         ],
     };
 
-    /// <summary>Stores an analysis with the given document (ready) and fingerprint.</summary>
-    public static Task<TrackAnalysis> SeedReadyAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, AnalysisDocument document, string fingerprint) =>
+    /// <summary>Stores an analysis of the document's kind (ready) with the given fingerprint.</summary>
+    public static Task<TrackAnalysis> SeedReadyAsync(this ApiFactory factory, Guid trackId, AnalysisDocument document, string fingerprint) =>
         factory.WithScopeAsync(async sp =>
         {
+            var kind = document switch
+            {
+                ChordChart => AnalysisKind.Chords,
+                DrumHitsDocument => AnalysisKind.DrumHits,
+                _ => AnalysisKind.VocalPitch,
+            };
             var analysis = TrackAnalysis.Create(trackId, kind, T0);
             analysis.Queue(new AnalysisRun(JobId, TrackAnalysisService.DefaultOptions(kind), fingerprint, 10), T0);
             analysis.Complete(document, null, T0.AddMinutes(1));

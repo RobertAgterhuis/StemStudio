@@ -30,33 +30,38 @@ public sealed class InstrumentCatalogueTests
     [Fact]
     public void Tunings_AreInEnumOrder() => InstrumentCatalogue.Tunings.Select(t => t.Id).ShouldBe(Enum.GetValues<TuningId>());
 
+    public static TheoryData<WrittenInstrument, (string Name, string Key, string Interval, int Semitones), InstrumentRange> Instruments => new()
+    {
+        { WrittenInstrument.Concert, ("", "C", "P1", 0), new InstrumentRange(ClefChoice.Auto, 0, 127) },
+        { WrittenInstrument.TrumpetBb, ("Trumpet in B-flat", "Bb", "M2", 2), new InstrumentRange(ClefChoice.Treble, 52, 82) },
+        { WrittenInstrument.ClarinetBb, ("Clarinet in B-flat", "Bb", "M2", 2), new InstrumentRange(ClefChoice.Treble, 50, 91) },
+        { WrittenInstrument.SopranoSaxBb, ("Soprano Saxophone in B-flat", "Bb", "M2", 2), new InstrumentRange(ClefChoice.Treble, 56, 87) },
+        { WrittenInstrument.TenorSaxBb, ("Tenor Saxophone in B-flat", "Bb", "M9", 14), new InstrumentRange(ClefChoice.Treble, 44, 75) },
+        { WrittenInstrument.BassClarinetBb, ("Bass Clarinet in B-flat", "Bb", "M9", 14), new InstrumentRange(ClefChoice.Treble, 38, 77) },
+        { WrittenInstrument.AltoSaxEb, ("Alto Saxophone in E-flat", "Eb", "M6", 9), new InstrumentRange(ClefChoice.Treble, 49, 80) },
+        { WrittenInstrument.BaritoneSaxEb, ("Baritone Saxophone in E-flat", "Eb", "M13", 21), new InstrumentRange(ClefChoice.Treble, 36, 68) },
+        { WrittenInstrument.ClarinetEb, ("Clarinet in E-flat", "Eb", "-m3", -3), new InstrumentRange(ClefChoice.Treble, 53, 91) },
+        { WrittenInstrument.HornF, ("Horn in F", "F", "P5", 7), new InstrumentRange(ClefChoice.Treble, 34, 77) },
+        { WrittenInstrument.EnglishHornF, ("English Horn in F", "F", "P5", 7), new InstrumentRange(ClefChoice.Treble, 52, 81) },
+        { WrittenInstrument.Flute, ("Flute", "C", "P1", 0), new InstrumentRange(ClefChoice.Treble, 60, 96) },
+        { WrittenInstrument.Oboe, ("Oboe", "C", "P1", 0), new InstrumentRange(ClefChoice.Treble, 58, 91) },
+        { WrittenInstrument.Violin, ("Violin", "C", "P1", 0), new InstrumentRange(ClefChoice.Treble, 55, 100) },
+        { WrittenInstrument.Viola, ("Viola", "C", "P1", 0), new InstrumentRange(ClefChoice.Alto, 48, 88) },
+        { WrittenInstrument.Cello, ("Cello", "C", "P1", 0), new InstrumentRange(ClefChoice.Bass, 36, 76) },
+        { WrittenInstrument.DoubleBass, ("Double Bass", "C", "P8", 12), new InstrumentRange(ClefChoice.Bass, 28, 67) },
+        { WrittenInstrument.Trombone, ("Trombone", "C", "P1", 0), new InstrumentRange(ClefChoice.Bass, 40, 72) },
+        { WrittenInstrument.Bassoon, ("Bassoon", "C", "P1", 0), new InstrumentRange(ClefChoice.Bass, 34, 75) },
+        { WrittenInstrument.Tuba, ("Tuba", "C", "P1", 0), new InstrumentRange(ClefChoice.Bass, 28, 65) },
+    };
+
     [Theory]
-    [InlineData(WrittenInstrument.Concert, "", "C", "P1", 0, ClefChoice.Auto, 0, 127)]
-    [InlineData(WrittenInstrument.TrumpetBb, "Trumpet in B-flat", "Bb", "M2", 2, ClefChoice.Treble, 52, 82)]
-    [InlineData(WrittenInstrument.ClarinetBb, "Clarinet in B-flat", "Bb", "M2", 2, ClefChoice.Treble, 50, 91)]
-    [InlineData(WrittenInstrument.SopranoSaxBb, "Soprano Saxophone in B-flat", "Bb", "M2", 2, ClefChoice.Treble, 56, 87)]
-    [InlineData(WrittenInstrument.TenorSaxBb, "Tenor Saxophone in B-flat", "Bb", "M9", 14, ClefChoice.Treble, 44, 75)]
-    [InlineData(WrittenInstrument.BassClarinetBb, "Bass Clarinet in B-flat", "Bb", "M9", 14, ClefChoice.Treble, 38, 77)]
-    [InlineData(WrittenInstrument.AltoSaxEb, "Alto Saxophone in E-flat", "Eb", "M6", 9, ClefChoice.Treble, 49, 80)]
-    [InlineData(WrittenInstrument.BaritoneSaxEb, "Baritone Saxophone in E-flat", "Eb", "M13", 21, ClefChoice.Treble, 36, 68)]
-    [InlineData(WrittenInstrument.ClarinetEb, "Clarinet in E-flat", "Eb", "-m3", -3, ClefChoice.Treble, 53, 91)]
-    [InlineData(WrittenInstrument.HornF, "Horn in F", "F", "P5", 7, ClefChoice.Treble, 34, 77)]
-    [InlineData(WrittenInstrument.EnglishHornF, "English Horn in F", "F", "P5", 7, ClefChoice.Treble, 52, 81)]
-    [InlineData(WrittenInstrument.Flute, "Flute", "C", "P1", 0, ClefChoice.Treble, 60, 96)]
-    [InlineData(WrittenInstrument.Oboe, "Oboe", "C", "P1", 0, ClefChoice.Treble, 58, 91)]
-    [InlineData(WrittenInstrument.Violin, "Violin", "C", "P1", 0, ClefChoice.Treble, 55, 100)]
-    [InlineData(WrittenInstrument.Viola, "Viola", "C", "P1", 0, ClefChoice.Alto, 48, 88)]
-    [InlineData(WrittenInstrument.Cello, "Cello", "C", "P1", 0, ClefChoice.Bass, 36, 76)]
-    [InlineData(WrittenInstrument.DoubleBass, "Double Bass", "C", "P8", 12, ClefChoice.Bass, 28, 67)]
-    [InlineData(WrittenInstrument.Trombone, "Trombone", "C", "P1", 0, ClefChoice.Bass, 40, 72)]
-    [InlineData(WrittenInstrument.Bassoon, "Bassoon", "C", "P1", 0, ClefChoice.Bass, 34, 75)]
-    [InlineData(WrittenInstrument.Tuba, "Tuba", "C", "P1", 0, ClefChoice.Bass, 28, 65)]
-    public void Instruments_MatchDataModel42(WrittenInstrument id, string name, string key, string interval, int semitones, ClefChoice clef, int low, int high)
+    [MemberData(nameof(Instruments))]
+    public void Instruments_MatchDataModel42(WrittenInstrument id, (string Name, string Key, string Interval, int Semitones) expected, InstrumentRange range)
     {
         var info = InstrumentCatalogue.InstrumentOf(id);
 
-        (info.Id, info.Name, info.KeyName, info.Interval, info.Semitones).ShouldBe((id, name, key, interval, semitones));
-        info.Range.ShouldBe(new InstrumentRange(clef, low, high));
+        (info.Id, info.Name, info.KeyName, info.Interval, info.Semitones).ShouldBe((id, expected.Name, expected.Key, expected.Interval, expected.Semitones));
+        info.Range.ShouldBe(range);
     }
 
     [Fact]

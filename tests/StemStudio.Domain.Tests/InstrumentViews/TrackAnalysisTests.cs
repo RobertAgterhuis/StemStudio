@@ -227,17 +227,22 @@ public sealed class TrackAnalysisTests
         Segment(0, 1, "X").HasChord.ShouldBeFalse();
     }
 
+    public static TheoryData<AnalysisKind, AnalysisTrigger, AutoRuleSettings, bool> TriggerRules => new()
+    {
+        { AnalysisKind.Chords, AnalysisTrigger.StandardCompleted, new AutoRuleSettings(true, false), true },
+        { AnalysisKind.Chords, AnalysisTrigger.StandardCompleted, new AutoRuleSettings(false, true), false },
+        { AnalysisKind.Chords, AnalysisTrigger.DetailCompleted, new AutoRuleSettings(true, true), false },
+        { AnalysisKind.DrumHits, AnalysisTrigger.DetailCompleted, new AutoRuleSettings(false, true), true },
+        { AnalysisKind.DrumHits, AnalysisTrigger.DetailCompleted, new AutoRuleSettings(true, false), false },
+        { AnalysisKind.DrumHits, AnalysisTrigger.StandardCompleted, new AutoRuleSettings(true, true), false },
+        { AnalysisKind.VocalPitch, AnalysisTrigger.StandardCompleted, new AutoRuleSettings(true, true), false },
+        { AnalysisKind.VocalPitch, AnalysisTrigger.DetailCompleted, new AutoRuleSettings(true, true), false },
+    };
+
     [Theory]
-    [InlineData(AnalysisKind.Chords, AnalysisTrigger.StandardCompleted, true, false, true)]
-    [InlineData(AnalysisKind.Chords, AnalysisTrigger.StandardCompleted, false, true, false)]
-    [InlineData(AnalysisKind.Chords, AnalysisTrigger.DetailCompleted, true, true, false)]
-    [InlineData(AnalysisKind.DrumHits, AnalysisTrigger.DetailCompleted, false, true, true)]
-    [InlineData(AnalysisKind.DrumHits, AnalysisTrigger.DetailCompleted, true, false, false)]
-    [InlineData(AnalysisKind.DrumHits, AnalysisTrigger.StandardCompleted, true, true, false)]
-    [InlineData(AnalysisKind.VocalPitch, AnalysisTrigger.StandardCompleted, true, true, false)]
-    [InlineData(AnalysisKind.VocalPitch, AnalysisTrigger.DetailCompleted, true, true, false)]
-    public void AutoRules_FollowTheTriggersAndSwitches(AnalysisKind kind, AnalysisTrigger trigger, bool chords, bool drums, bool expected) =>
-        AnalysisRules.FollowsTrigger(kind, trigger, new AutoRuleSettings(chords, drums)).ShouldBe(expected);
+    [MemberData(nameof(TriggerRules))]
+    public void AutoRules_FollowTheTriggersAndSwitches(AnalysisKind kind, AnalysisTrigger trigger, AutoRuleSettings settings, bool expected) =>
+        AnalysisRules.FollowsTrigger(kind, trigger, settings).ShouldBe(expected);
 
     [Theory]
     [InlineData(AnalysisKind.Chords, true, false, true)]
