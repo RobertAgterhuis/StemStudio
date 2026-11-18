@@ -39,7 +39,6 @@ from stemstudio_worker.ports import (
     WeightsFile,
 )
 from stemstudio_worker.schemas import ChordEngine, ChordVocabulary, ModelReadiness
-from stemstudio_worker.transcription.models import ModelStore, UrlOpener, https_open
 
 N_BINS: Final = 144
 """CQT bins of the BTC features."""
@@ -183,7 +182,7 @@ class TorchBtcRuntime:
 
 
 class WeightsSource(Protocol):
-    """Hands out verified weight files (:class:`ChordModelStore`)."""
+    """Hands out verified weight files (``main.ChordModelStore`` over the 008 model store)."""
 
     def ensure(self, weights: WeightsFile) -> Path:
         """The verified file of ``weights`` (``TranscriptionError`` when unavailable)."""
@@ -194,30 +193,32 @@ class WeightsSource(Protocol):
         ...
 
 
-class ChordModelStore(ModelStore):
-    """The 008 model store with the BTC weights below ``STEMSTUDIO_MODEL_DIR/harmony``."""
+@dataclass(frozen=True, slots=True)
+class BtcParts:
+    """What the BTC recognizer runs on.
 
-    def __init__(self, model_dir: Path, opener: UrlOpener = https_open) -> None:
-        """Keep weights below ``model_dir/harmony``; fetch with ``opener``."""
-        super().__init__(model_dir, opener)
-        self._root = model_dir / "harmony"
+    Attributes:
+        models: Hands out the verified checkpoints.
+        devices: The 003 device runner.
+        runtime: The torch operations.
+        fallback: The recognizer that runs without weights (chroma-hmm).
+    """
+
+    models: WeightsSource
+    devices: DeviceRunner
+    runtime: BtcRuntime
+    fallback: ChordRecognizer
 
 
 class BtcRecognizer:
     """``ChordRecognizer`` over BTC with a chroma-hmm fallback when the weights are missing."""
 
-    def __init__(
-        self,
-        models: WeightsSource,
-        devices: DeviceRunner,
-        runtime: BtcRuntime,
-        fallback: ChordRecognizer,
-    ) -> None:
-        """Fetch checkpoints from ``models``; run ``runtime`` on ``devices``; else ``fallback``."""
-        self._models = models
-        self._devices = devices
-        self._runtime = runtime
-        self._fallback = fallback
+    def __init__(self, parts: BtcParts) -> None:
+        """Fetch checkpoints, run the runtime on the device runner; else run the fallback."""
+        self._models = parts.models
+        self._devices = parts.devices
+        self._runtime = parts.runtime
+        self._fallback = parts.fallback
         self._loaded: dict[tuple[Path, str], BtcModel] = {}
 
     @property
@@ -251,7 +252,7 @@ class BtcRecognizer:
             return replace(frames, fallback=True)
         features, chroma = cqt_features(audio)
         labels = btc_labels(vocabulary)
-        work = self._work(checkpoint, len(labels), features, progress)
+        work = self._work((checkpoint, len(labels)), features, progress)
         posteriors, use = self._devices.run(work, BTC_GPU_NEED)
         return ChordFrames(posteriors=posteriors[: features.shape[0]], labels=labels,
                            frame_seconds=FRAME_SECONDS, chroma=chroma, engine="btc",
@@ -262,10 +263,12 @@ class BtcRecognizer:
         self._loaded.clear()
 
     def _work(
-        self, checkpoint: Path, classes: int, features: Floats, progress: AnalysisProgress
+        self, model_file: tuple[Path, int], features: Floats, progress: AnalysisProgress
     ) -> Callable[[str], Floats]:
+        """The device step: ``model_file`` is the checkpoint and its class count."""
+
         def work(device: str) -> Floats:
-            model = self._model(checkpoint, classes, device)
+            model = self._model(*model_file, device)
             windows = instances(features, model.mean, model.std)
             outputs = []
             for index, window in enumerate(windows, 1):

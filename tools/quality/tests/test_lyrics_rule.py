@@ -78,9 +78,10 @@ def test_lyrics_and_alignment_are_mapped_to_ports_schemas_config() -> None:
 
 
 def test_lyrics_may_import_only_the_shared_egress_modules_of_metadata() -> None:
-    assert {
-        "lyrics": frozenset({"metadata.http", "metadata.ratelimit", "metadata.user_agent"})
-    } == PYTHON_SUBMODULES_ALLOWED
+    assert PYTHON_SUBMODULES_ALLOWED["lyrics"] == frozenset(
+        {"metadata.http", "metadata.ratelimit", "metadata.user_agent"}
+    )
+    assert set(PYTHON_SUBMODULES_ALLOWED) == {"lyrics", "views_fake"}  # views_fake: feature 016
 
 
 def test_lyrics_and_alignment_importing_allowed_modules_is_clean(tmp_path: Path) -> None:

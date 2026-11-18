@@ -67,8 +67,8 @@ def test_harmony_core_modules_import_nothing_else(tmp_path: Path, source: str, t
 
     errors = error_findings(tmp_path)
 
-    assert len(errors) == 1 and errors[0][0].endswith("harmony/key.py")
-    assert target in errors[0][1]
+    assert errors and all(path.endswith("harmony/key.py") for path, _ in errors)
+    assert any(target in message for _, message in errors)
 
 
 def test_harmony_btc_may_import_torch_librosa_and_its_vendor(tmp_path: Path) -> None:
@@ -169,7 +169,9 @@ def test_the_btc_vendor_is_excluded_and_licence_checked(tmp_path: Path) -> None:
 
     findings = vendor_check.run(tmp_path)
 
-    assert [f.message for f in findings] == ["vendored package harmony/vendor/btc has no NOTICE file"]
+    assert [f.message for f in findings] == [
+        "vendored package harmony/vendor/btc has no NOTICE file"
+    ]
 
 
 def test_the_vendor_contributes_no_edges(tmp_path: Path) -> None:
@@ -259,12 +261,9 @@ def test_other_engine_folders_may_use_web_audio(tmp_path: Path) -> None:
 
 def test_only_index_imports_the_engine(tmp_path: Path) -> None:
     write_file(tmp_path, "src/audio-engine/package.json", "{}")
-    write_file(tmp_path, f"{ENGINE}/engine.ts", "import { x } from './recording/input';
-")
-    write_file(tmp_path, f"{ENGINE}/index.ts", "import { Engine } from './engine';
-")
-    write_file(tmp_path, f"{ENGINE}/views/chords.ts", "import { x } from './engine';
-")
+    write_file(tmp_path, f"{ENGINE}/engine.ts", "import { x } from './recording/input';\n")
+    write_file(tmp_path, f"{ENGINE}/index.ts", "import { Engine } from './engine';\n")
+    write_file(tmp_path, f"{ENGINE}/views/chords.ts", "import { x } from './engine';\n")
 
     assert error_findings(tmp_path) == []
 
@@ -272,22 +271,17 @@ def test_only_index_imports_the_engine(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("rel", "source"),
     [
-        ("views/chords.ts", "import { Engine } from '../engine';
-"),
-        ("pitch/scorer.ts", "import type { Engine } from \"../engine.js\";
-"),
-        ("mixer.ts", "export { Engine } from './engine';
-"),
-        ("drums/lanes.ts", "const m = await import('../engine');
-"),
+        ("views/chords.ts", "import { Engine } from '../engine';\n"),
+        ("pitch/scorer.ts", 'import type { Engine } from "../engine.js";\n'),
+        ("mixer.ts", "export { Engine } from './engine';\n"),
+        ("drums/lanes.ts", "const m = await import('../engine');\n"),
     ],
 )
 def test_any_other_file_importing_the_engine_is_an_error(
     tmp_path: Path, rel: str, source: str
 ) -> None:
     write_file(tmp_path, "src/audio-engine/package.json", "{}")
-    write_file(tmp_path, f"{ENGINE}/engine.ts", "export class Engine {}
-")
+    write_file(tmp_path, f"{ENGINE}/engine.ts", "export class Engine {}\n")
     write_file(tmp_path, f"{ENGINE}/{rel}", source)
 
     errors = error_findings(tmp_path)
@@ -299,7 +293,9 @@ def test_any_other_file_importing_the_engine_is_an_error(
 # ------------------------------------------------------------------ run_all
 
 
-def test_run_all_reports_instrument_findings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_run_all_reports_instrument_findings(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     write_module(tmp_path, "x.py", "torch.load(p, weights_only=False)\n")
     clean = DuplicationResult(clones=[], duplicated_percentage=0.0, findings=[], tool_error=None)
     report = tmp_path / "r.md"

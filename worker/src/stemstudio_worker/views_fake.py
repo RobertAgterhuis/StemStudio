@@ -53,7 +53,6 @@ from stemstudio_worker.schemas import (
     PitchEngine,
     PitchRange,
     RenderRange,
-    ScoreEngine,
     VocalPitch,
     VocalSource,
 )
@@ -104,19 +103,22 @@ def _duration(paths: Sequence[Path]) -> float:
         raise AnalysisError(AUDIO_UNREADABLE_TEXT) from exc
 
 
+def _bar_clock(grid: BeatGridTempo | None) -> tuple[list[float], float]:
+    """The known downbeats (0 s and later) and the bar length of ``grid`` (or the fake tempo)."""
+    if grid is None:
+        return [_START], _BAR_BEATS * _BEAT
+    known = [d for d in grid.downbeats if d >= 0] or [grid.bar_one_downbeat]
+    return known, grid.beats_per_bar * 60.0 / grid.bpm
+
+
 def bar_starts(grid: BeatGridTempo | None, duration: float) -> list[float]:
     """Bar start times inside ``[0, duration)``: the grid's downbeats, then its bar length."""
-    if grid is None:
-        known, length = [_START], _BAR_BEATS * _BEAT
-    else:
-        known = [d for d in grid.downbeats if d >= 0] or [grid.bar_one_downbeat]
-        length = grid.beats_per_bar * 60.0 / grid.bpm
+    known, length = _bar_clock(grid)
     starts = [t for t in known if t < duration]
-    following = (starts[-1] if starts else known[-1]) + length
-    while starts and following < duration:
-        starts.append(following)
-        following += length
-    return starts
+    if not starts:
+        return []
+    count = math.ceil((duration - starts[-1]) / length) - 1
+    return starts + [starts[-1] + length * (i + 1) for i in range(max(count, 0))]
 
 
 def _segment(span: tuple[int, int], chord: _Chord | None) -> ChordSegment:
@@ -186,25 +188,23 @@ class FakeChordAnalyzer:
         return ChordOutcome(chart=chart)
 
 
-class FakeDrumHitsTranscriber:
+DrumFiles = Mapping[DrumPiece, Path]
+"""Resolved drum detail stem per piece."""
+
+
+class FakeDrumHitsTranscriber(FakeDrumTranscriber):
     """``DrumTranscriber`` of the fake drum trainer: the 008 groove plus crashes."""
 
-    @property
-    def engine(self) -> ScoreEngine:
-        """``fake`` (``DrumHits.engine``)."""
-        return "fake"
+    def __init__(self) -> None:
+        """Play the 008 groove at 120 BPM from 0.5 s."""
+        super().__init__(FAKE_TEMPO)
 
-    def transcribe(
-        self,
-        inputs: Mapping[DrumPiece, Path],
-        window: RenderRange | None,
-        progress: TranscriptionProgress,
-    ) -> tuple[DrumHit, ...]:
+    def transcribe(self, inputs: DrumFiles, window: RenderRange | None,
+                   progress: TranscriptionProgress) -> tuple[DrumHit, ...]:  # fmt: skip
         """The groove from 0.5 s; a crash on every fourth downbeat when cymbals are given."""
         if not inputs:
             return ()
-        hits = [h for h in FakeDrumTranscriber(FAKE_TEMPO).transcribe(inputs, window, progress)
-                if h.time >= _START]  # fmt: skip
+        hits = [h for h in super().transcribe(inputs, window, progress) if h.time >= _START]
         if "cymbals" in inputs:
             hits += self._crashes(_duration([inputs["cymbals"]]))
         return tuple(sorted(hits, key=lambda h: (h.time, h.piece)))
@@ -248,18 +248,23 @@ class FakePitchAnalyzer:
         Raises:
             NoMelodyError: The audio is too short to reach a sung line.
         """
-        count = min(math.ceil(len(audio) * 100 / PITCH_SAMPLE_RATE), MAX_PITCH_FRAMES)
-        lines = fake_lines_ms(count * 10)
-        frames = [_cents(index * 10, lines) for index in range(count)]
+        frames = fake_frames(len(audio))
         voiced = np.array([f for f in frames if f > 0])
         if voiced.size == 0:
             raise NoMelodyError
         progress(1.0)
         low, high = (int(np.percentile(voiced, q)) for q in (5, 95))
         return VocalPitch(frames=frames, source=source, engine="fake",
-                          voiced_ratio=voiced.size / count,
+                          voiced_ratio=voiced.size / len(frames),
                           range=PitchRange(low_cents=low, high_cents=high),
                           warnings=_source_warnings(source))  # fmt: skip
+
+
+def fake_frames(samples: int) -> list[int]:
+    """The 10 ms frames of the fake melody over ``samples`` at ``PITCH_SAMPLE_RATE``."""
+    count = min(math.ceil(samples * 100 / PITCH_SAMPLE_RATE), MAX_PITCH_FRAMES)
+    lines = fake_lines_ms(count * 10)
+    return [_cents(index * 10, lines) for index in range(count)]
 
 
 def _source_warnings(source: VocalSource) -> list[AnalysisWarning]:

@@ -191,24 +191,37 @@ def test_the_fake_chord_analyzer_reports_the_fake_engine_and_no_models(tmp_path:
 # ------------------------------------------------------------------ drum hits
 
 
-def test_drum_hits_play_the_008_groove_plus_a_crash_every_fourth_bar(tmp_path: Path) -> None:
+def _hits(tmp_path: Path) -> dict[str, list[float]]:
     files = {
         piece: _wav(tmp_path / f"{piece}.wav", 20.0)
         for piece in ("kick", "snare", "hihat", "cymbals")
     }
+    hits = FakeDrumHitsTranscriber().transcribe(files, None, lambda _f: None)
+    times: dict[str, list[float]] = {"all": [h.time for h in hits]}
+    for hit in hits:
+        times.setdefault(hit.piece, []).append(hit.time)
+    return times
+
+
+def test_drum_hits_play_the_008_groove_from_half_a_second(tmp_path: Path) -> None:
+    times = _hits(tmp_path)
+
+    assert times["kick"][:3] == [0.5, 1.5, 2.5]
+    assert times["snare"][:2] == [1.0, 2.0]
+    assert times["hihat"][:3] == [0.5, 0.75, 1.0]
+    assert min(times["all"]) == 0.5
+    assert times["all"] == sorted(times["all"])
+
+
+def test_drum_hits_add_a_crash_every_fourth_bar(tmp_path: Path) -> None:
+    assert _hits(tmp_path)["cymbals"] == [0.5, 8.5, 16.5]
+
+
+def test_drum_hit_progress_ends_at_one_and_the_engine_is_fake(tmp_path: Path) -> None:
     seen: list[float] = []
 
-    hits = FakeDrumHitsTranscriber().transcribe(files, None, seen.append)
+    FakeDrumHitsTranscriber().transcribe({"kick": _wav(tmp_path / "k.wav", 2.0)}, None, seen.append)
 
-    kick = [h.time for h in hits if h.piece == "kick"]
-    snare = [h.time for h in hits if h.piece == "snare"]
-    hihat = [h.time for h in hits if h.piece == "hihat"]
-    crash = [h.time for h in hits if h.piece == "cymbals"]
-    assert kick[:3] == [0.5, 1.5, 2.5] and snare[:2] == [1.0, 2.0]
-    assert hihat[:3] == [0.5, 0.75, 1.0]
-    assert min(h.time for h in hits) == 0.5
-    assert crash == [0.5, 8.5, 16.5]
-    assert [h.time for h in hits] == sorted(h.time for h in hits)
     assert seen[-1] == 1.0
     assert FakeDrumHitsTranscriber().engine == "fake"
 

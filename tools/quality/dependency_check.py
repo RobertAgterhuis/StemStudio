@@ -64,7 +64,13 @@ Worker third-party imports (feature 008; the standard library is always allowed)
     RenderExecutor injected); main.py is the composition root and may import every module.
     documents -> ports, schemas and (third party) reportlab only (feature 014)
 
-Worker scopes (feature 014 T015, file level, stricter than their top-level module)::
+Worker scopes (feature 014 T015, feature 016 T009; file level, stricter than their module)::
+
+    harmony/{postprocess,labels,chroma_hmm,key}.py -> ports, schemas, each other and numpy,
+        librosa only;  harmony/btc.py -> ports, schemas, harmony.vendor and numpy, librosa,
+        torch only;  harmony/vendor/** is third-party code (no edges);  views_fake -> ports,
+        schemas, config and jobs.instrument_analysis_ports, lyrics.{fake, interpolate},
+        transcription.{fake, audio} only;  nothing but main.py imports harmony or views_fake
 
     analysis/structure/** -> ports, schemas, analysis.structure and numpy, scipy, sklearn,
         librosa, soundfile only;  engraving/score_view.py -> ports, schemas, engraving and
@@ -306,6 +312,9 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "notation": frozenset({"ports", "schemas"}),
     "engraving": frozenset({"ports", "schemas"}),
     "documents": frozenset({"ports", "schemas"}),
+    "harmony": _ADAPTER,
+    "analysis_inputs": _ADAPTER,
+    "views_fake": _ADAPTER,
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "storage": _ADAPTER | {"jobs"},
@@ -316,10 +325,16 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
 
 PYTHON_SUBMODULES_ALLOWED: Mapping[str, frozenset[str]] = {
     "lyrics": frozenset({"metadata.http", "metadata.ratelimit", "metadata.user_agent"}),
-}
+    "views_fake": frozenset({
+        "jobs.instrument_analysis_ports", "lyrics.fake", "lyrics.interpolate",
+        "transcription.fake", "transcription.audio",
+    }),
+}  # fmt: skip
 """Modules (dotted, below the package) a worker module may import beyond ``PYTHON_ALLOWED``.
 
 ``metadata.http`` also allows ``metadata.http.<name>``; ``metadata.httpx`` stays forbidden.
+Feature 016: the fake analyses (``views_fake``) reuse the ``ChordAnalyzer`` port types, the 006
+fake lyric lines and the 008 fake drum groove, nothing else of those modules.
 """
 
 PYTHON_EXTERNAL_ALLOWED: Mapping[str, frozenset[str]] = {
@@ -344,6 +359,14 @@ class PythonScope:
     external: frozenset[str]
 
 
+_HARMONY_CORE = PythonScope(
+    frozenset({"ports", "schemas", "harmony.postprocess", "harmony.labels", "harmony.chroma_hmm",
+               "harmony.key"}),
+    frozenset({"numpy", "librosa"}),
+)  # fmt: skip
+"""Feature 016: labels, post-processing, chroma-hmm and key import only ports, schemas, each other
+and numpy, librosa (never torch, the BTC adapter or its vendor)."""
+
 PYTHON_SCOPES: Mapping[str, PythonScope] = {
     "analysis/structure/": PythonScope(
         frozenset({"ports", "schemas", "analysis.structure"}),
@@ -352,8 +375,17 @@ PYTHON_SCOPES: Mapping[str, PythonScope] = {
     "engraving/score_view.py": PythonScope(
         frozenset({"ports", "schemas", "engraving"}), frozenset({"verovio"})
     ),
+    **{
+        f"harmony/{name}.py": _HARMONY_CORE
+        for name in ("postprocess", "labels", "chroma_hmm", "key")
+    },
+    "harmony/btc.py": PythonScope(
+        frozenset({"ports", "schemas", "harmony.vendor"}),
+        frozenset({"numpy", "librosa", "torch"}),
+    ),
 }
-"""Feature 014 (T015): worker scopes by package-relative path (a folder ends with ``/``)."""
+"""Worker scopes by package-relative path (a folder ends with ``/``): feature 014 (T015) and
+feature 016 (T009: the harmony core and the BTC adapter)."""
 
 STDLIB = frozenset(sys.stdlib_module_names) | {"__future__"}
 """Top-level names of the standard library."""
@@ -438,9 +470,11 @@ none of them (nor karaoke) imports ``practice/`` or ``stretch/``; ``practice/`` 
 
 TS_MODULE_IMPORTERS: Mapping[str, frozenset[str]] = {
     "audio-engine/recording": frozenset({"audio-engine/engine"}),
+    "audio-engine/engine": frozenset({"audio-engine/index"}),
 }
 """Modules only the listed modules (and the module itself) may import (feature 015, T007:
-the recording core is reached through ``engine.ts`` only, never from ``index.ts``/``callbacks``)."""
+the recording core is reached through ``engine.ts`` only, never from ``index.ts``/``callbacks``;
+feature 016, T009: nothing but ``index.ts`` imports ``engine.ts``)."""
 
 
 @dataclass(frozen=True, slots=True)

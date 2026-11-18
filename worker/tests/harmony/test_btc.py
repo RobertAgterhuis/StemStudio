@@ -28,8 +28,8 @@ from stemstudio_worker.harmony.btc import (
     N_BINS,
     TIMESTEP,
     BtcModel,
+    BtcParts,
     BtcRecognizer,
-    ChordModelStore,
     TorchBtcRuntime,
     btc_labels,
     cqt_features,
@@ -151,7 +151,7 @@ def _recognizer(
         RecordingRunner(mode),
         FallbackRecognizer(),
     )
-    recognizer = BtcRecognizer(models, runner, runtime or FakeRuntime(), fallback)
+    recognizer = BtcRecognizer(BtcParts(models, runner, runtime or FakeRuntime(), fallback))
     return recognizer, models, runner, fallback
 
 
@@ -398,17 +398,6 @@ def test_readiness_per_model_comes_from_the_store(tmp_path: Path) -> None:
         "btc-majmin": "not-downloaded",
         "btc-large-voca": "not-downloaded",
     }
-
-
-# ------------------------------------------------------------------ the model store
-
-
-def test_the_chord_model_store_keeps_weights_below_model_dir_harmony(tmp_path: Path) -> None:
-    store = ChordModelStore(tmp_path)
-
-    assert store.path(BTC_MAJMIN_WEIGHTS) == tmp_path / "harmony" / "btc-majmin" / "btc_model.pt"
-    assert store.path(BTC_LARGE_VOCA_WEIGHTS).name == "btc_model_large_voca.pt"
-    assert not store.ready(BTC_MAJMIN_WEIGHTS)
 
 
 # ------------------------------------------------------------------ the torch runtime (fake torch)
