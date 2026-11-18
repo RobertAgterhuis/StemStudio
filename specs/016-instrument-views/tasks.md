@@ -107,8 +107,8 @@ text, the row wins.
 - [ ] T010 [quality-gate] Implement the rules in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T011 [P] [devops] Write the checks first and show them fail: `scripts/check-web-assets.{ps1,sh}` (the web image serves `/js/audio-engine-pitch-worklet.js` with `text/javascript`, built by `vite.pitch.config.ts`); CI job outline for the Playwright fake-mic projects
 - [ ] T012 [devops] Web image and engine build emit/serve the worklet file; `docker-compose.yml` passes `STEMSTUDIO_CHORD_ENGINE`, `STEMSTUDIO_PITCH_ENGINE`, `STEMSTUDIO_ANALYSIS_THREADS` (empty = the worker default 4); CI `CONTRACTS_DIR` -> `specs/016-instrument-views/contracts` with the 015 steps kept under a new `RECORDING_CONTRACTS` variable (they name `recording-api.openapi.yaml` and `merge_recording_delta.py`), plus 016 steps: Redocly lint of the four 016 documents, `merge_full.py --check`, `generate_chord_spelling_vectors.py --check` and `pytest specs/016-instrument-views/contracts`; Playwright fake-mic projects (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>`) in CI; wire T011 to pass
-- [ ] T013 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: per-family traceability (harmony, guitar, bass, drums, vocals, strings, brass, woodwinds -> specs), fake analyses, fake-mic fixtures, integration tests with real models (SC-001, SC-006, SC-010)
-- [ ] T014 [qa] `tests/fixtures/generate_instrument_fixtures.py` + its test: `sing-on-pitch.wav` (fake melody one octave lower, two harmonics), `sing-semitone-off.wav` (+100 cents), `silence.wav`, deterministic (fixed seed, SHA-256 manifest `instrument-manifest.json`) (SC-004, SC-006)
+- [x] T013 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: per-family traceability (harmony, guitar, bass, drums, vocals, strings, brass, woodwinds -> specs), fake analyses, fake-mic fixtures, integration tests with real models (SC-001, SC-006, SC-010)
+- [x] T014 [qa] `tests/fixtures/generate_instrument_fixtures.py` + its test: `sing-on-pitch.wav` (fake melody one octave lower, two harmonics), `sing-semitone-off.wav` (+100 cents), `silence.wav`, deterministic (fixed seed, SHA-256 manifest `instrument-manifest.json`) (SC-004, SC-006)
 
 ---
 
@@ -116,12 +116,12 @@ text, the row wins.
 
 ### beat-analysis (tests first)
 
-- [ ] T015 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_postprocess.py`, `test_labels.py`: Harte parse/format for every quality and inversion; beat snapping (changes only on beats, >= 1 beat), 0.5 s merge without a grid, consecutive merge, slash bass from bass chroma, `preferFlats`, `noChords`, warnings (data-model 2.1-2.4) (FR-010, FR-011)
-- [ ] T016 [beat-analysis] Implement `harmony/{labels,postprocess}.py` to pass T015
-- [ ] T017 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_chroma_hmm.py`: rendered triad sequences (numpy sines) give the expected majmin labels for >= 75 % of the time (SC-001 fallback); `full` request -> `simple` + `vocabulary-reduced`; frame rate 92.88 ms
-- [ ] T018 [beat-analysis] Implement `harmony/chroma_hmm.py` to pass T017
-- [ ] T019 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_key.py` (S11): synthetic cadences in all 24 keys -> global key correct >= 90 %, correct or fifth/relative 100 %; modulation fixture C -> D reported within 2 bars; regions < 8 bars merged; alternative within 0.1; confidence; no chords -> null key; `key-uncertain` warning (FR-070, SC-010)
-- [ ] T020 [beat-analysis] Implement `harmony/key.py` (`KeyEstimator`, research R-13) to pass T019
+- [x] T015 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_postprocess.py`, `test_labels.py`: Harte parse/format for every quality and inversion; beat snapping (changes only on beats, >= 1 beat), 0.5 s merge without a grid, consecutive merge, slash bass from bass chroma, `preferFlats`, `noChords`, warnings (data-model 2.1-2.4) (FR-010, FR-011)
+- [x] T016 [beat-analysis] Implement `harmony/{labels,postprocess}.py` to pass T015
+- [x] T017 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_chroma_hmm.py`: rendered triad sequences (numpy sines) give the expected majmin labels for >= 75 % of the time (SC-001 fallback); `full` request -> `simple` + `vocabulary-reduced`; frame rate 92.88 ms
+- [x] T018 [beat-analysis] Implement `harmony/chroma_hmm.py` to pass T017
+- [x] T019 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_key.py` (S11): synthetic cadences in all 24 keys -> global key correct >= 90 %, correct or fifth/relative 100 %; modulation fixture C -> D reported within 2 bars; regions < 8 bars merged; alternative within 0.1; confidence; no chords -> null key; `key-uncertain` warning (FR-070, SC-010)
+- [x] T020 [beat-analysis] Implement `harmony/key.py` (`KeyEstimator`, research R-13) to pass T019
 - [ ] T021 [P] [beat-analysis] Failing tests `worker/tests/analysis/test_vocal_pitch.py`: sung sine sweeps 80-1000 Hz -> frames within 20 cents; unvoiced gaps 0; packing to centi-semitones, length, range percentiles; `yin` engine switch; silent stem -> `NoMelodyError`; `few-voiced`, `detail-bleed` warnings (FR-040)
 - [ ] T022 [beat-analysis] Implement `analysis/vocal_pitch.py` to pass T021
 - [ ] T023 [P] [beat-analysis] Failing tests `worker/tests/notation/test_tablature.py`: every tuning of data-model 4.1; drop D low D on string 6 fret 0; 5-string low B use; capo relative frets; octave moves and dropped chord notes with counts; span <= 4 fretted frets; golden fingering fixtures >= 95 % expected string; MusicXML has `TAB` clef, `staff-lines`, `staff-tuning`, `capo`, `<string>/<fret>` per note; every fret/string sounds its pitch (FR-020..FR-022, SC-002)
@@ -142,8 +142,8 @@ text, the row wins.
 
 ### audio-ingest (tests first)
 
-- [ ] T035 [P] [audio-ingest] Failing tests `worker/tests/analysis_inputs/test_mixdown.py`: sums 1-4 FLAC stems of different lengths to mono 22,050 Hz (and 16 kHz for pitch), clipping-safe scaling, missing file -> `InputNotFoundError`, path allow-list respected
-- [ ] T036 [audio-ingest] Implement `analysis_inputs/mixdown.py` (`HarmonicMixer`) to pass T035
+- [x] T035 [P] [audio-ingest] Failing tests `worker/tests/analysis_inputs/test_mixdown.py`: sums 1-4 FLAC stems of different lengths to mono 22,050 Hz (and 16 kHz for pitch), clipping-safe scaling, missing file -> `InputNotFoundError`, path allow-list respected
+- [x] T036 [audio-ingest] Implement `analysis_inputs/mixdown.py` (`HarmonicMixer`) to pass T035
 - [ ] T037 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_tablature_engraving.py`: notation + TAB and TAB only MusicXML fixtures (6/5/4 lines, capo) engrave to SVG pages with the right line counts and fret numbers in the TAB staff and a PDF without missing glyphs (per the T006 decision: native Verovio or the fallback drawing) (FR-020, SC-002)
 - [ ] T038 [audio-ingest] Implement `engraving/tablature.py` (checks, and the fallback drawing if T006 chose it) to pass T037
 
