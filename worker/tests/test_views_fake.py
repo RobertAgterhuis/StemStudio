@@ -17,7 +17,7 @@ import soundfile as sf
 from stemstudio_worker.jobs.instrument_analysis_ports import ChordInputs
 from stemstudio_worker.lyrics.fake import FAKE_LINES
 from stemstudio_worker.lyrics.interpolate import line_end_ms
-from stemstudio_worker.ports import PITCH_SAMPLE_RATE
+from stemstudio_worker.ports import PITCH_SAMPLE_RATE, AnalysisError
 from stemstudio_worker.schemas import (
     ANALYSIS_WARNING_TEXTS,
     AnalysisWarning,
@@ -40,9 +40,12 @@ def _wav(path: Path, seconds: float) -> Path:
     return path
 
 
-def _request(vocabulary: ChordVocabulary = "simple", grid: BeatGridTempo | None = None) -> ChordsJobRequest:
-    return ChordsJobRequest(kind="chords", inputs=[STEM.format("guitar")], grid=grid,
-                            vocabulary=vocabulary)  # fmt: skip
+def _request(
+    vocabulary: ChordVocabulary = "simple", grid: BeatGridTempo | None = None
+) -> ChordsJobRequest:
+    return ChordsJobRequest(
+        kind="chords", inputs=[STEM.format("guitar")], grid=grid, vocabulary=vocabulary
+    )
 
 
 def _grid() -> BeatGridTempo:
@@ -51,9 +54,15 @@ def _grid() -> BeatGridTempo:
     return BeatGridTempo(bpm=100, beats_per_bar=4, beats=beats, downbeats=[1.0, 3.4])
 
 
-def _chart(tmp_path: Path, seconds: float, vocabulary: ChordVocabulary = "simple",
-           grid: BeatGridTempo | None = None):  # type: ignore[no-untyped-def]  # fmt: skip
-    files = ChordInputs(harmonic=(_wav(tmp_path / "a.wav", seconds), _wav(tmp_path / "b.wav", 1.0)))
+def _chart(
+    tmp_path: Path,
+    seconds: float,
+    vocabulary: ChordVocabulary = "simple",
+    grid: BeatGridTempo | None = None,
+):  # type: ignore[no-untyped-def]
+    files = ChordInputs(
+        harmonic=(_wav(tmp_path / "a.wav", seconds), _wav(tmp_path / "b.wav", min(seconds, 1.0)))
+    )
     seen: list[float] = []
     outcome = FakeChordAnalyzer().analyze(_request(vocabulary, grid), files, seen.append)
     assert seen == [1.0]
@@ -67,15 +76,32 @@ def test_chords_without_a_grid_change_every_bar_of_120_bpm_from_half_a_second(
     chart = _chart(tmp_path, 40.0)
 
     labels = [s.label for s in chart.segments]
-    assert labels[:10] == ["N", "C:maj", "G:maj", "A:min", "F:maj", "C:maj", "G:maj", "A:min",
-                           "F:maj", "D:maj"]  # fmt: skip
+    assert labels[:10] == [
+        "N",
+        "C:maj",
+        "G:maj",
+        "A:min",
+        "F:maj",
+        "C:maj",
+        "G:maj",
+        "A:min",
+        "F:maj",
+        "D:maj",
+    ]
     assert labels[10:13] == ["A:maj", "B:min", "G:maj"]
-    assert [(s.start_ms, s.end_ms) for s in chart.segments[:3]] == [(0, 500), (500, 2500),
-                                                                     (2500, 4500)]  # fmt: skip
+    assert [(s.start_ms, s.end_ms) for s in chart.segments[:3]] == [
+        (0, 500),
+        (500, 2500),
+        (2500, 4500),
+    ]
     assert chart.segments[-1].end_ms == 40_000
     assert all(s.confidence == 0.9 for s in chart.segments)
     assert (chart.engine, chart.vocabulary, chart.beat_snapped, chart.no_chords) == (
-        "fake", "simple", False, False)  # fmt: skip
+        "fake",
+        "simple",
+        False,
+        False,
+    )
 
 
 def test_chords_carry_root_quality_and_bass(tmp_path: Path) -> None:
@@ -122,8 +148,12 @@ def test_bars_follow_the_grid_downbeats_and_continue_with_its_tempo(tmp_path: Pa
     chart = _chart(tmp_path, 12.0, grid=_grid())
 
     spans = [(s.start_ms, s.end_ms, s.label) for s in chart.segments]
-    assert spans[:4] == [(0, 1000, "N"), (1000, 3400, "C:maj"), (3400, 5800, "G:maj"),
-                         (5800, 8200, "A:min")]  # fmt: skip
+    assert spans[:4] == [
+        (0, 1000, "N"),
+        (1000, 3400, "C:maj"),
+        (3400, 5800, "G:maj"),
+        (5800, 8200, "A:min"),
+    ]
     assert spans[-1][1] == 12_000
     assert chart.beat_snapped is True
 
@@ -143,6 +173,14 @@ def test_audio_shorter_than_the_first_downbeat_is_all_no_chord(tmp_path: Path) -
     assert chart.no_chords is True and chart.key is None and chart.key_regions == []
 
 
+def test_an_unreadable_input_fails_readably(tmp_path: Path) -> None:
+    broken = tmp_path / "broken.flac"
+    broken.write_bytes(b"not audio")
+
+    with pytest.raises(AnalysisError, match="could not be read"):
+        FakeChordAnalyzer().analyze(_request(), ChordInputs(harmonic=(broken,)), lambda _f: None)
+
+
 def test_the_fake_chord_analyzer_reports_the_fake_engine_and_no_models(tmp_path: Path) -> None:
     analyzer = FakeChordAnalyzer()
 
@@ -154,8 +192,10 @@ def test_the_fake_chord_analyzer_reports_the_fake_engine_and_no_models(tmp_path:
 
 
 def test_drum_hits_play_the_008_groove_plus_a_crash_every_fourth_bar(tmp_path: Path) -> None:
-    files = {piece: _wav(tmp_path / f"{piece}.wav", 20.0)
-             for piece in ("kick", "snare", "hihat", "cymbals")}  # fmt: skip
+    files = {
+        piece: _wav(tmp_path / f"{piece}.wav", 20.0)
+        for piece in ("kick", "snare", "hihat", "cymbals")
+    }
     seen: list[float] = []
 
     hits = FakeDrumHitsTranscriber().transcribe(files, None, seen.append)
@@ -174,8 +214,9 @@ def test_drum_hits_play_the_008_groove_plus_a_crash_every_fourth_bar(tmp_path: P
 
 
 def test_without_a_cymbals_input_there_is_no_crash(tmp_path: Path) -> None:
-    hits = FakeDrumHitsTranscriber().transcribe({"kick": _wav(tmp_path / "k.wav", 10.0)}, None,
-                                                lambda _f: None)  # fmt: skip
+    hits = FakeDrumHitsTranscriber().transcribe(
+        {"kick": _wav(tmp_path / "k.wav", 10.0)}, None, lambda _f: None
+    )
 
     assert {h.piece for h in hits} == {"kick"}
 
@@ -211,11 +252,26 @@ def test_the_melody_is_voiced_only_inside_the_fake_lyric_lines(tmp_path: Path) -
         t = index * 10
         inside = any(start <= t < end for start, end in lines)
         assert (cents > 0) == (inside and t >= 500), t
-    start = lines[0][0]
+
+
+def test_each_beat_sings_the_walk_note_of_its_global_index() -> None:
+    audio = np.zeros(30 * PITCH_SAMPLE_RATE, dtype=np.float32)
+
+    pitch = FakePitchAnalyzer().analyze(audio, "vocals", lambda _f: None)
+
+    start = _lines(30.0)[0][0]
     beat = (start - 500) // 500
     assert pitch.frames[start // 10] == FAKE_WALK[beat % 14] * 100
     later = start + 1000
     assert pitch.frames[later // 10] == FAKE_WALK[(beat + 2) % 14] * 100
+
+
+def test_the_melody_summary_has_the_fake_engine_ratio_and_range() -> None:
+    audio = np.zeros(30 * PITCH_SAMPLE_RATE, dtype=np.float32)
+    seen: list[float] = []
+
+    pitch = FakePitchAnalyzer().analyze(audio, "vocals", seen.append)
+
     assert (pitch.engine, pitch.source, pitch.warnings) == ("fake", "vocals", [])
     assert 0 < pitch.voiced_ratio < 1
     assert pitch.range is not None and 6000 <= pitch.range.low_cents <= pitch.range.high_cents
