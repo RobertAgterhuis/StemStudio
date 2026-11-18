@@ -21,6 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
+builder.Services.AddScoped<IInstrumentViewEngine>(sp => (AudioEngineInterop)sp.GetRequiredService<IAudioEngine>());
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddTransient<IPollingTimer, PollingTimer>();
 builder.Services.AddScoped<IConfirmService, DialogConfirmService>();
