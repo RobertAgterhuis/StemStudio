@@ -193,11 +193,12 @@ public sealed class SetlistsTests : PageTestContext
 
         var note = page.InvokeAsync(() => page.Find($"[data-testid=setlist-entry-note-{first.Id}]").Change("Start soft."));
         var move = page.InvokeAsync(() => page.Find($"[data-testid=setlist-entry-down-{first.Id}]").Click());
-        gate.SetResult(noted);
         await Task.WhenAll(note, move);
+        Api.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "ReplaceSetlistEntriesAsync").ShouldBe(1);
+        gate.SetResult(noted);
 
-        await Api.Received(1).ReplaceSetlistEntriesAsync(Id,
-            Arg.Is<SetlistEntriesUpdateRequest>(r => r.Entries[0].Id == second.Id && r.Entries[1].Note == "Start soft."), Arg.Any<CancellationToken>());
+        page.WaitForAssertion(() => Api.Received(1).ReplaceSetlistEntriesAsync(Id,
+            Arg.Is<SetlistEntriesUpdateRequest>(r => r.Entries[0].Id == second.Id && r.Entries[1].Note == "Start soft."), Arg.Any<CancellationToken>()));
     }
 
     [Fact]
