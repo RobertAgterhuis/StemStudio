@@ -32,6 +32,9 @@ public abstract class PageTestContext : BunitContext
         Services.AddRadzenComponents();
         Services.AddSingleton(Api);
         Services.AddSingleton(Engine);
+        Services.AddSingleton(Views);
+        Services.AddScoped<StemStudio.Web.InstrumentViews.ViewPreferences>();
+        Services.AddScoped<StemStudio.Web.InstrumentViews.InstrumentCatalogueCache>();
         Services.AddSingleton(Confirm);
         Services.AddSingleton<IPollingTimer>(Timer);
         Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
@@ -62,7 +65,20 @@ public abstract class PageTestContext : BunitContext
         GenerativeDefaults();
         AgentDefaults();
         LibraryCareDefaults();
+        InstrumentViewDefaults();
     }
+
+    /// <summary>No 016 analysis exists and the catalogue is the fake one unless a test says otherwise.</summary>
+    private void InstrumentViewDefaults()
+    {
+        Api.GetChordsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.Chords(StemStudio.Contracts.InstrumentViews.AnalysisStatusDto.None));
+        Api.GetDrumHitsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.DrumHits(StemStudio.Contracts.InstrumentViews.AnalysisStatusDto.None));
+        Api.GetVocalPitchAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.VocalPitch(StemStudio.Contracts.InstrumentViews.AnalysisStatusDto.None));
+        Api.GetInstrumentCatalogueAsync(Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.Catalogue());
+    }
+
+    /// <summary>The 016 instrument-view port of the engine, substituted.</summary>
+    protected IInstrumentViewEngine Views { get; } = Substitute.For<IInstrumentViewEngine>();
 
     /// <summary>The library is idle with one archive and no previous library unless a test says otherwise (013).</summary>
     private void LibraryCareDefaults()
