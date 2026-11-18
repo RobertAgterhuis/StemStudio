@@ -29,10 +29,13 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  # Round 014+015: CONTRACTS_DIR is the newest full backend document, 015's 1.14.0 (= 014's 1.13.0 +
-  # the recording delta) with its delta; the worker document is 014's 1.8.0 (PRACTICE_FLOW_CONTRACTS,
-  # 015 changes nothing in the worker). Render vectors 1.1.0 (007's 1.0.0 + the take cases) are 015's.
-  CONTRACTS_DIR: specs/015-play-along-recording/contracts
+  # Round 016: CONTRACTS_DIR holds the newest full documents, backend 1.15.0 (= 015's 1.14.0 + the
+  # instrument views delta) and worker 1.9.0 (= 014's 1.8.0 + the delta), both deltas, merge_full.py
+  # and the chord spelling vectors 1.0.0 (generator + tests).
+  CONTRACTS_DIR: specs/016-instrument-views/contracts
+  # Feature 015: backend 1.14.0 (= 014's 1.13.0 + the recording delta) with its delta and merge script;
+  # render vectors 1.1.0 (007's 1.0.0 + the take cases) are 015's.
+  RECORDING_CONTRACTS: specs/015-play-along-recording/contracts
   RENDER_VECTORS: specs/015-play-along-recording/contracts/generate_render_vectors.py
   # Feature 014 (backend 1.13.0 = 1.23.0 + the practice delta; worker 1.8.0 = 1.7.0 + the practice lane).
   PRACTICE_FLOW_CONTRACTS: specs/014-practice-flow/contracts
@@ -313,10 +316,15 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Redocly lint, recording documents (015; backend 1.14.0 and its delta)
+      - name: Redocly lint, instrument views documents (016; backend 1.15.0, worker 1.9.0 and both deltas)
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$CONTRACTS_DIR/redocly.yaml"
-          "$CONTRACTS_DIR/backend-api.openapi.yaml" "$CONTRACTS_DIR/recording-api.openapi.yaml"
+          "$CONTRACTS_DIR/backend-api.openapi.yaml" "$CONTRACTS_DIR/worker-api.openapi.yaml"
+          "$CONTRACTS_DIR/backend-api.delta.openapi.yaml" "$CONTRACTS_DIR/worker-api.delta.openapi.yaml"
+      - name: Redocly lint, recording documents (015; backend 1.14.0 and its delta)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$RECORDING_CONTRACTS/redocly.yaml"
+          "$RECORDING_CONTRACTS/backend-api.openapi.yaml" "$RECORDING_CONTRACTS/recording-api.openapi.yaml"
       - name: Redocly lint, practice flow documents (014; backend 1.13.0, worker 1.8.0 and both deltas)
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$PRACTICE_FLOW_CONTRACTS/redocly.yaml"
@@ -384,11 +392,17 @@ jobs:
         run: uv run --no-project --with "$PYYAML" python -I "$PRACTICE_FLOW_CONTRACTS/merge_full.py" --check
       - name: 015 backend 1.14.0 contains 1.13.0 and every entry of its delta (check_superset.py)
         run: |
-          check=(uv run --no-project --with "$PYYAML" python -I "$CONTRACTS_DIR/check_superset.py")
+          check=(uv run --no-project --with "$PYYAML" python -I "$RECORDING_CONTRACTS/check_superset.py")
           "${check[@]}"
-          "${check[@]}" "$CONTRACTS_DIR/recording-api.openapi.yaml" "$CONTRACTS_DIR/backend-api.openapi.yaml"
+          "${check[@]}" "$RECORDING_CONTRACTS/recording-api.openapi.yaml" "$RECORDING_CONTRACTS/backend-api.openapi.yaml"
       - name: 015 full backend 1.14.0 is 1.13.0 plus the recording delta (merge_recording_delta.py --check)
-        run: uv run --no-project --with "$PYYAML" python -I "$CONTRACTS_DIR/merge_recording_delta.py" --check
+        run: uv run --no-project --with "$PYYAML" python -I "$RECORDING_CONTRACTS/merge_recording_delta.py" --check
+      - name: 016 full backend 1.15.0 and worker 1.9.0 are 015/014 plus the 016 deltas (merge_full.py --check, freshness and superset)
+        run: uv run --no-project --with "$PYYAML" python -I "$CONTRACTS_DIR/merge_full.py" --check
+      - name: 016 chord spelling vectors 1.0.0 are up to date (generate_chord_spelling_vectors.py --check, stdlib)
+        run: python3 "$CONTRACTS_DIR/generate_chord_spelling_vectors.py" --check
+      - name: 016 chord spelling vector tests (test_generate_chord_spelling_vectors.py)
+        run: uv run --no-project --with "$PYTEST" python -m pytest "$CONTRACTS_DIR"
       - name: Render vectors are up to date (render-vectors 1.1.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -473,6 +487,8 @@ jobs:
           uv run --project tools/quality --frozen ruff format --config "$cfg" --check "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen mypy --config-file "$cfg" "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen pytest -c "$cfg" --cov --cov-branch --cov-config="$cfg" --cov-report=term scripts/tests
+      - name: The split E2E jobs keep every pass under 90 minutes and cover the 014/015 set plus instrument and fake-mic (016 T144; needs PyYAML)
+        run: uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest -c scripts/pyproject.toml -q scripts/tests/test_ci_e2e_split.py
       - name: SIG checks on the whole code base (unit size, complexity, parameters, duplication, dependencies)
         run: uv run --project tools/quality --frozen python tools/quality/run_all.py --report "$RUNNER_TEMP/SIG-REPORT.md"
       - name: Public manuals up to date (docs/public sources vs build-manifest.json, constitution 1.3.1)
@@ -556,6 +572,9 @@ jobs:
                      and .services.api.environment.StemStudio__Practice__SectionDetectOnComplete == "true"'
           STEMSTUDIO_STRUCTURE_ANALYZER=fake STEMSTUDIO_SECTION_DETECT_ON_COMPLETE=false docker compose -f docker-compose.yml config --format json             | jq -e '.services.worker.environment.STEMSTUDIO_STRUCTURE_ANALYZER == "fake"
                      and .services.api.environment.StemStudio__Practice__SectionDetectOnComplete == "false"'
+          # 016: the worker gets the chord/pitch engines (empty = automatic) and the analysis threads (empty = 4).
+          docker compose -f docker-compose.yml config --format json             | jq -e '.services.worker.environment | .STEMSTUDIO_CHORD_ENGINE == "" and .STEMSTUDIO_PITCH_ENGINE == "" and .STEMSTUDIO_ANALYSIS_THREADS == ""'
+          STEMSTUDIO_CHORD_ENGINE=chroma-hmm STEMSTUDIO_PITCH_ENGINE=yin STEMSTUDIO_ANALYSIS_THREADS=8 docker compose -f docker-compose.yml config --format json             | jq -e '.services.worker.environment | .STEMSTUDIO_CHORD_ENGINE == "chroma-hmm" and .STEMSTUDIO_PITCH_ENGINE == "yin" and .STEMSTUDIO_ANALYSIS_THREADS == "8"'
           # 015: one upload limit for api and web; only the e2e override switches the web's TestLoopback on.
           docker compose -f docker-compose.yml config --format json             | jq -e '.services.api.environment.StemStudio__Recording__MaxUploadBytes == "268435456"
                      and .services.web.environment.StemStudio__Recording__MaxStreamBytes == "268435456"
@@ -624,146 +643,119 @@ jobs:
           name: licence-report
           path: licence-report/
 
+  # Round 016 (T144, LESSONS 014/015): the single E2E job reached its time limit, so the default suite
+  # runs per browser (job e2e) and every feature pass on its own fake stack in parallel (job
+  # e2e-passes, scripts/ci-e2e-pass.sh); each job stays under 90 minutes. Together they run what the
+  # single job ran (npm test, recording, practice-flow scenario 4, restart, agent fake/none, lyric
+  # fake/none, gpu/gpu-oom) plus the 016 passes instrument and fake-mic.
   e2e:
-    name: E2E main flow (compose, fake separator, Playwright)
+    name: E2E default suite, ${{ matrix.browser }} (compose, fake separator, Playwright)
     needs: [dotnet, worker, generator, audio-engine, web-interop, soundtouch, contracts, secret-scan, quality, e2e-lint]
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
     env:
+      # Later compose calls (gpu, practice-flow passes) must keep the fake separator.
       STEMSTUDIO_SEPARATOR: fake
       # The @detail specs expect a fake detail phase of ~25 s (e2e/support/env.ts): long enough
       # to cancel the shared plain track's phase before it completes.
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5
       # Feature 011: the default suite runs with the agent off (quickstart A6, SC-005); the agent
-      # steps below recreate only the api with fake / none. There is no Ollama and no Claude key here.
+      # pass recreates only the api with fake / none. There is no Ollama and no Claude key here.
       STEMSTUDIO_AGENT_BACKEND: none
       E2E_BASE_URL: http://localhost:8080
       E2E_API_URL: http://localhost:8081
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: ./.github/actions/fake-stack
         with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: worker/uv.lock
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
+          uv-version: ${{ env.UV_VERSION }}
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install ffmpeg (MP3 fixture encoder)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
-      - name: Generate audio fixtures
-        # Every generator (detail, artwork, lyrics, scores, voices, ...), as in the fake-stack action.
-        run: |
-          for generator in tests/fixtures/generate_*.py; do
-            uv run --project worker --frozen python "${generator}"
-          done
-          # 015: fake capture inputs, click stem and silence for project `recording` (module run from tests/fixtures).
-          (cd tests/fixtures && uv run --project ../../worker --frozen python -m recording.generate_recording_fixtures)
-          # 014 T018: the structured practice song, its stems and the pulse-free song (sections specs).
-          uv run --project worker --frozen python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
-      - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
-        # COMPOSE_FILE adds docker-compose.e2e.yml (library job throttle) to every later
-        # `docker compose` call of this job; E2E_BACKUP_DIR / E2E_LIBRARY_THROTTLE are for the specs.
-        # Owner uid 1654 (the api writes as owner), group = the runner's group with setgid and
-        # group write: the specs (runner user) copy fixture archives in and delete them again.
-        run: |
-          backups="$RUNNER_TEMP/stemstudio-backups"
-          sudo install -d -o 1654 -g "$(id -g)" -m 2775 "$backups"
-          {
-            echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups"
-            echo "E2E_BACKUP_DIR=$backups"
-            echo "E2E_LIBRARY_THROTTLE=1"
-            echo "COMPOSE_FILE=docker-compose.yml:docker-compose.e2e.yml"
-          } >> "$GITHUB_ENV"
-          scripts/check-backup-folder.sh --folder "$backups"
-      - name: Start the stack (fake separator) and wait for health
-        run: docker compose up -d --build --wait --wait-timeout 300
-      - name: Health smoke test
-        run: |
-          curl --fail --silent --show-error http://localhost:8081/health
-          curl --fail --silent --show-error http://localhost:8080/health
-          docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+      - name: Worker health (fake engines and the instrument-analysis lane)
+        run: docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: matrix.browser == 'chromium'
         with:
           name: soundtouch-wasm
           path: ${{ runner.temp }}/soundtouch
       - name: The web serves soundtouch.wasm (application/wasm, equal to the reproducible build) and /third-party/soundtouch complete (012 FR-006)
+        if: matrix.browser == 'chromium'
         run: scripts/check-soundtouch-served.sh --expect-wasm "$RUNNER_TEMP/soundtouch/soundtouch.wasm" "$E2E_BASE_URL"
+      - name: The web serves the engine and its worklets as text/javascript, the pitch worklet is the real build (016 T011)
+        if: matrix.browser == 'chromium'
+        run: scripts/check-web-assets.sh "$E2E_BASE_URL"
       - name: The api container has no Claude key (bare pass-through, CI never sets it; 011 SC-006)
+        if: matrix.browser == 'chromium'
         run: docker compose exec -T api sh -c 'test -z "${ANTHROPIC_API_KEY+set}"'
       - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
+        if: matrix.browser == 'chromium'
         run: scripts/check-library-mount.sh
       - name: The api writes the backups folder as its own user at /backups (013 FR-005)
+        if: matrix.browser == 'chromium'
         run: |
           docker compose exec -T api sh -c 'test "$StemStudio__BackupDir" = /backups && probe=/backups/.ci-probe && touch "$probe" && rm "$probe"'
           docker compose exec -T worker sh -c 'test ! -e /backups'
           docker compose exec -T api sh -c 'test "$StemStudio__LibraryCare__ThrottleBytesPerSecond" -gt 0'
       - name: The api sees the fake lyric scripts read-only at /lyric-scripts, and the image stays within +15 MB of dictionaries (023 T069)
+        if: matrix.browser == 'chromium'
         run: |
           docker compose exec -T api sh -c 'test "$STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT" = /lyric-scripts && ls /lyric-scripts/*.json >/dev/null && ! touch /lyric-scripts/.ci-probe 2>/dev/null'
           docker compose exec -T worker sh -c 'test ! -e /lyric-scripts'
           scripts/check-api-image-size.sh --image stemstudio/api:local
-      - name: Install Playwright browsers
+      - uses: ./.github/actions/e2e-browsers
+      - name: Playwright default suite (retries 0, everything except the feature passes)
         working-directory: e2e
-        run: |
-          npm ci --no-audit --no-fund
-          # "chromium" installs the full build next to the headless shell; the 010 recording spec
-          # (fake microphone) needs the full build via channel 'chromium' (support/fake-microphone.ts).
-          npx playwright install --with-deps chromium firefox
-      - name: Sound server for Firefox (null sink)
-        # Headless Firefox needs a PulseAudio server, or its Web Audio clock never runs (silent
-        # meters, no karaoke landings); Chromium does not. The null sink plays into nothing.
-        run: |
-          sudo apt-get install -y --no-install-recommends pulseaudio
-          pulseaudio --start --exit-idle-time=-1
-          pactl load-module module-null-sink sink_name=ci_null
-          pactl set-default-sink ci_null
-      - name: Playwright (retries 0, everything except @real and @restart)
-        working-directory: e2e
-        run: npm test
-      - name: Play-along recording specs, full Chromium build with fake capture and the digital loopback (015 T010; npm run test:recording)
-        working-directory: e2e
-        env:
-          # The e2e override runs the web with StemStudio__Recording__TestLoopback=true.
-          E2E_RECORDING_LOOPBACK: "1"
-        run: npm run test:recording
-      - name: Practice flow without detection on complete, sections scenario 4 (014 T060; npm run test:practice-flow-no-detect)
-        run: |
-          STEMSTUDIO_SECTION_DETECT_ON_COMPLETE=false docker compose up -d --wait --wait-timeout 180 api
-          (cd e2e && E2E_SECTION_DETECT_ON_COMPLETE=false npm run test:practice-flow-no-detect)
-          docker compose up -d --wait --wait-timeout 180 api
-      - name: Restart api and web, then the @restart persistence spec (FR-022)
-        run: |
-          docker compose restart api web
-          docker compose up -d --wait --wait-timeout 180 api web
-          (cd e2e && npm run test:restart)
-      - name: Agent specs with the fake backend, one api start per e2e/agent-scripts file (011 T059, A5)
-        run: scripts/agent-e2e.sh fake
-      - name: Agent unavailable spec with backend none (011 T059, A6, SC-005)
-        run: scripts/agent-e2e.sh none
-      - name: Lyric assistant specs with the fake model and /lyric-scripts (023 T069/T070, quickstart Q1-Q5; npm run test:lyric-assist)
-        run: scripts/lyric-e2e.sh fake
-      - name: Lyric assistant unavailable spec with backend none, no outbound request (023 Q6; npm run test:lyric-assist-none)
-        run: scripts/lyric-e2e.sh none
-      - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
-        env:
-          STEMSTUDIO_FAKE_DEVICE: gpu
-        run: |
-          # Only the worker's environment changes, so compose recreates just the worker.
-          docker compose up -d --wait --wait-timeout 300
-          docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
-          (cd e2e && npm run test:gpu)
-      - name: Fake GPU that runs out of memory (STEMSTUDIO_FAKE_DEVICE=gpu-oom), then the @gpu specs (003, SC-004)
-        env:
-          STEMSTUDIO_FAKE_DEVICE: gpu-oom
-        run: |
-          docker compose up -d --wait --wait-timeout 300
-          docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
-          (cd e2e && npm run test:gpu)
+        run: npm run test:${{ matrix.browser }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: warn
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --timestamps
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  e2e-passes:
+    name: E2E pass ${{ matrix.pass }} (compose, fake separator, Playwright)
+    needs: [dotnet, worker, generator, audio-engine, web-interop, soundtouch, contracts, secret-scan, quality, e2e-lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # The commands of every pass are in scripts/ci-e2e-pass.sh (--dry-run prints them).
+        pass: [recording, practice-flow, restart, agent, lyric, gpu, instrument, fake-mic]
+    env:
+      STEMSTUDIO_SEPARATOR: fake
+      STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5
+      STEMSTUDIO_AGENT_BACKEND: none
+      E2E_BASE_URL: http://localhost:8080
+      E2E_API_URL: http://localhost:8081
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/fake-stack
+        with:
+          uv-version: ${{ env.UV_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: ./.github/actions/e2e-browsers
+      - name: The fake microphone fixtures exist (016 T014, projects fake-mic-*)
+        if: matrix.pass == 'fake-mic'
+        run: ls -l tests/fixtures/audio/sing-on-pitch.wav tests/fixtures/audio/sing-semitone-off.wav tests/fixtures/audio/silence.wav
+      - name: Pass ${{ matrix.pass }} (retries 0)
+        run: scripts/ci-e2e-pass.sh ${{ matrix.pass }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.pass }}
           path: |
             e2e/playwright-report/
             e2e/test-results/

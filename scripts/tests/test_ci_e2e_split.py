@@ -34,7 +34,7 @@ PASSES = {
     "instrument": ["npm run test:instrument"],
     "fake-mic": ["npm run test:fake-mic"],
 }
-"""Every feature pass and commands its dry run must show (the 014/015 set + instrument, fake-mic)."""
+"""Every feature pass and what its dry run must show (014/015 set + instrument, fake-mic)."""
 
 FAKE_MIC = {
     "fake-mic-on-pitch": "sing-on-pitch.wav",

@@ -31,7 +31,9 @@ COPY src/audio-engine/package.json src/audio-engine/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 COPY src/audio-engine/ ./
-# vite writes to ../StemStudio.Web/wwwroot/js/audio-engine.js (see vite.config.ts)
+# vite writes to ../StemStudio.Web/wwwroot/js/: audio-engine.js (vite.config.ts) and the AudioWorklet
+# modules time-stretch-processor.js (012), audio-engine-capture-worklet.js (015) and
+# audio-engine-pitch-worklet.js (016, vite.pitch.config.ts); scripts/check-web-assets.sh checks them.
 RUN npm run build
 
 # ---------------------------------------------------------------- web-interop bundles

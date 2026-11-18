@@ -1,0 +1,23 @@
+# Installs the e2e package, the Playwright browsers (Chromium full build and headless shell, Firefox)
+# and a PulseAudio null sink for headless Firefox (its Web Audio clock does not run without a sound
+# server; Chromium does not need one). Used by the split E2E jobs of ci.yml (016 T144).
+name: E2E browsers
+description: npm ci in e2e/, Playwright Chromium + Firefox with system dependencies, PulseAudio null sink.
+runs:
+  using: composite
+  steps:
+    - name: Install Playwright browsers
+      shell: bash
+      working-directory: e2e
+      run: |
+        npm ci --no-audit --no-fund
+        # "chromium" installs the full build next to the headless shell; the recording and fake-mic
+        # projects (fake microphone) need the full build via channel 'chromium'.
+        npx playwright install --with-deps chromium firefox
+    - name: Sound server for Firefox (null sink)
+      shell: bash
+      run: |
+        sudo apt-get install -y --no-install-recommends pulseaudio
+        pulseaudio --start --exit-idle-time=-1
+        pactl load-module module-null-sink sink_name=ci_null
+        pactl set-default-sink ci_null

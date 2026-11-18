@@ -1,9 +1,36 @@
-import { defineConfig, devices } from '@playwright/test';
+import path from 'node:path';
+import { defineConfig, devices, type Project } from '@playwright/test';
 import { webBaseUrl } from './support/env';
 import { advancedState } from './support/preferences';
 
 // One id per suite run, inherited by every worker process (see support/env.ts runId()).
 process.env.E2E_RUN_ID ??= Date.now().toString(36);
+
+/** The qa singing fixtures (`tests/fixtures/generate_instrument_fixtures.py`, git-ignored, generated before the run). */
+const instrumentAudio = path.resolve(__dirname, '..', 'tests', 'fixtures', 'audio');
+
+/**
+ * A full-Chromium project whose microphone plays `wav` (feature 016, T011/T107): runs only the specs tagged
+ * `@<name>` (each singing spec tags the fixture it needs), with fake media devices and microphone permission.
+ */
+function fakeMicProject(name: string, wav: string): Project {
+  return {
+    name,
+    grep: new RegExp(`@${name}`),
+    use: {
+      ...devices['Desktop Chrome'],
+      channel: 'chromium',
+      permissions: ['microphone'],
+      launchOptions: {
+        args: [
+          '--use-fake-device-for-media-stream',
+          '--use-fake-ui-for-media-stream',
+          `--use-file-for-fake-audio-capture=${path.join(instrumentAudio, wav)}`,
+        ],
+      },
+    },
+  };
+}
 
 /** Desktop Chrome at a fixed size and scale, so screenshots and scans are comparable. */
 const fixedChrome = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
@@ -22,6 +49,12 @@ const fixedChrome = { ...devices['Desktop Chrome'], viewport: { width: 1440, hei
  * the full Chromium build (`channel: 'chromium'`, fake media devices, microphone permission); each
  * spec sets its own fake capture WAV (`support/fake-microphone.ts`, `tests/fixtures/recording/`,
  * generated before the run). The default `chromium` project never runs `@recording`.
+ *
+ * Feature 016 (T011, T144): projects `fake-mic-on-pitch`, `fake-mic-semitone` and `fake-mic-silence` feed the qa
+ * fixtures `sing-on-pitch.wav`, `sing-semitone-off.wav` and `silence.wav` as the microphone and run only specs tagged
+ * `@fake-mic-on-pitch` / `@fake-mic-semitone` / `@fake-mic-silence` (every such spec also carries `@fake-mic`);
+ * `npm run test:fake-mic` runs the three, `npm run test:instrument` the other `@instrument` specs. `npm test`
+ * (and `test:chromium` / `test:firefox`, the CI matrix) excludes both tags; CI runs them as their own passes.
  */
 export default defineConfig({
   testDir: './tests',
@@ -53,7 +86,7 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium', grepInvert: /@recording/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', grepInvert: /@recording|@fake-mic/, use: { ...devices['Desktop Chrome'] } },
     {
       name: 'recording',
       grep: /@recording/,
@@ -64,7 +97,10 @@ export default defineConfig({
         launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
       },
     },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'firefox', grepInvert: /@fake-mic/, use: { ...devices['Desktop Firefox'] } },
+    fakeMicProject('fake-mic-on-pitch', 'sing-on-pitch.wav'),
+    fakeMicProject('fake-mic-semitone', 'sing-semitone-off.wav'),
+    fakeMicProject('fake-mic-silence', 'silence.wav'),
     { name: 'visual', testDir: './visual', use: { ...fixedChrome, reducedMotion: 'reduce' } },
     { name: 'a11y', testDir: './a11y', use: { ...fixedChrome, reducedMotion: 'reduce' } },
     { name: 'lighthouse-setup', testDir: './lighthouse', testMatch: '*.setup.ts', use: { ...devices['Desktop Chrome'] } },
