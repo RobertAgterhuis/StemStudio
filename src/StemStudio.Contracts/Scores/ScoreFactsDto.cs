@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Contracts.Scores;
@@ -43,4 +44,16 @@ public sealed record ScoreFactsDto
 
     /// <summary>Where the model ran.</summary>
     public JobDeviceDto? Device { get; init; }
+
+    /// <summary>Tablature facts (1.15.0); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TablatureFactsDto? Tablature { get; init; }
+
+    /// <summary>Part facts (1.15.0); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PartFactsDto? Part { get; init; }
+
+    /// <summary>Chord symbols were written (1.15.0); absent on the wire when false.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ChordsIncluded { get; init; }
 }

@@ -58,7 +58,7 @@ public sealed partial class RecordingContractTests
     [Fact]
     public void Backend_IsLabelled1140AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Backend015.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.14.0");
         Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.22.0", "1.23.0", "1.13.0", "1.14.0"]);
@@ -68,13 +68,13 @@ public sealed partial class RecordingContractTests
     [MemberData(nameof(Changed1130Entries))]
     public void Backend1140_Contains1130UnchangedExceptTheAdditions(string section, string[] changed)
     {
-        ChangedEntries(Backend014, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend014, Backend015, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Fact]
     public void Backend1140_AddsExactlyTheElevenRecordingOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend014.Operations.Select(Id)).ToList();
+        var added = Backend015.Operations.Select(Id).Except(Backend014.Operations.Select(Id)).ToList();
 
         added.ShouldBe(RecordingOperations, ignoreOrder: true);
         Backend015Delta.Operations.Select(Id).ShouldBe(RecordingOperations, ignoreOrder: true);
@@ -83,7 +83,7 @@ public sealed partial class RecordingContractTests
     [Fact]
     public void DeltaSchemas_AreMergedUnchanged()
     {
-        var merged = Section(OpenApiContract.Backend.Root, "components/schemas");
+        var merged = Section(Backend015.Root, "components/schemas");
         var delta = Section(Backend015Delta.Root, "components/schemas")
             .Where(s => !s.Key.EndsWith("Additions", StringComparison.Ordinal) && s.Key is not ("ProblemDetails" or "ValidationProblemDetails"));
 
@@ -95,7 +95,7 @@ public sealed partial class RecordingContractTests
     public void DeltaOperations_KeepPathMethodAndRequestBody(string operationId)
     {
         var delta = Backend015Delta.Operations.Single(op => Id(op) == operationId);
-        var merged = OpenApiContract.Backend.Operations.Single(op => Id(op) == operationId);
+        var merged = Backend015.Operations.Single(op => Id(op) == operationId);
 
         (merged.Path, merged.Method).ShouldBe((delta.Path, delta.Method));
         JsonNode.DeepEquals(delta.Operation["requestBody"], merged.Operation["requestBody"]).ShouldBeTrue(operationId);
@@ -107,7 +107,7 @@ public sealed partial class RecordingContractTests
     [Fact]
     public void TakeOperationsThatDeleteOrReplaceFiles_CarryTheWriteGate()
     {
-        foreach (var op in OpenApiContract.Backend.Operations.Where(op => RecordingOperations.Contains(Id(op))))
+        foreach (var op in Backend015.Operations.Where(op => RecordingOperations.Contains(Id(op))))
         {
             var gated = GatedOperations.Contains(Id(op));
 

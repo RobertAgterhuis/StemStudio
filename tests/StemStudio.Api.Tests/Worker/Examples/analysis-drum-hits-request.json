@@ -1,0 +1,10 @@
+{
+  "kind": "drum-hits",
+  "drumInputs": {
+    "kick": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/kick.flac",
+    "snare": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/snare.flac",
+    "toms": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/toms.flac",
+    "hihat": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/hihat.flac",
+    "cymbals": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/cymbals.flac"
+  }
+}

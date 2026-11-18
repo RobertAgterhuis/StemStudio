@@ -111,7 +111,7 @@ public sealed partial class BackendContractTests
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
             .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations)
             .Except(PendingLibraryCareOperations).Except(PendingLibraryOperations).Except(PendingLyricAssistOperations)
-            .Except(PendingPracticeFlowOperations).ToList();
+            .Except(PendingPracticeFlowOperations).Except(PendingInstrumentViewOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }

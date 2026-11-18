@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using StemStudio.Contracts.Assets;
 
 namespace StemStudio.Contracts.Scores;
@@ -28,4 +29,16 @@ public sealed record ScoreRecipeDto
 
     /// <summary>The range, or null for the whole source.</summary>
     public RangeDto? Range { get; init; }
+
+    /// <summary>Tablature (guitar/bass, 1.15.0); null = none. Absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ScoreTablatureDto? Tablature { get; init; }
+
+    /// <summary>Written instrument and clef (1.15.0); null = concert pitch. Absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ScorePartDto? Part { get; init; }
+
+    /// <summary>Chord symbols above the top staff (1.15.0); absent on the wire when false.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IncludeChords { get; init; }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using StemStudio.Contracts.Assets;
 
 namespace StemStudio.Contracts.Scores;
@@ -34,4 +35,16 @@ public sealed record ScoreOptionsDto
 
     /// <summary>Credit of the piano model (CC BY 4.0).</summary>
     public required string Attribution { get; init; }
+
+    /// <summary>Tablature options (1.15.0); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ScoreTablatureOptionsDto? Tablature { get; init; }
+
+    /// <summary>Written instrument options (1.15.0); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ScorePartOptionsDto? Parts { get; init; }
+
+    /// <summary>Chord symbol option (1.15.0); absent on the wire when null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ScoreChordOptionsDto? Chords { get; init; }
 }

@@ -37,4 +37,24 @@ public enum ScoreWarningCodeDto
     /// <summary>A drum detail stem was missing.</summary>
     [JsonStringEnumMemberName("missing-drum-piece")]
     MissingDrumPiece,
+
+    /// <summary>Notes were moved by an octave to fit the tuning (1.15.0).</summary>
+    [JsonStringEnumMemberName("tab-octave-moved")]
+    TabOctaveMoved,
+
+    /// <summary>Chord notes were left out for lack of strings (1.15.0).</summary>
+    [JsonStringEnumMemberName("tab-notes-dropped")]
+    TabNotesDropped,
+
+    /// <summary>Chords need a wide stretch (1.15.0).</summary>
+    [JsonStringEnumMemberName("tab-wide-stretch")]
+    TabWideStretch,
+
+    /// <summary>Notes are outside the usual range of the written instrument (1.15.0).</summary>
+    [JsonStringEnumMemberName("part-out-of-range")]
+    PartOutOfRange,
+
+    /// <summary>A section stem was reduced to its loudest line (1.15.0).</summary>
+    [JsonStringEnumMemberName("section-reduced")]
+    SectionReduced,
 }
