@@ -36,14 +36,13 @@ import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 
 from generate_fixtures import SAMPLE_RATE, Audio, cli_args, write_manifest
+from recording.generate_recording_fixtures import peak_dbfs, to_pcm
 
 MANIFEST_VERSION = 1
 SECONDS = 20.0
 BPM = 120
 FIRST_BEAT_S = 0.5
 BEAT_S = 60.0 / BPM
-PEAK = 0.7
-PCM_MAX = 32_767
 FADE_S = 0.01
 PARTIALS = (1.0, 0.5, 0.25)
 """Amplitudes of the fundamental and its two harmonics."""
@@ -120,22 +119,11 @@ CATALOGUE: tuple[InstrumentFixture, ...] = (
 )
 
 
-def to_pcm(audio: Audio) -> np.ndarray[Any, np.dtype[np.int16]]:
-    """Scales peak-1 audio to ``PEAK`` and quantises it to PCM16."""
-    return np.round(PEAK * audio * PCM_MAX).astype(np.int16)
-
-
-def peak_dbfs(pcm: np.ndarray[Any, np.dtype[np.int16]]) -> float | None:
-    """Peak of PCM16 samples in dBFS (2 decimals); None for digital silence."""
-    peak = float(np.max(np.abs(pcm))) / PCM_MAX
-    return round(20 * float(np.log10(peak)), 2) if peak > 0 else None
-
-
 def write_fixture(fixture: InstrumentFixture, out_dir: Path) -> dict[str, Any]:
-    """Writes one file and returns its manifest entry (facts and SHA-256)."""
-    pcm = to_pcm(fixture.render())
+    """Writes one PCM16 file (peak -3.1 dBFS) and returns its manifest entry with the SHA-256."""
     target = out_dir / fixture.name
-    sf.write(str(target), pcm, SAMPLE_RATE, subtype="PCM_16", format="WAV")
+    pcm = to_pcm(fixture.render())
+    sf.write(str(target), pcm, SAMPLE_RATE, "PCM_16", format="WAV")
     return {
         "channels": 1,
         "durationSeconds": SECONDS,
