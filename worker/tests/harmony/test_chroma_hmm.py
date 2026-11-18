@@ -3,9 +3,9 @@
 import numpy as np
 import numpy.typing as npt
 import pytest
-from stemstudio_worker.harmony.chroma_hmm import ChromaHmmRecognizer
 
 from stemstudio_worker.harmony import labels
+from stemstudio_worker.harmony.chroma_hmm import ChromaHmmRecognizer
 from stemstudio_worker.harmony.postprocess import BeatSnapPostProcessor
 from stemstudio_worker.ports import (
     CHORD_SAMPLE_RATE,
@@ -38,7 +38,7 @@ def render(progression: tuple[str, ...], seconds: float = CHORD_S) -> npt.NDArra
         ]
         parts.append(sum(_note(m, seconds) for m in tones))
     audio = np.concatenate(parts)
-    return (0.5 * audio / np.max(np.abs(audio))).astype(np.float32)
+    return np.asarray(0.5 * audio / np.max(np.abs(audio)), dtype=np.float32)
 
 
 def _recognize(audio: npt.NDArray[np.float32], vocabulary: str = "simple") -> ChordFrames:
