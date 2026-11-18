@@ -1,17 +1,19 @@
-"""Chord symbols in scores and General MIDI drums (016 T027, data-model 4.7, 4.8; FR-017, FR-023)."""
+"""Chord symbols in scores and General MIDI drums (016 T027, data-model 4.7-4.8, FR-017/023)."""
 
 import xml.etree.ElementTree as ET
 from typing import get_args
 
 import pytest
-from music21 import midi
+from music21 import harmony, midi, stream
 
+from stemstudio_worker.notation.chord_symbols import transpose_symbols
 from stemstudio_worker.notation.notator import MusicNotator
-from stemstudio_worker.ports import GM_DRUM_MAP, DrumHit, NotationSettings, NoteEvent, ScoreDocument
+from stemstudio_worker.ports import GM_DRUM_MAP, DrumHit, NotationSettings, ScoreDocument
 from stemstudio_worker.schemas import (
     BeatGridTempo,
     ChordQuality,
     DrumPiece,
+    KeyInfo,
     PartSettings,
     ScoreChordSymbol,
     ScoreProfile,
@@ -111,7 +113,7 @@ def test_concert_symbols_follow_prefer_flats(flats: bool, step: str) -> None:
     ("instrument", "steps"), [("clarinet-bb", ["D", "A", "B"]), ("alto-sax-eb", ["A", "E", "F1"])]
 )
 def test_symbols_are_transposed_with_the_part(instrument: str, steps: list[str]) -> None:
-    chords = (_symbol(0, 0), _symbol(2000, 7), _symbol(4000, 9, "min"))
+    chords = (_symbol(0, 0), _symbol(2000, 7), _symbol(3000, 9, "min"))
     part = PartSettings(instrument=instrument)  # type: ignore[arg-type]
     document = MusicNotator().notate(LINE, _settings(chords=chords, part=part))
     assert [s for _, s, _, _ in _harmonies(document)] == steps
@@ -175,11 +177,29 @@ def _note_ons(data: bytes) -> list[tuple[int, int]]:
     parsed = midi.MidiFile()
     parsed.readstr(data)
     events = (e for track in parsed.tracks for e in track.events)
-    return [
-        (e.channel, e.pitch)
-        for e in events
-        if e.type == midi.ChannelVoiceMessages.NOTE_ON and e.velocity
-    ]
+    ons = (e for e in events if e.type == midi.ChannelVoiceMessages.NOTE_ON and e.velocity)
+    return [(int(e.channel or 0), int(e.pitch or 0)) for e in ons]
+
+
+def test_symbols_all_outside_the_score_leave_it_unchanged() -> None:
+    document = MusicNotator().notate(LINE, _settings(chords=(_symbol(39_000, 7),)))
+    assert not document.chords_included
+    assert _harmonies(document) == []
+
+
+def test_slash_symbols_are_transposed_with_the_part() -> None:
+    part = PartSettings(instrument="clarinet-bb")
+    document = MusicNotator().notate(LINE, _settings(chords=(_symbol(0, 9, "min7", 7),), part=part))
+    root = ET.fromstring(document.musicxml)  # noqa: S314 - our own notator output
+    assert root.findtext(".//harmony/root/root-step") == "B"
+    assert root.findtext(".//harmony/bass/bass-step") == "A"
+
+
+def test_unknown_symbol_kinds_are_left_as_they_are() -> None:
+    score = stream.Score([stream.Part([stream.Measure([harmony.ChordSymbol("C5")])])])  # type: ignore[no-untyped-call]
+    transpose_symbols(score, 2, KeyInfo(tonic="D", mode="major", confidence=1.0, source="override"))
+    (symbol,) = score.recurse().getElementsByClass(harmony.ChordSymbol)
+    assert symbol.root().name == "C"
 
 
 def test_drum_midi_uses_channel_10_and_the_general_midi_map() -> None:

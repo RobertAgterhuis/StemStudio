@@ -15,7 +15,6 @@ from typing import Any, Final, cast
 
 from music21 import chord as m21_chord
 from music21 import clef as m21_clef
-from music21 import instrument as m21_instrument
 from music21 import key as m21_key
 from music21 import layout as m21_layout
 from music21 import metadata as m21_metadata
@@ -26,6 +25,7 @@ from music21 import stream as m21_stream
 from music21 import tempo as m21_tempo
 
 from stemstudio_worker.notation.cleaning import PIECE_ORDER, PlacedHit, PlacedNote
+from stemstudio_worker.notation.drum_midi import drum_instrument
 from stemstudio_worker.notation.events import (
     Event,
     Make,
@@ -50,14 +50,14 @@ _CLEFS: Final[dict[Clef, Callable[[], m21_clef.Clef]]] = {
     "percussion": m21_clef.PercussionClef,
 }
 
-_DRUMS: Final[dict[DrumPiece, tuple[str, str, Callable[[], m21_instrument.Instrument]]]] = {
-    "kick": ("F4", "normal", m21_instrument.BassDrum),
-    "snare": ("C5", "normal", m21_instrument.SnareDrum),
-    "toms": ("A4", "normal", m21_instrument.TomTom),
-    "hihat": ("G5", "x", m21_instrument.HiHatCymbal),
-    "cymbals": ("A5", "x", m21_instrument.CrashCymbals),
+_DRUMS: Final[dict[DrumPiece, tuple[str, str]]] = {
+    "kick": ("F4", "normal"),
+    "snare": ("C5", "normal"),
+    "toms": ("A4", "normal"),
+    "hihat": ("G5", "x"),
+    "cymbals": ("A5", "x"),
 }
-"""Display position, notehead and General MIDI instrument per drum piece."""
+"""Display position and notehead per drum piece (the instrument: ``drum_midi``)."""
 
 _PART: Final[Callable[[], Any]] = m21_stream.Part
 _PART_STAFF: Final[Callable[[], Any]] = m21_stream.PartStaff
@@ -229,10 +229,10 @@ def _drum_maker(stem: str) -> Callable[[Sequence[PlacedHit]], Make]:
 
 
 def _stroke(piece: DrumPiece, velocity: int) -> m21_note.Unpitched:
-    display, head, instrument = _DRUMS[piece]
+    display, head = _DRUMS[piece]
     stroke = m21_note.Unpitched(displayName=display)
     stroke.notehead = head
-    stroke.storedInstrument = instrument()
+    stroke.storedInstrument = drum_instrument(piece)
     stroke.volume.velocity = velocity
     return stroke
 

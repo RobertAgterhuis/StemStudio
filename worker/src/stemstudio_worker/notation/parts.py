@@ -18,11 +18,13 @@ from typing import Any, Final, cast
 
 from music21 import clef as m21_clef
 from music21 import converter as m21_converter
+from music21 import harmony as m21_harmony
 from music21 import key as m21_key
 from music21 import pitch as m21_pitch
 from music21 import stream as m21_stream
 
 from stemstudio_worker.harmony.labels import FLAT_NAMES, SHARP_NAMES, prefer_flats
+from stemstudio_worker.notation.chord_symbols import transpose_symbols
 from stemstudio_worker.notation.cleaning import PlacedNote
 from stemstudio_worker.notation.keys import key_sharps, spell
 from stemstudio_worker.notation.profiles import Clef, Profile, get_profile
@@ -126,11 +128,18 @@ def _respell(element: Any, plan: PartPlan) -> None:
         element.pitches = pitches
 
 
+def _respell_all(score: m21_stream.Score, plan: PartPlan) -> None:
+    """Move and respell every note and chord (chord symbols are handled separately)."""
+    for element in score.recurse().notes:
+        if not isinstance(element, m21_harmony.Harmony):
+            _respell(element, plan)
+
+
 def written_score(score: m21_stream.Score, plan: PartPlan, grand: bool) -> m21_stream.Score:
     """A transposed copy of ``score``: pitches, key signatures, clef and part name."""
     written = copy.deepcopy(score)
-    for element in written.recurse().notes:
-        _respell(element, plan)
+    _respell_all(written, plan)
+    transpose_symbols(written, plan.info.semitones, plan.written)
     for signature in written.recurse().getElementsByClass(m21_key.KeySignature):
         signature.sharps = key_sharps(plan.written)
     if not grand:

@@ -5,11 +5,14 @@ Order: chord symbols are inserted into a copy of the concert score, the part tra
 the concert score without symbols. Without any 016 setting the document stays the 008 one.
 """
 
+import copy
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from fractions import Fraction
 
 from music21 import stream as m21_stream
 
+from stemstudio_worker.notation.chord_symbols import Placement, insert_symbols
 from stemstudio_worker.notation.cleaning import reduce_monophonic
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.parts import (
@@ -22,9 +25,10 @@ from stemstudio_worker.notation.parts import (
 from stemstudio_worker.notation.profiles import SECTION_PROFILES, Profile
 from stemstudio_worker.notation.tab_staff import tablature_document
 from stemstudio_worker.notation.tablature import FitResult, ViterbiTabFingerer
+from stemstudio_worker.notation.timebase import GridQuantiser
 from stemstudio_worker.notation.writer import musicxml_bytes
 from stemstudio_worker.ports import NotationSettings, NoteEvent, ScoreDocument
-from stemstudio_worker.schemas import KeyInfo, ScoreWarning
+from stemstudio_worker.schemas import CHORD_SYMBOL_PROFILES, KeyInfo, ScoreWarning
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,12 +40,19 @@ class Extensions:
         profile: The profile constants (range already widened for a tuning).
         key: Concert key of the score.
         fit: The cleaned notes after the tablature range fit.
+        quantiser: The score's grid (chord symbol starts).
     """
 
     settings: NotationSettings
     profile: Profile
     key: KeyInfo
     fit: FitResult
+    quantiser: GridQuantiser
+
+    @property
+    def lead(self) -> Fraction:
+        """How far the first measure starts before bar 1 (the pickup)."""
+        return max(Fraction(0), -min(n.onset for n in self.fit.notes))
 
 
 def section_warnings(notes: Sequence[NoteEvent], profile: Profile) -> tuple[ScoreWarning, ...]:
@@ -79,11 +90,27 @@ def _with_part(
     )
 
 
+def _with_chords(
+    document: ScoreDocument, score: m21_stream.Score, extensions: Extensions
+) -> tuple[ScoreDocument, m21_stream.Score]:
+    """Insert the chord symbols into a copy of the score (allowed profiles only)."""
+    settings = extensions.settings
+    if not settings.chords or extensions.profile.name not in CHORD_SYMBOL_PROFILES:
+        return document, score
+    working = copy.deepcopy(score)
+    placement = Placement(extensions.quantiser, extensions.lead, settings.prefer_flats)
+    placed = insert_symbols(working, settings.chords, placement)
+    if not placed:
+        return document, score
+    return replace(document, musicxml=musicxml_bytes(working), chords_included=True), working
+
+
 def extend(
     document: ScoreDocument, score: m21_stream.Score, extensions: Extensions
 ) -> ScoreDocument:
-    """Apply part and tablature to the 008 document (unchanged when neither is set)."""
-    extended = _with_part(document, score, extensions)
+    """Apply chord symbols, part and tablature to the 008 document (unchanged without them)."""
+    with_chords, working = _with_chords(document, score, extensions)
+    extended = _with_part(with_chords, working, extensions)
     tab = extensions.settings.tablature
     if tab is None:
         return extended

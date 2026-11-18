@@ -64,7 +64,10 @@ class MusicNotator:
             *section_warnings(notes, profile),
         )
         document = _document(built, timebase, _Facts(key.info, len(fit.notes), warnings))
-        return extend(document, built.score, Extensions(settings, profile, key.info, fit))
+        quantiser = timebase.quantiser(settings.resolution)
+        return extend(
+            document, built.score, Extensions(settings, profile, key.info, fit, quantiser)
+        )
 
     def notate_drums(self, hits: Sequence[DrumHit], settings: NotationSettings) -> ScoreDocument:
         """Build the two-voice percussion score of the ``drums`` profile.

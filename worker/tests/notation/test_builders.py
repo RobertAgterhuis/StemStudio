@@ -330,7 +330,7 @@ def test_drum_midi_uses_the_general_midi_drum_map() -> None:
     ons = midi_note_ons(document.midi)
     assert len(ons) == 12
     assert {event.channel for event in ons} == {10}
-    assert {event.pitch for event in ons} == {35, 38, 44}
+    assert {event.pitch for event in ons} == {36, 38, 42}  # 016 FR-023: kick 36, hi-hat 42
 
 
 def test_no_drum_hits_raise_no_notes() -> None:
