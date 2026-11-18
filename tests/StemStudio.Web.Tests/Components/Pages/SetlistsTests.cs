@@ -150,6 +150,31 @@ public sealed class SetlistsTests : PageTestContext
             Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData("down", 0, "down")]
+    [InlineData("up", 1, "down")]
+    [InlineData("down", 1, "up")]
+    public async Task Editor_AfterAMove_TheFocusFollowsTheMovedEntry(string button, int moved, string focused)
+    {
+        // Keyboard reorder (US5 scenario 2): Enter on Move down keeps the focus on the moved song; when the button it used
+        // is disabled at its new place (first or last), the other move button of that song gets the focus.
+        var setlist = PracticeFlowData.Setlist([PracticeFlowData.Entry(1), PracticeFlowData.Entry(2), PracticeFlowData.Entry(3)]);
+        var entry = setlist.Entries[moved];
+        var order = setlist.Entries.ToList();
+        order.RemoveAt(moved);
+        order.Insert(button == "down" ? moved + 1 : moved - 1, entry);
+        var after = setlist with { Entries = [.. order.Select((e, i) => e with { Position = i })] };
+        Api.GetSetlistAsync(Id, false, Arg.Any<CancellationToken>()).Returns(setlist);
+        Api.ReplaceSetlistEntriesAsync(Id, Arg.Any<SetlistEntriesUpdateRequest>(), Arg.Any<CancellationToken>()).Returns(after);
+        var page = RenderEditor();
+
+        await page.InvokeAsync(() => page.Find($"[data-testid=setlist-entry-{button}-{entry.Id}]").Click());
+
+        var target = page.FindComponents<Radzen.Blazor.RadzenButton>()
+            .Single(b => b.Instance.Attributes?["data-testid"] as string == $"setlist-entry-{focused}-{entry.Id}");
+        page.WaitForAssertion(() => ((ElementReference)JSInterop.VerifyFocusAsyncInvoke().Arguments[0]!).Id.ShouldBe(target.Instance.Element.Id));
+    }
+
     [Fact]
     public async Task Editor_RenamesNotesAndMixes()
     {

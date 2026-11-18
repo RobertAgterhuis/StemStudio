@@ -61,7 +61,7 @@
             @foreach (var (entry, index) in Setlist.Entries.Select((e, i) => (e, i)))
             {
                 @* The list index, not the DTO position (0-based in the contract), is what Move and Drop work with. *@
-                <li class="ss-setlist-entry" draggable="true" data-testid="@($"setlist-entry-{entry.Id}")" data-position="@entry.Position"
+                <li @key="entry.Id" class="ss-setlist-entry" draggable="true" data-testid="@($"setlist-entry-{entry.Id}")" data-position="@entry.Position"
                     @ondragstart="() => _dragging = index" @ondragover:preventDefault="true" @ondrop="() => DropAsync(index)">
                     <span class="ss-setlist-title">@(index + 1). @entry.TrackTitle <span class="ss-muted">@entry.Artist</span></span>
                     <LevelGate Feature="setlists.notes">
@@ -80,10 +80,12 @@
                                    @onchange="e => SetNoteAsync(entry, e.Value)" data-testid="@($"setlist-entry-note-{entry.Id}")" />
                         </label>
                     </LevelGate>
-                    <RadzenButton Text="@($"Move {entry.TrackTitle} up")" Icon="arrow_upward" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                                  Disabled="@(index == 0)" Click="() => MoveAsync(index, index - 1)" data-testid="@($"setlist-entry-up-{entry.Id}")" />
-                    <RadzenButton Text="@($"Move {entry.TrackTitle} down")" Icon="arrow_downward" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                                  Disabled="@(index == Setlist.Entries.Count - 1)" Click="() => MoveAsync(index, index + 1)" data-testid="@($"setlist-entry-down-{entry.Id}")" />
+                    <RadzenButton @ref="_upButtons[entry.Id]" Text="@($"Move {entry.TrackTitle} up")" Icon="arrow_upward" Size="ButtonSize.Small"
+                                  ButtonStyle="ButtonStyle.Light" Disabled="@(index == 0)" Click="() => MoveByButtonAsync(entry, index, index - 1)"
+                                  data-testid="@($"setlist-entry-up-{entry.Id}")" />
+                    <RadzenButton @ref="_downButtons[entry.Id]" Text="@($"Move {entry.TrackTitle} down")" Icon="arrow_downward" Size="ButtonSize.Small"
+                                  ButtonStyle="ButtonStyle.Light" Disabled="@(index == Setlist.Entries.Count - 1)" Click="() => MoveByButtonAsync(entry, index, index + 1)"
+                                  data-testid="@($"setlist-entry-down-{entry.Id}")" />
                     <RadzenButton Text="@($"Remove {entry.TrackTitle}")" Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
                                   Click="() => RemoveAsync(entry)" data-testid="@($"setlist-entry-remove-{entry.Id}")" />
                 </li>

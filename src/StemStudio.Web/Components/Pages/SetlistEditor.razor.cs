@@ -17,7 +17,10 @@ namespace StemStudio.Web.Components.Pages;
 public sealed partial class SetlistEditor
 {
     private readonly Dictionary<Guid, IReadOnlyList<MixSummaryDto>> _mixes = [];
+    private readonly Dictionary<Guid, Radzen.Blazor.RadzenButton> _upButtons = [];
+    private readonly Dictionary<Guid, Radzen.Blazor.RadzenButton> _downButtons = [];
     private int? _dragging;
+    private (Guid Entry, bool Down)? _focusAfterMove;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -98,6 +101,31 @@ public sealed partial class SetlistEditor
     private Task AcknowledgeRemovedAsync() => SaveAsync(() => Api.GetSetlistAsync(SetlistId, acknowledgeRemoved: true));
 
     private Task MoveAsync(int from, int to) => EntriesAsync(SetlistEntries.Move(Setlist!.Entries, from, to));
+
+    // Keyboard reorder (US5 scenario 2): the focus follows the moved song to its new place.
+    private Task MoveByButtonAsync(SetlistEntryDto entry, int from, int to)
+    {
+        _focusAfterMove = (entry.Id, to > from);
+        return MoveAsync(from, to);
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusAfterMove is not { } move || Setlist is null)
+        {
+            return;
+        }
+
+        _focusAfterMove = null;
+        var index = Setlist.Entries.ToList().FindIndex(e => e.Id == move.Entry);
+        // The button that was used, unless it is disabled at the new place (first or last): then the other one.
+        var down = move.Down ? index < Setlist.Entries.Count - 1 : index == 0;
+        if (index >= 0 && (down ? _downButtons : _upButtons).TryGetValue(move.Entry, out var button))
+        {
+            await button.Element.FocusAsync();
+        }
+    }
 
     private Task DropAsync(int to)
     {
