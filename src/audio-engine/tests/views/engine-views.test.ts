@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeStretchStage } from '../../src/stretch/fake-stage';
 import { makeEngineRig, loadVocals, type EngineRig } from '../mocks/engine-rig';
+import { stubCanvas } from '../mocks/canvas';
 import { practice } from '../mocks/practice-rig';
 import { GRID, addHost, cycleChart } from '../mocks/views-rig';
 
@@ -80,5 +81,27 @@ describe('engine banner chords and chord display (2.6.0)', () => {
     }).toThrow('Capo out of range: 13');
     rig.step();
     expect(bannerTexts(host)).toEqual(['C']);
+  });
+});
+
+describe('engine hit lanes (2.6.0)', () => {
+  it('attaches, changes options, redraws after a loop change and detaches', async () => {
+    stubCanvas();
+    const rig = makeEngineRig();
+    await loadVocals(rig, GRID);
+    const host = addHost('hits');
+    rig.engine.attachHitLanes('hits', [{ timeMs: 1000, piece: 'snare', strength: 1 }], { reducedMotion: false });
+    rig.step();
+    expect(host.querySelector('canvas')).not.toBeNull();
+    expect(host.dataset.nextHitPiece).toBe('snare');
+    rig.engine.setHitLaneOptions({ pieces: ['kick'] });
+    rig.step();
+    expect(host.dataset.nextHitPiece).toBe('');
+    rig.engine.setLoop({ start: 2, end: 4, enabled: true });
+    rig.engine.seek(3);
+    rig.step();
+    expect(host.dataset.positionMs).toBe('3000');
+    rig.engine.detachHitLanes();
+    expect(host.children).toHaveLength(0);
   });
 });

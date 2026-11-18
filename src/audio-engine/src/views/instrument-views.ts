@@ -8,11 +8,12 @@
 import { bannerChords } from '../chords/banner';
 import { ChordDisplayState } from '../chords/display';
 import { ChordLane } from '../chords/lane';
+import { HitLanes } from '../drums/hit-lanes';
 import type { FrameLoop } from '../frame-loop';
 import type { Karaoke } from '../karaoke/index';
 import { TimelineClock } from '../timeline/clock';
 import type { Transport } from '../transport';
-import type { BeatGrid, ChordChartData, ChordDisplay, ChordLaneOptions } from '../types';
+import type { BeatGrid, ChordChartData, ChordDisplay, ChordLaneOptions, DrumHitEvent, HitLaneOptions } from '../types';
 
 /** Construction parameters of {@link InstrumentViews}. */
 export interface InstrumentViewsDeps {
@@ -33,6 +34,7 @@ export class InstrumentViews {
   private readonly display = new ChordDisplayState();
   private readonly lane: ChordLane;
   private readonly karaoke: Karaoke;
+  private readonly hitLanes: HitLanes;
 
   /** @param deps - Context, transport, frame loop, grid and karaoke banner. */
   public constructor(deps: InstrumentViewsDeps) {
@@ -44,7 +46,9 @@ export class InstrumentViews {
     const clock = new TimelineClock({ context, transport });
     const playing = (): boolean => transport.state === 'playing';
     this.lane = new ChordLane({ loop, clock, playing, grid, display: this.display });
+    this.hitLanes = new HitLanes({ loop, clock, playing, grid });
     transport.addListener(this.lane);
+    transport.addListener(this.hitLanes);
   }
 
   /** {@inheritDoc AudioEngine.attachChordLane} */
@@ -55,6 +59,21 @@ export class InstrumentViews {
   /** {@inheritDoc AudioEngine.detachChordLane} */
   public detachChordLane(): void {
     this.lane.detach();
+  }
+
+  /** {@inheritDoc AudioEngine.attachHitLanes} */
+  public attachHitLanes(elementId: string, hits: readonly DrumHitEvent[], options?: HitLaneOptions): void {
+    this.hitLanes.attach(elementId, hits, options);
+  }
+
+  /** {@inheritDoc AudioEngine.setHitLaneOptions} */
+  public setHitLaneOptions(options: HitLaneOptions): void {
+    this.hitLanes.setOptions(options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachHitLanes} */
+  public detachHitLanes(): void {
+    this.hitLanes.detach();
   }
 
   /** {@inheritDoc AudioEngine.setKaraokeChords} */
@@ -75,10 +94,12 @@ export class InstrumentViews {
   /** Draws one frame of every attached view (loop change). */
   public redraw(): void {
     this.lane.redraw();
+    this.hitLanes.redraw();
   }
 
   /** Detaches every view. */
   public dispose(): void {
     this.lane.detach();
+    this.hitLanes.detach();
   }
 }

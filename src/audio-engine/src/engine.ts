@@ -483,19 +483,19 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.attachHitLanes} */
   public attachHitLanes(elementId: string, hits: readonly DrumHitEvent[], options?: HitLaneOptions): void {
     this.alive();
-    return pendingView('attachHitLanes', elementId, hits, options);
+    this.views.attachHitLanes(elementId, hits, options);
   }
 
   /** {@inheritDoc AudioEngine.setHitLaneOptions} */
   public setHitLaneOptions(options: HitLaneOptions): void {
     this.alive();
-    return pendingView('setHitLaneOptions', options);
+    this.views.setHitLaneOptions(options);
   }
 
   /** {@inheritDoc AudioEngine.detachHitLanes} */
   public detachHitLanes(): void {
     this.alive();
-    return pendingView('detachHitLanes');
+    this.views.detachHitLanes();
   }
 
   /** {@inheritDoc AudioEngine.getRoundTripLatency} */

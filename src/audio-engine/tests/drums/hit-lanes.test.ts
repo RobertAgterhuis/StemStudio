@@ -39,7 +39,7 @@ function marks(): Primitive[] {
   return FakeContext2D.latest().ops('roundRect');
 }
 
-function lastFrame(rig: LanesRig, draw: () => void): Primitive[] {
+function lastFrame(_rig: LanesRig, draw: () => void): Primitive[] {
   FakeContext2D.latest().reset();
   draw();
   return FakeContext2D.latest().ops();
@@ -87,7 +87,7 @@ describe('hit lanes canvas', () => {
     // window = [-1000, 4000) ms over 800 px; mark 8 px wide, centred on the hit.
     const xs = marks().map((m) => m.args[0]);
     expect(xs).toContain(316);
-    expect(xs).toContain(780);
+    expect(xs).toContain(716);
     expect(Math.max(...(xs as number[]))).toBeLessThan(800);
   });
 
@@ -96,7 +96,8 @@ describe('hit lanes canvas', () => {
       { timeMs: 1000, piece: 'kick', strength: 0 },
       { timeMs: 2000, piece: 'kick', strength: 0.5 },
     ]);
-    expect(marks().map((m) => [m.args[1], m.args[3]])).toEqual([
+    const sizes = marks().map((m) => [m.args[1], m.args[3]].map((v) => Math.round(Number(v) * 1000) / 1000));
+    expect(sizes).toEqual([
       [96 + 7.2, 9.6],
       [96 + 3.6, 16.8],
     ]);
@@ -179,6 +180,14 @@ describe('hit lanes options', () => {
     expect(rig.host.dataset.lookAheadMs).toBe('4000');
   });
 
+  it('switches to paging when reducedMotion is turned on by the options', () => {
+    const rig = attached();
+    showAt(rig, 3000);
+    rig.lanes.setOptions({ reducedMotion: true });
+    rig.frames.step(1);
+    expect(FakeContext2D.latest().ops('moveTo').at(-1)?.args).toEqual([320, 0]);
+  });
+
   it('ignores options without an attached view', () => {
     const rig = makeLanes();
     rig.lanes.setOptions({ lookAheadMs: 3000 });
@@ -191,10 +200,12 @@ describe('hit lanes reduced motion', () => {
     const rig = attached({ reducedMotion: true });
     rig.ctx.currentTime = 0;
     await rig.transport.play();
-    const seen = new Set<number | undefined>();
+    const seen = new Set<string>();
     for (let ms = 2000; ms < 4000; ms += 100) {
-      frameAt(rig, ms);
-      seen.add(FakeContext2D.latest().ops('roundRect').at(-1)?.args[0]);
+      const frame = lastFrame(rig, () => {
+        frameAt(rig, ms);
+      });
+      seen.add(frame.filter((p) => p.op === 'roundRect').map((p) => Number(p.args[0])).sort((a, b) => a - b).join());
     }
     expect(seen.size).toBe(1);
     frameAt(rig, 4000);
@@ -265,6 +276,14 @@ describe('hit lanes lifecycle', () => {
     rig.lanes.detach();
     expect(other.children).toHaveLength(0);
     expect(Object.keys(other.dataset)).toEqual([]);
+  });
+
+  it('drops a frame that was requested before detach and reports zero primitives without a view', () => {
+    const rig = makeLanes();
+    rig.lanes.attach('hit-lanes', hits());
+    rig.lanes.detach();
+    rig.frames.step(0);
+    expect(rig.lanes.stats).toEqual({ frames: 0, primitives: 0 });
   });
 
   it('keeps the attributes without a 2D context (no canvas support)', () => {

@@ -87,6 +87,6 @@ export class FakeContext2D {
 export function stubCanvas(): void {
   FakeContext2D.instances.length = 0;
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (this: HTMLCanvasElement) {
-    return new FakeContext2D(this) as unknown as CanvasRenderingContext2D;
-  } as typeof HTMLCanvasElement.prototype.getContext);
+    return new FakeContext2D(this);
+  } as unknown as typeof HTMLCanvasElement.prototype.getContext);
 }
