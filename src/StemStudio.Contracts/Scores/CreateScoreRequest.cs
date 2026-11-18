@@ -1,10 +1,9 @@
-using System.Text.Json.Serialization;
 using StemStudio.Contracts.Assets;
 
 namespace StemStudio.Contracts.Scores;
 
 /// <summary>Body of <c>POST /api/assets/scores</c> (backend contract 1.7.0); null members take the defaults of data-model.md 4.2.</summary>
-public sealed record CreateScoreRequest
+public sealed record CreateScoreRequest : ScoreNotationOptions
 {
     /// <summary>A channel of a completed track or a ready audio item.</summary>
     public required AudioSourceDto Source { get; init; }
@@ -29,16 +28,4 @@ public sealed record CreateScoreRequest
 
     /// <summary>Item name (1..120); null = "&lt;track title&gt; - &lt;channel&gt; (sheet music)".</summary>
     public string? Name { get; init; }
-
-    /// <summary>Tablature (guitar/bass, 1.15.0); null = none. Absent on the wire when null.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ScoreTablatureDto? Tablature { get; init; }
-
-    /// <summary>Written instrument and clef (1.15.0); null = concert pitch. Absent on the wire when null.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ScorePartDto? Part { get; init; }
-
-    /// <summary>Chord symbols above the top staff (1.15.0); absent on the wire when false.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool IncludeChords { get; init; }
 }

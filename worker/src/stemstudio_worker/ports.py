@@ -1805,16 +1805,25 @@ class ChordRecognizer(Protocol):
         ...
 
 
+@dataclass(frozen=True, slots=True)
+class PostProcessOptions:
+    """What the chord post-processor needs besides the frames (data-model 2.3 steps 3-4).
+
+    Attributes:
+        grid: Reliable beat grid for snapping; None = 0.5 s minimum segments.
+        vocabulary: Requested vocabulary (``full`` adds slash bass from ``bass``).
+        bass: Mono bass stem at ``CHORD_SAMPLE_RATE``; None = no inversions.
+    """
+
+    grid: BeatGridTempo | None
+    vocabulary: ChordVocabulary
+    bass: MonoAudio | None = None
+
+
 class ChordPostProcessor(Protocol):
     """Frames -> segments: beat snapping, merge, slash bass (``harmony/postprocess.py``)."""
 
-    def segments(
-        self,
-        frames: ChordFrames,
-        grid: BeatGridTempo | None,
-        vocabulary: ChordVocabulary,
-        bass: MonoAudio | None,
-    ) -> ChordChart:
+    def segments(self, frames: ChordFrames, options: PostProcessOptions) -> ChordChart:
         """Build the chart without the key (``key``/``keyRegions`` empty, ``preferFlats`` false)."""
         ...
 

@@ -1,7 +1,11 @@
 # ADR-031: Chord recognition model, chord chart, song key and capo mode (feature 016)
 
-- **Status**: Proposed (architect, 016 planning, 2026-11-16); becomes Accepted when Phase 0
-  (T005) confirms the weights load with `weights_only=True` and the CPU time.
+- **Status**: Accepted (architect, 016 Phase 0, 2026-11-18): both checkpoints download with the pinned
+  SHA-256 and load with `torch.load(weights_only=True)` plus exactly three allow-listed globals
+  (`ports.BTC_SAFE_GLOBALS`); 3.02 M / 3.04 M parameters; CQT of 5 min 1.3 s, chroma-hmm 3.7 s. The BTC
+  forward time itself is measured in T063 (running the vendored model code was not possible in the design
+  phase; 30 windows of 108 frames for 5 min, estimate < 2 s on CPU). `BTC_GPU_NEED` 512 MiB stays until the
+  NVML peak of T140. Proposed 2026-11-16.
 - **Numbering**: ADR-031..033 are taken by feature 016. Features 012-015 are specified in
   parallel and may take ADR-021..030; the CTO renumbers at merge only on a collision.
 - **Context documents**: `specs/016-instrument-views/{spec.md, research.md R-01..R-04,

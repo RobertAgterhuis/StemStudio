@@ -7,6 +7,10 @@
 instrument counts equally"); `docs/ROADMAP.md` (016: backend-api 1.15.0, worker-api 1.9.0,
 audio-engine 2.6.0, ui-test-ids 1.15.0; depends on 008, 014, 015); features 002, 003, 006, 008.
 
+**Phase 0 (2026-11-18)**: done on `016-round` (after 014+015 merged); labels confirmed (worker 1.9.0, backend
+1.15.0, engine 2.6.0, UI ids 1.15.0, help-content 1.1.0, chord vectors 1.0.0); outcome in DELTA.md and
+`docs/handoffs/architect-016-design.md`; task amendments in tasks.md "Phase 0 ready-check amendments".
+
 **Note**: Produced by the architect agent (`/speckit-plan` equivalent). Binding design decisions
 are in ADR-031 (chords), ADR-032 (singing pitch) and ADR-033 (architecture, tablature, parts);
 evidence in [research.md](research.md); entities in [data-model.md](data-model.md); contract
@@ -145,7 +149,7 @@ src/StemStudio.Api/InstrumentViews/{ChordEndpoints,DrumHitEndpoints,VocalPitchEn
     CatalogueEndpoints,TrackAnalysisService,AnalysisKindStrategies,AnalysisJobApplier,
     AnalysisAutoStarter}.cs; Scores/ additions; Worker/WorkerClient.InstrumentAnalysis.cs        (backend)
 src/audio-engine/src/{timeline/,chords/,drums/,pitch/,singing/}                                (audio-engine)
-src/audio-engine/{package.json, vite.config.ts (second entry), src/types.ts}                    (architect, Phase 0)
+src/audio-engine/{package.json, vite.pitch.config.ts (fourth entry), src/types.ts}               (architect, Phase 0)
 src/StemStudio.Web/Components/InstrumentViews/{PractiseAsMenu,ChordLane,ChordSheet,ChordEditDialog,
     DrumTrainer,DrumlessToggle,SingingPanel,PitchView,MidiAction,FamilyMixService}.razor/.cs,
     Scores/ScoreDialog additions, Help/topics/instruments/*.md                                  (frontend)
@@ -168,7 +172,7 @@ validation).
 
 | Path | Owner |
 |---|---|
-| `specs/016-*/**`, ADR-031..033, `ports.py`, `schemas.py`, `config.py`, `pyproject.toml`/`uv.lock` (unchanged deps), `StemStudio.Contracts/**`, `src/audio-engine/{package.json,vite.config.ts,src/types.ts}` | architect |
+| `specs/016-*/**`, ADR-031..033, `ports.py`, `schemas.py`, `config.py`, `pyproject.toml`/`uv.lock` (unchanged deps), `StemStudio.Contracts/**`, `src/audio-engine/{package.json,vite.pitch.config.ts,src/types.ts}` | architect |
 | `worker/.../harmony/{__init__,btc}.py`, `harmony/vendor/**`, `views_fake.py`, `jobs/instrument_analysis_*`, `api/instrument_analysis_routes.py`, `main.py`, their tests | stem-separation |
 | `worker/.../harmony/{chroma_hmm,postprocess,labels,key}.py`, `analysis/vocal_pitch.py`, `notation/{tablature,parts,chord_symbols,drum_midi}.py`, tests | beat-analysis |
 | `worker/.../analysis_inputs/**`, `engraving/tablature.py`, tests | audio-ingest |

@@ -326,15 +326,20 @@ def _instrument_analysis_settings(
     fake = separator == "fake"
     chord = _choice(env, "STEMSTUDIO_CHORD_ENGINE", _CHORD_ENGINES) or ("fake" if fake else "btc")
     pitch = _choice(env, "STEMSTUDIO_PITCH_ENGINE", _PITCH_ENGINES) or ("fake" if fake else "pyin")
+    return InstrumentAnalysisSettings(
+        chord_engine=cast(ChordEngineKind, chord),
+        pitch_engine=cast(PitchEngineKind, pitch),
+        threads=_analysis_threads(env),
+    )
+
+
+def _analysis_threads(env: Mapping[str, str]) -> int:
+    """Read ``STEMSTUDIO_ANALYSIS_THREADS`` (1..64); unset or blank = 4."""
     raw = env.get("STEMSTUDIO_ANALYSIS_THREADS", "").strip() or str(_DEFAULT_ANALYSIS_THREADS)
     if not raw.isdigit() or not 0 < int(raw) <= _MAX_THREADS:
         msg = f"STEMSTUDIO_ANALYSIS_THREADS must be a whole number from 1 to 64; got {raw!r}"
         raise ValueError(msg)
-    return InstrumentAnalysisSettings(
-        chord_engine=cast(ChordEngineKind, chord),
-        pitch_engine=cast(PitchEngineKind, pitch),
-        threads=int(raw),
-    )
+    return int(raw)
 
 
 def _structure_analyzer(env: Mapping[str, str], separator: SeparatorKind) -> StructureAnalyzerKind:

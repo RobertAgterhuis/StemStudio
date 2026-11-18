@@ -25,8 +25,9 @@ Model weights (model manager, as 002/008; downloaded at first use, never committ
 | `btc-majmin` | `https://raw.githubusercontent.com/jayg996/BTC-ISMIR19/2682317be668032e6e4b269ded36adaa2ad57df0/test/btc_model.pt` | `71c2c5db17e8c43b8a9a9da5db36ef2d667158c07a214eba16344c154c00bf54` | 12,154,754 | MIT |
 | `btc-large-voca` | `.../test/btc_model_large_voca.pt` | `1673d23f8f9a55ae7f9e8b80a51da616debb22675b8d8b67ea6ce0ef37b0ab51` | 12,229,576 | MIT |
 
-`BTC_GPU_NEED = GpuNeed("Chord recognition", 512)` (placeholder; Phase 0 T005 measures the NVML
-peak and sets peak + 20 %). Constants `ports.BTC_MAJMIN_WEIGHTS`, `ports.BTC_LARGE_VOCA_WEIGHTS`.
+`BTC_GPU_NEED = GpuNeed("Chord recognition (BTC)", 512)` (Phase 0: no GPU run in the design phase; the
+T140 NVML peak + 20 % replaces it). Constants `ports.BTC_MAJMIN_WEIGHTS`, `ports.BTC_LARGE_VOCA_WEIGHTS`,
+`ports.BTC_SAFE_GLOBALS` (the three numpy names `torch.load(weights_only=True)` may resolve, research R-03).
 
 ## 2. Chords
 
@@ -179,7 +180,8 @@ window centre), cents: number | null, clarity: number 0..1 }` every 10 ms; main 
 
 `songMs(frame) = round(1000 * transportPosition(frame.t - roundTripSeconds))`, the karaoke-clock
 formula of 006 with the round trip instead of the output latency; `roundTripSeconds` = the 015
-calibrated value (`latency.source = calibrated`) or the estimate of R-07 (`estimated`).
+calibration Blazor passes in the request (`roundTripMs`, `latencyMethod` `loopback`/`manual`) or the open
+input's `InputInfo.estimatedLatencySamples` (`estimated`); the engine stores no calibration (Phase 0).
 
 ### 3.4 Scoring (binding)
 
@@ -434,8 +436,9 @@ drum hits: the five `tracks/<id>/detail/drums/<piece>.flac` paths (as 008 4.4); 
 
 ### 7.5 DTOs (wire)
 
-- `TrackDto` (additive): `instrumentViews {chords, drumHits, vocalPitch}` = statuses only; `key`
-  = the 2.8 summary or null.
+- `TrackDto` (additive, optional on the wire: absent = every status `none` / no key): `instrumentViews
+  {chords, drumHits, vocalPitch}` = statuses only; `key` = the 2.8 summary or null. All 016 additions to
+  existing DTOs (score request, recipe, options, facts) are optional too (Phase 0, DELTA.md).
 - `GET /api/tracks/{id}/key?transpose&instrument` -> `{status (of the chords analysis), key,
   display, regions [{startMs, endMs, startBar, tonic, mode, confidence, display}], writtenKey
   (display or null for `concert`)}`; `GET /api/tracks/{id}/chords/capo-suggestions?transpose`
@@ -453,7 +456,8 @@ drum hits: the five `tracks/<id>/detail/drums/<piece>.flac` paths (as 008 4.4); 
 - `ScoreRecipe` (additive, provenance): `tablature`, `part`, `includeChords`.
 - `listAssets` (additive query): `trackId` + `channel` filter (the MIDI action looks up a ready
   score of that channel; newest first).
-- `GET /api/instruments/catalogue` -> `{tunings (4.1), instruments (4.2), clefs (4.3),
+- `GET /api/instruments/catalogue` (the `concert` row has name "", `defaultClef` `auto`, `lowMidi` 0,
+  `highMidi` 127 = the profile's own clef and range) -> `{tunings (4.1), instruments (4.2), clefs (4.3),
   families (5.3 with their channel patterns and view ids), tolerances {beginner 100, advanced 50,
   expert 25, min 10, max 200, step 5}}` (static; cached by the UI).
 
@@ -474,8 +478,9 @@ drum hits: the five `tracks/<id>/detail/drums/<piece>.flac` paths (as 008 4.4); 
 
 `seconds = duration x factor(kind, engine, device) + overhead` (5 s; + 15 s when the BTC weights
 are not downloaded yet). Defaults until the CTO's reference-machine run (T140) refines them:
-chords BTC CPU 0.03 s/s, BTC GPU 0.01, chroma-hmm 0.01; drum hits 0.02; vocal pitch pyin 0.3,
-yin 0.03. Phase 0 (T005, T006) replaces the guesses with measurements.
+chords BTC CPU 0.03 s/s (forward pass measured in T063), BTC GPU 0.01, chroma-hmm 0.015 (measured
+0.012); drum hits 0.02; vocal pitch pyin 0.035 (measured 0.033), yin 0.005 (measured 0.004). Phase 0
+measurements: research R-03, R-04, R-07 outcomes.
 
 ## 8. Browser preferences (`localStorage`, try/catch, defaults when unavailable)
 
@@ -493,5 +498,7 @@ showSounding?}` (transpose comes from the engine's 012 state), `ChordLaneOptions
 `DrumHitEvent {timeMs, piece, strength}`, `HitLaneOptions {lookAheadMs, reducedMotion?}`,
 `PitchContour {hopMs, frames: Int16Array | number[]}`, `SingingUnit {index, startMs, endMs}`,
 `SingingFeedbackRequest {pitchViewElementId, reference, units, toleranceCents, roundTripMs?:
-number | null}`, `SingingUnitScore {index, score|null, pass}`, `SingingSummary`,
-`SingingState = 'idle' | 'starting' | 'running' | 'stopped' | 'failed'`.
+number | null, latencyMethod?}`, `SingingUnitScore {index, score|null, pass}`, `SingingSummary`
+(`latencySource` = 015 `LatencyMethod`), `TakeScoreRequest {takeUrl, startSample, reference, units,
+toleranceCents}`, `RoundTripLatency {ms, source}`,
+`SingingState = 'idle' | 'starting' | 'running' | 'stopped' | 'failed'`. Binding: `types.ts` 2.6.0.
