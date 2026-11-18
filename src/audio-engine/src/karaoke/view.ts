@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 import { ballAt, ballTransform, hopHeight, hopProgress, type Point } from './ball';
-import { Cursor } from './cursor';
+import { Cursor } from '../timeline/cursor';
 import { buildBanner, clearBanner, fillSlot, writeData, type BannerDom, type WordState } from './dom';
 import { LayoutWatcher, NO_GEOMETRY, measureSlots, type Geometry } from './layout';
 import { MotionPreference } from './motion';

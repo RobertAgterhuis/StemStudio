@@ -30,7 +30,7 @@ describe('audioNow / outputLatency / heardTime (moved from the karaoke clock)', 
     const ctx = new MockAudioContext();
     ctx.currentTime = 3;
     expect(audioNow(ctx.asAudioContext(), 1234)).toBe(3);
-    Object.defineProperty(ctx, 'getOutputTimestamp', { value: () => ({}) });
+    Object.defineProperty(ctx, 'getOutputTimestamp', { value: () => ({}), configurable: true });
     expect(audioNow(ctx.asAudioContext(), 1234)).toBe(3);
     Object.defineProperty(ctx, 'getOutputTimestamp', { value: undefined });
     expect(audioNow(ctx.asAudioContext(), 1234)).toBe(3);

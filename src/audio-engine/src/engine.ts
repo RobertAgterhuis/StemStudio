@@ -8,7 +8,8 @@ import { DotNetNotifier, PracticeNotifier, loopPassNotifier } from './callbacks'
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
-import { KaraokeClock, heardTime } from './karaoke/clock';
+import { KaraokeClock } from './karaoke/clock';
+import { heardTime } from './timeline/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
 import { LoopPassTracker } from './loop-pass';
