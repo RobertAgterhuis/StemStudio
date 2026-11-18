@@ -195,13 +195,13 @@ text, the row wins.
 - [ ] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
 - [ ] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
 - [ ] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
-- [ ] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
-- [ ] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
+- [x] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
+- [x] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
 - [ ] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
 - [ ] T073 [US1] [backend] Implement to pass T072
-- [ ] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
-- [ ] T075 [US1] [frontend] Implement to pass T074
-- [ ] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)
+- [x] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
+- [x] T075 [US1] [frontend] Implement to pass T074
+- [x] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)
 
 **Checkpoint**: HO:us1.
 
