@@ -60,6 +60,12 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <param name="profile">The profile, or null for none.</param>
     public void SetProfile(ScoreProfileDto? profile) => (Profile, Simplified) = (profile, profile == ScoreProfileDto.Vocals);
 
+    /// <summary>Tablature options (016 US2), or null when the backend offers none for the source.</summary>
+    public TabChoice? Tab { get; } = options.Tablature is { Available: true } tab ? new TabChoice(tab, target.Capo) : null;
+
+    /// <summary>True when the tablature options apply (guitar and bass profiles, FR-020).</summary>
+    public bool ShowsTab => Tab is not null && Profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass;
+
     /// <summary>"Include chords" (016 FR-017, Advanced): the user's choice.</summary>
     public bool IncludeChords { get; set; }
 
@@ -85,6 +91,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         Tempo = Tempo.ToDto(),
         Range = Range.ToDto(),
         IncludeChords = ChordsAvailable && IncludeChords,
+        Tablature = ShowsTab ? Tab!.ToDto() : null,
     };
 
     private int? EstimateOf(ScoreProfileDto? profile) =>

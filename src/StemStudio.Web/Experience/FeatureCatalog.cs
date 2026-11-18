@@ -105,6 +105,8 @@ public static class FeatureCatalog
         new("chords.export", Advanced, null, "chords-advanced"),
         new("chords.engine", Expert, null, "chords-advanced"),
         new("scores.chords", Advanced, null, "chords-advanced"),
+        new("tab.basic", Beginner, null, "tablature"),
+        new("tab.tunings", Advanced, null, "tablature"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

@@ -63,6 +63,11 @@
     </LevelGate>
 }
 
+@if (Form.ShowsTab)
+{
+    <ScoreTabFields Tab="Form.Tab!" />
+}
+
 @if (Form.ChordsAllowed)
 {
     <LevelGate Feature="scores.chords">
