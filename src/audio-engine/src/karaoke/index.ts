@@ -5,6 +5,7 @@
  *
  * @packageDocumentation
  */
+import type { ChordLayerFactory } from '../chords/banner';
 import type { FrameLoop } from '../frame-loop';
 import { TimelineFrames } from '../timeline/frames';
 import type { TransportListener } from '../transport';
@@ -28,6 +29,7 @@ export interface KaraokeDeps {
 /** The engine's karaoke controller; listens to the transport. */
 export class Karaoke implements TransportListener {
   private view: KaraokeView | null = null;
+  private chords: ChordLayerFactory | null = null;
   private readonly frames: TimelineFrames;
 
   /** @param deps - Frame loop, clock, transport state and document. */
@@ -57,13 +59,24 @@ export class Karaoke implements TransportListener {
       this.deps.loop.once(this.draw);
     };
     const { reducedMotion } = options;
-    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion });
+    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion, chords: this.chords });
     this.frames.start();
   }
 
   /** @param offsetMs - New user offset (-5000..5000 ms); drawn on the next frame. */
   public setOffset(offsetMs: number): void {
     this.deps.clock.setOffset(offsetMs);
+    this.redraw();
+  }
+
+  /**
+   * Sets or removes the chord symbols (contract 2.6.0 `setKaraokeChords`); kept across {@link Karaoke.attach} calls.
+   *
+   * @param chords - Layer factory of a validated chart, or null.
+   */
+  public setChords(chords: ChordLayerFactory | null): void {
+    this.chords = chords;
+    this.view?.setChords(chords);
     this.redraw();
   }
 

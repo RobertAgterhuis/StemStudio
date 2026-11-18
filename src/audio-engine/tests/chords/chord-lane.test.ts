@@ -233,6 +233,7 @@ describe('chord lane validation', () => {
     ['no chord with a quality', { ...ok, segments: [{ ...seg, root: null }] }, 'Invalid chord chart: unknown quality maj'],
     ['root without quality', { ...ok, segments: [{ ...seg, quality: null }] }, 'Invalid chord chart: unknown quality null'],
     ['key tonic', { ...ok, keyTonic: 13 }, 'Invalid chord chart: key tonic outside 0..11'],
+    ['key mode missing', { ...ok, keyMode: null }, 'Invalid chord chart: unknown key mode null'],
     ['region tonic', { ...ok, keyRegions: [{ startMs: 0, endMs: 10, tonic: 12, mode: 'major' }] }, 'Invalid chord chart: key tonic outside 0..11'],
     ['region mode', { ...ok, keyRegions: [{ startMs: 0, endMs: 10, tonic: 1, mode: 'dorian' }] }, 'Invalid chord chart: unknown key mode dorian'],
     ['regions order', { ...ok, keyRegions: [{ startMs: 10, endMs: 20, tonic: 1, mode: 'major' }, { startMs: 0, endMs: 10, tonic: 1, mode: 'major' }] }, 'Invalid chord chart: key regions not ordered'],

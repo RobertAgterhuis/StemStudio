@@ -5,12 +5,14 @@
  *
  * @packageDocumentation
  */
+import { bannerChords } from '../chords/banner';
 import { ChordDisplayState } from '../chords/display';
 import { ChordLane } from '../chords/lane';
 import type { FrameLoop } from '../frame-loop';
+import type { Karaoke } from '../karaoke/index';
 import { TimelineClock } from '../timeline/clock';
 import type { Transport } from '../transport';
-import type { BeatGrid, ChordChartData, ChordLaneOptions } from '../types';
+import type { BeatGrid, ChordChartData, ChordDisplay, ChordLaneOptions } from '../types';
 
 /** Construction parameters of {@link InstrumentViews}. */
 export interface InstrumentViewsDeps {
@@ -22,16 +24,23 @@ export interface InstrumentViewsDeps {
   readonly loop: FrameLoop;
   /** Beat grid of the loaded track. */
   readonly grid: () => BeatGrid | null;
+  /** The karaoke banner (chord symbols above its words). */
+  readonly karaoke: Karaoke;
 }
 
 /** Chord views and their shared display state. */
 export class InstrumentViews {
   private readonly display = new ChordDisplayState();
   private readonly lane: ChordLane;
+  private readonly karaoke: Karaoke;
 
-  /** @param deps - Context, transport, frame loop and grid. */
+  /** @param deps - Context, transport, frame loop, grid and karaoke banner. */
   public constructor(deps: InstrumentViewsDeps) {
     const { context, transport, loop, grid } = deps;
+    this.karaoke = deps.karaoke;
+    this.display.onChange(() => {
+      this.karaoke.redraw();
+    });
     const clock = new TimelineClock({ context, transport });
     const playing = (): boolean => transport.state === 'playing';
     this.lane = new ChordLane({ loop, clock, playing, grid, display: this.display });
@@ -46,6 +55,16 @@ export class InstrumentViews {
   /** {@inheritDoc AudioEngine.detachChordLane} */
   public detachChordLane(): void {
     this.lane.detach();
+  }
+
+  /** {@inheritDoc AudioEngine.setKaraokeChords} */
+  public setKaraokeChords(chart: ChordChartData | null): void {
+    this.karaoke.setChords(chart === null ? null : bannerChords(chart, this.display));
+  }
+
+  /** {@inheritDoc AudioEngine.setChordDisplay} */
+  public setChordDisplay(display: ChordDisplay): void {
+    this.display.set(display);
   }
 
   /** @param semitones - The applied 012 transpose; a change re-spells every chord view on the next frame. */

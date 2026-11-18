@@ -23,13 +23,19 @@ interface Chord {
   readonly before: string | null | undefined;
 }
 
+/** Text of the next word, or the class of the next element when it is no word. */
+function nextOf(element: HTMLElement): string | null | undefined {
+  const next = element.nextElementSibling;
+  return next?.classList.contains('karaoke-word') === true ? next.textContent : next?.className;
+}
+
 function chords(rig: KaraokeRig, slot: 'previous' | 'current' | 'next'): Chord[] {
   const elements = rig.host.querySelectorAll<HTMLElement>(`.karaoke-line[data-slot="${slot}"] .karaoke-chord`);
   return [...elements].map((c) => ({
-    text: c.firstChild?.textContent ?? '',
+    text: String(c.firstChild?.textContent),
     state: c.dataset.state,
     lead: c.dataset.lead === 'true',
-    before: c.nextElementSibling?.classList.contains('karaoke-word') === true ? c.nextElementSibling.textContent : c.nextElementSibling?.className,
+    before: nextOf(c),
   }));
 }
 
@@ -70,9 +76,9 @@ describe('karaoke chords anchoring', () => {
     const rig = withChords();
     showAt(rig, 15_000);
     expect(chords(rig, 'current').map((c) => [c.text, c.lead, c.before])).toEqual([
-      ['F', true, 'C'],
+      ['F', true, 'karaoke-chord'],
       ['C', false, 'After'],
-    ].map(([text, lead, before]) => [text, lead, before === 'C' ? 'karaoke-chord' : before]));
+    ]);
   });
 
   it('shows no N.C. and no chord after the last line', () => {

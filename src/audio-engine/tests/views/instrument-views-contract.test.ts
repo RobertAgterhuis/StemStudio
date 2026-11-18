@@ -29,8 +29,6 @@ describe('instrument views contract 2.6.0', () => {
   });
 
   it.each([
-    ['setKaraokeChords', (e: AudioEngine) => { e.setKaraokeChords(null); }],
-    ['setChordDisplay', (e: AudioEngine) => { e.setChordDisplay({ capo: 3, showSounding: true }); }],
     ['attachHitLanes', (e: AudioEngine) => { e.attachHitLanes('lanes', [{ timeMs: 0, piece: 'kick', strength: 1 }]); }],
     ['setHitLaneOptions', (e: AudioEngine) => { e.setHitLaneOptions({ lookAheadMs: 2000 }); }],
     ['detachHitLanes', (e: AudioEngine) => { e.detachHitLanes(); }],

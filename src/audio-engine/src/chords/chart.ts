@@ -115,7 +115,7 @@ function checkSegments(segments: unknown): readonly ChordSymbolEvent[] {
 export function prepareChart(chart: ChordChartData): PreparedChart {
   const segments = checkSegments(chart.segments);
   if (chart.keyTonic !== null || chart.keyMode !== null) {
-    checkKey(chart.keyTonic, chart.keyMode ?? 'major');
+    checkKey(chart.keyTonic, chart.keyMode);
   }
   checkRegions(chart.keyRegions ?? []);
   return {

@@ -5,6 +5,7 @@
  *
  * @packageDocumentation
  */
+import type { ChordLayer, ChordLayerFactory } from '../chords/banner';
 import { ballAt, ballTransform, hopHeight, hopProgress, type Point } from './ball';
 import { Cursor } from '../timeline/cursor';
 import { buildBanner, clearBanner, fillSlot, writeData, type BannerDom, type WordState } from './dom';
@@ -26,6 +27,8 @@ export interface KaraokeViewOptions {
   readonly requestFrame: () => void;
   /** Explicit reduced-motion option; undefined follows `prefers-reduced-motion`. */
   readonly reducedMotion?: boolean | undefined;
+  /** Chord symbols above the words (contract 2.6.0), or null. */
+  readonly chords?: ChordLayerFactory | null;
 }
 
 /** Located time: karaoke ms, current line (-1 before the first) and last started word (-1). */
@@ -46,9 +49,11 @@ export class KaraokeView {
   private base = Number.NaN;
   private currentWords: readonly HTMLElement[] = [];
   private last: Frame = { t: 0, line: -1, word: -1 };
+  private chords: ChordLayer | null;
 
-  /** @param options - Host, timeline, countdown gap, clock and frame request. */
+  /** @param options - Host, timeline, countdown gap, clock, frame request and chords. */
   public constructor(private readonly options: KaraokeViewOptions) {
+    this.chords = options.chords?.(options.timeline) ?? null;
     this.dom = buildBanner(options.host);
     this.lines = new Cursor(options.timeline.lineStarts);
     this.words = new Cursor(options.timeline.wordStarts);
@@ -66,13 +71,26 @@ export class KaraokeView {
     this.showSlots(Math.max(frame.line, 0));
     this.paintWords(frame);
     this.writeHost(frame);
+    this.chords?.paint(frame.t, this.options.host);
     this.placeBall(frame);
+  }
+
+  /**
+   * Replaces the chord symbols; the slots are refilled on the next frame.
+   *
+   * @param factory - Layer factory, or null to remove the chords.
+   */
+  public setChords(factory: ChordLayerFactory | null): void {
+    this.chords?.clear(this.options.host);
+    this.chords = factory?.(this.options.timeline) ?? null;
+    this.base = Number.NaN;
   }
 
   /** Removes the banner DOM and stops observing the layout. */
   public dispose(): void {
     this.watcher.dispose();
     this.motion.dispose();
+    this.chords?.clear(this.options.host);
     clearBanner(this.options.host);
   }
 
@@ -110,7 +128,11 @@ export class KaraokeView {
     const { lines } = this.options.timeline;
     const before = fillSlot(previous, lines[base - 1], 'past');
     this.currentWords = fillSlot(current, lines[base], 'future');
-    return [...before, ...this.currentWords, ...fillSlot(next, lines[base + 1], 'future')];
+    const after = fillSlot(next, lines[base + 1], 'future');
+    [previous, current, next].forEach((slot, i) => {
+      this.chords?.decorate(slot, base - 1 + i);
+    });
+    return [...before, ...this.currentWords, ...after];
   }
 
   private measure(): void {

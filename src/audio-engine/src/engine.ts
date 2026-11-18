@@ -199,7 +199,7 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
-    this.views = new InstrumentViews({ context: this.parts.context, transport: this.parts.transport, loop: this.parts.frames, grid: () => this.grid });
+    this.views = new InstrumentViews({ context: this.parts.context, transport: this.parts.transport, loop: this.parts.frames, grid: () => this.grid, karaoke: this.parts.karaoke });
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
     this.recording = this.createRecording(ref, options);
@@ -471,13 +471,13 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.setKaraokeChords} */
   public setKaraokeChords(chart: ChordChartData | null): void {
     this.alive();
-    return pendingView('setKaraokeChords', chart);
+    this.views.setKaraokeChords(chart);
   }
 
   /** {@inheritDoc AudioEngine.setChordDisplay} */
   public setChordDisplay(display: ChordDisplay): void {
     this.alive();
-    return pendingView('setChordDisplay', display);
+    this.views.setChordDisplay(display);
   }
 
   /** {@inheritDoc AudioEngine.attachHitLanes} */
