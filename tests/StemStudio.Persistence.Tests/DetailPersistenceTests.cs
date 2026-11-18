@@ -105,6 +105,42 @@ public sealed class DetailPersistenceTests
     }
 
     [Fact]
+    public async Task IsDetailPhaseCurrent_FalseOnceAnotherContextChangedThePhase()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var track = TestData.CompletedTrack("aaaaaaaaaaa");
+        track.RequestDetail(TestData.T0);
+        var never = TestData.CompletedTrack("bbbbbbbbbbb");
+        await db.SeedAsync(track, never);
+        await using var pass = db.NewContext();
+        var passRepository = new TrackRepository(pass);
+        var loaded = (await passRepository.ListDetailActiveAsync(Ct)).Single();
+        var neverLoaded = (await passRepository.FindAsync(never.Id, Ct))!;
+        var before = await passRepository.IsDetailPhaseCurrentAsync(loaded, Ct);
+
+        await using (var cancel = db.NewContext())
+        {
+            var repository = new TrackRepository(cancel);
+            (await repository.FindAsync(track.Id, Ct))!.CancelDetail(TestData.T0.AddMinutes(1));
+            await repository.SaveAsync(Ct);
+        }
+
+        (before, await passRepository.IsDetailPhaseCurrentAsync(loaded, Ct)).ShouldBe((true, false));
+        (await passRepository.IsDetailPhaseCurrentAsync(neverLoaded, Ct)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task IsDetailPhaseCurrent_FalseForARemovedTrack()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var gone = TestData.CompletedTrack("aaaaaaaaaaa");
+        await using var read = db.NewContext();
+
+        (await new TrackRepository(read).IsDetailPhaseCurrentAsync(gone, Ct)).ShouldBeFalse();
+        await Should.ThrowAsync<ArgumentNullException>(() => new TrackRepository(read).IsDetailPhaseCurrentAsync(null!, Ct));
+    }
+
+    [Fact]
     public async Task MixDetailSettings_RoundTrip()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();

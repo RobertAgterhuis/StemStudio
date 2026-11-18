@@ -32,6 +32,15 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// True when the stored detail phase of <paramref name="track"/> still equals the tracked one: no other unit of work
+    /// changed it since this one loaded the track (a cancel during a synchroniser pass).
+    /// </summary>
+    /// <param name="track">A tracked track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>False when the stored phase differs or the track is gone.</returns>
+    Task<bool> IsDetailPhaseCurrentAsync(Track track, CancellationToken cancellationToken);
+
     /// <summary>Tracks whose online lookup is pending or searching, for the metadata synchroniser (oldest first, feature 005).</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked tracks.</returns>
