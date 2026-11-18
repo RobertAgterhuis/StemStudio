@@ -149,20 +149,20 @@ text, the row wins.
 
 ### backend (tests first)
 
-- [ ] T039 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/InstrumentViews/TrackAnalysisTests.cs`: every transition of data-model 7.2, fingerprint over input stems, `stale` on change, auto rules 7.3, `edits-exist` guard (FR-002, FR-012)
-- [ ] T040 [backend] Implement `Domain/InstrumentViews/{TrackAnalysis,AnalysisRules}.cs` to pass T039
-- [ ] T041 [P] [backend] Failing tests `ChordSpellingTests.cs`, `HarteLabelTests.cs`, `KeyFormatterTests.cs`, `ChordSheetBuilderTests.cs`, `ChordProWriterTests.cs`: all cases of `chord-spelling-vectors.json` (spelling by region key, keys incl. transposed and written keys), Harte parse of the edit pattern, sheet anchoring (word, lead, instrumental rows, no lyrics), ChordPro directives (FR-013, FR-014, FR-016, FR-071..FR-074)
-- [ ] T042 [backend] Implement `HarteLabel`, `ChordSpeller`, `KeyFormatter`, `ChordSheetBuilder`, `ChordProWriter` to pass T041
-- [ ] T043 [P] [backend] Failing tests `CapoAdvisorTests.cs` (S12): `capo` and `capoFixtures` vectors; ranking with the 0.02 tie rule; `fewOpenShapes`; shortcut for transpose +1..+7 and -5..-1 (FR-076, FR-077, SC-011)
-- [ ] T044 [backend] Implement `CapoAdvisor` to pass T043
-- [ ] T045 [P] [backend] Failing tests `InstrumentCatalogueTests.cs`, `FamilyRuleTests.cs`: catalogue content = data-model 4.1-4.3/5.3 and the worker constants; family of every channel id incl. `rest` and unsplit `other` (FR-060)
-- [ ] T046 [backend] Implement `InstrumentCatalogue`, `FamilyRule` to pass T045
-- [ ] T047 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/TrackAnalysesPersistenceTests.cs`: unique `(TrackId, Kind)`, JSON documents round trip (90,000 frames), cascade delete with the track, `Score` JSON with tablature/part facts loads 008 items unchanged
-- [ ] T048 [backend] Implement configuration and migration `AddTrackAnalyses` to pass T047
-- [ ] T049 [P] [backend] Failing tests `Worker/WorkerInstrumentAnalysisClientTests.cs` with the worker examples: create per kind, get with each result type, delete, problems mapped, device parsed
-- [ ] T050 [backend] Implement `Worker/WorkerClient.InstrumentAnalysis.cs` to pass T049
-- [ ] T051 [P] [backend] Failing tests `InstrumentViews/TrackAnalysisServiceTests.cs`: inputs per kind (data-model 7.4), grid handling, estimates (7.7), job applier stores documents and statuses, auto starter on standard completion and drums split, worker 503/restart handling
-- [ ] T052 [backend] Implement `TrackAnalysisService`, `AnalysisKindStrategies`, `AnalysisJobApplier`, `AnalysisAutoStarter` to pass T051
+- [x] T039 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/InstrumentViews/TrackAnalysisTests.cs`: every transition of data-model 7.2, fingerprint over input stems, `stale` on change, auto rules 7.3, `edits-exist` guard (FR-002, FR-012)
+- [x] T040 [backend] Implement `Domain/InstrumentViews/{TrackAnalysis,AnalysisRules}.cs` to pass T039
+- [x] T041 [P] [backend] Failing tests `ChordSpellingTests.cs`, `HarteLabelTests.cs`, `KeyFormatterTests.cs`, `ChordSheetBuilderTests.cs`, `ChordProWriterTests.cs`: all cases of `chord-spelling-vectors.json` (spelling by region key, keys incl. transposed and written keys), Harte parse of the edit pattern, sheet anchoring (word, lead, instrumental rows, no lyrics), ChordPro directives (FR-013, FR-014, FR-016, FR-071..FR-074)
+- [x] T042 [backend] Implement `HarteLabel`, `ChordSpeller`, `KeyFormatter`, `ChordSheetBuilder`, `ChordProWriter` to pass T041
+- [x] T043 [P] [backend] Failing tests `CapoAdvisorTests.cs` (S12): `capo` and `capoFixtures` vectors; ranking with the 0.02 tie rule; `fewOpenShapes`; shortcut for transpose +1..+7 and -5..-1 (FR-076, FR-077, SC-011)
+- [x] T044 [backend] Implement `CapoAdvisor` to pass T043
+- [x] T045 [P] [backend] Failing tests `InstrumentCatalogueTests.cs`, `FamilyRuleTests.cs`: catalogue content = data-model 4.1-4.3/5.3 and the worker constants; family of every channel id incl. `rest` and unsplit `other` (FR-060)
+- [x] T046 [backend] Implement `InstrumentCatalogue`, `FamilyRule` to pass T045
+- [x] T047 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/TrackAnalysesPersistenceTests.cs`: unique `(TrackId, Kind)`, JSON documents round trip (90,000 frames), cascade delete with the track, `Score` JSON with tablature/part facts loads 008 items unchanged
+- [x] T048 [backend] Implement configuration and migration `AddTrackAnalyses` to pass T047
+- [x] T049 [P] [backend] Failing tests `Worker/WorkerInstrumentAnalysisClientTests.cs` with the worker examples: create per kind, get with each result type, delete, problems mapped, device parsed
+- [x] T050 [backend] Implement `Worker/WorkerClient.InstrumentAnalysis.cs` to pass T049
+- [x] T051 [P] [backend] Failing tests `InstrumentViews/TrackAnalysisServiceTests.cs`: inputs per kind (data-model 7.4), grid handling, estimates (7.7), job applier stores documents and statuses, auto starter on standard completion and drums split, worker 503/restart handling
+- [x] T052 [backend] Implement `TrackAnalysisService`, `AnalysisKindStrategies`, `AnalysisJobApplier`, `AnalysisAutoStarter` to pass T051
 
 ### audio-engine (tests first)
 
