@@ -46,6 +46,10 @@ assistant are delivered** (integrated on the round branch `022-023-round` with b
 tool catalogue 1.2.0 and web interop 1.2.0, waiting for the merge to `main`; MoSCoW S13 and S14). Still open in their
 `tasks.md`: the reference-machine lyric evaluation run (023 T068, which decides the LanguageTool question T080), the
 full E2E run and the manual NVDA pass (023 T070, 022 T090/T092).
+**014 Practice flow and 015 Play-along recording are delivered** (integrated on the round branch `014-015-round`,
+2026-11-18, with backend API 1.14.0, worker API 1.8.0, audio engine 2.5.0, web interop 1.1.0 (the 014 key map; the module
+constant is `1.1.0`), UI test ids 1.14.0 and render vectors 1.1.0, waiting for the merge to `main`; MoSCoW S2, S3, S5-S8).
+Still open in their `tasks.md`: the owner checks on the reference machine (014 T105, 015 T089).
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.
