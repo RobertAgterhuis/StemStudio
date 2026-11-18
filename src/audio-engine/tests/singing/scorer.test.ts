@@ -59,8 +59,7 @@ describe('UnitScorer (data-model 3.4)', () => {
   it('follows the 012 transpose: the target moves by 100 cents per semitone', () => {
     const rig = makeScorer();
     rig.state.transpose = 2;
-    sing(rig, { from: 0, to: 1000 }, () => 7100);
-    sing(rig, { from: 1010, to: 2000 }, () => 6900);
+    sing(rig, { from: 0, to: 2000 }, (ms) => (ms < 1000 ? 7100 : 6900));
     expect(rig.scores.map((s) => s.score)).toEqual([100, 0]);
   });
 

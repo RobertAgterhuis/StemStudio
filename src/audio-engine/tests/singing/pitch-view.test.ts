@@ -19,13 +19,13 @@ interface Rig {
   readonly frames: number[];
 }
 
-function makeView(reducedMotion: boolean | undefined = false, reference: Int16Array = REFERENCE): Rig {
+function makeView(motion: { reducedMotion?: boolean } = { reducedMotion: false }, reference: Int16Array = REFERENCE): Rig {
   makeViewRig();
   stubCanvas();
   const host = addHost('pitch-view');
   const state = { transpose: 0 };
   const frames: number[] = [];
-  const view = new PitchView({ host, reference, units: UNITS, latencySource: 'loopback', reducedMotion, transpose: () => state.transpose, requestFrame: () => frames.push(1) });
+  const view = new PitchView({ host, reference, units: UNITS, latencySource: 'loopback', reducedMotion: motion.reducedMotion, transpose: () => state.transpose, requestFrame: () => frames.push(1) });
   return { view, host, state, frames };
 }
 
@@ -71,7 +71,7 @@ describe('pitch view canvas (data-model 3.5)', () => {
 
   it('widens a narrow range to an octave and keeps a wide one', () => {
     const wide = Int16Array.from({ length: 300 }, (_, i) => (i < 150 ? 4800 : 7200));
-    const rig = makeView(false, wide);
+    const rig = makeView({ reducedMotion: false }, wide);
     const bars = drawn(rig, 1500).filter((p) => p.op === 'roundRect');
     // 4800 - 300 .. 7200 + 300 = 4500..7500: 4800 at y = 120 * (1 - 300 / 3000) - 3
     expect(round([Number(bars[0]?.args[1])])).toEqual([105]);
@@ -154,7 +154,7 @@ describe('pitch view host attributes', () => {
 
 describe('pitch view motion and layout', () => {
   it('pages every 6 s with reduced motion; the now line moves inside the page', () => {
-    const rig = makeView(true);
+    const rig = makeView({ reducedMotion: true });
     const at = (t: number): number[] => round(drawn(rig, t).filter((p) => p.op === 'moveTo').at(-1)?.args ?? []);
     expect(at(7000)).toEqual([133.33, 0]);
     expect(at(11_000)).toEqual([666.67, 0]);
@@ -163,7 +163,7 @@ describe('pitch view motion and layout', () => {
 
   it('follows prefers-reduced-motion by default', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-    const rig = makeView(undefined);
+    const rig = makeView({});
     expect(round(drawn(rig, 7000).filter((p) => p.op === 'moveTo').at(-1)?.args ?? [])).toEqual([133.33, 0]);
   });
 

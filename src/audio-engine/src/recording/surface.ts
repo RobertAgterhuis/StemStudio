@@ -161,6 +161,17 @@ export class Recording implements RecordingSurface {
     return this.recorder.busy;
   }
 
+  /** The open input for the singing feedback (contract 2.6.0): selected-channel node and description, or null. */
+  public get singingInput(): { readonly node: AudioNode; readonly info: InputInfo } | null {
+    const { node, info } = this.input;
+    return node === null || info === null ? null : { node, info };
+  }
+
+  /** The page's media facilities (worklet node factory). */
+  public get environment(): MediaEnvironment {
+    return this.env;
+  }
+
   /** Meter tap of the open input. */
   public get inputAnalyser(): AnalyserNode | undefined {
     return this.input.analyser;

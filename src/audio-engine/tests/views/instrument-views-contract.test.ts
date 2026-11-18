@@ -29,18 +29,9 @@ describe('instrument views contract 2.6.0', () => {
     expect(callbacks).toHaveLength(2);
   });
 
-  it.each([
-    ['getRoundTripLatency', (e: AudioEngine) => { e.getRoundTripLatency(); }],
-    ['setSingingTolerance', (e: AudioEngine) => { e.setSingingTolerance(50); }],
-    ['stopSingingFeedback', (e: AudioEngine) => { e.stopSingingFeedback(); }],
-  ])('%s throws the pending error until the lane builds it', (name, call) => {
-    expect(() => { call(engine()); }).toThrow(`${name}: ${PENDING_VIEWS_MESSAGE}`);
-  });
-
   it('rejects the async 2.6.0 methods with the pending error', async () => {
     const subject = engine();
 
-    await expect(subject.startSingingFeedback({ pitchViewElementId: 'pv', reference, units, toleranceCents: 100 })).rejects.toThrow(PENDING_VIEWS_MESSAGE);
     await expect(subject.scoreTake({ takeUrl: '/t', startSample: 0, reference, units, toleranceCents: 50 })).rejects.toThrow(PENDING_VIEWS_MESSAGE);
   });
 

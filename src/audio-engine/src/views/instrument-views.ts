@@ -9,11 +9,15 @@ import { bannerChords } from '../chords/banner';
 import { ChordDisplayState } from '../chords/display';
 import { ChordLane } from '../chords/lane';
 import { HitLanes } from '../drums/hit-lanes';
+import { singingNotifier } from '../callbacks';
 import type { FrameLoop } from '../frame-loop';
 import type { Karaoke } from '../karaoke/index';
+import type { WorkletNodeCreator } from '../recording/environment';
+import { SingingFeedback, type OpenInput } from '../singing/feedback';
+import { LiveSession } from '../singing/session';
 import { TimelineClock } from '../timeline/clock';
 import type { Transport } from '../transport';
-import type { BeatGrid, ChordChartData, ChordDisplay, ChordLaneOptions, DrumHitEvent, HitLaneOptions } from '../types';
+import type { BeatGrid, ChordChartData, ChordDisplay, ChordLaneOptions, DotNetObjectReference, DrumHitEvent, HitLaneOptions, RoundTripLatency, SingingFeedbackRequest, SingingSummary } from '../types';
 
 /** Construction parameters of {@link InstrumentViews}. */
 export interface InstrumentViewsDeps {
@@ -27,6 +31,14 @@ export interface InstrumentViewsDeps {
   readonly grid: () => BeatGrid | null;
   /** The karaoke banner (chord symbols above its words). */
   readonly karaoke: Karaoke;
+  /** .NET object receiving the singing callbacks. */
+  readonly ref: DotNetObjectReference;
+  /** The open 015 input, or null. */
+  readonly input: () => OpenInput | null;
+  /** `new AudioWorkletNode(...)` of the page (the recording environment). */
+  readonly createNode: WorkletNodeCreator;
+  /** Pitch worklet module URL (`EngineOptions.pitchWorkletUrl`). */
+  readonly pitchWorkletUrl?: string | undefined;
 }
 
 /** Chord views and their shared display state. */
@@ -35,6 +47,8 @@ export class InstrumentViews {
   private readonly lane: ChordLane;
   private readonly karaoke: Karaoke;
   private readonly hitLanes: HitLanes;
+  private readonly singing: SingingFeedback;
+  private live: LiveSession | null = null;
 
   /** @param deps - Context, transport, frame loop, grid and karaoke banner. */
   public constructor(deps: InstrumentViewsDeps) {
@@ -49,6 +63,12 @@ export class InstrumentViews {
     this.hitLanes = new HitLanes({ loop, clock, playing, grid });
     transport.addListener(this.lane);
     transport.addListener(this.hitLanes);
+    this.singing = this.createSinging(deps, clock);
+    transport.addListener({
+      onStateChanged: (state) => this.live?.onStateChanged(state),
+      onReposition: () => this.live?.onReposition(),
+      onTimingChanged: () => this.live?.onTimingChanged(),
+    });
   }
 
   /** {@inheritDoc AudioEngine.attachChordLane} */
@@ -76,6 +96,31 @@ export class InstrumentViews {
     this.hitLanes.detach();
   }
 
+  /** {@inheritDoc AudioEngine.getRoundTripLatency} */
+  public getRoundTripLatency(): RoundTripLatency {
+    return this.singing.roundTrip();
+  }
+
+  /** {@inheritDoc AudioEngine.startSingingFeedback} */
+  public startSingingFeedback(request: SingingFeedbackRequest): Promise<void> {
+    return this.singing.start(request);
+  }
+
+  /** {@inheritDoc AudioEngine.setSingingTolerance} */
+  public setSingingTolerance(cents: number): void {
+    this.singing.setTolerance(cents);
+  }
+
+  /** {@inheritDoc AudioEngine.stopSingingFeedback} */
+  public stopSingingFeedback(): SingingSummary {
+    return this.singing.stop();
+  }
+
+  /** A seek or stop: the singing feedback discards its partial unit. */
+  public seeked(): void {
+    this.singing.reposition();
+  }
+
   /** {@inheritDoc AudioEngine.setKaraokeChords} */
   public setKaraokeChords(chart: ChordChartData | null): void {
     this.karaoke.setChords(chart === null ? null : bannerChords(chart, this.display));
@@ -101,5 +146,22 @@ export class InstrumentViews {
   public dispose(): void {
     this.lane.detach();
     this.hitLanes.detach();
+    this.singing.dispose();
+  }
+
+  private createSinging(deps: InstrumentViewsDeps, clock: TimelineClock): SingingFeedback {
+    const { context, transport, loop } = deps;
+    const playing = (): boolean => transport.state === 'playing';
+    const transpose = (): number => this.display.transpose;
+    return new SingingFeedback({
+      context,
+      createNode: deps.createNode,
+      input: deps.input,
+      ...(deps.pitchWorkletUrl === undefined ? {} : { workletUrl: deps.pitchWorkletUrl }),
+      positionAtMs: (time) => clock.positionAtMs(time),
+      playing,
+      notify: singingNotifier(deps.ref),
+      session: (spec) => (this.live = new LiveSession(spec, { loop, clock, playing, transpose })),
+    });
   }
 }

@@ -199,7 +199,7 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
-    this.views = new InstrumentViews({ context: this.parts.context, transport: this.parts.transport, loop: this.parts.frames, grid: () => this.grid, karaoke: this.parts.karaoke });
+    this.views = this.createViews(ref, options);
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
     this.recording = this.createRecording(ref, options);
@@ -250,6 +250,7 @@ export class Engine implements AudioEngine {
     this.alive();
     this.parts.transport.stop();
     this.parts.passes.reset();
+    this.views.seeked();
   }
 
   /** {@inheritDoc AudioEngine.seek} */
@@ -259,6 +260,7 @@ export class Engine implements AudioEngine {
     const max = this.parts.transport.duration;
     this.parts.transport.seek(clampChecked(seconds, { min: 0, max, name: 'position' }));
     this.parts.passes.reset();
+    this.views.seeked();
   }
 
   /** {@inheritDoc AudioEngine.getPosition} */
@@ -501,26 +503,25 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.getRoundTripLatency} */
   public getRoundTripLatency(): RoundTripLatency {
     this.alive();
-    return pendingView('getRoundTripLatency');
+    return this.views.getRoundTripLatency();
   }
 
   /** {@inheritDoc AudioEngine.setSingingTolerance} */
   public setSingingTolerance(cents: number): void {
     this.alive();
-    return pendingView('setSingingTolerance', cents);
+    this.views.setSingingTolerance(cents);
   }
 
   /** {@inheritDoc AudioEngine.stopSingingFeedback} */
   public stopSingingFeedback(): SingingSummary {
     this.alive();
-    return pendingView('stopSingingFeedback');
+    return this.views.stopSingingFeedback();
   }
 
   /** {@inheritDoc AudioEngine.startSingingFeedback} */
   public async startSingingFeedback(request: SingingFeedbackRequest): Promise<void> {
     this.alive();
-    await Promise.resolve();
-    pendingView('startSingingFeedback', request);
+    await this.views.startSingingFeedback(request);
   }
 
   /** {@inheritDoc AudioEngine.scoreTake} */
@@ -547,6 +548,21 @@ export class Engine implements AudioEngine {
       part.dispose();
     });
     await context.close();
+  }
+
+  private createViews(ref: DotNetObjectReference, options: EngineOptions): InstrumentViews {
+    const { context, transport, frames, karaoke } = this.parts;
+    return new InstrumentViews({
+      context,
+      transport,
+      loop: frames,
+      karaoke,
+      ref,
+      grid: () => this.grid,
+      input: () => this.recording.singingInput,
+      createNode: (ctx, name, nodeOptions) => this.recording.environment.createWorkletNode(ctx, name, nodeOptions),
+      pitchWorkletUrl: options.pitchWorkletUrl,
+    });
   }
 
   private createPractice(options: EngineOptions): PracticeController {

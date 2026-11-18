@@ -47,6 +47,10 @@ export interface SingingSession {
   frame(songMs: number, cents: number | null): void;
   /** New tolerance for the current and later units. */
   setTolerance(cents: number): void;
+  /** The feedback's state (the view's `data-state`). */
+  setState(state: SingingState): void;
+  /** A seek: the partial unit is discarded. */
+  reposition(): void;
   /** Summary without the latency source. */
   summary(): Omit<SingingSummary, 'latencySource'>;
   /** Stops following the song; the view keeps its last window. */
@@ -176,6 +180,14 @@ export class SingingFeedback {
     return this.running?.latency ?? this.estimate();
   }
 
+  /** A seek or stop of the transport: the running session discards its partial unit. */
+  public reposition(): void {
+    if (this.running !== null) {
+      this.running.median.length = 0;
+      this.running.session.reposition();
+    }
+  }
+
   /** Stops a running feedback and removes the view (engine disposal). */
   public dispose(): void {
     if (this.running !== null) {
@@ -300,6 +312,7 @@ export class SingingFeedback {
 
   private setState(state: SingingState, reason: string | null): void {
     this.current = state;
+    this.session?.setState(state);
     this.deps.notify.state(state, reason);
   }
 }

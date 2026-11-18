@@ -29,8 +29,19 @@ class FakeSession implements SingingSession {
     this.frames.push([songMs, cents]);
   }
 
+  public readonly states: SingingState[] = [];
+  public repositions = 0;
+
   public setTolerance(cents: number): void {
     this.tolerance = cents;
+  }
+
+  public setState(state: SingingState): void {
+    this.states.push(state);
+  }
+
+  public reposition(): void {
+    this.repositions += 1;
   }
 
   public summary(): Omit<SingingSummary, 'latencySource'> {
@@ -293,5 +304,17 @@ describe('getRoundTripLatency', () => {
   it('a null roundTripMs uses the input estimate (1323 samples = 30 ms)', async () => {
     await rig.feedback.start({ ...REQUEST, roundTripMs: null, latencyMethod: 'loopback' });
     expect(rig.feedback.roundTrip()).toEqual({ ms: 30, source: 'estimated' });
+  });
+});
+
+describe('session state and seeks', () => {
+  it('hands the state to the session and forwards seeks to the running session only', async () => {
+    rig.feedback.reposition();
+    await rig.feedback.start(REQUEST);
+    rig.feedback.reposition();
+    rig.feedback.stop();
+    rig.feedback.reposition();
+    expect(rig.sessions[0]?.states).toEqual(['running', 'stopped']);
+    expect(rig.sessions[0]?.repositions).toBe(1);
   });
 });
