@@ -35,7 +35,7 @@ Decisions (no contract change):
 
 ## Tests and coverage
 
-`tests/analysis/structure/` (73 tests): `test_features.py`, `test_novelty_boundaries.py`, `test_clusters_labels.py`,
+`tests/analysis/structure/` (74 tests): `test_features.py`, `test_novelty_boundaries.py`, `test_clusters_labels.py`,
 `test_synthetic_songs.py` (the 6 forms of R-10 generated in-test by `songs.py`), `test_names.py`, `test_fake.py`.
 Results on the 6-form set: every special section right (guitar, piano, bass, woodwinds solo with the instrument,
 bridge, drums break as instrumental: 6/6), boundaries exact or one bar off (recall and precision 1.0 within one

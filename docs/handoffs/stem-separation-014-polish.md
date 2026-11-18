@@ -23,7 +23,7 @@
 ## Tests and coverage
 
 `tests/api/test_section_routes.py` (19), `test_score_view_routes.py` (11), `test_setlist_document_routes.py` (9),
-`test_practice_service.py` (6), `test_practice_health.py` (3), `tests/jobs/test_practice_lane_store.py` (11),
+`test_practice_service.py` (6), `test_practice_health.py` (3), `tests/jobs/test_practice_lane_store.py` (10),
 `tests/render/test_take_conversion.py` (3); responses checked against the 1.8.0 document (`assert_conforms`).
 Worker: **2754 passed**, 3 skipped, 10 integration deselected; **line 100 %, branch 100 %** (11,811 statements,
 1,350 branches).

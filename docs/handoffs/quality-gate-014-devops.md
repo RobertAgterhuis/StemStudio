@@ -48,3 +48,23 @@ none (developer tooling)
 ## Next owner
 
 Orchestrator / L4 (refactor of the four files), CTO T102 integration run.
+
+## HO:polish addendum (after merging checkpoint head 136cbc8b)
+
+`run_all.py` on the merged tree: **FAIL, 10 errors** (all `[parameters]` hard limit, more than 4 parameters, in
+test helpers of other lanes), 431 clones (jscpd ran), 1819 warnings. Refactor requests (use a parameter object,
+a record builder or `with` expressions):
+
+| Owner | File:line | Unit |
+|---|---|---|
+| L3 backend 014 | `tests/StemStudio.Api.Tests/Practice/PracticeEndpointsTests.cs:19` | `Session` (5) |
+| L3 backend 014 | `tests/StemStudio.Api.Tests/Sections/ReplaceSectionsTests.cs:14` | `Input` (6) |
+| L3 backend 014 | `tests/StemStudio.Domain.Tests/Practice/PracticeRulesTests.cs:22` | `Part` (5) |
+| L3 backend 014 | `tests/StemStudio.Domain.Tests/Sections/SectionRulesTests.cs:14, 24, 239` | `Input` (6), `Found` (5), `AnyChangeOfKindLabelBoundsOrInstrument_MakesAUserSection` (5) |
+| L4 backend 015 | `tests/StemStudio.Api.Tests/Recording/ReplaceTakeAudioEndpointTests.cs:32` | `ReplaceAsync` (5) |
+| L4 backend 015 | `tests/StemStudio.Domain.Tests/Recording/TakeWavReaderTests.cs:87` | `OtherFormats_AreUnsupported_WithTheField` (5) |
+| L4 backend 015 | `tests/StemStudio.Domain.Tests/Recording/TestWav.cs:29` | `Fmt` (5) |
+| L4 backend 015 | `tests/StemStudio.Persistence.Tests/RecordingPersistenceTests.cs:44` | `Take` (5) |
+
+The L2 files have no error and no new production clone; `dependency_check` on the merged tree: 0 errors (the
+015 T007 rule holds after the L4 fix).
