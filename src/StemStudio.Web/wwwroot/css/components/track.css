@@ -298,6 +298,7 @@ select.ss-select {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--ss-space-1);
+  max-width: 100%;
 }
 
 .ss-icon-only.rz-button {

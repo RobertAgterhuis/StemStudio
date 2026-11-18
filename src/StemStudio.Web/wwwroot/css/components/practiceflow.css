@@ -4,7 +4,11 @@
 .ss-sections {
   display: flex;
   flex-direction: column;
+  flex-wrap: nowrap;
+  /* Stretch, not the panel's centre: centred column items take their max-content width and overflow at 320 px. */
+  align-items: stretch;
   gap: var(--ss-space-2);
+  min-width: 0;
 }
 
 .ss-section-lane {
@@ -173,6 +177,22 @@
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--ss-space-1);
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Long labels ("Add <mix name> to setlist", section navigation) wrap instead of widening the page at 320 px (WCAG 1.4.10). */
+.ss-add-to-setlist .rz-button,
+.ss-section-nav .rz-button {
+  max-width: 100%;
+  height: auto;
+}
+
+.ss-add-to-setlist .rz-button-text,
+.ss-section-nav .rz-button-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
 }
 
 .ss-link-button {
