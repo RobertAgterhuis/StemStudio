@@ -151,7 +151,8 @@ public sealed class RecordingInteropTests : IAsyncDisposable
         await _recording.CalibrateLatencyAsync(new CalibrationOptions(Clicks: 8, Seed: 7));
 
         var calls = _engine.Invocations.Where(i => i.Identifier == "calibrateLatency").ToList();
-        Json(calls[0].Arguments[0]).ShouldBe("""{"clicks":null,"seed":null}""");
+        // Unset options are left out: the engine defaults only undefined values and rejects clicks: null (r14 E2E).
+        Json(calls[0].Arguments[0]).ShouldBe("{}");
         Json(calls[1].Arguments[0]).ShouldBe("""{"clicks":8,"seed":7}""");
     }
 

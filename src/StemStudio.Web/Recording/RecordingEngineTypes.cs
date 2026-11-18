@@ -101,9 +101,11 @@ public sealed record InputInfo(
 public sealed record MonitoringSettings(bool Enabled, double Volume);
 
 /// <summary>Options of <c>calibrateLatency</c>.</summary>
-/// <param name="Clicks">6..12 clicks, or null for the default 8.</param>
-/// <param name="Seed">PRNG seed (tests), or null.</param>
-public sealed record CalibrationOptions(int? Clicks = null, int? Seed = null);
+/// <param name="Clicks">6..12 clicks, or null for the default 8 (left out of the JSON: the engine rejects null).</param>
+/// <param name="Seed">PRNG seed (tests), or null (left out of the JSON).</param>
+public sealed record CalibrationOptions(
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Clicks = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Seed = null);
 
 /// <summary>Result of <c>calibrateLatency</c> (data-model 3.4).</summary>
 /// <param name="Ok">True when measured.</param>
