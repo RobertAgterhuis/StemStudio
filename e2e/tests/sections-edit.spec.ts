@@ -21,9 +21,9 @@ test.use({ storageState: expertState });
 
 test.beforeEach(async ({ playwright }) => {
   test.setTimeout(fakeJobTimeoutMs + 120_000);
-  requireDetectOnComplete(true);
   context = await playwright.request.newContext({ baseURL: apiBaseUrl });
   flow = new PracticeFlowApi(context);
+  requireDetectOnComplete(true); // after the context: afterEach disposes it also when this skips
 });
 
 test.afterEach(async () => {

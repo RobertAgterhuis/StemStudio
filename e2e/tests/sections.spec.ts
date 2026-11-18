@@ -1,7 +1,7 @@
 import type { APIRequestContext, Page } from '@playwright/test';
 import type { MixerPage } from '../pages/mixer-page';
 import { SectionLane } from '../pages/section-lane';
-import type { StemStudioApi } from '../support/api';
+import type { StemStudioApi, TrackDto } from '../support/api';
 import { fakeStems } from '../support/detail';
 import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
 import { expectLoop } from '../support/expert-flow';
@@ -175,13 +175,31 @@ test.describe('looping and moving between sections (014 US1)', { tag: '@practice
   });
 });
 
+/**
+ * The click track without sections: the default pass imported it with detection on, so on this detect-off stack it is
+ * deleted and imported again when it already has sections.
+ */
+async function trackWithoutSections(api: StemStudioApi): Promise<TrackDto> {
+  const track = await api.ensureCompleted(clickFixture, fakeJobTimeoutMs);
+  if ((await flow.sections(track.id)).status === 'none') {
+    return track;
+  }
+
+  const deleted = await api.deleteTrack(track.id);
+  if (deleted >= 300) {
+    throw new Error(`deleting the click track answered ${String(deleted)}`);
+  }
+
+  return api.ensureCompleted(clickFixture, fakeJobTimeoutMs);
+}
+
 test.describe('tracks without sections (014 US1 scenario 4)', { tag: '@practice-flow' }, () => {
   test.beforeEach(() => {
     requireDetectOnComplete(false);
   });
 
   test('opening the mixer of a track without sections starts detection and fills the lane', async ({ api, mixer, page }) => {
-    const track = await api.ensureCompleted(clickFixture, fakeJobTimeoutMs);
+    const track = await trackWithoutSections(api);
     expect((await flow.sections(track.id)).status).toBe('none');
     const lane = new SectionLane(page);
 
