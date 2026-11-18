@@ -24,12 +24,23 @@ import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
+import { pendingView } from './views/pending';
 import type {
   AudioEngine,
   BeatGrid,
   CalibrationOptions,
   CalibrationResult,
   CapturedTake,
+  ChordChartData,
+  ChordDisplay,
+  ChordLaneOptions,
+  DrumHitEvent,
+  HitLaneOptions,
+  RoundTripLatency,
+  SingingFeedbackRequest,
+  SingingSummary,
+  TakeScoreRequest,
+  TakeScoreResult,
   ChannelId,
   ChannelSettings,
   DotNetObjectReference,
@@ -438,6 +449,80 @@ export class Engine implements AudioEngine {
   public setTakeCompare(mode: TakeCompareMode): void {
     this.alive();
     this.recording.setTakeCompare(mode);
+  }
+
+  /** {@inheritDoc AudioEngine.attachChordLane} */
+  public attachChordLane(elementId: string, chart: ChordChartData, options?: ChordLaneOptions): void {
+    this.alive();
+    return pendingView('attachChordLane', elementId, chart, options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachChordLane} */
+  public detachChordLane(): void {
+    this.alive();
+    return pendingView('detachChordLane');
+  }
+
+  /** {@inheritDoc AudioEngine.setKaraokeChords} */
+  public setKaraokeChords(chart: ChordChartData | null): void {
+    this.alive();
+    return pendingView('setKaraokeChords', chart);
+  }
+
+  /** {@inheritDoc AudioEngine.setChordDisplay} */
+  public setChordDisplay(display: ChordDisplay): void {
+    this.alive();
+    return pendingView('setChordDisplay', display);
+  }
+
+  /** {@inheritDoc AudioEngine.attachHitLanes} */
+  public attachHitLanes(elementId: string, hits: readonly DrumHitEvent[], options?: HitLaneOptions): void {
+    this.alive();
+    return pendingView('attachHitLanes', elementId, hits, options);
+  }
+
+  /** {@inheritDoc AudioEngine.setHitLaneOptions} */
+  public setHitLaneOptions(options: HitLaneOptions): void {
+    this.alive();
+    return pendingView('setHitLaneOptions', options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachHitLanes} */
+  public detachHitLanes(): void {
+    this.alive();
+    return pendingView('detachHitLanes');
+  }
+
+  /** {@inheritDoc AudioEngine.getRoundTripLatency} */
+  public getRoundTripLatency(): RoundTripLatency {
+    this.alive();
+    return pendingView('getRoundTripLatency');
+  }
+
+  /** {@inheritDoc AudioEngine.setSingingTolerance} */
+  public setSingingTolerance(cents: number): void {
+    this.alive();
+    return pendingView('setSingingTolerance', cents);
+  }
+
+  /** {@inheritDoc AudioEngine.stopSingingFeedback} */
+  public stopSingingFeedback(): SingingSummary {
+    this.alive();
+    return pendingView('stopSingingFeedback');
+  }
+
+  /** {@inheritDoc AudioEngine.startSingingFeedback} */
+  public async startSingingFeedback(request: SingingFeedbackRequest): Promise<void> {
+    this.alive();
+    await Promise.resolve();
+    pendingView('startSingingFeedback', request);
+  }
+
+  /** {@inheritDoc AudioEngine.scoreTake} */
+  public async scoreTake(request: TakeScoreRequest): Promise<TakeScoreResult> {
+    this.alive();
+    await Promise.resolve();
+    return pendingView('scoreTake', request);
   }
 
   /** {@inheritDoc AudioEngine.dispose} */

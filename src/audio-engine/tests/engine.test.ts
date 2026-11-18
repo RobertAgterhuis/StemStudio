@@ -38,7 +38,7 @@ async function loaded(): Promise<Rig> {
 
 describe('module exports', () => {
   it('exposes the contract version', () => {
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.5.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.6.0');
   });
 });
 

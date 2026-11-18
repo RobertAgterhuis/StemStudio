@@ -11,7 +11,7 @@
   "main": "../StemStudio.Web/wwwroot/js/audio-engine.js",
   "types": "src/index.ts",
   "scripts": {
-    "build": "vite build && vite build --config vite.processor.config.ts && vite build --config vite.capture.config.ts",
+    "build": "vite build && vite build --config vite.processor.config.ts && vite build --config vite.capture.config.ts && vite build --config vite.pitch.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

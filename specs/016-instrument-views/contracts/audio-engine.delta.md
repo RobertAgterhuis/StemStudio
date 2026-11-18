@@ -1,6 +1,6 @@
 # Contract delta: Audio engine JS interop 2.6.0 (feature 016, draft, additive)
 
-Status: **draft delta** (016 planning, 2026-11-16). Base: engine **2.5.0** (015, written in
+Status: **merged** into `audio-engine.md` **2.6.0** (016 Phase 0 T004, 2026-11-18; reconciliation table there; `scoreTake` takes one `TakeScoreRequest`, the worklet file is `audio-engine-pitch-worklet.js`, latency sources are the 015 `LatencyMethod`). Planning text (2026-11-16) below. Base: engine **2.5.0** (015, written in
 parallel; on `main` the last full document is 2.1.0 in
 [006](../../006-synced-lyrics-karaoke/contracts/audio-engine.md)). In Phase 0 (T004) the
 architect merges this delta into `specs/016-instrument-views/contracts/audio-engine.md` **2.6.0**
