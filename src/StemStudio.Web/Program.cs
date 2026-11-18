@@ -35,6 +35,7 @@ builder.Services.AddScoped<HelpContext>();
 builder.Services.AddScoped<PageCommands>();
 builder.Services.AddScoped<ShellOverlays>();
 builder.Services.AddScoped<KaraokePreferences>();
+builder.Services.AddScoped<StemStudio.Web.InstrumentViews.InstrumentCatalogueCache>();
 builder.Services.AddScoped<GenerationStatusSource>();
 builder.Services.AddScoped<NavigationUiTools>();
 builder.Services.AddScoped<AgentUiToolHost>();

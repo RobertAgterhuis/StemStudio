@@ -1,5 +1,4 @@
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
 using StemStudio.Web.Api;
 using StemStudio.Web.InstrumentViews;
 using StemStudio.Web.Tests.Fakes;
@@ -18,8 +17,8 @@ public sealed class InstrumentCatalogueCacheTests
         _api.GetInstrumentCatalogueAsync(Arg.Any<CancellationToken>()).Returns(catalogue);
         var cache = new InstrumentCatalogueCache(_api);
 
-        (await cache.GetAsync()).ShouldBeSameAs(catalogue);
-        (await cache.GetAsync()).ShouldBeSameAs(catalogue);
+        (await cache.GetAsync(TestContext.Current.CancellationToken)).ShouldBeSameAs(catalogue);
+        (await cache.GetAsync(TestContext.Current.CancellationToken)).ShouldBeSameAs(catalogue);
 
         await _api.Received(1).GetInstrumentCatalogueAsync(Arg.Any<CancellationToken>());
         cache.Current.ShouldBeSameAs(catalogue);
@@ -33,8 +32,8 @@ public sealed class InstrumentCatalogueCacheTests
             _ => throw new ApiException(ApiError.Unreachable), _ => Task.FromResult(catalogue));
         var cache = new InstrumentCatalogueCache(_api);
 
-        await Should.ThrowAsync<ApiException>(() => cache.GetAsync());
+        await Should.ThrowAsync<ApiException>(() => cache.GetAsync(TestContext.Current.CancellationToken));
         cache.Current.ShouldBeNull();
-        (await cache.GetAsync()).ShouldBeSameAs(catalogue);
+        (await cache.GetAsync(TestContext.Current.CancellationToken)).ShouldBeSameAs(catalogue);
     }
 }
