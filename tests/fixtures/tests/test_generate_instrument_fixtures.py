@@ -62,7 +62,9 @@ def test_reference_notes_follow_the_beat_grid() -> None:
     assert notes[-1]["endSeconds"] <= gen.SECONDS
 
 
-@pytest.mark.parametrize(("name", "offset_cents"), [("sing-on-pitch.wav", -1200), ("sing-semitone-off.wav", -1100)])
+@pytest.mark.parametrize(
+    ("name", "offset_cents"), [("sing-on-pitch.wav", -1200), ("sing-semitone-off.wav", -1100)]
+)
 def test_sung_notes_sit_at_the_reference_plus_offset(
     generated: tuple[Path, dict[str, Any]], name: str, offset_cents: int
 ) -> None:
