@@ -159,3 +159,39 @@ def test_the_chord_model_store_keeps_weights_below_model_dir_harmony(tmp_path: P
     assert store.path(BTC_MAJMIN_WEIGHTS) == tmp_path / "harmony" / "btc-majmin" / "btc_model.pt"
     assert store.path(BTC_LARGE_VOCA_WEIGHTS).name == "btc_model_large_voca.pt"
     assert not store.ready(BTC_MAJMIN_WEIGHTS)
+
+
+def test_a_fake_worker_composes_the_fake_analyses(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient  # noqa: PLC0415
+
+    from stemstudio_worker.main import create_app  # noqa: PLC0415
+
+    settings = WorkerSettings(data_dir=tmp_path, separator="fake", model_dir=tmp_path / "m")
+    with TestClient(create_app(settings)) as client:
+        service = client.app.state.runtime.lanes.instrument_analysis  # type: ignore[attr-defined]
+        parts = service.parts
+
+    assert isinstance(parts.chords, FakeChordAnalyzer)
+    assert isinstance(parts.pitch, FakePitchAnalyzer)
+
+
+def test_the_idle_hook_releases_the_btc_models(tmp_path: Path) -> None:
+    from stemstudio_worker.main import _GpuModels  # noqa: PLC0415
+
+    released: list[str] = []
+
+    class Model:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def release(self) -> None:
+            released.append(self.name)
+
+    class Devices:
+        def release(self) -> None:
+            released.append("devices")
+
+    models = _GpuModels(object(), Model("aligner"), Model("btc"))
+    models.idle_release(Devices())()  # type: ignore[arg-type]
+
+    assert released == ["aligner", "btc", "devices"]
