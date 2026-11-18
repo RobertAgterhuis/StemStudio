@@ -1,10 +1,11 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Web.InstrumentViews;
 
 namespace StemStudio.Web.Mixer;
 
 /// <summary>What a preset changed, to be sent to the engine exactly like manual changes.</summary>
-/// <param name="Channels">The settings of every standard channel after the preset.</param>
+/// <param name="Channels">The settings of every channel the preset changed (standard channels; play-along presets also every detail channel).</param>
 /// <param name="Metronome">New metronome settings, or <see langword="null"/> when the preset leaves the click alone.</param>
 public sealed record PresetResult(IReadOnlyList<ChannelSettingsDto> Channels, MetronomeSettingsDto? Metronome);
 
@@ -18,7 +19,7 @@ public sealed record PresetResult(IReadOnlyList<ChannelSettingsDto> Channels, Me
 /// <param name="Apply">Changes the state and returns what the engine must receive.</param>
 public sealed record PracticePreset(string Id, string Label, Func<MixerState, bool> IsAvailable, Func<MixerState, PresetResult> Apply);
 
-/// <summary>The practice presets: play along per instrument, karaoke, focus on vocals and reset.</summary>
+/// <summary>The practice presets: play along per instrument (whole family, 016 DELTA 6), karaoke, focus on vocals and reset.</summary>
 public static class PracticePresets
 {
     /// <summary>Every preset in display order.</summary>
@@ -50,15 +51,12 @@ public static class PracticePresets
 
     private static bool Has(MixerState state, string stem) => state.Channels.Any(c => c.Stem == stem);
 
+    // 016 DELTA 6: the whole family of the stem is muted, detail channels of expanded or collapsed parents included.
     private static PresetResult PlayAlongApply(MixerState state, string stem, bool click)
     {
-        foreach (var channel in state.Channels)
-        {
-            Set(state, channel, mute: channel.Stem == stem, solo: false);
-        }
-
+        var channels = FamilyMixService.MinusOne(state, InstrumentFamilies.FamilyOfChannel(stem)!.Value);
         var metronome = click ? state.SetMetronome(state.Metronome with { Enabled = true }) : null;
-        return new PresetResult(Settle(state), metronome);
+        return new PresetResult(channels, metronome);
     }
 
     private static PresetResult Single(MixerState state, string stem, bool mute)
