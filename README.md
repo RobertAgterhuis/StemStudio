@@ -350,8 +350,10 @@ in the environment. Without it a generic User-Agent without personal data is use
 - Website: [`tools/site/`](tools/site/) generates [`site/`](site/) into `site/dist`;
   [`.github/workflows/pages.yml`](.github/workflows/pages.yml) deploys it to GitHub Pages on every
   push to `main`, and `node tools/site/check.mjs` (test-all and CI) validates it.
-- CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml); SonarQube settings in
-  `sonar-project.properties` (the analysis runs only when a `SONAR_TOKEN` secret is configured).
+- CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). The quality gates are local: the
+  SIG check in [`tools/quality/`](tools/quality/), coverage, linters and type checkers. The
+  project uses no SonarQube or Sigrid
+  ([ADR-038](docs/decisions/ADR-038-no-sonarqube-sigrid.md)).
 
 The project was built with GitHub Spec Kit: the constitution, specification, plan and tasks are
 in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and

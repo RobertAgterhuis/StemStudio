@@ -1,7 +1,7 @@
 """Licence records of vendored third-party code (features 002 and 008).
 
-The vendor folders are excluded from the unit metrics, duplication, the dependency graph and
-Sonar (``common.EXCLUDED_PATHS``), so this check makes sure each vendored package still carries
+The vendor folders are excluded from the unit metrics, duplication and the dependency graph
+(``common.EXCLUDED_PATHS``), so this check makes sure each vendored package still carries
 its licence: every directory directly below a vendor root must contain a ``LICENSE`` file
 (``LICENCE`` and ``COPYING`` are accepted, any extension, any case) and a ``NOTICE`` file that
 records origin, version and modifications.

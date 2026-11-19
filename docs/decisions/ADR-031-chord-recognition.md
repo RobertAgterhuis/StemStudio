@@ -1,7 +1,6 @@
 # ADR-031: Chord recognition model, chord chart, song key and capo mode (feature 016)
 
-- **Status**: Proposed (architect, 016 planning, 2026-11-16); becomes Accepted when Phase 0
-  (T005) confirms the weights load with `weights_only=True` and the CPU time.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Numbering**: ADR-031..033 are taken by feature 016. Features 012-015 are specified in
   parallel and may take ADR-021..030; the CTO renumbers at merge only on a collision.
 - **Context documents**: `specs/016-instrument-views/{spec.md, research.md R-01..R-04,

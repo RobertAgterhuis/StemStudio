@@ -1,39 +1,24 @@
 """Features 022 and 023: what the gate measures and what it leaves out (T089, T071).
 
 Library folders (022) and the lyric writing assistant (023) are new folders inside the existing
-projects. They are measured like all production code (``sonar.sources=src``), get one report row
+projects. They are measured like all production code, get one report row
 each (a sub-row of the project rows, like ``Api/Agent/Secrets``) and the vendored dictionaries of
 the assistant (Hunspell ``.dic``/``.aff``, CMUdict; licences in ``PROVENANCE.md``) and the gold
-lyric fixtures of the evaluation are data, not code: neither SIG, jscpd nor Sonar analyse them.
+lyric fixtures of the evaluation are data, not code: neither SIG nor jscpd analyse them.
 """
 
 import json
-from fnmatch import fnmatch
 
 import pytest
 
 import duplication
-import sonar_args
-from common import REPO_ROOT, is_excluded, owner_of
+from common import is_excluded, owner_of
 from components import COMPONENTS, Component
 
 DICTIONARIES = "src/StemStudio.Api/LyricAssist/Dictionaries/"
-FIXTURES = "tests/fixtures/lyrics/assist/"
-
-
-def _sonar() -> dict[str, str]:
-    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
-    return sonar_args.parse_properties(text)
 
 
 # ------------------------------------------------------------------------------- exclusions
-
-
-@pytest.mark.parametrize("pattern", [DICTIONARIES + "**", FIXTURES + "**"])
-def test_sonar_leaves_out_dictionaries_and_gold_fixtures(pattern: str) -> None:
-    props = _sonar()
-    assert pattern in props["sonar.exclusions"].split(",")
-    assert pattern in props["sonar.cpd.exclusions"].split(",")
 
 
 @pytest.mark.parametrize(
@@ -43,14 +28,10 @@ def test_sonar_leaves_out_dictionaries_and_gold_fixtures(pattern: str) -> None:
         "src/StemStudio.Api/Library/LibraryFiler.cs",
         "src/StemStudio.Domain/Lyrics/Assist/RhymeFinder.cs",
         "tests/StemStudio.Api.Tests/LyricAssist/LyricAssistServiceTests.cs",
-        "tests/fixtures/library/seed.py",
     ],
 )
-def test_sonar_still_measures_the_feature_code(path: str) -> None:
-    props = _sonar()
-    sources = props["sonar.sources"].split(",") + props["sonar.tests"].split(",")
-    assert any(path.startswith(source + "/") for source in sources)
-    assert not any(fnmatch(path, pattern) for pattern in props["sonar.exclusions"].split(","))
+def test_gate_still_measures_the_feature_code(path: str) -> None:
+    assert not is_excluded(path)
 
 
 def test_gate_and_jscpd_skip_the_vendored_dictionaries() -> None:

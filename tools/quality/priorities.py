@@ -2,7 +2,7 @@
 
 Impact = excess over the soft limit x check weight. A branch above the complexity limit weighs
 three lines above the size limit, because it adds a test path. Production code is ranked before
-test code, because Sigrid rates production code.
+test code, because the SIG maintainability model rates production code.
 """
 
 from collections.abc import Sequence
@@ -47,8 +47,8 @@ def _rank(finding: Finding) -> tuple[bool, float, str, int]:
 
 _INTRO = (
     "Impact = excess over the soft limit x weight (complexity 3, unit size 1, duplication 1, "
-    "Razor `@code` 0.5). Production code is ranked first, because Sigrid rates production "
-    "code.\n\n"
+    "Razor `@code` 0.5). Production code is ranked first, because the SIG maintainability "
+    "model rates production code.\n\n"
 )
 _TABLE_HEAD = [
     "| # | Owner | Location | Finding | Impact | Request |",

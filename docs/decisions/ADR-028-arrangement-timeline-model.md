@@ -1,7 +1,6 @@
 # ADR-028: Arrangement timeline model (feature 019)
 
-- **Status**: Proposed (architect, 2026-11-16, 019 planning round). Becomes Accepted in 019
-  Phase 0 (tasks.md T006) when the contracts are merged onto the versions of 012-018.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Number**: chosen as ADR-021 + (019 - 012), so the parallel 012-020 planning rounds do not
   collide; the CTO renumbers at the merge if another allocation was used.
 - **Context documents**: `specs/019-arrangement-editor/{spec.md, research.md, data-model.md,

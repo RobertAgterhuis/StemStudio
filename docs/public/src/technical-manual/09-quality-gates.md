@@ -27,7 +27,7 @@ later features add one GPU-marked integration test each, never run in CI.
 - One-way dependencies between components (chapter 2).
 - The C++ ABI shim under `third_party/soundtouch/shim/` is measured for unit size (012); the
   downloaded SoundTouch source (`upstream/`), local build outputs and the generated worklet
-  bundle are excluded from SIG and Sonar.
+  bundle are excluded from SIG.
 - Library care rules (013, `library_care_rules.py`): `LibraryCare/` is reached from the older
   API folders only through its gate; the ZIP helpers `ExtractToDirectory`, `ExtractToFile` and
   `CreateFromDirectory` are banned; the worker's `storage` package never imports `separation`,
@@ -36,14 +36,14 @@ later features add one GPU-marked integration test each, never run in CI.
   are enforced per folder, also in Razor files (`@using`, `@inject`); `Domain` has no package at all;
   UI folders must not name `HttpClient` (only `Web/Api` does). The vendored dictionaries
   (`Api/LyricAssist/Dictionaries/`, about 10 MB of data) and the lyric gold fixtures
-  (`tests/fixtures/lyrics/assist/`) are data: excluded from SIG, jscpd and Sonar. The SIG report has
+  (`tests/fixtures/lyrics/assist/`) are data: excluded from SIG and jscpd. The SIG report has
   rows `Library (022)` and `Lyric assist (023)`.
 - The **raw-colour guard** (`css_tokens_check.py`): only
   `src/StemStudio.Web/wwwroot/css/tokens.css` may contain literal colours.
 
 Lint: .NET with warnings as errors and `dotnet format --verify-no-changes`; Python with ruff
-and mypy `--strict`; TypeScript with eslint and `tsc --noEmit`. SonarQube analysis runs in CI
-when the `SONAR_TOKEN` secret is configured.
+and mypy `--strict`; TypeScript with eslint and `tsc --noEmit`. The project uses no SonarQube
+and no Sigrid (ADR-038): these local checks are the quality gates.
 
 ## End-to-end and design gates
 

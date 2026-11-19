@@ -1,7 +1,6 @@
 # ADR-032: Singing feedback: live pitch tracking and scoring (feature 016)
 
-- **Status**: Proposed (architect, 016 planning, 2026-11-16); becomes Accepted when Phase 0
-  (T006, T007) confirms the pYIN time and the worklet CPU budget.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Context documents**: `specs/016-instrument-views/{spec.md US4, research.md R-05..R-07,
   data-model.md 3}`, ADR-005 (engine), ADR-015 (karaoke clock), the 015 recording/latency ADR
   (written in parallel), constitution V (sample-accurate timing, no timers for audible timing)

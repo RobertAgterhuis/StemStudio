@@ -16,8 +16,8 @@ Only the latest `main` is supported.
 
 StemStudio never stores secrets in plain text. The optional Claude backend takes its key from the
 `ANTHROPIC_API_KEY` environment variable (wins) or from a key entered in Settings, which the API
-stores encrypted (constitution 1.4.0, ADR-035). CI uses repository secrets only (for example
-`SONAR_TOKEN`). Secret scanning with push protection is enabled on this repository; the
+stores encrypted (constitution 1.4.0, ADR-035). CI needs no secrets for its quality gates;
+any secret it does use comes from repository secrets only. Secret scanning with push protection is enabled on this repository; the
 repository secret scan (`scripts/secret_scan.py`) also fails on any Claude-key-shaped literal.
 
 ### Stored Claude key: what is protected

@@ -5,7 +5,7 @@ only ``ports``, ``schemas`` and verovio, cairosvg, pypdf; ``transcription`` only
 ``schemas``, ``config`` and its own ``vendor`` (onnxruntime/torch allowed); ``jobs``, ``api`` and
 every other adapter import none of the three; only ``main.py`` composes them. Standard-library
 imports are always allowed. ``transcription/vendor/**`` is third-party code: excluded from the
-SIG unit checks, duplication and Sonar, and it contributes no edges.
+SIG unit checks and duplication, and it contributes no edges.
 """
 
 import json
@@ -18,8 +18,7 @@ from repo_tree import write_module as _module
 import dependency_check
 import duplication
 import sig_check
-import sonar_args
-from common import REPO_ROOT, Severity, is_excluded, owner_of
+from common import Severity, is_excluded, owner_of
 from dependency_check import PYTHON_ALLOWED, PYTHON_EXTERNAL_ALLOWED, read_external_edges
 
 VENDOR = f"{PACKAGE}/transcription/vendor"
@@ -253,13 +252,6 @@ def test_sig_check_skips_transcription_vendor(tmp_path: Path) -> None:
 def test_jscpd_config_ignores_transcription_vendor() -> None:
     config = json.loads(duplication.CONFIG_PATH.read_text(encoding="utf-8"))
     assert "**/stemstudio_worker/transcription/vendor/**" in config["ignore"]
-
-
-def test_sonar_excludes_both_vendor_folders() -> None:
-    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
-    exclusions = sonar_args.parse_properties(text)["sonar.exclusions"].split(",")
-    assert f"{PACKAGE}/detail/vendor/**" in exclusions
-    assert f"{VENDOR}/**" in exclusions
 
 
 # ------------------------------------------------------------------ ownership and components

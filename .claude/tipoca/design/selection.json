@@ -1,0 +1,9 @@
+{
+  "choice": "mix",
+  "targets": {
+    "app": "enterprise",
+    "pdf": "enterprise",
+    "site": "cinematic",
+    "visuals": "cinematic"
+  }
+}

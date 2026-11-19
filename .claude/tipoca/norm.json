@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "status": "approved",
+  "layers": [
+    {
+      "id": "conventions",
+      "label": "Conventions",
+      "paths": [
+        "docs/public/src/user-manual",
+        "docs/public/src/technical-manual",
+        ".claude/agents",
+        ".agents/skills",
+        ".claude/skills"
+      ]
+    }
+  ],
+  "shadows": [
+    {
+      "tipoca": "stack-rules/integration-api",
+      "by": "docs/public/src/technical-manual/06-apis.md",
+      "match": "purpose",
+      "status": "approved"
+    },
+    {
+      "tipoca": "stack-rules/arch-files-and-security",
+      "by": "docs/public/src/technical-manual/08-security.md",
+      "match": "purpose",
+      "status": "approved"
+    }
+  ],
+  "records": {
+    "paths": [
+      "docs/decisions"
+    ],
+    "approval": "owner",
+    "idPattern": "^ADR-\\d{3}$"
+  },
+  "stages": [],
+  "docChain": {
+    "targets": [
+      {
+        "kind": "other",
+        "sources": [
+          "scripts/**"
+        ],
+        "outputs": [
+          "scripts/"
+        ],
+        "versioned": false,
+        "id": "scripts-soundtouch",
+        "unit": "project",
+        "build": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/build-soundtouch.ps1"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "specs/007-export-library/contracts/**"
+        ],
+        "outputs": [
+          "specs/007-export-library/contracts/"
+        ],
+        "versioned": false,
+        "id": "contracts-generate-render-vectors-exit-0",
+        "unit": "project",
+        "build": [
+          "python",
+          "specs/007-export-library/contracts/generate_render_vectors.py",
+          "--check",
+          "exit",
+          "0"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "specs/015-play-along-recording/contracts/**"
+        ],
+        "outputs": [
+          "specs/015-play-along-recording/contracts/"
+        ],
+        "versioned": false,
+        "id": "contracts-generate-render-vectors",
+        "unit": "project",
+        "build": [
+          "python",
+          "specs/015-play-along-recording/contracts/generate_render_vectors.py"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "specs/019-arrangement-editor/contracts/**"
+        ],
+        "outputs": [
+          "specs/019-arrangement-editor/contracts/"
+        ],
+        "versioned": false,
+        "id": "contracts-generate-render-vectors-2",
+        "unit": "project",
+        "build": [
+          "python",
+          "specs/019-arrangement-editor/contracts/generate_render_vectors.py"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "tools/docs/**"
+        ],
+        "outputs": [
+          "tools/docs/"
+        ],
+        "versioned": false,
+        "id": "docs-build",
+        "unit": "project",
+        "build": [
+          "node",
+          "tools/docs/build.mjs"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "tools/site/**"
+        ],
+        "outputs": [
+          "tools/site/"
+        ],
+        "versioned": false,
+        "id": "site-build",
+        "unit": "project",
+        "build": [
+          "node",
+          "tools/site/build.mjs"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "tools/site/lib/**"
+        ],
+        "outputs": [
+          "tools/site/lib/"
+        ],
+        "versioned": false,
+        "id": "lib-render",
+        "unit": "project",
+        "build": [
+          "node",
+          "tools/site/lib/render.mjs"
+        ]
+      },
+      {
+        "kind": "other",
+        "sources": [
+          "tools/site/**"
+        ],
+        "outputs": [
+          "tools/site/"
+        ],
+        "versioned": false,
+        "id": "site-review",
+        "unit": "project",
+        "build": [
+          "node",
+          "tools/site/review.mjs"
+        ]
+      }
+    ]
+  },
+  "release": {
+    "units": [],
+    "unitsFrom": []
+  },
+  "mirrors": [
+    {
+      "id": "codex",
+      "tool": "codex",
+      "mode": "info",
+      "source": ".codex/agents/architect.toml",
+      "note": "other tools: no Tipoca guardrails"
+    },
+    {
+      "id": "codex-2",
+      "tool": "codex",
+      "mode": "info",
+      "source": ".codex/agents/beat-analysis.toml",
+      "note": "other tools: no Tipoca guardrails"
+    },
+    {
+      "id": "codex-3",
+      "tool": "codex",
+      "mode": "info",
+      "source": ".codex/agents/generative.toml",
+      "note": "other tools: no Tipoca guardrails"
+    },
+    {
+      "id": "codex-4",
+      "tool": "codex",
+      "mode": "info",
+      "source": ".codex/agents/qa.toml",
+      "note": "other tools: no Tipoca guardrails"
+    },
+    {
+      "id": "codex-5",
+      "tool": "codex",
+      "mode": "info",
+      "source": ".codex/agents/stem-separation.toml",
+      "note": "other tools: no Tipoca guardrails"
+    }
+  ],
+  "preferences": {}
+}

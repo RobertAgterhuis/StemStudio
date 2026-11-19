@@ -1,6 +1,6 @@
 # ADR-027: Tablet and remote - LAN remote surface, pairing and transport security (feature 018)
 
-- **Status**: Proposed (architect, 2026-11-16); accepted when the CTO approves the 018 spec.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Context documents**: `specs/018-tablet-remote/` (spec, research R-01..R-16, data-model,
   contracts), constitution 1.3.1 (local, single-user; secrets; open source), MoSCoW C4 and W2.
 - **Numbering**: ADR number = feature number + 9 (011 -> ADR-020), so 012-017 keep ADR-021..026.
