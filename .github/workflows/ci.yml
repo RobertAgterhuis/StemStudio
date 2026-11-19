@@ -58,9 +58,13 @@ env:
   JSONSCHEMA: jsonschema==4.26.0
   PYTEST: pytest==9.2.0
 
+# Slow jobs (over 5 minutes: dotnet, worker, e2e, visual, a11y, lighthouse) are OFF by default for
+# now (owner, 2026-11-19); run them locally with scripts/test-all.*. They run on a manual
+# "Run workflow" or when the repository variable CI_SLOW_JOBS is 'true'.
 jobs:
   dotnet:
     name: .NET build, format, test (coverage gate)
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -112,6 +116,7 @@ jobs:
 
   worker:
     name: Worker lint, types, tests (coverage gate) + fixture generator
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -575,6 +580,7 @@ jobs:
   e2e:
     name: E2E main flow (compose, fake separator, Playwright)
     needs: [dotnet, worker, generator, audio-engine, web-interop, soundtouch, contracts, secret-scan, quality, e2e-lint]
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
@@ -728,6 +734,7 @@ jobs:
   visual:
     name: Visual regression (Playwright container, fake stack)
     needs: [web-interop, e2e-lint]
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -771,6 +778,7 @@ jobs:
   a11y:
     name: Accessibility scans (axe, Playwright container, fake stack)
     needs: [web-interop, e2e-lint]
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -802,6 +810,7 @@ jobs:
   lighthouse:
     name: Lighthouse CI budgets (fake stack, SC-003)
     needs: [web-interop, e2e-lint]
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CI_SLOW_JOBS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
