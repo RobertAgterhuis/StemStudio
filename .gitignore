@@ -47,3 +47,8 @@ src/web-interop/coverage/
 
 # Feature 013: default backups folder (bind-mounted at /backups); archives are multi-GB
 backups/
+
+# Tipoca
+.claude/scratchpad/
+.claude/tipoca/logs/
+.claude/tipoca/config.local.json

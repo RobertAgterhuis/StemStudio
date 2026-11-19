@@ -8,8 +8,8 @@ other (they share only the GPU lease file).
 
 The generator is measured like the worker: it is a default root of ``sig_check`` and
 ``duplication``, its ``src/`` is production code, it has component rows, owners (``generative``
-for the service code and the tests, the architect for the Phase 0 skeleton), Sonar sources, tests
-and a coverage report. It has no vendored code. A clone between worker and generator production
+for the service code and the tests, the architect for the Phase 0 skeleton), tests and a coverage
+report. It has no vendored code. A clone between worker and generator production
 code is a warning (the services may not share code), every other production clone an error.
 
 .NET: ``Api/Generation`` and the generator client ``Api/Generator`` never reference
@@ -29,10 +29,8 @@ from repo_tree import write_module as _worker
 import dependency_check
 import duplication
 import sig_check
-import sonar_args
 from common import (
     DEFAULT_ROOTS,
-    REPO_ROOT,
     Severity,
     default_paths,
     is_excluded,
@@ -337,25 +335,6 @@ def test_generator_components_measure_their_production_code(
 def test_generator_core_component_holds_the_top_level_modules(name: str) -> None:
     (core,) = [c for c in COMPONENTS if c.name == "generator/core"]
     assert core.contains(f"{GEN}/{name}", test=False)
-
-
-def _sonar(key: str) -> list[str]:
-    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
-    return sonar_args.parse_properties(text)[key].split(",")
-
-
-@pytest.mark.parametrize(
-    ("key", "value"),
-    [
-        ("sonar.sources", "generator/src"),
-        ("sonar.tests", "generator/tests"),
-        ("sonar.test.inclusions", "generator/tests/**"),
-        ("sonar.python.coverage.reportPaths", "generator/coverage.xml"),
-        ("sonar.python.coverage.reportPaths", "worker/coverage.xml"),
-    ],
-)
-def test_sonar_analyses_the_generator_and_its_coverage(key: str, value: str) -> None:
-    assert value in _sonar(key)
 
 
 # ------------------------------------------------------------------ .NET feature folders

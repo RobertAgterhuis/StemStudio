@@ -1,8 +1,6 @@
 # ADR-020: AI composer agent - host, LLM backends, tool registry and safety (feature 011)
 
-- **Status**: Proposed (architect, 2026-11-15). D3 (Claude backend) is conditional on the
-  constitution amendment drafted in `specs/011-ai-composer-agent/plan.md` (constitution 1.3.0);
-  everything else is within constitution 1.2.0.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-15).
 - **Context documents**: `specs/011-ai-composer-agent/{spec.md, research.md, data-model.md,
   contracts/DELTA.md, contracts/tool-catalogue.md, evaluation/eval-set.md}`,
   `docs/research/roadmap-003-011.md` sections 10 and 12, ADR-002 (layers), ADR-012 (GPU policy).

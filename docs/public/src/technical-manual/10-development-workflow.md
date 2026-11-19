@@ -30,7 +30,7 @@ Features in braces are built in parallel; their contract edits are additive.
 | audio-ingest, stem-separation, beat-analysis | Worker ingest, separation and analysis |
 | generative, ai-agent | Generator services (009, 010) and the agent library (011) |
 | qa | Test strategy, fixtures, Playwright suites, audits |
-| quality-gate | SIG checks, lint configuration, Sonar |
+| quality-gate | SIG checks, lint configuration |
 | devops | Dockerfiles, compose, scripts, CI |
 
 Rules from `docs/AGENT-PROTOCOL.md`: stay in your lane (write only owned paths), contracts are

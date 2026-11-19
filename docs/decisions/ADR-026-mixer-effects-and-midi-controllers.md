@@ -1,7 +1,6 @@
 # ADR-026: Mixer effects, export parity through browser pre-renders, and Web MIDI controllers (feature 017)
 
-- **Status**: Proposed (architect, 2026-11-16, 017 design; accepted at 017 Phase 0 T001; contracts
-  backend 1.16.0, audio engine 2.7.0, UI test ids 1.16.0 in `specs/017-effects-controllers/`)
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Context documents**: `specs/017-effects-controllers/{spec.md, research.md, data-model.md,
   DELTA.md, contracts/}`, ADR-005/ADR-010 (audio engine, gate rule v2), ADR-013 (design system,
   levels), ADR-016 (asset library, server-side export rendering), `docs/MoSCoW.md` C2/C3,

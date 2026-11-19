@@ -1,7 +1,6 @@
 # ADR-025: Practice partner part generation with ACE-Step 1.5 base (feature 021, C9)
 
-- **Status**: Proposed (architect, 2026-11-16; becomes Accepted when the CTO approves the 021 plan;
-  the Phase 0 spike S-01 may amend D3 values).
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Numbering**: feature-scoped (`021` + index) because features 012-020 write ADRs in parallel and
   sequential numbers would collide; the CTO may renumber at the merge.
 - **Context documents**: `specs/021-partner-studio-bridge/{spec.md, research.md (R-01..R-05),

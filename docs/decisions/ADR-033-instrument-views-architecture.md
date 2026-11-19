@@ -1,7 +1,6 @@
 # ADR-033: Instrument views: analyses, timeline views, tablature and transposed parts (feature 016)
 
-- **Status**: Proposed (architect, 016 planning, 2026-11-16); becomes Accepted after Phase 0
-  (T001 reconciliation with the merged 014/015 contracts, T006 Verovio tablature spike).
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Context documents**: `specs/016-instrument-views/{spec.md, plan.md, research.md R-08..R-12,
   data-model.md 4-7}`, ADR-016 (lanes, library), ADR-017 (notation/engraving), ADR-015 (banner),
   ADR-031, ADR-032, `docs/MoSCoW.md` (every instrument counts equally)

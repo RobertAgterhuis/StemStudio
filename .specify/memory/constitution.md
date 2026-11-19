@@ -102,7 +102,8 @@
 - Runtime: `docker compose up` starts everything with one command; a non-Docker path is
   documented.
 - Static analysis: .NET analyzers with `TreatWarningsAsErrors` and `dotnet format`; ruff + mypy
-  (strict) for Python; ESLint for TypeScript; a SonarQube-compatible `sonar-project.properties`.
+  (strict) for Python; ESLint for TypeScript; the local SIG check `tools/quality/run_all.py`.
+  No SonarQube and no Sigrid (ADR-038).
 - Secrets are never stored in files or command lines; configuration comes from environment
   variables. User-supplied URLs and file names are validated (allow-listed hosts, no path
   traversal, size limits) before being passed to external tools; subprocesses are invoked with
@@ -137,4 +138,4 @@
   closes. `tools/docs/check.mjs` (in `scripts/test-all.*` and CI) fails when the sources differ
   from `docs/public/build-manifest.json`.
 
-**Version**: 1.4.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-16
+**Version**: 1.4.1 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-19

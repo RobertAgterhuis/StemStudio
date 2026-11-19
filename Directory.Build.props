@@ -31,7 +31,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <!-- coverlet.msbuild = the coverage GATE (dotnet test -p:CollectCoverage=true), see ADR-006:
          each test project measures and gates only its own component (StemStudio.X.Tests -> [StemStudio.X]*);
-         Api.Tests additionally gates StemStudio.Contracts. Cobertura for humans/CI, OpenCover for Sonar. -->
+         Api.Tests additionally gates StemStudio.Contracts. Cobertura for humans/CI; OpenCover kept for local tools (no Sonar, ADR-038). -->
     <StemStudioCoverageComponent>$(MSBuildProjectName.Replace('.Tests', ''))</StemStudioCoverageComponent>
     <CoverletOutputFormat>cobertura%2copencover</CoverletOutputFormat>
     <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/coverage/</CoverletOutput>

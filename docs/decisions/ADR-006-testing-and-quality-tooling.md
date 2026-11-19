@@ -1,6 +1,8 @@
 # ADR-006: Testing, coverage and maintainability tooling
 
-- **Status**: Accepted
+- **Status**: Accepted; superseded in part by ADR-038 (2026-11-19): no SonarQube and no Sigrid. The
+  Sonar parts below (the "Sonar-compatible properties" cell and the Sonar scanner steps of the
+  2026-11-14 amendment) no longer apply; the local SIG check and the coverage gates stay.
 - **Date**: 2026-11-14
 - **Decider**: architect agent, on the CTO brief
 

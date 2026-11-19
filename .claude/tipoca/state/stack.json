@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "detectedAt": "2026-11-19T06:14:56.224Z",
+  "dotnet": {
+    "monorepo": true,
+    "solutions": [
+      "StemStudio.slnx"
+    ],
+    "projects": 13,
+    "projectReferences": 15
+  },
+  "kinds": [
+    "dotnet",
+    "node",
+    "powershell",
+    "python",
+    "typescript"
+  ]
+}

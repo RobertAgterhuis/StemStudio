@@ -2,7 +2,7 @@
 
 Risk categories follow the SIG/TUViT maintainability model (lines of code per unit, McCabe
 complexity, parameters per unit). The star thresholds below are a house heuristic calibrated to
-the constitution's limits, not SIG's benchmark; Sigrid remains the authoritative rating.
+the constitution's limits, not SIG's benchmark; the project uses no Sigrid rating (ADR-038).
 """
 
 from collections.abc import Callable, Sequence

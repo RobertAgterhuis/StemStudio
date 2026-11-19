@@ -1,6 +1,7 @@
 """The Markdown SIG report: verdict, risk profiles, components, exemptions, clones, requests.
 
-Star ratings are a house heuristic (``risk.py``), not SIG's benchmark; Sigrid is authoritative.
+Star ratings are a house heuristic (``risk.py``), not SIG's benchmark; the project uses no Sigrid
+rating (ADR-038).
 """
 
 from collections.abc import Sequence
@@ -92,7 +93,7 @@ def _profiles(data: ReportInput) -> str:
 _BINS_NOTE = (
     "Bins: unit size 1-15 / 16-30 / 31-60 / >60 LOC; complexity 1-5 / 6-10 / 11-25 / >25; "
     "parameters 0-2 / 3-4 / 5-6 / >6. Stars are a house heuristic "
-    "(`tools/quality/risk.py`), Sigrid is authoritative."
+    "(`tools/quality/risk.py`), not a certified rating; the project uses no Sigrid (ADR-038)."
 )
 
 
