@@ -20,8 +20,12 @@ public static class InstrumentViewMapper
 
     private static readonly Dictionary<string, AnalysisEngineDto> Engines = new(StringComparer.Ordinal)
     {
-        ["btc"] = AnalysisEngineDto.Btc, ["chroma-hmm"] = AnalysisEngineDto.ChromaHmm, ["drum-onsets"] = AnalysisEngineDto.DrumOnsets,
-        ["pyin"] = AnalysisEngineDto.Pyin, ["yin"] = AnalysisEngineDto.Yin, ["fake"] = AnalysisEngineDto.Fake,
+        ["btc"] = AnalysisEngineDto.Btc,
+        ["chroma-hmm"] = AnalysisEngineDto.ChromaHmm,
+        ["drum-onsets"] = AnalysisEngineDto.DrumOnsets,
+        ["pyin"] = AnalysisEngineDto.Pyin,
+        ["yin"] = AnalysisEngineDto.Yin,
+        ["fake"] = AnalysisEngineDto.Fake,
     };
 
     /// <summary>The chords analysis.</summary>
