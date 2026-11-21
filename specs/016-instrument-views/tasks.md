@@ -189,16 +189,16 @@ text, the row wins.
 - [ ] T061 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_instrument_analysis_routes.py` (chords): 202 on the `instrument-analysis` lane (not blocked by a running transcribe/render/separation), stages/progress, inline `ChordChart` with `key`/`keyRegions`, validation 422, `/health` `instrumentAnalysis` and lane; responses validate against worker 1.9.0 (FR-002, FR-010, FR-070)
 - [ ] T062 [US1] [stem-separation] Implement `jobs/instrument_analysis_service.py`, `api/instrument_analysis_routes.py`, composition and lane in `main.py` (mixdown -> recognizer -> post-processing -> key) to pass T061
 - [ ] T063 [US1] [stem-separation] Integration test `worker/tests/harmony/test_chords_integration.py` (`@pytest.mark.integration`, downloads BTC): synthetic chord set through real BTC + post-processing >= 85 % majmin time (SC-001) and key test set >= 90 % (SC-010); records time per audio second
-- [ ] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
-- [ ] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
+- [x] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
+- [x] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
 - [ ] T066 [P] [US1] [audio-engine] Failing tests `tests/chords/chord-lane.test.ts`: DOM items, states, window by bars, host attributes, validation errors, detach, reduced motion, frame budget (counted writes) (FR-013, SC-007)
 - [ ] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
 - [ ] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
 - [ ] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
 - [ ] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
 - [ ] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
-- [ ] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
-- [ ] T073 [US1] [backend] Implement to pass T072
+- [x] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
+- [x] T073 [US1] [backend] Implement to pass T072
 - [ ] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
 - [ ] T075 [US1] [frontend] Implement to pass T074
 - [ ] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)

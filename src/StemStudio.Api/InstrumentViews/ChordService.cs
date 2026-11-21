@@ -86,12 +86,7 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
     /// <returns>200, 404, 409 or 422.</returns>
     public async Task<IResult> SheetAsync(Guid trackId, ChordDisplay display, CancellationToken cancellationToken)
     {
-        if (InstrumentViewProblems.DisplayOutOfRange(display.Transpose, display.Capo) is { } invalid)
-        {
-            return invalid;
-        }
-
-        var (ready, problem) = await FindReadyAsync(trackId, cancellationToken);
+        var (ready, problem) = await FindReadyForDisplayAsync(trackId, display, cancellationToken);
         return LyricsProblems.NotStored(ready is null ? problem! : TypedResults.Ok(ToDto(Build(ready, display))));
     }
 
@@ -102,12 +97,7 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
     /// <returns>200, 404, 409 or 422.</returns>
     public async Task<IResult> ChordProAsync(Guid trackId, ChordDisplay display, CancellationToken cancellationToken)
     {
-        if (InstrumentViewProblems.DisplayOutOfRange(display.Transpose, display.Capo) is { } invalid)
-        {
-            return invalid;
-        }
-
-        var (ready, problem) = await FindReadyAsync(trackId, cancellationToken);
+        var (ready, problem) = await FindReadyForDisplayAsync(trackId, display, cancellationToken);
         if (ready is null)
         {
             return problem!;
@@ -133,6 +123,11 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
         name = name.Length > MaxFileNameLength ? name[..MaxFileNameLength].TrimEnd() : name;
         return (name.Length == 0 ? DefaultFileName : name) + ".cho";
     }
+
+    private async Task<(ReadyChords? Ready, IResult? Problem)> FindReadyForDisplayAsync(Guid trackId, ChordDisplay display, CancellationToken cancellationToken) =>
+        InstrumentViewProblems.DisplayOutOfRange(display.Transpose, display.Capo) is { } invalid
+            ? (null, invalid)
+            : await FindReadyAsync(trackId, cancellationToken);
 
     private static ChordSheet Build(ReadyChords ready, ChordDisplay display)
     {

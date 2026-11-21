@@ -19,8 +19,16 @@ public static class AnalysisEndpoints
     /// <returns>The same route builder.</returns>
     public static IEndpointRouteBuilder MapChordEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet(Chords, (Guid trackId, TrackAnalysisService service, CancellationToken ct) => GetAsync(service, trackId, AnalysisKind.Chords, InstrumentViewMapper.ToChordsDto, ct))
+        app.MapGet(Chords, (Guid trackId, TrackAnalysisService service, CancellationToken ct) => GetAsync(service, trackId, new AnalysisProjection<TrackAnalysisDto<ChordChartDocumentDto>>(AnalysisKind.Chords, InstrumentViewMapper.ToChordsDto), ct))
             .WithName("getChords").WithTags(Tag).Produces<TrackAnalysisDto<ChordChartDocumentDto>>().ProducesProblem(StatusCodes.Status404NotFound);
+        return app.MapChordRunEndpoints().MapChordViewEndpoints();
+    }
+
+    /// <summary>Maps <c>detectChords</c> and <c>deleteChords</c>.</summary>
+    /// <param name="app">The route builder.</param>
+    /// <returns>The same route builder.</returns>
+    private static IEndpointRouteBuilder MapChordRunEndpoints(this IEndpointRouteBuilder app)
+    {
         app.MapPost(Chords, (Guid trackId, DetectChordsRequest? request, TrackAnalysisService service, CancellationToken ct) =>
                 DetectChordsAsync(service, trackId, request ?? new DetectChordsRequest(), ct))
             .WithName("detectChords").RequireGateOpen().WithTags(Tag).Produces<TrackAnalysisDto<ChordChartDocumentDto>>(StatusCodes.Status202Accepted)
@@ -28,6 +36,14 @@ public static class AnalysisEndpoints
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapDelete(Chords, (Guid trackId, TrackAnalysisService service, CancellationToken ct) => DeleteAsync(service, trackId, AnalysisKind.Chords, ct))
             .WithName("deleteChords").RequireGateOpen().WithTags(Tag).Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+        return app;
+    }
+
+    /// <summary>Maps <c>editChordSegment</c>, <c>getChordSheet</c> and <c>downloadChordPro</c>.</summary>
+    /// <param name="app">The route builder.</param>
+    /// <returns>The same route builder.</returns>
+    private static IEndpointRouteBuilder MapChordViewEndpoints(this IEndpointRouteBuilder app)
+    {
         app.MapPut(Chords + "/segments/{segmentIndex:int}", (Guid trackId, int segmentIndex, EditChordRequest request, ChordService chords, CancellationToken ct) =>
                 chords.EditAsync(trackId, segmentIndex, request, ct))
             .WithName("editChordSegment").RequireGateOpen().WithTags(Tag).Produces<TrackAnalysisDto<ChordChartDocumentDto>>().ProducesProblem(StatusCodes.Status404NotFound)
@@ -56,15 +72,14 @@ public static class AnalysisEndpoints
     /// <typeparam name="TDto">The DTO type.</typeparam>
     /// <param name="service">The service.</param>
     /// <param name="trackId">Track id.</param>
-    /// <param name="kind">Kind.</param>
-    /// <param name="map">The DTO mapping.</param>
+    /// <param name="projection">Kind and DTO mapping.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 or 404.</returns>
-    public static async Task<IResult> GetAsync<TDto>(TrackAnalysisService service, Guid trackId, AnalysisKind kind, Func<AnalysisView, TDto> map, CancellationToken cancellationToken)
+    public static async Task<IResult> GetAsync<TDto>(TrackAnalysisService service, Guid trackId, AnalysisProjection<TDto> projection, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(service);
-        ArgumentNullException.ThrowIfNull(map);
-        return await service.GetAsync(trackId, kind, cancellationToken) is { } view ? TypedResults.Ok(map(view)) : TrackService.NotFound(trackId);
+        ArgumentNullException.ThrowIfNull(projection);
+        return await service.GetAsync(trackId, projection.Kind, cancellationToken) is { } view ? TypedResults.Ok(projection.Map(view)) : TrackService.NotFound(trackId);
     }
 
     /// <summary>The POST of an analysis.</summary>
@@ -115,3 +130,8 @@ public static class AnalysisEndpoints
     }
 }
 
+/// <summary>The kind of an analysis and how its view maps to the wire DTO.</summary>
+/// <typeparam name="TDto">The DTO type.</typeparam>
+/// <param name="Kind">The kind.</param>
+/// <param name="Map">The DTO mapping.</param>
+public sealed record AnalysisProjection<TDto>(AnalysisKind Kind, Func<AnalysisView, TDto> Map);
