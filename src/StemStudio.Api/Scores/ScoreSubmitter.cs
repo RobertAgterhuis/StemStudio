@@ -51,6 +51,10 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
             Resolution = recipe.Resolution,
             KeyOverride = recipe.KeyOverride,
             Titles = Titles(name, draft.Source, recipe.Profile),
+            Tablature = ScoreNotationWire.ToWire(recipe.Tablature),
+            Part = ScoreNotationWire.ToWire(recipe.Part),
+            Chords = ScoreNotationWire.Chords(draft.Chords),
+            PreferFlats = draft.Chords?.PreferFlats,
         });
     }
 

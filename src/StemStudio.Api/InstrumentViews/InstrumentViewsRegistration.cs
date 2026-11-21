@@ -26,6 +26,7 @@ public static class InstrumentViewsRegistration
         services.AddScoped<TrackAnalysisService>();
         services.AddScoped<ChordService>();
         services.AddScoped<TrackViewsProjection>();
+        services.AddScoped<Scores.ScoreChordSource>();
         services.AddScoped<AnalysisJobApplier>();
         services.AddScoped<AnalysisAutoStarter>();
         services.AddScoped<ITrackCompletionHook>(provider => provider.GetRequiredService<AnalysisAutoStarter>());

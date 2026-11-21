@@ -25,6 +25,9 @@ public static class ScoreMapper
             KeyOverride = request.KeyOverride,
             Tempo = request.Tempo is { } tempo ? new ManualTempo(tempo.Bpm, tempo.BeatsPerBar, tempo.FirstDownbeatSeconds) : null,
             Range = request.Range is { } range ? new ExportRange(range.StartSeconds, range.EndSeconds) : null,
+            Tablature = ScoreNotationWire.ToDomain(request.Tablature),
+            Part = ScoreNotationWire.ToDomain(request.Part),
+            IncludeChords = request.IncludeChords,
         };
     }
 
@@ -43,6 +46,9 @@ public static class ScoreMapper
             KeyOverride = recipe.KeyOverride,
             Tempo = recipe.Tempo is { } tempo ? new ScoreTempoDto(tempo.Bpm, tempo.BeatsPerBar, tempo.FirstDownbeatSeconds) : null,
             Range = recipe.Range is { } range ? new RangeDto(range.StartSeconds, range.EndSeconds) : null,
+            Tablature = ScoreNotationWire.ToDto(recipe.Tablature),
+            Part = ScoreNotationWire.ToDto(recipe.Part),
+            IncludeChords = recipe.IncludeChords,
         };
     }
 
@@ -72,6 +78,9 @@ public static class ScoreMapper
         Warnings = facts.Warnings.Select(warning => new ScoreWarningDto(Map<ScoreWarningCodeDto>(warning.Code), warning.Text)).ToList(),
         Attribution = facts.Attribution,
         Device = TrackMapper.ToDto(facts.Device),
+        Tablature = ScoreNotationWire.ToDto(facts.Tablature),
+        Part = ScoreNotationWire.ToDto(facts.Part),
+        ChordsIncluded = facts.ChordsIncluded,
     };
 
     /// <summary>The facts of a worker summary (no device, attribution as sent).</summary>
@@ -98,6 +107,9 @@ public static class ScoreMapper
         Quality = summary.Quality,
         Key = summary.Key,
         Warnings = summary.Warnings,
+        Tablature = ScoreNotationWire.ToFacts(summary.Tablature),
+        Part = ScoreNotationWire.ToFacts(summary.Part),
+        ChordsIncluded = summary.ChordsIncluded,
     };
 
     /// <summary>Maps a source.</summary>

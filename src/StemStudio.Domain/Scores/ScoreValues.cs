@@ -22,6 +22,15 @@ public enum ScoreProfile
 
     /// <summary>Percussion staff from the five drum detail stems.</summary>
     Drums,
+
+    /// <summary>Strings section line (feature 016).</summary>
+    Strings,
+
+    /// <summary>Brass section line (feature 016).</summary>
+    Brass,
+
+    /// <summary>Woodwinds section line (feature 016).</summary>
+    Woodwinds,
 }
 
 /// <summary>Piano transcription quality.</summary>

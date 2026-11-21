@@ -26,8 +26,13 @@ public static class ScoreProblems
     public static IResult DrumsNotSplit() =>
         Typed(StatusCodes.Status409Conflict, "drums-not-split", "Drums not split", "Drum notation needs the drum detail stems; split the drums first.");
 
-    /// <summary>422 <c>tempo-required</c>.</summary>
+    /// <summary>409 <c>chords-not-ready</c> (feature 016: <c>includeChords</c> without ready chords).</summary>
     /// <returns>The result.</returns>
+    public static IResult ChordsNotReady() =>
+        Typed(StatusCodes.Status409Conflict, "chords-not-ready", "Chords not ready", "Chord symbols need the chords of this track; find the chords first.");
+
+    /// <summary>422 <c>tempo-required</c>.</summary>
+    /// <returns>The problem.</returns>
     public static IResult TempoRequired() => Typed(
         StatusCodes.Status422UnprocessableEntity, "tempo-required", "Tempo required", "The beat grid of this track is not reliable; enter the tempo, the beats per bar and the first downbeat.");
 

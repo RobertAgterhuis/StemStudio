@@ -7,12 +7,17 @@ namespace StemStudio.Api.Scores;
 /// <param name="Source">The resolved source.</param>
 /// <param name="Recipe">The recipe.</param>
 /// <param name="Grid">The time base.</param>
-public sealed record ScoreDraft(ResolvedSource Source, ScoreRecipe Recipe, TempoGrid Grid);
+public sealed record ScoreDraft(ResolvedSource Source, ScoreRecipe Recipe, TempoGrid Grid)
+{
+    /// <summary>The chord symbols of an <c>includeChords</c> score (feature 016), or null.</summary>
+    public ScoreChords? Chords { get; init; }
+}
 
 /// <summary>Validates a score request and resolves the recipe and the grid (data-model 4.2, 4.3).</summary>
 /// <param name="sources">Resolves the source.</param>
 /// <param name="estimator">Reads the worker's device.</param>
-public sealed class ScorePlanner(ScoreSourceResolver sources, ScoreEstimator estimator)
+/// <param name="chords">Attaches the chord symbols of <c>includeChords</c> (feature 016).</param>
+public sealed class ScorePlanner(ScoreSourceResolver sources, ScoreEstimator estimator, ScoreChordSource chords)
 {
     /// <summary>Plans a new request.</summary>
     /// <param name="request">The request.</param>
@@ -28,7 +33,7 @@ public sealed class ScorePlanner(ScoreSourceResolver sources, ScoreEstimator est
         }
 
         var environment = await estimator.EnvironmentAsync(cancellationToken);
-        return Plan(source!, ScoreMapper.ToDomain(request, source!.Source), environment.Gpu);
+        return await WithChordsAsync(Plan(source!, ScoreMapper.ToDomain(request, source!.Source), environment.Gpu), cancellationToken);
     }
 
     /// <summary>Plans a stored recipe again (retry): its resolved values are kept.</summary>
@@ -47,9 +52,15 @@ public sealed class ScorePlanner(ScoreSourceResolver sources, ScoreEstimator est
             KeyOverride = recipe.KeyOverride,
             Tempo = recipe.Tempo,
             Range = recipe.Range,
+            Tablature = recipe.Tablature,
+            Part = recipe.Part,
+            IncludeChords = recipe.IncludeChords,
         };
-        return problem is null ? Plan(source!, request, gpu: false) : (null, problem); // the stored quality is kept, so the device does not matter
+        return problem is null ? await WithChordsAsync(Plan(source!, request, gpu: false), cancellationToken) : (null, problem); // the stored quality is kept, so the device does not matter
     }
+
+    private async Task<(ScoreDraft?, IResult?)> WithChordsAsync((ScoreDraft? Draft, IResult? Problem) planned, CancellationToken cancellationToken) =>
+        planned.Draft is { } draft ? await chords.AttachAsync(draft, cancellationToken) : planned;
 
     private static (ScoreDraft?, IResult?) Plan(ResolvedSource source, ScoreRequest request, bool gpu)
     {

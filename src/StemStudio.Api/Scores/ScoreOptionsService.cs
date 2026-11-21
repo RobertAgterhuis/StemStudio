@@ -10,7 +10,8 @@ namespace StemStudio.Api.Scores;
 /// </summary>
 /// <param name="sources">Resolves the source.</param>
 /// <param name="estimator">Reads the worker's device and computes the estimates.</param>
-public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstimator estimator)
+/// <param name="chords">Ready chord charts (feature 016 <c>chords</c> option).</param>
+public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstimator estimator, ScoreChordSource chords)
 {
     /// <summary>The options of a source.</summary>
     /// <param name="trackId">Track (with <paramref name="channel"/>).</param>
@@ -26,7 +27,12 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             return problem;
         }
 
-        return TypedResults.Ok(Options(source!, await estimator.EnvironmentAsync(cancellationToken)));
+        var options = Options(source!, await estimator.EnvironmentAsync(cancellationToken));
+        var chordsReady = await chords.ChartAsync(source!.Track?.Id, cancellationToken) is not null;
+        return TypedResults.Ok(options with
+        {
+            Chords = new ScoreChordOptionsDto { Available = chordsReady && ProfileCatalog.Allowed(source.Channel).Any(ScoreNotation.ChordsAllowed) },
+        });
     }
 
     private ScoreOptionsDto Options(ResolvedSource source, ScoreEnvironment environment) => WithProfiles(source, environment, new ScoreOptionsDto
