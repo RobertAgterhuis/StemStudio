@@ -22,15 +22,18 @@ public static class AnalysisText
             AnalysisStatusDto.Ready => $"{Capital(result)} are ready.",
             AnalysisStatusDto.Failed => $"{what} failed: {analysis.Reason ?? "unknown reason"}",
             AnalysisStatusDto.Unavailable => analysis.Reason is { } reason ? $"{what} is not available: {reason}" : $"{what} is not available.",
-            _ => $"The stems changed since the {result} were detected; detect them again.",
+            _ => $"The stems changed since the {result} were detected; detect them again.{Detail(analysis.Reason)}",
         };
 
-    /// <summary>The document the views show and edit, or null.</summary>
+    /// <summary>
+    /// The document the views show and edit, or null: a stale analysis keeps its document (the backend still serves it,
+    /// edits included) until it is detected again (review M2).
+    /// </summary>
     /// <typeparam name="T">The document type.</typeparam>
     /// <param name="analysis">The analysis.</param>
     /// <returns>The document.</returns>
     public static T? Shown<T>(TrackAnalysisDto<T>? analysis)
-        where T : class => analysis?.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
+        where T : class => analysis?.Status is AnalysisStatusDto.Ready or AnalysisStatusDto.Stale ? analysis.Document : null;
 
     /// <summary>True while the analysis is queued or running (the UI polls).</summary>
     /// <typeparam name="T">The document type.</typeparam>
@@ -47,6 +50,8 @@ public static class AnalysisText
     private static string Percent(double progress) => string.Create(CultureInfo.InvariantCulture, $"{PercentValue(progress)} %");
 
     private static string Estimate(int? seconds) => seconds is { } s ? string.Create(CultureInfo.InvariantCulture, $" (about {s} s)") : string.Empty;
+
+    private static string Detail(string? reason) => reason is { Length: > 0 } ? $" {reason}" : string.Empty;
 
     private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text[1..];
 

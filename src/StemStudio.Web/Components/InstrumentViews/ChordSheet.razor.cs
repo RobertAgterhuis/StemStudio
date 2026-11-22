@@ -41,7 +41,9 @@ public sealed partial class ChordSheet
 
     private string? Error { get; set; }
 
-    private string EmptyText => Analysis is { Status: AnalysisStatusDto.Ready, Document.NoChords: true }
+    private string? StaleText => Analysis?.Status == AnalysisStatusDto.Stale ? AnalysisText.Status(Analysis, "Chord detection", "chords") : null;
+
+    private string EmptyText => AnalysisText.Shown(Analysis) is { NoChords: true }
         ? "No chords were detected in this song."
         : AnalysisText.Status(Analysis, "Chord detection", "chords");
 
@@ -82,7 +84,7 @@ public sealed partial class ChordSheet
 
     private async Task LoadSheetAsync(CancellationToken ct)
     {
-        if (Analysis is { Status: AnalysisStatusDto.Ready, Document: { NoChords: false } document })
+        if (AnalysisText.Shown(Analysis) is { NoChords: false } document)
         {
             await FetchSheetAsync(document, ct);
         }

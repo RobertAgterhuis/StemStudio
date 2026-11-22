@@ -150,7 +150,7 @@ public sealed partial class DrumTrainer : IAsyncDisposable
         try
         {
             Analysis = await request();
-            Events = Analysis is { Status: AnalysisStatusDto.Ready, Document: { } document } ? ToEngine(document) : null;
+            Events = AnalysisText.Shown(Analysis) is { } document ? ToEngine(document) : null;
             Error = null;
         }
         catch (ApiException ex)

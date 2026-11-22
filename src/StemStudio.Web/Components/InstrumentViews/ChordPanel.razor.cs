@@ -131,7 +131,7 @@ public sealed partial class ChordPanel : IAsyncDisposable
     private void Apply(TrackAnalysisDto<ChordChartDocumentDto> analysis)
     {
         Analysis = analysis;
-        var document = analysis.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
+        var document = AnalysisText.Shown(analysis);
         Chart = document is { NoChords: false } ? ChordLabels.ToEngine(document) : null;
         Vocabulary = analysis.Document?.Vocabulary ?? Vocabulary;
     }

@@ -18,7 +18,7 @@ public sealed partial class Mixer
 
     private void OnChordsLoaded(TrackAnalysisDto<ChordChartDocumentDto> analysis)
     {
-        var document = analysis.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
+        var document = AnalysisText.Shown(analysis);
         if (ChordsChanged(document, analysis.Status))
         {
             BannerChords = document is { NoChords: false } ? ChordLabels.ToEngine(document) : null;
