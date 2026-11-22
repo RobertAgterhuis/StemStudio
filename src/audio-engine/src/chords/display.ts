@@ -6,8 +6,12 @@
  * @packageDocumentation
  */
 import type { ChordDisplay } from '../types';
+import type { DomWriter } from '../views/dom-writer';
 import type { PreparedChart } from './chart';
 import { chordSymbol, type DisplayShift } from './spelling';
+
+/** Class of the sounding-symbol child (contract 2.6.0 `setChordDisplay`). */
+export const SOUNDING_CLASS = 'chord-sounding';
 
 /** Highest capo fret. */
 export const MAX_CAPO = 12;
@@ -99,6 +103,36 @@ export class SpelledChart {
     return this.display.transpose;
   }
 
+  /** Capo fret of the display. */
+  public get capo(): number {
+    return this.display.capo;
+  }
+
+  /**
+   * Writes the shape of segment `index` into `element`, followed by a `.chord-sounding` child with the sounding symbol
+   * when the display shows it. Nothing is written when the element already shows both.
+   *
+   * @param writer - Counted writer.
+   * @param element - Lane item or banner chord.
+   * @param index - Segment index.
+   */
+  public write(writer: DomWriter, element: HTMLElement, index: number): void {
+    const shape = this.shape(index);
+    if (!this.display.showSounding) {
+      writer.text(element, shape);
+      return;
+    }
+    const sounding = this.soundingSymbol(index);
+    if (shows(element, shape, sounding)) {
+      return;
+    }
+    const span = element.ownerDocument.createElement('span');
+    span.className = SOUNDING_CLASS;
+    span.textContent = sounding;
+    element.replaceChildren(shape, span);
+    writer.structural();
+  }
+
   /** Display version the symbols were spelled for. */
   public get version(): number {
     this.refresh();
@@ -127,4 +161,11 @@ export class SpelledChart {
     this.soundings = segments.map((s, i) => chordSymbol(s, keys[i] ?? null, { transpose: shift.transpose, capo: 0 }));
     this.spelledVersion = this.display.version;
   }
+}
+
+/** Whether `element` already holds `shape` followed by a `.chord-sounding` child with `sounding`. */
+function shows(element: HTMLElement, shape: string, sounding: string): boolean {
+  const child = element.lastElementChild;
+  const childShows = child?.className === SOUNDING_CLASS && child.textContent === sounding;
+  return childShows && element.firstChild?.textContent === shape;
 }

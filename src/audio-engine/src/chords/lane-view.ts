@@ -21,7 +21,7 @@ export const MAX_LANE_ITEMS = 40;
 const ITEMS_BEHIND_WHEN_CAPPED = 4;
 
 /** Host attributes written by the lane (removed on detach). */
-export const LANE_HOST_ATTRIBUTES = ['data-chord-index', 'data-current-symbol', 'data-next-symbol', 'data-position-ms', 'data-current-key'] as const;
+export const LANE_HOST_ATTRIBUTES = ['data-chord-index', 'data-current-symbol', 'data-next-symbol', 'data-position-ms', 'data-current-key', 'data-capo'] as const;
 
 /** Window of the lane in scale units. */
 export interface LaneWindow {
@@ -192,8 +192,9 @@ export class LaneView {
     const segment = this.options.chart.prepared.segments[index];
     item.dataset.startMs = String(segment?.startMs);
     item.dataset.state = 'future';
-    item.textContent = this.options.chart.shape(index);
-    this.place(item, index, new DomWriter());
+    const uncounted = new DomWriter();
+    this.options.chart.write(uncounted, item, index);
+    this.place(item, index, uncounted);
     return item;
   }
 
@@ -230,7 +231,7 @@ export class LaneView {
     const { writer, chart } = this.options;
     writer.data(item, 'state', stateOf(index, current, this.located));
     if (respell) {
-      writer.text(item, chart.shape(index));
+      chart.write(writer, item, index);
     }
   }
 
@@ -239,6 +240,7 @@ export class LaneView {
     writer.data(host, 'chordIndex', String(current));
     writer.data(host, 'currentSymbol', chart.shape(current));
     writer.data(host, 'nextSymbol', chart.shape(located + 1));
+    writer.data(host, 'capo', String(chart.capo));
   }
 }
 

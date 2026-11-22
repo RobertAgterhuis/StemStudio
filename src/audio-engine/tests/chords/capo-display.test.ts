@@ -178,6 +178,23 @@ describe('capo display in the karaoke banner', () => {
     expect(shapes(shown)).not.toEqual(sounding);
   });
 
+  it('keeps the .chord-sounding children across frames and replaces them only when a symbol changes', () => {
+    const rig = banner();
+    display.set({ capo: 3, showSounding: true });
+    rig.karaoke.redraw();
+    rig.frames.step(2);
+    const first = bannerChordsShown(rig)[0]?.querySelector('.chord-sounding');
+    rig.karaoke.redraw();
+    rig.frames.step(3);
+    expect(bannerChordsShown(rig)[0]?.querySelector('.chord-sounding')).toBe(first);
+    display.set({ capo: 5, showSounding: true });
+    rig.karaoke.redraw();
+    rig.frames.step(4);
+    const after = bannerChordsShown(rig)[0]?.querySelector('.chord-sounding');
+    expect(after).not.toBe(first);
+    expect(after?.textContent).toBe(first?.textContent);
+  });
+
   it('drops the .chord-sounding children when showSounding is cleared', () => {
     const rig = banner();
     display.set({ capo: 3, showSounding: true });

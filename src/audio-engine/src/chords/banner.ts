@@ -133,7 +133,7 @@ class BannerChords implements ChordLayer {
     if (anchor.word < 0) {
       element.dataset.lead = 'true';
     }
-    element.textContent = this.chart.shape(anchor.segment);
+    this.chart.write(new DomWriter(), element, anchor.segment);
     return element;
   }
 
@@ -150,6 +150,6 @@ class BannerChords implements ChordLayer {
   private paintChord(chord: Shown, current: number, located: number): void {
     const state = chord.segment === current ? 'current' : chord.segment <= located ? 'past' : 'future';
     this.writer.data(chord.element, 'state', state);
-    this.writer.text(chord.element, this.chart.shape(chord.segment));
+    this.chart.write(this.writer, chord.element, chord.segment);
   }
 }
