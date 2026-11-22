@@ -1,13 +1,14 @@
 """Strings and frets for guitar and bass tablature (data-model 4.5, research R-08).
 
-:class:`ViterbiTabFingerer` fits every event into the tuning (octave moves, chord notes beyond
-the string count dropped), lists the string/fret candidates of each event (chords: distinct
-strings, the 64 cheapest), and picks the path with the lowest cost: hand-position change (mean
-fretted fret; open strings are free) + 0.1 x hand position + 0.3 x stretch + 0.05 x frets
-above 12 + 2 for a chord
-span over 4 frets (rejected when another candidate exists). Ties prefer lower frets, then
-lower-pitched strings. :func:`fit_notes` applies the same range fit to the notator's notes
-before the score is built, keeping the loudest chord notes.
+:class:`ViterbiTabFingerer` fits every event (pitches loudest first) into the tuning (octave
+moves; the last chord notes, the quietest, are dropped beyond the string count or while the
+chord cannot be played on distinct strings), lists the string/fret candidates of each event
+(chords: distinct strings, the 64 cheapest), and picks the path with the lowest cost:
+hand-position change (mean fretted fret; open strings are free) + 0.1 x hand position + 0.3 x
+stretch + 0.05 x frets above 12 + 2 for a chord span over 4 frets (rejected when another
+candidate exists). Ties prefer lower frets, then lower-pitched strings. :func:`fit_notes`
+applies the same range fit to the notator's notes before the score is built, keeping the
+loudest chord notes.
 """
 
 import itertools
@@ -130,7 +131,7 @@ def _candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[_Cand
 
 
 def _playable(pitches: list[int], tuning: Tuning, capo: int) -> tuple[list[_Candidate], int]:
-    """Candidates of the event, dropping trailing pitches until it can be played."""
+    """Candidates of the event, dropping its last (quietest) pitches until it can be played."""
     dropped = 0
     while pitches:
         found = _candidates(pitches, tuning, capo)

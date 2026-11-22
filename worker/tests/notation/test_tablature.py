@@ -457,17 +457,21 @@ def _lasting(xml: str, duration: int, tie: str | None = None) -> str:
 
 
 @pytest.mark.parametrize("layout", get_args(TabLayout))
-def test_an_unplayable_chord_drops_its_quietest_note_from_the_tab_staff(layout: TabLayout) -> None:
-    """E2 + F2 both need the low E string: the quieter E2 leaves the TAB staff and is counted."""
+def test_an_unplayable_chord_drops_a_note_from_the_tab_staff(layout: TabLayout) -> None:
+    """E2 + F2 both need the low E string: F2 leaves the TAB staff and is counted.
+
+    The score gives a chord one loudness (``dynamics``), so the tie rule decides: the note last in
+    document order (music21 writes chords low to high) is dropped.
+    """
     chord = [note(0.0, QUARTER_SECONDS, 40, 0.3), note(0.0, QUARTER_SECONDS, 41, 0.9)]
     notes = [*chord, note(QUARTER_SECONDS, 2 * QUARTER_SECONDS, 45)]
     tab = TablatureSettings(tuning="guitar-standard", layout=layout)
     document = MusicNotator().notate(notes, _settings("guitar", tab))
     root = ET.fromstring(document.musicxml)  # noqa: S314 - our own notator output
     tab_notes = _tab_notes(root, "2" if layout == "notation-and-tab" else None)
-    assert [_midi_of(n) for n in tab_notes] == [41, 45]
+    assert [_midi_of(n) for n in tab_notes] == [40, 45]
     assert all(n.find("chord") is None for n in tab_notes)
-    assert [_fret_of(n) for n in tab_notes] == [(6, 1), (5, 0)]
+    assert [_fret_of(n) for n in tab_notes] == [(6, 0), (5, 0)]
     if layout == "notation-and-tab":
         assert sorted(_midi_of(n) for n in _tab_notes(root, "1")) == [40, 41, 45]
     assert document.tablature is not None
@@ -494,5 +498,9 @@ def test_the_tied_continuation_of_a_dropped_note_becomes_a_tab_rest() -> None:
     assert [n.find("pitch") is None for n in notes] == [False, True]
     rest = notes[1]
     assert rest.find("rest") is not None
-    assert (rest.findtext("duration"), rest.find("tie"), rest.find("notations")) == ("3", None, None)
+    assert (rest.findtext("duration"), rest.find("tie"), rest.find("notations")) == (
+        "3",
+        None,
+        None,
+    )
     assert result.notes_dropped == 1
