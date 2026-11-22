@@ -29,20 +29,20 @@ public sealed partial record AssetListQuery(string? Kind, Guid? TrackId, string?
     public AssetQuery ToQuery(List<DomainError> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
-        var query = new AssetQuery
-        {
-            Kind = Parse<AssetKind>(Kind, "kind", errors),
-            TrackId = TrackId,
-            Status = Parse<AssetStatus>(Status, "status", errors),
-            Origin = Parse<AssetOrigin>(Origin, "origin", errors),
-            Channel = Channel,
-            NameContains = Q,
-            Limit = Limit ?? 100,
-            Offset = Offset ?? 0,
-        };
+        var query = Filters(errors) with { Limit = Limit ?? 100, Offset = Offset ?? 0 };
         CheckPaging(errors, query);
         return query;
     }
+
+    private AssetQuery Filters(List<DomainError> errors) => new()
+    {
+        Kind = Parse<AssetKind>(Kind, "kind", errors),
+        TrackId = TrackId,
+        Status = Parse<AssetStatus>(Status, "status", errors),
+        Origin = Parse<AssetOrigin>(Origin, "origin", errors),
+        Channel = Channel,
+        NameContains = Q,
+    };
 
     private void CheckPaging(List<DomainError> errors, AssetQuery query)
     {

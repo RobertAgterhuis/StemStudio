@@ -42,7 +42,7 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(draft);
         var recipe = draft.Recipe;
-        return WithInputs(draft, new WorkerTranscriptionJobRequest
+        return WithInputs(draft, WithNotation(draft, new WorkerTranscriptionJobRequest
         {
             Profile = recipe.Profile,
             Quality = recipe.Quality ?? ScoreQuality.Accurate,
@@ -51,12 +51,17 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
             Resolution = recipe.Resolution,
             KeyOverride = recipe.KeyOverride,
             Titles = Titles(name, draft.Source, recipe.Profile),
-            Tablature = ScoreNotationWire.ToWire(recipe.Tablature),
-            Part = ScoreNotationWire.ToWire(recipe.Part),
-            Chords = ScoreNotationWire.Chords(draft.Chords),
-            PreferFlats = draft.Chords?.PreferFlats,
-        });
+        }));
     }
+
+    /// <summary>The 016 notation additions: tablature, part and chord symbols.</summary>
+    private static WorkerTranscriptionJobRequest WithNotation(ScoreDraft draft, WorkerTranscriptionJobRequest request) => request with
+    {
+        Tablature = ScoreNotationWire.ToWire(draft.Recipe.Tablature),
+        Part = ScoreNotationWire.ToWire(draft.Recipe.Part),
+        Chords = ScoreNotationWire.Chords(draft.Chords),
+        PreferFlats = draft.Chords?.PreferFlats,
+    };
 
     /// <summary>Pitched profiles read one input, drums the kept drum pieces (data-model 4.4).</summary>
     private static WorkerTranscriptionJobRequest WithInputs(ScoreDraft draft, WorkerTranscriptionJobRequest request) => draft.Recipe.Profile == ScoreProfile.Drums

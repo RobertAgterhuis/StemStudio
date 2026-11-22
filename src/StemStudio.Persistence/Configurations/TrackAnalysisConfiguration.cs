@@ -24,11 +24,17 @@ public sealed class TrackAnalysisConfiguration : IEntityTypeConfiguration<TrackA
         builder.Property(analysis => analysis.JobId).HasMaxLength(32);
         builder.Property(analysis => analysis.Engine).HasMaxLength(32);
         builder.Property(analysis => analysis.SourceFingerprint).HasMaxLength(TrackAnalysis.FingerprintLength);
+        ConfigureJsonColumns(builder);
+        builder.HasIndex(analysis => analysis.Status);
+    }
+
+    /// <summary>Options, document and device as JSON columns.</summary>
+    private static void ConfigureJsonColumns(EntityTypeBuilder<TrackAnalysis> builder)
+    {
         builder.Property(analysis => analysis.Options).HasColumnName("OptionsJson")
             .HasConversion(JsonColumn<AnalysisOptions>.Converter, JsonColumn<AnalysisOptions>.Comparer);
         builder.Property(analysis => analysis.Document).HasColumnName("DocumentJson")
             .HasConversion(AnalysisDocumentJson.Converter, AnalysisDocumentJson.Comparer);
         builder.Property(analysis => analysis.Device).HasColumnName("DeviceJson").HasConversion(JobDeviceJson.Converter);
-        builder.HasIndex(analysis => analysis.Status);
     }
 }

@@ -86,21 +86,23 @@ public static class ChordSheetBuilder
         var rows = new List<SheetRow>();
         var pending = new List<PlacedChord>();
         var next = 0;
-        for (var index = 0; index < lines.Count; index++)
+        foreach (var (line, end) in lines.Select((line, index) => (line, index + 1 < lines.Count ? lines[index + 1].StartMs : int.MaxValue)))
         {
-            var line = lines[index];
-            var end = index + 1 < lines.Count ? lines[index + 1].StartMs : int.MaxValue;
-            pending.AddRange(Before(chords, ref next, line.StartMs));
-            rows.AddRange(Instrumental(pending));
-            pending.Clear();
-            var last = index + 1 == lines.Count;
-            var inLine = Before(chords, ref next, last ? line.EndMs : Math.Min(end, line.EndMs + barMs));
-            rows.Add(LineRow(line, inLine));
+            rows.AddRange(Flush(pending, Before(chords, ref next, line.StartMs)));
+            rows.Add(LineRow(line, Before(chords, ref next, end == int.MaxValue ? line.EndMs : Math.Min(end, line.EndMs + barMs))));
             pending.AddRange(Before(chords, ref next, end));
         }
 
-        pending.AddRange(chords.Skip(next));
-        rows.AddRange(Instrumental(pending));
+        rows.AddRange(Flush(pending, chords.Skip(next)));
+        return rows;
+    }
+
+    /// <summary>The instrumental rows of the pending chords and the ones that follow them; the pending list is emptied.</summary>
+    private static List<SheetRow> Flush(List<PlacedChord> pending, IEnumerable<PlacedChord> more)
+    {
+        pending.AddRange(more);
+        var rows = Instrumental(pending).ToList();
+        pending.Clear();
         return rows;
     }
 

@@ -59,24 +59,24 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
             async () =>
             {
                 var (ready, problem) = await FindReadyAsync(trackId, cancellationToken);
-                if (ready is null)
-                {
-                    return problem!;
-                }
-
-                try
-                {
-                    ready.Analysis.EditChord(segmentIndex, request.Label, clock.GetUtcNow().UtcDateTime);
-                }
-                catch (DomainValidationException invalid)
-                {
-                    return PracticeFlowProblems.Invalid(invalid.Errors);
-                }
-
-                await analyses.SaveAsync(cancellationToken);
-                return TypedResults.Ok(InstrumentViewMapper.ToChordsDto(AnalysisView.Of(ready.Track, AnalysisKind.Chords, ready.Analysis)));
+                return ready is null ? problem! : await EditLockedAsync(ready, segmentIndex, request.Label, cancellationToken);
             },
             cancellationToken);
+    }
+
+    private async Task<IResult> EditLockedAsync(ReadyChords ready, int segmentIndex, string label, CancellationToken cancellationToken)
+    {
+        try
+        {
+            ready.Analysis.EditChord(segmentIndex, label, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainValidationException invalid)
+        {
+            return PracticeFlowProblems.Invalid(invalid.Errors);
+        }
+
+        await analyses.SaveAsync(cancellationToken);
+        return TypedResults.Ok(InstrumentViewMapper.ToChordsDto(AnalysisView.Of(ready.Track, AnalysisKind.Chords, ready.Analysis)));
     }
 
     /// <summary><c>GET /api/tracks/{trackId}/chords/sheet</c> (no-store: it holds lyric text).</summary>
@@ -108,18 +108,14 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
         return LyricsProblems.NotStored(TypedResults.File(Encoding.UTF8.GetBytes(text), "text/plain; charset=utf-8", FileName(ready.Track.Title)));
     }
 
+    private static char Safe(char character) => char.IsLetterOrDigit(character) || character is ' ' or '-' or '_' or '(' or ')' or '\'' ? character : '_';
+
     /// <summary>A safe attachment name: letters, digits, spaces, <c>-</c>, <c>_</c>, <c>(</c>, <c>)</c> and <c>'</c> of the title, at most 100, plus <c>.cho</c>.</summary>
     /// <param name="title">The track title.</param>
     /// <returns>The file name.</returns>
     public static string FileName(string? title)
     {
-        var safe = new StringBuilder();
-        foreach (var character in title ?? string.Empty)
-        {
-            safe.Append(char.IsLetterOrDigit(character) || character is ' ' or '-' or '_' or '(' or ')' or '\'' ? character : '_');
-        }
-
-        var name = safe.ToString().Trim(' ', '_');
+        var name = new string((title ?? string.Empty).Select(Safe).ToArray()).Trim(' ', '_');
         name = name.Length > MaxFileNameLength ? name[..MaxFileNameLength].TrimEnd() : name;
         return (name.Length == 0 ? DefaultFileName : name) + ".cho";
     }

@@ -44,20 +44,21 @@ public sealed class ScorePlanner(ScoreSourceResolver sources, ScoreEstimator est
     {
         ArgumentNullException.ThrowIfNull(recipe);
         var (source, problem) = await sources.ResolveAsync(ScoreMapper.ToDto(recipe.Source), cancellationToken);
-        var request = new ScoreRequest(recipe.Source)
-        {
-            Profile = recipe.Profile,
-            Quality = recipe.Quality,
-            Resolution = recipe.Resolution,
-            KeyOverride = recipe.KeyOverride,
-            Tempo = recipe.Tempo,
-            Range = recipe.Range,
-            Tablature = recipe.Tablature,
-            Part = recipe.Part,
-            IncludeChords = recipe.IncludeChords,
-        };
-        return problem is null ? await WithChordsAsync(Plan(source!, request, gpu: false), cancellationToken) : (null, problem); // the stored quality is kept, so the device does not matter
+        return problem is null ? await WithChordsAsync(Plan(source!, RequestOf(recipe), gpu: false), cancellationToken) : (null, problem); // the stored quality is kept, so the device does not matter
     }
+
+    private static ScoreRequest RequestOf(ScoreRecipe recipe) => new(recipe.Source)
+    {
+        Profile = recipe.Profile,
+        Quality = recipe.Quality,
+        Resolution = recipe.Resolution,
+        KeyOverride = recipe.KeyOverride,
+        Tempo = recipe.Tempo,
+        Range = recipe.Range,
+        Tablature = recipe.Tablature,
+        Part = recipe.Part,
+        IncludeChords = recipe.IncludeChords,
+    };
 
     private async Task<(ScoreDraft?, IResult?)> WithChordsAsync((ScoreDraft? Draft, IResult? Problem) planned, CancellationToken cancellationToken) =>
         planned.Draft is { } draft ? await chords.AttachAsync(draft, cancellationToken) : planned;

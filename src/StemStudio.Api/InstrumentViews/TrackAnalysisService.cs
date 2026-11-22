@@ -155,19 +155,19 @@ public sealed class TrackAnalysisService(
     public Task<bool> StartAutomaticallyAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return gate.RunAsync(
-            async () =>
-            {
-                var stored = await analyses.FindAsync(track.Id, kind, cancellationToken);
-                if (!AnalysisRules.MayStartAutomatically(stored))
-                {
-                    return false;
-                }
+        return gate.RunAsync(() => StartAutomaticallyLockedAsync(track, kind, cancellationToken), cancellationToken);
+    }
 
-                var result = await StartLockedAsync(new StartRequest(track, kind, stored?.Options ?? DefaultOptions(kind), true, Automatic: true), cancellationToken);
-                return result.View?.Status == AnalysisStatus.Queued;
-            },
-            cancellationToken);
+    private async Task<bool> StartAutomaticallyLockedAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
+    {
+        var stored = await analyses.FindAsync(track.Id, kind, cancellationToken);
+        if (!AnalysisRules.MayStartAutomatically(stored))
+        {
+            return false;
+        }
+
+        var result = await StartLockedAsync(new StartRequest(track, kind, stored?.Options ?? DefaultOptions(kind), true, Automatic: true), cancellationToken);
+        return result.View?.Status == AnalysisStatus.Queued;
     }
 
     /// <summary>Marks a ready analysis stale when its inputs changed (re-separation, detail split redone).</summary>
@@ -178,20 +178,20 @@ public sealed class TrackAnalysisService(
     public Task<bool> RefreshStalenessAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return gate.RunAsync(
-            async () =>
-            {
-                if (await analyses.FindAsync(track.Id, kind, cancellationToken) is not { Status: AnalysisStatus.Ready } stored
-                    || AnalysisKindStrategies.Plan(kind, track, stored.Options, WorkerEngines.Defaults).Plan is not { } plan)
-                {
-                    return false;
-                }
+        return gate.RunAsync(() => RefreshStalenessLockedAsync(track, kind, cancellationToken), cancellationToken);
+    }
 
-                var stale = stored.MarkStaleIfChanged(await runs.FingerprintAsync(track.Id, plan, cancellationToken), Now);
-                await analyses.SaveAsync(cancellationToken);
-                return stale;
-            },
-            cancellationToken);
+    private async Task<bool> RefreshStalenessLockedAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
+    {
+        if (await analyses.FindAsync(track.Id, kind, cancellationToken) is not { Status: AnalysisStatus.Ready } stored
+            || AnalysisKindStrategies.Plan(kind, track, stored.Options, WorkerEngines.Defaults).Plan is not { } plan)
+        {
+            return false;
+        }
+
+        var stale = stored.MarkStaleIfChanged(await runs.FingerprintAsync(track.Id, plan, cancellationToken), Now);
+        await analyses.SaveAsync(cancellationToken);
+        return stale;
     }
 
     /// <summary>Deletes an analysis (cancels a running worker job); status becomes none.</summary>
@@ -249,49 +249,61 @@ public sealed class TrackAnalysisService(
         }
 
         var planned = await runs.PlanAsync(request, cancellationToken);
-        if (Refusal(planned.Missing) is { } refused && !request.Automatic)
-        {
-            return new StartResult(refused, null);
-        }
+        return Refusal(planned.Missing) is { } refused && !request.Automatic
+            ? new StartResult(refused, null)
+            : await StoreAsync(request, stored, planned, cancellationToken);
+    }
 
+    /// <summary>Applies the plan to the stored (or a new) analysis and saves it, unless the outcome forbids storing.</summary>
+    private async Task<StartResult> StoreAsync(StartRequest request, TrackAnalysis? stored, PlannedRun planned, CancellationToken cancellationToken)
+    {
         var analysis = stored ?? TrackAnalysis.Create(request.Track.Id, request.Kind, Now);
-        var outcome = await ApplyAsync(analysis, planned, cancellationToken);
-        if (outcome is null)
+        if (await ApplyAsync(analysis, planned, cancellationToken) is { } outcome)
         {
-            await (stored is null ? analyses.AddAsync(analysis, cancellationToken) : analyses.SaveAsync(cancellationToken));
+            return new StartResult(outcome, null);
         }
 
-        return new StartResult(outcome ?? StartOutcome.Stored, outcome is null ? AnalysisView.Of(request.Track, request.Kind, analysis) : null);
+        await (stored is null ? analyses.AddAsync(analysis, cancellationToken) : analyses.SaveAsync(cancellationToken));
+        return new StartResult(StartOutcome.Stored, AnalysisView.Of(request.Track, request.Kind, analysis));
     }
 
     /// <summary>Queues the run, or stores unavailable/failed; null when stored, an outcome when nothing may be stored.</summary>
-    private async Task<StartOutcome?> ApplyAsync(TrackAnalysis analysis, PlannedRun planned, CancellationToken cancellationToken)
-    {
-        if (planned.Run is null)
-        {
-            if (AnalysisKindStrategies.UnavailableReason(planned.Missing) is not { } reason)
-            {
-                return StartOutcome.TrackNotReady;
-            }
+    private async Task<StartOutcome?> ApplyAsync(TrackAnalysis analysis, PlannedRun planned, CancellationToken cancellationToken) =>
+        planned.Run is { } run ? await QueueAsync(analysis, run, cancellationToken) : MarkUnavailable(analysis, planned.Missing);
 
-            analysis.MarkUnavailable(reason, Now);
-            return null;
+    private StartOutcome? MarkUnavailable(TrackAnalysis analysis, MissingPrerequisite missing)
+    {
+        if (AnalysisKindStrategies.UnavailableReason(missing) is not { } reason)
+        {
+            return StartOutcome.TrackNotReady;
         }
 
+        analysis.MarkUnavailable(reason, Now);
+        return null;
+    }
+
+    private async Task<StartOutcome?> QueueAsync(TrackAnalysis analysis, PreparedRun run, CancellationToken cancellationToken)
+    {
         try
         {
-            var job = await worker.CreateAnalysisJobAsync(planned.Run.Request, cancellationToken);
-            analysis.Queue(planned.Run.ToRun(job.AnalysisJobId), Now);
+            analysis.Queue(run.ToRun((await worker.CreateAnalysisJobAsync(run.Request, cancellationToken)).AnalysisJobId), Now);
+            return null;
         }
-        catch (WorkerUnavailableException)
+        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        {
+            return Refused(analysis, exception);
+        }
+    }
+
+    /// <summary>An unreachable worker stores nothing; a refused request is stored as failed.</summary>
+    private StartOutcome? Refused(TrackAnalysis analysis, Exception exception)
+    {
+        if (exception is not WorkerRequestException rejected)
         {
             return StartOutcome.WorkerUnavailable;
         }
-        catch (WorkerRequestException rejected)
-        {
-            analysis.Fail($"{SubmitRejected} {rejected.Detail}", Now);
-        }
 
+        analysis.Fail($"{SubmitRejected} {rejected.Detail}", Now);
         return null;
     }
 

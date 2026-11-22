@@ -76,18 +76,24 @@ public static class CapoAdvisor
     public static CapoAdvice Advise(IReadOnlyList<TimedChord> chords, MusicalKey key, int transpose)
     {
         ArgumentNullException.ThrowIfNull(chords);
-        var total = chords.Sum(chord => (double)chord.DurationMs);
-        var ranked = Enumerable.Range(0, MaxSuggestedCapo + 1)
-            .Select(capo => (Capo: capo, Share: OpenShare(chords, total, new ChordDisplay(transpose, capo))))
-            .OrderByDescending(entry => entry.Share - (FretPenalty * entry.Capo))
-            .ThenBy(entry => entry.Capo)
-            .Take(SuggestionCount)
-            .ToList();
+        var ranked = Ranked(chords, transpose);
         var few = ranked[0].Share < FewOpenBelow;
         var suggestions = ranked
             .Select(entry => new CapoSuggestion(entry.Capo, KeyFormatter.Name(ChordSpeller.Move(key, new ChordDisplay(transpose, entry.Capo))!.Value), entry.Share, few))
             .ToList();
         return new CapoAdvice(Shortcut(transpose), suggestions);
+    }
+
+    /// <summary>The best capos 0..7 by open share minus the fret penalty, lower capo first on a tie.</summary>
+    private static List<(int Capo, double Share)> Ranked(IReadOnlyList<TimedChord> chords, int transpose)
+    {
+        var total = chords.Sum(chord => (double)chord.DurationMs);
+        return Enumerable.Range(0, MaxSuggestedCapo + 1)
+            .Select(capo => (Capo: capo, Share: OpenShare(chords, total, new ChordDisplay(transpose, capo))))
+            .OrderByDescending(entry => entry.Share - (FretPenalty * entry.Capo))
+            .ThenBy(entry => entry.Capo)
+            .Take(SuggestionCount)
+            .ToList();
     }
 
     private static double OpenShare(IReadOnlyList<TimedChord> chords, double total, ChordDisplay display) =>

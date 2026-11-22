@@ -60,16 +60,19 @@ public static class AnalysisDocumentJson
             return;
         }
 
-        info.PolymorphismOptions = new JsonPolymorphismOptions
-        {
-            TypeDiscriminatorPropertyName = "$type",
-            UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
-            DerivedTypes =
-            {
-                new JsonDerivedType(typeof(ChordChart), "chords"),
-                new JsonDerivedType(typeof(DrumHitsDocument), "drumHits"),
-                new JsonDerivedType(typeof(VocalPitchDocument), "vocalPitch"),
-            },
-        };
+        info.PolymorphismOptions = DocumentTypes();
     }
+
+    /// <summary>The <c>$type</c> discriminators of the three documents; an unknown type fails.</summary>
+    private static JsonPolymorphismOptions DocumentTypes() => new()
+    {
+        TypeDiscriminatorPropertyName = "$type",
+        UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+        DerivedTypes =
+        {
+            new JsonDerivedType(typeof(ChordChart), "chords"),
+            new JsonDerivedType(typeof(DrumHitsDocument), "drumHits"),
+            new JsonDerivedType(typeof(VocalPitchDocument), "vocalPitch"),
+        },
+    };
 }

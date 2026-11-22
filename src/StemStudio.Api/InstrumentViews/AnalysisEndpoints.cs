@@ -49,10 +49,10 @@ public static class AnalysisEndpoints
             .WithName("editChordSegment").RequireGateOpen().WithTags(Tag).Produces<TrackAnalysisDto<ChordChartDocumentDto>>().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
         app.MapGet(Chords + "/sheet", (Guid trackId, int? transpose, int? capo, ChordService chords, CancellationToken ct) =>
-                chords.SheetAsync(trackId, new ChordDisplay(transpose ?? 0, capo ?? 0), ct))
+                chords.SheetAsync(trackId, Display(transpose, capo), ct))
             .WithName("getChordSheet").WithTags(Tag).Produces<ChordSheetDto>().ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapGet(Chords + "/chordpro", (Guid trackId, int? transpose, int? capo, ChordService chords, CancellationToken ct) =>
-                chords.ChordProAsync(trackId, new ChordDisplay(transpose ?? 0, capo ?? 0), ct))
+                chords.ChordProAsync(trackId, Display(transpose, capo), ct))
             .WithName("downloadChordPro").WithTags(Tag).Produces<string>(StatusCodes.Status200OK, "text/plain").ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
         return app;
@@ -111,6 +111,8 @@ public static class AnalysisEndpoints
         ArgumentNullException.ThrowIfNull(service);
         return await service.DeleteAsync(trackId, kind, cancellationToken) ? TypedResults.NoContent() : TrackService.NotFound(trackId);
     }
+
+    private static ChordDisplay Display(int? transpose, int? capo) => new(transpose ?? 0, capo ?? 0);
 
     private static Task<IResult> DetectChordsAsync(TrackAnalysisService service, Guid trackId, DetectChordsRequest request, CancellationToken cancellationToken)
     {

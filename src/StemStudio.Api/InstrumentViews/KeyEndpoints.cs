@@ -85,7 +85,7 @@ public static class KeyViewMapper
         return ShownChart(view) is { Key: { } key } chart
             ? empty with
             {
-                Key = ToDto(key),
+                Key = InstrumentViewMapper.ToDto(key),
                 Display = KeyFormatter.Display(key.Key, transpose, key.Confidence),
                 WrittenKey = KeyFormatter.WrittenKey(Transposed(key.Key, transpose), instrument),
                 Regions = chart.KeyRegions.Select(region => Region(region, transpose, view.Track.BeatGrid)).ToList(),
@@ -96,14 +96,6 @@ public static class KeyViewMapper
     private static ChordChart? ShownChart(AnalysisView view) => view.Status is AnalysisStatus.Ready or AnalysisStatus.Stale ? view.Stored?.Document as ChordChart : null;
 
     private static MusicalKey Transposed(MusicalKey key, int transpose) => key with { Tonic = PitchClass.Of(key.Tonic + transpose) };
-
-    private static SongKeyDto ToDto(SongKey key) => new()
-    {
-        Tonic = key.Tonic,
-        Mode = InstrumentViewMapper.ToDto(key.Mode),
-        Confidence = key.Confidence,
-        Alternative = key.Alternative is { } alternative ? new KeyAlternativeDto { Tonic = alternative.Tonic, Mode = InstrumentViewMapper.ToDto(alternative.Mode) } : null,
-    };
 
     private static KeyViewRegionDto Region(KeyRegion region, int transpose, BeatGrid? grid) => new()
     {

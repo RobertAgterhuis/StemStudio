@@ -26,22 +26,7 @@ public static class ChordProWriter
         ArgumentNullException.ThrowIfNull(header);
         ArgumentNullException.ThrowIfNull(sheet);
         var text = new StringBuilder();
-        Directive(text, "title", header.Title);
-        if (!string.IsNullOrWhiteSpace(header.Artist))
-        {
-            Directive(text, "artist", header.Artist);
-        }
-
-        if (sheet.Display.Capo > 0)
-        {
-            Directive(text, "capo", sheet.Display.Capo.ToString(CultureInfo.InvariantCulture));
-        }
-
-        if (ChordSpeller.Move(header.Key, sheet.Display) is { } key)
-        {
-            Directive(text, "key", KeySymbol(key));
-        }
-
+        Directives(text, header, sheet.Display);
         foreach (var row in sheet.Rows)
         {
             text.Append(Row(row)).Append('\n');
@@ -50,26 +35,45 @@ public static class ChordProWriter
         return text.ToString();
     }
 
+    /// <summary>Title, then artist, capo and key when present.</summary>
+    private static void Directives(StringBuilder text, ChordProHeader header, ChordDisplay display)
+    {
+        Directive(text, "title", header.Title);
+        Optional(text, "artist", header.Artist);
+        Optional(text, "capo", display.Capo > 0 ? display.Capo.ToString(CultureInfo.InvariantCulture) : null);
+        Optional(text, "key", ChordSpeller.Move(header.Key, display) is { } key ? KeySymbol(key) : null);
+    }
+
+    private static void Optional(StringBuilder text, string name, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            Directive(text, name, value);
+        }
+    }
+
     /// <summary>Makes free text safe inside a ChordPro line: no brackets, braces or line breaks.</summary>
     /// <param name="value">The text.</param>
     /// <returns>The safe text.</returns>
     public static string Safe(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var safe = new StringBuilder(value.Length);
-        foreach (var character in value)
+        return string.Create(value.Length, value, static (span, text) =>
         {
-            safe.Append(character switch
+            for (var index = 0; index < text.Length; index++)
             {
-                '[' or '{' => '(',
-                ']' or '}' => ')',
-                _ when char.IsControl(character) => ' ',
-                _ => character,
-            });
-        }
-
-        return safe.ToString();
+                span[index] = SafeCharacter(text[index]);
+            }
+        });
     }
+
+    private static char SafeCharacter(char character) => character switch
+    {
+        '[' or '{' => '(',
+        ']' or '}' => ')',
+        _ when char.IsControl(character) => ' ',
+        _ => character,
+    };
 
     private static void Directive(StringBuilder text, string name, string value) => text.Append('{').Append(name).Append(": ").Append(Safe(value).Trim()).Append("}\n");
 
@@ -83,12 +87,15 @@ public static class ChordProWriter
             return string.Join(' ', row.Chords.Select(chord => $"[{chord.Symbol}]"));
         }
 
-        var text = Safe(row.Text);
-        var line = new StringBuilder();
-        var leads = row.Chords.Where(chord => chord.Lead).Select(chord => $"[{chord.Symbol}]");
-        line.Append(string.Concat(leads));
+        return LyricRow(Safe(row.Text), row.Chords);
+    }
+
+    /// <summary>Lead chords first, then each chord inserted at its character (never before the previous one).</summary>
+    private static string LyricRow(string text, IReadOnlyList<SheetChord> chords)
+    {
+        var line = new StringBuilder(string.Concat(chords.Where(chord => chord.Lead).Select(chord => $"[{chord.Symbol}]")));
         var cursor = 0;
-        foreach (var chord in row.Chords.Where(chord => !chord.Lead))
+        foreach (var chord in chords.Where(chord => !chord.Lead))
         {
             var at = Math.Clamp(chord.CharIndex, cursor, text.Length);
             line.Append(text, cursor, at - cursor).Append('[').Append(chord.Symbol).Append(']');

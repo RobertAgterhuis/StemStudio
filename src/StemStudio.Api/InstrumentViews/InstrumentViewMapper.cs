@@ -58,20 +58,14 @@ public static class InstrumentViewMapper
     /// <summary>The chord chart document.</summary>
     /// <param name="chart">The chart.</param>
     /// <returns>The DTO.</returns>
-    public static ChordChartDocumentDto ToDto(ChordChart chart)
-    {
-        ArgumentNullException.ThrowIfNull(chart);
-        return new ChordChartDocumentDto
+    public static ChordChartDocumentDto ToDto(ChordChart chart) => chart is null
+        ? throw new ArgumentNullException(nameof(chart))
+        : new ChordChartDocumentDto
         {
             Vocabulary = chart.Vocabulary == ChordVocabulary.Full ? ChordVocabularyDto.Full : ChordVocabularyDto.Simple,
-            Engine = chart.Engine switch
-            {
-                "btc" => ChordEngineDto.Btc,
-                "chroma-hmm" => ChordEngineDto.ChromaHmm,
-                _ => ChordEngineDto.Fake,
-            },
+            Engine = ChordEngine(chart.Engine),
             Key = chart.Key is { } key ? ToDto(key) : null,
-            KeyRegions = chart.KeyRegions.Select(region => new KeyRegionDto { StartMs = region.StartMs, EndMs = region.EndMs, Tonic = region.Tonic, Mode = ToDto(region.Mode), Confidence = region.Confidence }).ToList(),
+            KeyRegions = chart.KeyRegions.Select(ToDto).ToList(),
             PreferFlats = chart.PreferFlats,
             BeatSnapped = chart.BeatSnapped,
             NoChords = chart.NoChords,
@@ -79,7 +73,6 @@ public static class InstrumentViewMapper
             Segments = chart.Segments.Select(ToDto).ToList(),
             Warnings = ToDto(chart.Warnings),
         };
-    }
 
     /// <summary>A song key.</summary>
     /// <param name="key">The key.</param>
@@ -122,21 +115,37 @@ public static class InstrumentViewMapper
     {
         ArgumentNullException.ThrowIfNull(view);
         var stored = view.Stored;
-        var shown = view.Status is AnalysisStatus.Ready or AnalysisStatus.Stale && stored?.Document is TDocument typed ? document(typed) : null;
         return new TrackAnalysisDto<TDto>
         {
             Kind = (AnalysisKindDto)(int)view.Kind,
             Status = ToDto(view.Status),
             Reason = view.Reason,
             Progress = stored is null || view.Status == AnalysisStatus.Unavailable ? 0 : stored.Progress,
-            Engine = stored?.Engine is { } engine && Engines.TryGetValue(engine, out var known) ? known : null,
+            Engine = EngineOf(stored),
             Device = TrackMapper.ToDto(stored?.Device),
             EstimateSeconds = stored?.IsActive == true ? stored.EstimateSeconds : null,
             UpdatedAt = TrackMapper.Utc(stored?.UpdatedAt ?? view.Track.UpdatedAt),
             Limits = limits,
-            Document = shown,
+            Document = Shown(view, document),
         };
     }
+
+    private static TDto? Shown<TDocument, TDto>(AnalysisView view, Func<TDocument, TDto> document)
+        where TDocument : AnalysisDocument
+        where TDto : class =>
+        view.Status is AnalysisStatus.Ready or AnalysisStatus.Stale && view.Stored?.Document is TDocument typed ? document(typed) : null;
+
+    private static AnalysisEngineDto? EngineOf(TrackAnalysis? stored) => stored?.Engine is { } engine && Engines.TryGetValue(engine, out var known) ? known : null;
+
+    private static ChordEngineDto ChordEngine(string engine) => engine switch
+    {
+        "btc" => ChordEngineDto.Btc,
+        "chroma-hmm" => ChordEngineDto.ChromaHmm,
+        _ => ChordEngineDto.Fake,
+    };
+
+    private static KeyRegionDto ToDto(KeyRegion region) =>
+        new() { StartMs = region.StartMs, EndMs = region.EndMs, Tonic = region.Tonic, Mode = ToDto(region.Mode), Confidence = region.Confidence };
 
     private static ChordSegmentDto ToDto(ChordSegment segment) => new()
     {

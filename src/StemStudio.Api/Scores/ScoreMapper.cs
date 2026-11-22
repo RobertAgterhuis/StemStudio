@@ -14,10 +14,9 @@ public static class ScoreMapper
     /// <param name="request">The DTO.</param>
     /// <param name="source">The resolved source.</param>
     /// <returns>The request.</returns>
-    public static ScoreRequest ToDomain(CreateScoreRequest request, ScoreSource source)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        return new ScoreRequest(source)
+    public static ScoreRequest ToDomain(CreateScoreRequest request, ScoreSource source) => request is null
+        ? throw new ArgumentNullException(nameof(request))
+        : new ScoreRequest(source)
         {
             Profile = MapOrNull<ScoreProfile>(request.Profile),
             Quality = MapOrNull<ScoreQuality>(request.Quality),
@@ -29,15 +28,13 @@ public static class ScoreMapper
             Part = ScoreNotationWire.ToDomain(request.Part),
             IncludeChords = request.IncludeChords,
         };
-    }
 
     /// <summary>Maps a recipe.</summary>
     /// <param name="recipe">The recipe.</param>
     /// <returns>The DTO.</returns>
-    public static ScoreRecipeDto ToDto(ScoreRecipe recipe)
-    {
-        ArgumentNullException.ThrowIfNull(recipe);
-        return new ScoreRecipeDto
+    public static ScoreRecipeDto ToDto(ScoreRecipe recipe) => recipe is null
+        ? throw new ArgumentNullException(nameof(recipe))
+        : new ScoreRecipeDto
         {
             Source = ToDto(recipe.Source),
             Profile = Map<ScoreProfileDto>(recipe.Profile),
@@ -50,7 +47,6 @@ public static class ScoreMapper
             Part = ScoreNotationWire.ToDto(recipe.Part),
             IncludeChords = recipe.IncludeChords,
         };
-    }
 
     /// <summary>Maps score facts.</summary>
     /// <param name="facts">The facts.</param>

@@ -32,15 +32,20 @@ public static partial class HarteLabel
             return false;
         }
 
-        if (!match.Groups["root"].Success)
+        if (match.Groups["root"].Success)
         {
-            return true;
+            chord = Chord(match);
         }
 
+        return true;
+    }
+
+    /// <summary>Root, quality and the bass pitch class (null when it is the root) of a matched label with a root.</summary>
+    private static ChordName Chord(Match match)
+    {
         var root = PitchClass.Of(Naturals[match.Groups["root"].Value[0]] + Accidental(match.Groups["accidental"].Value));
         var bass = match.Groups["degree"].Success ? PitchClass.Of(root + Interval(match.Groups["flat"].Success, match.Groups["degree"].Value)) : (int?)null;
-        chord = new ChordName(root, ChordQualities.FromHarte(match.Groups["quality"].Value), bass == root ? null : bass);
-        return true;
+        return new ChordName(root, ChordQualities.FromHarte(match.Groups["quality"].Value), bass == root ? null : bass);
     }
 
     private static int Accidental(string accidental) => accidental switch

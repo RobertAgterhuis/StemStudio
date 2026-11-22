@@ -37,8 +37,14 @@ public sealed class ScoreChordSource(ITrackAnalysisRepository analyses)
             return (null, ScoreProblems.ChordsNotReady());
         }
 
+        return (WithChords(draft, chart), null);
+    }
+
+    /// <summary>The draft with the chord symbols of its window in the track (asset range plus request range).</summary>
+    private static ScoreDraft WithChords(ScoreDraft draft, ChordChart chart)
+    {
         var offset = TempoGridResolver.Offset(draft.Source.AssetRangeStart, draft.Recipe.Range?.StartSeconds);
         var end = (draft.Source.AssetRangeStart ?? 0) + (draft.Recipe.Range?.EndSeconds ?? draft.Source.DurationSeconds);
-        return (draft with { Chords = ScoreNotation.Chords(chart, offset, end) }, null);
+        return draft with { Chords = ScoreNotation.Chords(chart, offset, end) };
     }
 }

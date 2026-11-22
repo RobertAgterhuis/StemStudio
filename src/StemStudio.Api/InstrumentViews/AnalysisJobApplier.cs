@@ -73,20 +73,25 @@ public sealed partial class AnalysisJobApplier(
     private bool Apply(TrackAnalysis analysis, WorkerAnalysisJob? job)
     {
         var device = devices.Convert(analysis.TrackId, job?.Device);
-        switch (job)
+        if (job is null || job.Status is WorkerPracticeJobState.Completed or WorkerPracticeJobState.Failed or WorkerPracticeJobState.Cancelled)
         {
-            case null:
-                analysis.Fail(JobLost, Now);
-                return true;
-            case { Status: WorkerPracticeJobState.Completed, Result: { } result }:
-                Complete(analysis, result, device);
-                return true;
-            case { Status: WorkerPracticeJobState.Completed or WorkerPracticeJobState.Failed or WorkerPracticeJobState.Cancelled }:
-                analysis.Fail(job.Error, Now);
-                return true;
-            default:
-                analysis.ApplyProgress(job.Status == WorkerPracticeJobState.Running, job.Progress, device, Now);
-                return false;
+            Finish(analysis, job, device);
+            return true;
+        }
+
+        analysis.ApplyProgress(job.Status == WorkerPracticeJobState.Running, job.Progress, device, Now);
+        return false;
+    }
+
+    private void Finish(TrackAnalysis analysis, WorkerAnalysisJob? job, Domain.Tracks.JobDevice? device)
+    {
+        if (job is { Status: WorkerPracticeJobState.Completed, Result: { } result })
+        {
+            Complete(analysis, result, device);
+        }
+        else
+        {
+            analysis.Fail(job is null ? JobLost : job.Error, Now);
         }
     }
 

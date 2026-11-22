@@ -47,16 +47,20 @@ public sealed class TrackViewsProjection(ITrackAnalysisRepository analyses)
 
     private static InstrumentViewsStatusDto? Statuses(Track track, List<AnalysisStatusRow> rows)
     {
-        AnalysisStatusDto Of(AnalysisKind kind)
+        var dto = new InstrumentViewsStatusDto
         {
-            var stored = rows.Find(row => row.Kind == kind)?.Status ?? AnalysisStatus.None;
-            var effective = stored == AnalysisStatus.None && AnalysisKindStrategies.UnavailableReason(AnalysisKindStrategies.Missing(kind, track)) is not null
-                ? AnalysisStatus.Unavailable
-                : stored;
-            return InstrumentViewMapper.ToDto(effective);
-        }
-
-        var dto = new InstrumentViewsStatusDto { Chords = Of(AnalysisKind.Chords), DrumHits = Of(AnalysisKind.DrumHits), VocalPitch = Of(AnalysisKind.VocalPitch) };
+            Chords = Effective(track, rows, AnalysisKind.Chords),
+            DrumHits = Effective(track, rows, AnalysisKind.DrumHits),
+            VocalPitch = Effective(track, rows, AnalysisKind.VocalPitch),
+        };
         return dto == InstrumentViewsStatusDto.None ? null : dto;
+    }
+
+    /// <summary>The stored status, or unavailable when nothing is stored and a prerequisite is missing.</summary>
+    private static AnalysisStatusDto Effective(Track track, List<AnalysisStatusRow> rows, AnalysisKind kind)
+    {
+        var stored = rows.Find(row => row.Kind == kind)?.Status ?? AnalysisStatus.None;
+        var unavailable = stored == AnalysisStatus.None && AnalysisKindStrategies.UnavailableReason(AnalysisKindStrategies.Missing(kind, track)) is not null;
+        return InstrumentViewMapper.ToDto(unavailable ? AnalysisStatus.Unavailable : stored);
     }
 }

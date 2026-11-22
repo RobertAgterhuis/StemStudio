@@ -124,16 +124,17 @@ public static class AnalysisKindStrategies
             return PlanResult.Refused(MissingPrerequisite.NoHarmonicStem);
         }
 
-        var request = new WorkerChordsRequest
-        {
-            Inputs = inputs.Select(input => input.PathFor(track.Id)).ToList(),
-            BassInput = inputs.FirstOrDefault(input => input.Parent == "bass")?.PathFor(track.Id),
-            Grid = track.BeatGrid is { Reliable: true } grid ? new WorkerBeatGridTempo(grid.Bpm, grid.BeatsPerBar, grid.Beats, grid.Downbeats) : null,
-            Vocabulary = options.Vocabulary == ChordVocabulary.Full ? "full" : "simple",
-            Engine = options.Engine,
-        };
-        return new PlanResult(MissingPrerequisite.None, new AnalysisPlan(request, inputs, options.Engine ?? engines.ChordEngine));
+        return new PlanResult(MissingPrerequisite.None, new AnalysisPlan(ChordsRequest(track, inputs, options), inputs, options.Engine ?? engines.ChordEngine));
     }
+
+    private static WorkerChordsRequest ChordsRequest(Track track, List<RenderChannel> inputs, AnalysisOptions options) => new()
+    {
+        Inputs = inputs.Select(input => input.PathFor(track.Id)).ToList(),
+        BassInput = inputs.FirstOrDefault(input => input.Parent == "bass")?.PathFor(track.Id),
+        Grid = track.BeatGrid is { Reliable: true } grid ? new WorkerBeatGridTempo(grid.Bpm, grid.BeatsPerBar, grid.Beats, grid.Downbeats) : null,
+        Vocabulary = options.Vocabulary == ChordVocabulary.Full ? "full" : "simple",
+        Engine = options.Engine,
+    };
 
     private static PlanResult DrumHits(Track track)
     {
@@ -156,16 +157,20 @@ public static class AnalysisKindStrategies
             return PlanResult.Refused(MissingPrerequisite.TrackNotReady);
         }
 
-        var lead = KeptDetails(track, "vocals").Contains("lead");
-        if (!lead && track.Stems.All(stem => stem.Name != "vocals"))
+        if (VocalInput(track) is not { } input)
         {
             return PlanResult.Refused(MissingPrerequisite.NoVocals);
         }
 
-        var input = lead ? new RenderChannel("vocals", "lead") : new RenderChannel("vocals", null);
-        var request = new WorkerVocalPitchRequest { Input = input.PathFor(track.Id), Source = lead ? "vocals.lead" : "vocals" };
+        var request = new WorkerVocalPitchRequest { Input = input.PathFor(track.Id), Source = input.Id };
         return new PlanResult(MissingPrerequisite.None, new AnalysisPlan(request, [input], engines.PitchEngine));
     }
+
+    /// <summary>The kept lead stem of a vocals split, else the vocals stem, else null.</summary>
+    private static RenderChannel? VocalInput(Track track) =>
+        KeptDetails(track, "vocals").Contains("lead") ? new RenderChannel("vocals", "lead")
+        : track.Stems.Any(stem => stem.Name == "vocals") ? new RenderChannel("vocals", null)
+        : null;
 
     private static IEnumerable<string> KeptDetails(Track track, string parent) =>
         track.HasDetailFiles

@@ -36,13 +36,7 @@ public static class AnalysisResultMapper
         ArgumentNullException.ThrowIfNull(result);
         try
         {
-            return (kind, result.Kind) switch
-            {
-                (AnalysisKind.Chords, "chords") => Chords(result),
-                (AnalysisKind.DrumHits, "drum-hits") => DrumHits(result),
-                (AnalysisKind.VocalPitch, "vocal-pitch") => VocalPitch(result),
-                _ => null,
-            };
+            return Map(kind, result);
         }
         catch (InvalidResultException)
         {
@@ -60,41 +54,54 @@ public static class AnalysisResultMapper
         _ => "vocal-pitch",
     };
 
-    private static ChordChart Chords(WorkerAnalysisResult result)
+    private static AnalysisDocument? Map(AnalysisKind kind, WorkerAnalysisResult result) => (kind, result.Kind) switch
     {
-        Require(ChordEngines.Contains(result.Engine));
-        var segments = Bounded(result.Segments ?? [], ContractLimits.MaxChordSegments).Select(Segment).ToList();
-        var regions = Bounded(result.KeyRegions ?? [], ContractLimits.MaxKeyRegions)
-            .Select(region => new KeyRegion(region.StartMs, region.EndMs, Pc(region.Tonic), Mode(region.Mode), Unit(region.Confidence))).ToList();
-        return new ChordChart
-        {
-            Engine = result.Engine,
-            Vocabulary = result.Vocabulary == "full" ? ChordVocabulary.Full : ChordVocabulary.Simple,
-            Key = result.Key is { } key ? new SongKey(Pc(key.Tonic), Mode(key.Mode), Unit(key.Confidence), Alternative(key.Alternative)) : null,
-            KeyRegions = regions,
-            PreferFlats = result.PreferFlats,
-            BeatSnapped = result.BeatSnapped,
-            NoChords = result.NoChords,
-            Segments = segments,
-            Warnings = Warnings(result.Warnings),
-        };
+        (AnalysisKind.Chords, "chords") => Chords(result),
+        (AnalysisKind.DrumHits, "drum-hits") => DrumHits(result),
+        (AnalysisKind.VocalPitch, "vocal-pitch") => VocalPitch(result),
+        _ => null,
+    };
+
+    private static ChordChart Chords(WorkerAnalysisResult result) => new()
+    {
+        Engine = Known(ChordEngines, result.Engine),
+        Vocabulary = result.Vocabulary == "full" ? ChordVocabulary.Full : ChordVocabulary.Simple,
+        Key = result.Key is { } key ? new SongKey(Pc(key.Tonic), Mode(key.Mode), Unit(key.Confidence), Alternative(key.Alternative)) : null,
+        KeyRegions = Regions(result.KeyRegions),
+        PreferFlats = result.PreferFlats,
+        BeatSnapped = result.BeatSnapped,
+        NoChords = result.NoChords,
+        Segments = Bounded(result.Segments ?? [], ContractLimits.MaxChordSegments).Select(Segment).ToList(),
+        Warnings = Warnings(result.Warnings),
+    };
+
+    private static string Known(HashSet<string> engines, string engine)
+    {
+        Require(engines.Contains(engine));
+        return engine;
     }
+
+    private static List<KeyRegion> Regions(IReadOnlyList<WorkerKeyRegion>? regions) => Bounded(regions ?? [], ContractLimits.MaxKeyRegions)
+        .Select(region => new KeyRegion(region.StartMs, region.EndMs, Pc(region.Tonic), Mode(region.Mode), Unit(region.Confidence))).ToList();
 
     private static ChordSegment Segment(WorkerChordSegment segment)
     {
         Require(segment.StartMs >= 0 && segment.EndMs > segment.StartMs && HarteLabel.TryParse(segment.Label, out _));
-        ChordQuality? quality = segment.Quality is null ? null : ChordQualities.FromHarte(segment.Quality) ?? throw new InvalidResultException();
         return new ChordSegment
         {
             StartMs = segment.StartMs,
             EndMs = segment.EndMs,
             Label = segment.Label,
-            Root = segment.Root is { } root ? Pc(root) : null,
-            Quality = quality,
-            Bass = segment.Bass is { } bass ? Pc(bass) : null,
+            Root = OptionalPc(segment.Root),
+            Quality = Quality(segment.Quality),
+            Bass = OptionalPc(segment.Bass),
             Confidence = Unit(segment.Confidence),
         };
     }
+
+    private static ChordQuality? Quality(string? quality) => quality is null ? null : ChordQualities.FromHarte(quality) ?? throw new InvalidResultException();
+
+    private static int? OptionalPc(int? value) => value is { } pc ? Pc(pc) : null;
 
     private static DrumHitsDocument DrumHits(WorkerAnalysisResult result)
     {
@@ -110,23 +117,30 @@ public static class AnalysisResultMapper
     private static VocalPitchDocument VocalPitch(WorkerAnalysisResult result)
     {
         Require(PitchEngines.Contains(result.Engine) && result.HopMs is null or 10);
-        var frames = Bounded(result.Frames ?? [], ContractLimits.MaxPitchFrames);
-        Require(frames.All(frame => frame is >= 0 and <= ContractLimits.MaxPitchCents));
         return new VocalPitchDocument
         {
             Engine = result.Engine,
-            Frames = frames.ToArray(),
-            Source = result.Source switch
-            {
-                "vocals.lead" => VocalSource.VocalsLead,
-                "vocals" => VocalSource.Vocals,
-                _ => throw new InvalidResultException(),
-            },
+            Frames = Frames(result.Frames),
+            Source = Source(result.Source),
             VoicedRatio = Unit(result.VoicedRatio ?? 0),
             Range = result.Range is { } range ? new PitchRange(range.LowCents, range.HighCents) : null,
             Warnings = Warnings(result.Warnings),
         };
     }
+
+    private static int[] Frames(IReadOnlyList<int>? frames)
+    {
+        var bounded = Bounded(frames ?? [], ContractLimits.MaxPitchFrames);
+        Require(bounded.All(frame => frame is >= 0 and <= ContractLimits.MaxPitchCents));
+        return bounded.ToArray();
+    }
+
+    private static VocalSource Source(string? source) => source switch
+    {
+        "vocals.lead" => VocalSource.VocalsLead,
+        "vocals" => VocalSource.Vocals,
+        _ => throw new InvalidResultException(),
+    };
 
     private static List<AnalysisWarning> Warnings(IReadOnlyList<WorkerAnalysisWarning>? warnings) =>
         (warnings ?? []).Where(warning => WarningCodes.ContainsKey(warning.Code))

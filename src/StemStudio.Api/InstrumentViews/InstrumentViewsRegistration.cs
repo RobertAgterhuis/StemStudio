@@ -19,6 +19,11 @@ public static class InstrumentViewsRegistration
         services.AddOptions<InstrumentViewsOptions>().Bind(configuration.GetSection(InstrumentViewsOptions.SectionName));
         services.AddServiceClient<IWorkerAnalysisClient, WorkerClient>(
             configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
+        return services.AddAnalysisServices().AddVocalPitchCompression();
+    }
+
+    private static IServiceCollection AddAnalysisServices(this IServiceCollection services)
+    {
         services.AddSingleton<AnalysisGate>();
         services.AddSingleton<StemFingerprinter>();
         services.AddScoped<AnalysisEstimator>();
@@ -30,9 +35,7 @@ public static class InstrumentViewsRegistration
         services.AddScoped<AnalysisJobApplier>();
         services.AddScoped<AnalysisAutoStarter>();
         services.AddScoped<ITrackCompletionHook>(provider => provider.GetRequiredService<AnalysisAutoStarter>());
-        services.AddScoped<IDetailCompletionHook>(provider => provider.GetRequiredService<AnalysisAutoStarter>());
-        services.AddVocalPitchCompression();
-        return services;
+        return services.AddScoped<IDetailCompletionHook>(provider => provider.GetRequiredService<AnalysisAutoStarter>());
     }
 
     /// <summary>Maps the 016 endpoints (tag <c>instrument-views</c>).</summary>

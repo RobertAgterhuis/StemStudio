@@ -55,13 +55,8 @@ public sealed partial class DetailSynchronizer(
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
     {
         var before = track.DetailPhase!.Status;
-        try
+        if (!await TryApplyAsync(track, cancellationToken))
         {
-            await ApplyAsync(track, track.DetailPhase.WorkerDetailJobId, cancellationToken);
-        }
-        catch (WorkerUnavailableException)
-        {
-            LogWorkerUnavailable(logger, track.Id);
             return;
         }
 
@@ -70,6 +65,21 @@ public sealed partial class DetailSynchronizer(
         if (before != DetailPhaseStatus.Completed && track.DetailPhase?.Status == DetailPhaseStatus.Completed)
         {
             await RunHooksAsync(track, cancellationToken);
+        }
+    }
+
+    /// <summary>Applies the worker job; false while the worker is unreachable (the state is kept for the next tick).</summary>
+    private async Task<bool> TryApplyAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ApplyAsync(track, track.DetailPhase!.WorkerDetailJobId, cancellationToken);
+            return true;
+        }
+        catch (WorkerUnavailableException)
+        {
+            LogWorkerUnavailable(logger, track.Id);
+            return false;
         }
     }
 

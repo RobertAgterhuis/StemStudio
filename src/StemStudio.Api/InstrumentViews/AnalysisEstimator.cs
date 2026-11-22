@@ -33,19 +33,24 @@ public sealed class AnalysisEstimator(IWorkerClient worker, IOptions<InstrumentV
     {
         try
         {
-            var health = await worker.GetHealthAsync(cancellationToken);
-            if (health.InstrumentAnalysis is not { } lane)
-            {
-                return WorkerSnapshot.Unknown with { Gpu = health.DeviceInfo.Kind == ProcessingDeviceKind.Gpu };
-            }
-
-            var missing = lane.Models.Where(model => model.Value != "ready").Select(model => model.Key).ToHashSet(StringComparer.Ordinal);
-            return new WorkerSnapshot(new WorkerEngines(lane.ChordEngine, lane.PitchEngine), health.DeviceInfo.Kind == ProcessingDeviceKind.Gpu, missing);
+            return Snapshot(await worker.GetHealthAsync(cancellationToken));
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {
             return WorkerSnapshot.Unknown;
         }
+    }
+
+    private static WorkerSnapshot Snapshot(WorkerHealth health)
+    {
+        var gpu = health.DeviceInfo.Kind == ProcessingDeviceKind.Gpu;
+        if (health.InstrumentAnalysis is not { } lane)
+        {
+            return WorkerSnapshot.Unknown with { Gpu = gpu };
+        }
+
+        var missing = lane.Models.Where(model => model.Value != "ready").Select(model => model.Key).ToHashSet(StringComparer.Ordinal);
+        return new WorkerSnapshot(new WorkerEngines(lane.ChordEngine, lane.PitchEngine), gpu, missing);
     }
 
     /// <summary>The estimate of a run in seconds.</summary>

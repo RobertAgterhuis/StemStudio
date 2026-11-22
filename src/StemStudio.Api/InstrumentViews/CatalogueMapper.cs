@@ -11,32 +11,38 @@ public static class CatalogueMapper
     /// <summary>The catalogue.</summary>
     public static InstrumentCatalogueDto Catalogue { get; } = new()
     {
-        Families = FamilyRule.Families.Select(family => new InstrumentFamilyInfoDto
-        {
-            Id = (InstrumentFamilyDto)(int)family.Id,
-            Label = family.Label,
-            Stems = family.Stems,
-            DetailNames = family.DetailNames,
-            View = (InstrumentViewDto)(int)family.View,
-        }).ToList(),
-        Tunings = InstrumentCatalogue.Tunings.Select(tuning => new TuningDto
-        {
-            Id = ToDto(tuning.Id),
-            Instrument = tuning.Instrument,
-            Label = tuning.Label,
-            Pitches = tuning.Pitches,
-        }).ToList(),
-        Instruments = InstrumentCatalogue.Instruments.Select(instrument => new WrittenInstrumentInfoDto
-        {
-            Id = ToDto(instrument.Id),
-            Name = instrument.Name,
-            KeyName = instrument.KeyName,
-            Interval = instrument.Interval,
-            DefaultClef = ClefName(instrument.Range.DefaultClef),
-            LowMidi = instrument.Range.LowMidi,
-            HighMidi = instrument.Range.HighMidi,
-        }).ToList(),
+        Families = FamilyRule.Families.Select(Family).ToList(),
+        Tunings = InstrumentCatalogue.Tunings.Select(Tuning).ToList(),
+        Instruments = InstrumentCatalogue.Instruments.Select(Instrument).ToList(),
         Clefs = InstrumentCatalogue.Clefs.Select(ToDto).ToList(),
+    };
+
+    private static InstrumentFamilyInfoDto Family(FamilyInfo family) => new()
+    {
+        Id = (InstrumentFamilyDto)(int)family.Id,
+        Label = family.Label,
+        Stems = family.Stems,
+        DetailNames = family.DetailNames,
+        View = (InstrumentViewDto)(int)family.View,
+    };
+
+    private static TuningDto Tuning(Tuning tuning) => new()
+    {
+        Id = ToDto(tuning.Id),
+        Instrument = tuning.Instrument,
+        Label = tuning.Label,
+        Pitches = tuning.Pitches,
+    };
+
+    private static WrittenInstrumentInfoDto Instrument(WrittenInstrumentInfo instrument) => new()
+    {
+        Id = ToDto(instrument.Id),
+        Name = instrument.Name,
+        KeyName = instrument.KeyName,
+        Interval = instrument.Interval,
+        DefaultClef = ClefName(instrument.Range.DefaultClef),
+        LowMidi = instrument.Range.LowMidi,
+        HighMidi = instrument.Range.HighMidi,
     };
 
     /// <summary>A tuning id.</summary>
