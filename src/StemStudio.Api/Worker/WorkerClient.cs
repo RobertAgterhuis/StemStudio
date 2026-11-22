@@ -17,6 +17,12 @@ namespace StemStudio.Api.Worker;
 /// <param name="clock">Clock for the health timeout.</param>
 public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> logger, TimeProvider clock) : IWorkerClient
 {
+    /// <summary>
+    /// The most the analysis client buffers of one worker body (security review S-L4): the largest contract result (40,000
+    /// drum hits, about 3 MB) with margin; a larger body is refused as an unusable service.
+    /// </summary>
+    public const int MaxAnalysisResponseBytes = 8 * 1024 * 1024;
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         // Score engines and warning codes are kebab-case on the wire (worker 1.6.0); every other enum is camelCase.

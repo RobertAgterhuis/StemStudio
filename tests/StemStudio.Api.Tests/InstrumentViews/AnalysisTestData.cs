@@ -18,12 +18,12 @@ internal static class AnalysisTestData
     public static readonly DateTime T0 = SyncTestData.T0;
 
     /// <summary>A completed four-stem track (vocals, drums, bass, other) with an unreliable grid.</summary>
-    public static Track FourStem()
+    public static Track FourStem(double durationSeconds = 180)
     {
         var track = SyncTestData.UrlTrack();
         track.Complete(
             new TrackCompletion(
-                180,
+                durationSeconds,
                 "htdemucs",
                 StemCatalog.FourStem.Select(name => new Stem(name, 10)).ToList(),
                 new BeatGrid { Bpm = 100, Beats = [0.5, 1.1], Downbeats = [0.5], Confidence = 0.2, Reliable = false }),
@@ -90,11 +90,11 @@ internal static class AnalysisTestData
         });
 
     /// <summary>Stores a queued analysis with the given worker job.</summary>
-    public static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, string jobId) =>
+    public static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, string jobId, DateTime? at = null) =>
         factory.WithScopeAsync(async sp =>
         {
-            var analysis = TrackAnalysis.Create(trackId, kind, T0);
-            analysis.Queue(new AnalysisRun(jobId, TrackAnalysisService.DefaultOptions(kind), new string('0', 64), 10), T0);
+            var analysis = TrackAnalysis.Create(trackId, kind, at ?? T0);
+            analysis.Queue(new AnalysisRun(jobId, TrackAnalysisService.DefaultOptions(kind), new string('0', 64), 10), at ?? T0);
             await sp.GetRequiredService<ITrackAnalysisRepository>().AddAsync(analysis, CancellationToken.None);
             return analysis;
         });

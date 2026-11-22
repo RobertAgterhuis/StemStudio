@@ -27,6 +27,10 @@ public sealed class AnalysisResultMapperHostileTests
     [InlineData(""", "key": {"tonic": 0, "mode": "dorian", "confidence": 0.9}""")]
     [InlineData(""", "key": {"tonic": 0, "mode": "major", "confidence": 0.9, "alternative": {"tonic": 13, "mode": "minor"}}""")]
     [InlineData(""", "keyRegions": [{"startMs": 0, "endMs": 500, "tonic": 0, "mode": "major", "confidence": -0.1}]""")]
+    [InlineData(""", "keyRegions": [{"startMs": -1, "endMs": 500, "tonic": 0, "mode": "major", "confidence": 0.5}]""")]
+    [InlineData(""", "keyRegions": [{"startMs": 500, "endMs": 500, "tonic": 0, "mode": "major", "confidence": 0.5}]""")]
+    [InlineData(""", "keyRegions": [{"startMs": 900, "endMs": 100, "tonic": 0, "mode": "major", "confidence": 0.5}]""")]
+    [InlineData(""", "keyRegions": [{"startMs": 0, "endMs": 0, "tonic": 0, "mode": "major", "confidence": 0.5}]""")]
     public void BrokenKeys_AreRefused(string fields) => Map(AnalysisKind.Chords, Chords(fields)).ShouldBeNull();
 
     [Fact]
@@ -56,14 +60,20 @@ public sealed class AnalysisResultMapperHostileTests
     [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [12701], "source": "vocals"}""")]
     [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals.backing"}""")]
     [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals", "voicedRatio": 1.2}""")]
+    [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "frames": [0], "source": "vocals", "voicedRatio": 0.5}""")]
+    [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals"}""")]
+    [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals", "voicedRatio": 0.5, "range": {"lowCents": 0, "highCents": 5700}}""")]
+    [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals", "voicedRatio": 0.5, "range": {"lowCents": 5700, "highCents": 12701}}""")]
+    [InlineData("""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [0], "source": "vocals", "voicedRatio": 0.5, "range": {"lowCents": 6000, "highCents": 5700}}""")]
     public void BrokenMelodies_AreRefused(string json) => Map(AnalysisKind.VocalPitch, json).ShouldBeNull();
 
     [Fact]
-    public void AMelodyWithoutTheOptionalFields_HasTheirDefaults()
+    public void AMelodyWithTheRequiredFieldsOnly_HasEmptyFramesNoRangeAndNoWarnings()
     {
-        var pitch = Map(AnalysisKind.VocalPitch, """{"kind": "vocal-pitch", "engine": "yin", "source": "vocals"}""").ShouldBeOfType<VocalPitchDocument>();
+        var pitch = Map(AnalysisKind.VocalPitch, """{"kind": "vocal-pitch", "engine": "yin", "hopMs": 10, "source": "vocals", "voicedRatio": 0, "range": {"lowCents": 1, "highCents": 12700}}""")
+            .ShouldBeOfType<VocalPitchDocument>();
 
-        (pitch.Frames.Count, pitch.VoicedRatio, pitch.Range, pitch.Warnings.Count).ShouldBe((0, 0.0, null, 0));
+        (pitch.Frames.Count, pitch.VoicedRatio, pitch.Range, pitch.Warnings.Count).ShouldBe((0, 0.0, new PitchRange(1, 12700), 0));
     }
 
     [Fact]
@@ -71,7 +81,7 @@ public sealed class AnalysisResultMapperHostileTests
     {
         var frames = string.Join(',', Enumerable.Repeat("0", Contracts.ContractLimits.MaxPitchFrames + 1));
 
-        Map(AnalysisKind.VocalPitch, $$"""{"kind": "vocal-pitch", "engine": "pyin", "frames": [{{frames}}], "source": "vocals"}""").ShouldBeNull();
+        Map(AnalysisKind.VocalPitch, $$"""{"kind": "vocal-pitch", "engine": "pyin", "hopMs": 10, "frames": [{{frames}}], "source": "vocals", "voicedRatio": 0.5}""").ShouldBeNull();
     }
 
     [Theory]

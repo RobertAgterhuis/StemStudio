@@ -25,7 +25,7 @@ public static class InstrumentViewsRegistration
     private static IServiceCollection AddAnalysisServices(this IServiceCollection services)
     {
         services.AddSingleton<AnalysisGate>();
-        services.AddSingleton<StemFingerprinter>();
+        services.AddSingleton<IStemFingerprinter, StemFingerprinter>();
         services.AddScoped<AnalysisEstimator>();
         services.AddScoped<AnalysisRunFactory>();
         services.AddScoped<TrackAnalysisService>();

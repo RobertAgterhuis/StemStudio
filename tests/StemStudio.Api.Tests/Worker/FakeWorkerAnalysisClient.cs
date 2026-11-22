@@ -30,6 +30,12 @@ internal sealed class FakeWorkerAnalysisClient : IWorkerAnalysisClient
     /// <summary>Awaited inside every job read (to change the analysis while a sync pass runs).</summary>
     public Func<Task>? OnGet { get; set; }
 
+    /// <summary>When set, a job read of that job id throws the returned exception (null = answer normally).</summary>
+    public Func<string, Exception?>? JobFailure { get; set; }
+
+    /// <summary>When set, a job delete of that job id throws the returned exception (null = answer normally).</summary>
+    public Func<string, Exception?>? DeleteFailure { get; set; }
+
     public ConcurrentQueue<WorkerAnalysisRequest> Requests { get; } = new();
 
     public ConcurrentDictionary<string, WorkerAnalysisJob> Jobs { get; } = new();
@@ -80,12 +86,14 @@ internal sealed class FakeWorkerAnalysisClient : IWorkerAnalysisClient
             await meanwhile();
         }
 
+        ThrowIfFailing(JobFailure, jobId);
         return Jobs.GetValueOrDefault(jobId);
     }
 
     public Task DeleteAnalysisJobAsync(string jobId, CancellationToken cancellationToken)
     {
         ThrowIfUnavailable();
+        ThrowIfFailing(DeleteFailure, jobId);
         Deleted.Add(jobId);
         Jobs.TryRemove(jobId, out _);
         return Task.CompletedTask;
@@ -107,6 +115,14 @@ internal sealed class FakeWorkerAnalysisClient : IWorkerAnalysisClient
 
     /// <summary>The worker forgets the job (restart).</summary>
     public void Forget(string jobId) => Jobs.TryRemove(jobId, out _);
+
+    private static void ThrowIfFailing(Func<string, Exception?>? failures, string jobId)
+    {
+        if (failures?.Invoke(jobId) is { } failure)
+        {
+            throw failure;
+        }
+    }
 
     private void ThrowIfUnavailable()
     {

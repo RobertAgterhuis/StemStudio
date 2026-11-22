@@ -33,7 +33,7 @@ public sealed record PlannedRun(MissingPrerequisite Missing, PreparedRun? Run);
 /// <summary>Plans a run: inputs (data-model 7.4), fingerprint (7.1) and estimate (7.7).</summary>
 /// <param name="fingerprinter">Hashes the input stems.</param>
 /// <param name="estimator">Estimates from the worker health.</param>
-public sealed class AnalysisRunFactory(StemFingerprinter fingerprinter, AnalysisEstimator estimator)
+public sealed class AnalysisRunFactory(IStemFingerprinter fingerprinter, AnalysisEstimator estimator)
 {
     /// <summary>Plans a run.</summary>
     /// <param name="request">The start request.</param>
