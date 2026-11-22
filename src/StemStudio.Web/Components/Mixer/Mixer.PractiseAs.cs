@@ -50,6 +50,7 @@ public sealed partial class Mixer
     private async Task PractiseAsAsync(InstrumentFamilyDto family)
     {
         (Family, OfferedFamily) = (family, null);
+        await ResetCapoAsync(family);
         foreach (var channel in FamilyMixService.MinusOne(State!, family))
         {
             await SendChannelAsync(channel);
