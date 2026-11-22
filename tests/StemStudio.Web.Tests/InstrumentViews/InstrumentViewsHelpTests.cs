@@ -21,6 +21,7 @@ public sealed class InstrumentViewsHelpTests
         { "singing-tolerance-latency", ["singing-tolerance", "singing-latency"] },
         { "transposed-parts", ["score-part", "score-part-clef"] },
         { "instrument-views", ["practise-as"] },
+        { "song-key", ["song-key"] },
     };
 
     [Theory]

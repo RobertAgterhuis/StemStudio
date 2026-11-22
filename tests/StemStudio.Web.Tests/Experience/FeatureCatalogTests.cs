@@ -112,6 +112,8 @@ public sealed class FeatureCatalogTests
         { "parts.instrument", [B, A, E], "transposed-parts" },
         { "parts.clef", [A, E], "transposed-parts" },
         { "views.practise-as", [B, A, E], "instrument-views" },
+        { "key.view", [B, A, E], "song-key" },
+        { "key.details", [A, E], "song-key" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -175,7 +177,7 @@ public sealed class FeatureCatalogTests
                 "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
                 "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions", "shortcuts.settings", "sections.edit", "sections.detect-again", "sections.confidence", "setlists.notes", "setlists.pdf-options", "practice.log-sections", "practice.log-tempo", "practice.sessions",
                 "recording.input-mode", "recording.monitoring-volume", "recording.manual-latency", "recording.loop", "recording.take-pan", "recording.export-options", "recording.latency-samples", "recording.timing-adjust", "recording.diagnostics",
-                "chords.full", "chords.edit", "chords.export", "chords.engine", "scores.chords", "tab.tunings", "drums.guide", "singing.tolerance", "singing.raw", "parts.clef"], ignoreOrder: true);
+                "chords.full", "chords.edit", "chords.export", "chords.engine", "scores.chords", "tab.tunings", "drums.guide", "singing.tolerance", "singing.raw", "parts.clef", "key.details"], ignoreOrder: true);
     }
 
     [Fact]
