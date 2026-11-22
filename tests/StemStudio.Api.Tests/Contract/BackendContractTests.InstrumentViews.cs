@@ -12,7 +12,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] InstrumentViewOperations =
     [
         "getChords", "detectChords", "deleteChords", "editChordSegment", "getChordSheet", "downloadChordPro", "getInstrumentCatalogue",
-        "getDrumHits", "detectDrumHits", "deleteDrumHits", "getVocalPitch", "analyseVocalPitch", "deleteVocalPitch",
+        "getDrumHits", "detectDrumHits", "deleteDrumHits", "getVocalPitch", "analyseVocalPitch", "deleteVocalPitch", "getKey",
     ];
 
     private static readonly string[] PendingInstrumentViewOperations = [.. InstrumentViewsContractTests.Operations.Except(InstrumentViewOperations)];
