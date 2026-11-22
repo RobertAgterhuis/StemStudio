@@ -88,6 +88,7 @@ public sealed class SingingUnitsTests
     public void LeadMute_MutesTheLeadVocal_AndRestoresIt()
     {
         var state = new MixerState(DrumlessTests.DrumTrack());
+        state.SetExpanded(StemNames.Vocals, true);
         var muted = SingingMix.MuteLead(state);
 
         muted.Flags.Stem.ShouldBe("vocals.lead");
