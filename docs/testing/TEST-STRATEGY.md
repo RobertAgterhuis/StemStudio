@@ -2121,3 +2121,88 @@ cd tests/fixtures && uv run --project ../../worker pytest tests/test_generate_in
 cd worker && uv run pytest tests/harmony tests/analysis tests/notation tests/analysis_inputs tests/engraving --cov --cov-branch
 (cd e2e && npm run test:instrument)   # fake stack; fake-mic projects for the singing spec
 ```
+
+### 22.6 E2E specs and tags (qa T076-T136)
+
+| Spec | Story | Families | Projects / tag |
+|---|---|---|---|
+| `e2e/tests/instrument-chords.spec.ts` (T076) | US1 | keys, guitar, singers (harmony) | `chromium`, `firefox`; `@instrument` |
+| `e2e/tests/instrument-tab.spec.ts` (T083) | US2 | guitar (drop D notation + tab), bass (5-string tab only), drums (MIDI of `drums-kick`) | `@instrument` |
+| `e2e/tests/instrument-drums.spec.ts` (T092) | US3 | drums (lanes, Drumless, guide piece, drum score) | `@instrument` |
+| `e2e/tests/instrument-singing.spec.ts` (T107) | US4 | vocals | `fake-mic-on-pitch`, `fake-mic-semitone`, `fake-mic-silence`; `@fake-mic` + `@fake-mic-<name>` |
+| `e2e/tests/instrument-parts.spec.ts` (T112) | US5 | brass (alto sax), woodwinds (clarinet), strings (viola) | `@instrument` |
+| `e2e/tests/instrument-practise-as.spec.ts` (T115) | US6, DELTA 6 | all six, one test each | `@instrument` |
+| `e2e/tests/instrument-key.spec.ts` (T122) | US7 | all six, one test each; orchestral written key | `@instrument` |
+| `e2e/tests/instrument-capo.spec.ts` (T129) | US8 | guitar; bass and keys without capo | `@instrument` |
+| `e2e/a11y/instrument-views.a11y.spec.ts` (T136) | SC-008 | every new area, both themes, Expert | `a11y` |
+
+Shared code: `pages/instrument-views.ts` (page object, `getByTestId` only), `support/instrument-views.ts` (backend
+1.15.0 client; waits poll the analysis the spec or the backend started), `support/instrument-scores.ts` (016 score
+requests, TAB/tuning/transpose readers), `support/instrument-family.ts` and `support/instrument-mixer.ts` (data-model
+5.3 family rule, mute and meter assertions), `support/instrument-singing.ts` (reference track, network watch of FR-047,
+sung pass), `support/capo-rule.ts` (research R-14 ranking computed from the chart).
+
+Readings the specs rely on (listed in the qa hand-off): the guide-piece case uses `kick` because the fake detail split
+has no hi-hat stem; the woodwinds part uses the `other` stem (no woodwinds detail stem in the fake split); the part view
+of "Practise as" orchestral picks the instrument with `score-part-instrument`; `drum-score` carries the 014 follower
+attributes (`data-bar-number`) itself; after "Practise as" with `other` split, the parent `other` and `other-rest` are
+asserted only for the orchestral family.
+
+### 22.7 Traceability (FR -> tests, SC-006 per family)
+
+Unit/component levels: W = worker pytest, B = backend xUnit, E = engine Vitest, F = frontend bUnit (owners in 22.1).
+E2E names are the spec files of 22.6 without the folder and `.spec.ts`.
+
+| FR | Requirement (short) | Family | Unit / component | E2E |
+|---|---|---|---|---|
+| FR-001 | every family has a view | all | F (family mix service, views) | instrument-practise-as, instrument-key |
+| FR-002 | analyses run as background jobs | harmony, drums, vocals | W (jobs, routes), B (analysis service) | instrument-chords, instrument-drums, instrument-singing (wait on the analysis) |
+| FR-003 | views follow playback without drift | all | E (timeline, lanes, pitch view) | instrument-chords (lane), instrument-drums (lanes, drum score), instrument-parts (score view) |
+| FR-010 | chords from the harmonic stems | harmony | W `harmony/test_chroma_hmm.py`, `analysis_inputs/test_mixdown.py`, BTC adapter | instrument-chords |
+| FR-011 | chord changes on beats | harmony | W `harmony/test_postprocess.py` | instrument-chords (one chord per fake bar) |
+| FR-012 | Simple / Full vocabulary | harmony | W `test_labels.py`, `test_postprocess.py`; F | - (unit level) |
+| FR-013 | chords lane, banner, sheet | harmony, vocals | E (chord lane, banner chords), F | instrument-chords |
+| FR-014 | chords follow transpose and capo | harmony, guitar | B/E spelling vectors | instrument-key (C#m at +2), instrument-capo |
+| FR-015 | Advanced chord correction | harmony | B (edit labels), F | instrument-chords |
+| FR-016 | ChordPro download | harmony | B (ChordPro) | instrument-chords |
+| FR-017 | chords in sheet music | harmony | W `notation/test_chord_symbols_drum_midi.py` | instrument-chords (`<harmony>`) |
+| FR-020 | tablature options | guitar, bass | W `notation/test_tablature.py`; F | instrument-tab |
+| FR-021 | tab notes sound the pitch | guitar, bass | W `test_tablature.py`, `engraving/test_tablature_engraving.py` | instrument-tab |
+| FR-022 | range fit, dropped chord notes | guitar, bass | W `test_tablature.py` | - (unit level) |
+| FR-023 | one-click MIDI per channel | all (drums in E2E) | W `test_chord_symbols_drum_midi.py`; F `MidiActionTests` | instrument-tab |
+| FR-030 | drum hits per piece | drums | W `analysis/test_drum_onsets.py` | instrument-drums |
+| FR-031 | five hit lanes, look-ahead | drums | E (hit lanes) | instrument-drums |
+| FR-032 | Drumless | drums | F (family mix service) | instrument-drums |
+| FR-033 | guide piece | drums | F | instrument-drums |
+| FR-034 | drum notation follows | drums | E (014 follower) | instrument-drums |
+| FR-040 | reference melody | vocals | W `analysis/test_vocal_pitch.py` | instrument-singing |
+| FR-041 | live pitch tracking | vocals | E (YIN core, worklet) | instrument-singing |
+| FR-042 | line scores | vocals | E (scorer) | instrument-singing |
+| FR-043 | tolerance per level | vocals | E, F | instrument-singing (50 cents at Advanced) |
+| FR-044 | lead vocal muted while singing | vocals | F | instrument-practise-as (vocals) |
+| FR-045 | readable stop on a slow device | vocals | E, F | - (unit level) |
+| FR-046 | score a 015 take | vocals | E (`scoreTake`) | instrument-singing |
+| FR-047 | no audio or score uploaded | vocals | E, F | instrument-singing (network watch) |
+| FR-050 | strings/brass/woodwinds profiles | strings, brass, woodwinds | W `notation/test_parts.py` | instrument-parts |
+| FR-051 | written instrument | strings, brass, woodwinds | W `test_parts.py` (shared key vectors) | instrument-parts |
+| FR-052 | clef choice | strings | W `test_parts.py` (clef choices) | instrument-parts (viola alto clef) |
+| FR-053 | out-of-range warning | strings, brass, woodwinds | W `test_parts.py` | - (unit level) |
+| FR-054 | same bars as the concert part | strings, brass, woodwinds | W `test_parts.py` | instrument-parts (score view bar) |
+| FR-060 | "Practise as" for every family | all | F `FamilyMixServiceTests` | instrument-practise-as |
+| FR-061 | help topics | all | F `InstrumentViewsHelpTests` | - (bUnit) |
+| FR-062 | keyboard, text alternatives | all | F `InstrumentViewsAccessibility` | instrument-views.a11y, instrument-drums (`drum-bar-text`) |
+| FR-063 | HTTP API for every operation | all | B (endpoints) | every spec (set-up through the API) |
+| FR-064 | quality limits shown | all | F | - (bUnit) |
+| FR-070 | global key, regions | harmony | W `harmony/test_key.py` | instrument-key |
+| FR-071 | key next to the tempo for every family | all | F | instrument-key (one test per family) |
+| FR-072 | transposed key display | all | B/E key vectors | instrument-key |
+| FR-073 | spelling by the region key | harmony | B/E spelling vectors | instrument-key |
+| FR-074 | written key of a transposing instrument | strings, brass, woodwinds | B (key formatter) | instrument-key (alto sax) |
+| FR-075 | capo mode for the guitar only | guitar | F | instrument-capo |
+| FR-076 | capo suggestions (R-14) | guitar | B (capo advisor) | instrument-capo |
+| FR-077 | transpose shortcut | guitar | B | instrument-capo |
+| FR-078 | capo prefills the tab options | guitar | F | instrument-capo |
+
+Per family (SC-006): harmony (chords, key), guitar (tab, capo, practise-as, key), bass (tab, practise-as, key), drums
+(drums, MIDI, practise-as, key), vocals (singing, practise-as, key), strings/brass/woodwinds (parts, practise-as
+orchestral, written key): every family has a view, at least one unit suite and at least one E2E case.
