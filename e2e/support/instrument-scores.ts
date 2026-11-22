@@ -70,3 +70,59 @@ export function hasNoteOn(bytes: Buffer, channel: number, note: number): boolean
   const status = 0x90 + channel - 1;
   return bytes.some((byte, i) => byte === status && bytes[i + 1] === note && (bytes[i + 2] ?? 0) > 0);
 }
+
+/** A note of a TAB staff: its pitch (MIDI) and the string and fret it was given. */
+export interface TabNote {
+  readonly midi: number;
+  readonly string: number;
+  readonly fret: number;
+}
+
+const stepSemitones: Readonly<Record<string, number>> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+/** MIDI number of a MusicXML `step`/`alter`/`octave`. */
+export function midiOf(step: string, alter: number, octave: number): number {
+  return 12 * (octave + 1) + (stepSemitones[step] ?? 0) + alter;
+}
+
+function pitchOf(body: string): number | null {
+  const pitch = /<pitch>\s*<step>([A-G])<\/step>(?:\s*<alter>(-?\d+)<\/alter>)?\s*<octave>(\d+)<\/octave>/u.exec(body);
+  return pitch ? midiOf(pitch[1] ?? 'C', Number(pitch[2] ?? 0), Number(pitch[3])) : null;
+}
+
+function tabNote(body: string): TabNote[] {
+  const midi = pitchOf(body);
+  const string = /<string>(\d+)<\/string>/u.exec(body);
+  const fret = /<fret>(\d+)<\/fret>/u.exec(body);
+  return midi !== null && string && fret ? [{ midi, string: Number(string[1]), fret: Number(fret[1]) }] : [];
+}
+
+/** Every note with `<string>` and `<fret>` (the TAB staff notes), in document order. */
+export function tabNotes(xml: string): TabNote[] {
+  return [...xml.matchAll(/<note\b[^>]*>([\s\S]*?)<\/note>/gu)].flatMap(([, body = '']) => tabNote(body));
+}
+
+/** Open-string pitches (MIDI) of the first TAB staff, lowest line (= highest string number) first. */
+export function tuningPitches(xml: string): number[] {
+  const tunings = [...xml.matchAll(/<staff-tuning line="(\d+)">\s*<tuning-step>([A-G])<\/tuning-step>(?:\s*<tuning-alter>(-?\d+)<\/tuning-alter>)?\s*<tuning-octave>(\d+)<\/tuning-octave>/gu)];
+  return tunings
+    .map((m) => ({ line: Number(m[1]), midi: midiOf(m[2] ?? 'C', Number(m[3] ?? 0), Number(m[4])) }))
+    .sort((a, b) => a.line - b.line)
+    .map((t) => t.midi);
+}
+
+/** The sounding pitch of a TAB note: string 1 is the highest string (the top line). */
+export function soundingPitch(note: TabNote, tuning: readonly number[], capo: number): number {
+  return (tuning[tuning.length - note.string] ?? Number.NaN) + capo + note.fret;
+}
+
+/** The `<chromatic>` of the first `<transpose>` (written -> sounding), or null without one. */
+export function chromaticTranspose(xml: string): number | null {
+  const match = /<transpose\b[^>]*>[\s\S]*?<chromatic>(-?\d+)<\/chromatic>/u.exec(xml);
+  return match ? Number(match[1]) : null;
+}
+
+/** The `<part-name>` of the first part. */
+export function partName(xml: string): string {
+  return /<part-name\b[^>]*>([^<]*)<\/part-name>/u.exec(xml)?.[1] ?? '';
+}
