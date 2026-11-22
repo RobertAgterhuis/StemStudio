@@ -124,7 +124,7 @@ public sealed class CapoModeTests : PageTestContext
     public void TheStoredSetting_ComesBack()
     {
         JSInterop.Setup<string?>("localStorage.getItem", "stemstudio.chords.capo")
-            .SetResult($$"""{"{{Track}}":{"on":true,"capo":2,"showSounding":false}}""");
+            .SetResult($$$"""{"{{{Track}}}":{"on":true,"capo":2,"showSounding":false}}""");
 
         var page = RenderAt();
 
@@ -136,7 +136,7 @@ public sealed class CapoModeTests : PageTestContext
     public void AStoredCapoOutOfRange_IsClamped()
     {
         JSInterop.Setup<string?>("localStorage.getItem", "stemstudio.chords.capo")
-            .SetResult($$"""{"{{Track}}":{"on":true,"capo":99,"showSounding":false}}""");
+            .SetResult($$$"""{"{{{Track}}}":{"on":true,"capo":99,"showSounding":false}}""");
 
         RenderAt();
 
@@ -219,7 +219,7 @@ public sealed class MixerCapoTests : MixerTestContext
     {
         JSInterop.Setup<string?>("localStorage.getItem", "stemstudio.views.family").SetResult("\"guitar\"");
         JSInterop.Setup<string?>("localStorage.getItem", "stemstudio.chords.capo")
-            .SetResult($$"""{"{{TestData.TrackId}}":{"on":true,"capo":3,"showSounding":false}}""");
+            .SetResult($$$"""{"{{{TestData.TrackId}}}":{"on":true,"capo":3,"showSounding":false}}""");
         Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(LyricsData.Found());
         Api.GetChordsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.Chords());
         Api.GetChordSheetAsync(TestData.TrackId, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.Sheet());
