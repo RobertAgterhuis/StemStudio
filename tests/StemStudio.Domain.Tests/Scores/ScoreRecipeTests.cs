@@ -1,4 +1,5 @@
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Rendering;
 using StemStudio.Domain.Scores;
 using StemStudio.Domain.Tracks;
@@ -31,10 +32,72 @@ public sealed class ScoreRecipeTests
     [Theory]
     [InlineData("drums.kick")]
     [InlineData("unknown")]
-    public void Suggest_SingleDrumPiecesAndUnknownChannelsHaveNone(string channel)
+    public void Suggest_SingleDrumPiecesAndUnknownChannelsHaveNone(string channel) => ProfileCatalog.Suggest(channel).ShouldBeNull();
+
+    [Theory]
+    [InlineData("drums.kick")]
+    [InlineData("drums.snare")]
+    [InlineData("drums.toms")]
+    [InlineData("drums.hihat")]
+    [InlineData("drums.cymbals")]
+    public void Allowed_ASingleDrumPieceOffersTheDrumsProfile(string channel) => ProfileCatalog.Allowed(channel).ShouldBe([ScoreProfile.Drums]);
+
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData("drums.rest")]
+    [InlineData("vocals.lead.x")]
+    public void Allowed_UnknownChannelsOfferNothing(string channel) => ProfileCatalog.Allowed(channel).ShouldBeEmpty();
+
+    [Fact]
+    public void ASingleDrumPiece_NeedsTheSplitAndTheDrumsProfile()
     {
-        ProfileCatalog.Suggest(channel).ShouldBeNull();
-        ProfileCatalog.Allowed(channel).ShouldBeEmpty();
+        var kick = new ScoreRequest(ScoreSource.FromChannel(TrackId, "drums.kick")) { Profile = ScoreProfile.Drums };
+
+        Should.Throw<ScoreConflictException>(() => ScoreRecipeRules.Resolve(kick, Cpu));
+        ScoreRecipeRules.Resolve(kick, Cpu with { DrumsSplit = true }).Profile.ShouldBe(ScoreProfile.Drums);
+        Should.Throw<DomainValidationException>(() => ScoreRecipeRules.Resolve(kick with { Profile = ScoreProfile.Bass }, Cpu));
+    }
+
+    private static ScoreRequest Tab(ScoreProfile profile, TuningId tuning, int capo, TabLayout layout = TabLayout.NotationAndTab) =>
+        new(ScoreSource.FromChannel(TrackId, profile == ScoreProfile.Bass ? "bass" : "guitar")) { Profile = profile, Tablature = new TablatureSettings(tuning, capo, layout) };
+
+    [Fact]
+    public void Tablature_IsKeptInTheRecipeForGuitarAndBass()
+    {
+        ScoreRecipeRules.Resolve(Tab(ScoreProfile.Guitar, TuningId.GuitarDropD, 2, TabLayout.TabOnly), Cpu).Tablature.ShouldBe(new TablatureSettings(TuningId.GuitarDropD, 2, TabLayout.TabOnly));
+        ScoreRecipeRules.Resolve(Tab(ScoreProfile.Bass, TuningId.Bass5Standard, 0), Cpu).Tablature.ShouldBe(new TablatureSettings(TuningId.Bass5Standard, 0, TabLayout.NotationAndTab));
+        ScoreRecipeRules.Resolve(new ScoreRequest(ScoreSource.FromChannel(TrackId, "bass")), Cpu).Tablature.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(ScoreProfile.Vocals)]
+    [InlineData(ScoreProfile.Keys)]
+    [InlineData(ScoreProfile.Piano)]
+    public void Tablature_ForOtherProfiles_IsNotAllowed(ScoreProfile profile) =>
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(profile, TuningId.GuitarStandard, 0), Cpu)).Code.ShouldBe(ScoreUnprocessable.TablatureNotAllowed);
+
+    [Fact]
+    public void Tablature_WithAnotherInstrumentsTuning_IsAMismatch()
+    {
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Guitar, TuningId.Bass4Standard, 0), Cpu)).Code.ShouldBe(ScoreUnprocessable.TuningMismatch);
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Bass, TuningId.GuitarStandard, 0), Cpu)).Code.ShouldBe(ScoreUnprocessable.TuningMismatch);
+    }
+
+    [Fact]
+    public void Tablature_ACapoForABass_IsNotAllowed() =>
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Bass, TuningId.Bass4Standard, 3), Cpu)).Code.ShouldBe(ScoreUnprocessable.CapoNotAllowed);
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(13)]
+    public void Tablature_CapoOutsideZeroToTwelve_IsAFieldError(int capo) =>
+        Should.Throw<DomainValidationException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Guitar, TuningId.GuitarStandard, capo), Cpu)).Errors.Single().Field.ShouldBe("tablature.capo");
+
+    [Fact]
+    public void Tablature_FollowsTheCheckOrder_ProfileThenTuningThenCapo()
+    {
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Keys, TuningId.Bass4Standard, 99), Cpu)).Code.ShouldBe(ScoreUnprocessable.TablatureNotAllowed);
+        Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(Tab(ScoreProfile.Bass, TuningId.GuitarStandard, 3), Cpu)).Code.ShouldBe(ScoreUnprocessable.TuningMismatch);
     }
 
     [Fact]
