@@ -313,8 +313,8 @@ text, the row wins.
 - [ ] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
 - [ ] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
 - [ ] T126 [US8] [audio-engine] Implement to pass T125
-- [ ] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
-- [ ] T128 [US8] [frontend] Implement the capo components and help topic to pass T127
+- [x] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
+- [x] T128 [US8] [frontend] Implement the capo components and help topic to pass T127
 - [ ] T129 [US8] [qa] Author `e2e/tests/instrument-capo.spec.ts`: **guitar**: transpose +3, `capo-shortcut` reads "Capo 3", apply -> lane shows C/G/Am/F, `capo-badge` "Capo 3", chord sheet shapes; suggestion list order equals the R-14 rule (expected values computed in the spec from the vectors); tablature dialog has capo 3; **bass** and **keys**: no `capo-mode` (SC-006, SC-011)
 
 **Checkpoint**: HO:us8.
