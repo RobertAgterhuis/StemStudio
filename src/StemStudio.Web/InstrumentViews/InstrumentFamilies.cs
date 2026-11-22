@@ -21,24 +21,16 @@ public static class InstrumentFamilies
         [StemNames.Other] = InstrumentFamilyDto.Orchestral,
     };
 
-    private static readonly Dictionary<string, InstrumentFamilyDto> ByDetail = new(StringComparer.Ordinal)
-    {
-        ["lead"] = InstrumentFamilyDto.Vocals,
-        ["backing"] = InstrumentFamilyDto.Vocals,
-        ["kick"] = InstrumentFamilyDto.Drums,
-        ["snare"] = InstrumentFamilyDto.Drums,
-        ["toms"] = InstrumentFamilyDto.Drums,
-        ["hihat"] = InstrumentFamilyDto.Drums,
-        ["cymbals"] = InstrumentFamilyDto.Drums,
-        ["percussion"] = InstrumentFamilyDto.Drums,
-        ["acoustic-guitar"] = InstrumentFamilyDto.Guitar,
-        ["electric-guitar"] = InstrumentFamilyDto.Guitar,
-        ["keys"] = InstrumentFamilyDto.Keys,
-        ["synth"] = InstrumentFamilyDto.Keys,
-        ["strings"] = InstrumentFamilyDto.Orchestral,
-        ["brass"] = InstrumentFamilyDto.Orchestral,
-        ["woodwinds"] = InstrumentFamilyDto.Orchestral,
-    };
+    private static readonly (string Detail, InstrumentFamilyDto Family)[] DetailTable =
+    [
+        ("lead", InstrumentFamilyDto.Vocals), ("backing", InstrumentFamilyDto.Vocals), ("kick", InstrumentFamilyDto.Drums),
+        ("snare", InstrumentFamilyDto.Drums), ("toms", InstrumentFamilyDto.Drums), ("hihat", InstrumentFamilyDto.Drums),
+        ("cymbals", InstrumentFamilyDto.Drums), ("percussion", InstrumentFamilyDto.Drums), ("acoustic-guitar", InstrumentFamilyDto.Guitar),
+        ("electric-guitar", InstrumentFamilyDto.Guitar), ("keys", InstrumentFamilyDto.Keys), ("synth", InstrumentFamilyDto.Keys),
+        ("strings", InstrumentFamilyDto.Orchestral), ("brass", InstrumentFamilyDto.Orchestral), ("woodwinds", InstrumentFamilyDto.Orchestral),
+    ];
+
+    private static readonly Dictionary<string, InstrumentFamilyDto> ByDetail = DetailTable.ToDictionary(p => p.Detail, p => p.Family, StringComparer.Ordinal);
 
     /// <summary>Every family in picker order (every family counts equally; the order follows spec US6).</summary>
     public static IReadOnlyList<InstrumentFamilyDto> All { get; } =

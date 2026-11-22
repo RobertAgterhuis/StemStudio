@@ -1,3 +1,4 @@
+using System.Globalization;
 using StemStudio.Contracts.Recording;
 using StemStudio.Web.Recording;
 
@@ -15,4 +16,10 @@ public static class SingingText
         { Method: LatencyMethodDto.Estimated } => $"Latency: {RecordingText.Milliseconds(latency.Samples)} (estimated - calibrate in Recording settings)",
         _ => $"Latency: {RecordingText.Milliseconds(latency.Samples)} (calibrated)",
     };
+
+    /// <summary>"Takes about 95 s", or null without an estimate.</summary>
+    /// <param name="seconds">The estimate.</param>
+    /// <returns>The text.</returns>
+    public static string? Estimate(int? seconds) =>
+        seconds is { } s ? string.Create(CultureInfo.InvariantCulture, $"Takes about {s} s") : null;
 }

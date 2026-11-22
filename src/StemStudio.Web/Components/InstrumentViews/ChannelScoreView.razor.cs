@@ -104,36 +104,30 @@ public sealed partial class ChannelScoreView : IDisposable
 
     private async Task GenerateAsync()
     {
-        if (await TryGenerateAsync())
-        {
-            Making = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    // False when the view was closed while it waited.
-    private async Task<bool> TryGenerateAsync()
-    {
         try
         {
             await MakeAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            return; // The view was closed while it waited.
+        }
+
+        Making = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task MakeAsync()
+    {
+        try
+        {
+            var item = await Maker.CreateAsync(Track, Channel, () => InvokeAsync(StateHasChanged), _stop.Token);
+            Error = Maker.Error;
+            await (item is null ? Task.CompletedTask : LoadScoresAsync());
         }
         catch (ApiException ex)
         {
             Error = ex.Error.UserMessage;
         }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private async Task MakeAsync()
-    {
-        var item = await Maker.CreateAsync(Track, Channel, () => InvokeAsync(StateHasChanged), _stop.Token);
-        Error = Maker.Error;
-        await (item is null ? Task.CompletedTask : LoadScoresAsync());
     }
 }

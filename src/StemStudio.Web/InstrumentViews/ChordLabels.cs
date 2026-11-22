@@ -12,23 +12,16 @@ public static class ChordLabels
     // Bass interval above the root per semitone distance (Harte `/b?[1-7]`); 0 = the root itself (no slash).
     private static readonly string[] Intervals = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
 
-    private static readonly Dictionary<ChordQualityDto, string> Names = new()
-    {
-        [ChordQualityDto.Maj] = "major",
-        [ChordQualityDto.Min] = "minor",
-        [ChordQualityDto.Dim] = "diminished",
-        [ChordQualityDto.Aug] = "augmented",
-        [ChordQualityDto.Min6] = "minor 6",
-        [ChordQualityDto.Maj6] = "major 6",
-        [ChordQualityDto.Min7] = "minor 7",
-        [ChordQualityDto.Minmaj7] = "minor major 7",
-        [ChordQualityDto.Maj7] = "major 7",
-        [ChordQualityDto.Seventh] = "dominant 7",
-        [ChordQualityDto.Dim7] = "diminished 7",
-        [ChordQualityDto.Hdim7] = "half-diminished 7 (m7b5)",
-        [ChordQualityDto.Sus2] = "suspended 2",
-        [ChordQualityDto.Sus4] = "suspended 4",
-    };
+    private static readonly (ChordQualityDto Quality, string Name)[] NameTable =
+    [
+        (ChordQualityDto.Maj, "major"), (ChordQualityDto.Min, "minor"), (ChordQualityDto.Dim, "diminished"),
+        (ChordQualityDto.Aug, "augmented"), (ChordQualityDto.Min6, "minor 6"), (ChordQualityDto.Maj6, "major 6"),
+        (ChordQualityDto.Min7, "minor 7"), (ChordQualityDto.Minmaj7, "minor major 7"), (ChordQualityDto.Maj7, "major 7"),
+        (ChordQualityDto.Seventh, "dominant 7"), (ChordQualityDto.Dim7, "diminished 7"), (ChordQualityDto.Hdim7, "half-diminished 7 (m7b5)"),
+        (ChordQualityDto.Sus2, "suspended 2"), (ChordQualityDto.Sus4, "suspended 4"),
+    ];
+
+    private static readonly Dictionary<ChordQualityDto, string> Names = NameTable.ToDictionary(p => p.Quality, p => p.Name);
 
     /// <summary>Root names by pitch class (C = 0), as Harte roots.</summary>
     public static IReadOnlyList<string> RootNames { get; } = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];

@@ -78,13 +78,14 @@ public sealed partial class SingingPanel
         _ => AnalysisText.Status(Analysis, "Melody analysis", "reference melody"),
     };
 
+    // A first open analyses at once when it is quick (data-model 7.3); a slow one is offered with its estimate.
+    private bool AnalyseAtOnce => Analysis?.Status == AnalysisStatusDto.None && (Analysis.EstimateSeconds ?? 0) <= AutoAnalyseSeconds;
+
     private bool CanAnalyse => Analysis?.Status is AnalysisStatusDto.None or AnalysisStatusDto.Failed or AnalysisStatusDto.Stale;
 
     private string AnalyseText => Analysis?.Status == AnalysisStatusDto.Failed ? "Try again" : "Analyse the melody";
 
-    private string? EstimateText => Analysis?.EstimateSeconds is { } seconds
-        ? string.Create(CultureInfo.InvariantCulture, $"Takes about {seconds} s")
-        : null;
+    private string? EstimateText => SingingText.Estimate(Analysis?.EstimateSeconds);
 
     private string LatencySource => Latency?.MethodName ?? "none";
 
@@ -96,8 +97,7 @@ public sealed partial class SingingPanel
         Subscribe();
         Tolerance = SingingMix.Tolerance(Level, await Preferences.GetAsync<int?>(ViewPreferences.ToleranceKey));
         await LoadAsync(() => Api.GetVocalPitchAsync(Track.Id, _stop.Token));
-        var quick = (Analysis?.EstimateSeconds ?? 0) <= AutoAnalyseSeconds;
-        await (Analysis?.Status == AnalysisStatusDto.None && quick ? LoadAsync(() => Api.AnalyseVocalPitchAsync(Track.Id, _stop.Token)) : Task.CompletedTask);
+        await (AnalyseAtOnce ? LoadAsync(() => Api.AnalyseVocalPitchAsync(Track.Id, _stop.Token)) : Task.CompletedTask);
         StartPolling();
         Lyrics = await LyricsAsync();
     }

@@ -19,13 +19,16 @@ public sealed partial class Mixer
     private void OnChordsLoaded(TrackAnalysisDto<ChordChartDocumentDto> analysis)
     {
         var document = analysis.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
-        if (!ReferenceEquals(document, ChordAnalysis?.Document) || ChordAnalysis?.Status != analysis.Status)
+        if (ChordsChanged(document, analysis.Status))
         {
             BannerChords = document is { NoChords: false } ? ChordLabels.ToEngine(document) : null;
         }
 
         ChordAnalysis = analysis;
     }
+
+    private bool ChordsChanged(ChordChartDocumentDto? document, AnalysisStatusDto status) =>
+        !ReferenceEquals(document, ChordAnalysis?.Document) || ChordAnalysis?.Status != status;
 
     // Capo mode (US8): the engine re-spells the lane and the banner for the capo (setChordDisplay).
     private Task SetCapoAsync(CapoSetting setting) =>

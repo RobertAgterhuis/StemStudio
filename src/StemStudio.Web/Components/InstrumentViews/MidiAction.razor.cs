@@ -81,11 +81,7 @@ public sealed partial class MidiAction : IDisposable
     {
         try
         {
-            var item = await ReadyItemAsync() ?? await CreateAsync();
-            if (item is not null)
-            {
-                Download(item);
-            }
+            Download(await ReadyItemAsync() ?? await CreateAsync());
         }
         catch (ApiException ex)
         {
@@ -110,6 +106,11 @@ public sealed partial class MidiAction : IDisposable
         return item;
     }
 
-    private void Download(AssetDto item) =>
-        Navigation.NavigateTo(new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(item.Id, ApiRoutes.AssetFileMidi, false)).ToString(), forceLoad: true);
+    private void Download(AssetDto? item)
+    {
+        if (item is not null)
+        {
+            Navigation.NavigateTo(new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(item.Id, ApiRoutes.AssetFileMidi, false)).ToString(), forceLoad: true);
+        }
+    }
 }

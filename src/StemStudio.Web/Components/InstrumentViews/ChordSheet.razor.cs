@@ -82,19 +82,23 @@ public sealed partial class ChordSheet
 
     private async Task LoadSheetAsync(CancellationToken ct)
     {
-        if (Analysis is not { Status: AnalysisStatusDto.Ready, Document: { NoChords: false } document })
+        if (Analysis is { Status: AnalysisStatusDto.Ready, Document: { NoChords: false } document })
         {
-            Sheet = null;
-            Segments = null;
-            return;
+            await FetchSheetAsync(document, ct);
         }
+        else
+        {
+            (Sheet, Segments) = (null, null);
+        }
+    }
 
+    private async Task FetchSheetAsync(ChordChartDocumentDto document, CancellationToken ct)
+    {
         try
         {
             _loadedCapo = Capo;
             Sheet = await Api.GetChordSheetAsync(TrackId, Transpose, Capo, ct);
-            Segments = ChordSheetSegments.Build(Sheet, document);
-            Error = null;
+            (Segments, Error) = (ChordSheetSegments.Build(Sheet, document), null);
         }
         catch (ApiException ex)
         {

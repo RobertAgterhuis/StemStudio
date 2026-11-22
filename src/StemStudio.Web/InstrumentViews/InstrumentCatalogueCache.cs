@@ -18,13 +18,12 @@ public sealed class InstrumentCatalogueCache(IStemStudioApiClient api)
     /// <summary>Returns the cached catalogue or loads it.</summary>
     /// <param name="cancellationToken">Cancels the first load.</param>
     /// <returns>The catalogue.</returns>
-    public async Task<InstrumentCatalogueDto> GetAsync(CancellationToken cancellationToken = default)
-    {
-        if (Current is { } current)
-        {
-            return current;
-        }
+    public Task<InstrumentCatalogueDto> GetAsync(CancellationToken cancellationToken = default) =>
+        Current is { } current ? Task.FromResult(current) : LoadAsync(cancellationToken);
 
+    // One request at a time; a failed load is tried again on the next call.
+    private async Task<InstrumentCatalogueDto> LoadAsync(CancellationToken cancellationToken)
+    {
         _loading ??= api.GetInstrumentCatalogueAsync(cancellationToken);
         try
         {
