@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import get_args
 
 import pytest
@@ -12,6 +13,7 @@ from stemstudio_worker.notation.tablature import ViterbiTabFingerer
 from stemstudio_worker.ports import TUNINGS, NotationSettings, NoteEvent, TabAssignment, Tuning
 from stemstudio_worker.schemas import (
     BeatGridTempo,
+    PartSettings,
     ScoreProfile,
     ScoreTitles,
     TablatureSettings,
@@ -416,3 +418,24 @@ def test_a_part_without_measures_is_written_back_without_tab_attributes() -> Non
     settings = TablatureSettings(tuning="guitar-standard")
     result = add_tab_staff(document, settings, ViterbiTabFingerer())
     assert _parse(result.musicxml).find(".//staff-details") is None
+
+
+# ------------------------------------------------------------------- review fixes (016 polish)
+
+
+def _fret_of(element: ET.Element) -> tuple[int, int]:
+    return (
+        int(element.findtext("notations/technical/string", "0")),
+        int(element.findtext("notations/technical/fret", "-1")),
+    )
+
+
+@pytest.mark.parametrize("layout", get_args(TabLayout))
+def test_a_transposing_part_fingers_the_tab_from_the_sounding_pitch(layout: TabLayout) -> None:
+    """FR-021: a double bass part is written an octave up, its TAB still plays the sounding E1."""
+    tab = TablatureSettings(tuning="bass-4-standard", layout=layout)
+    settings = replace(_settings("bass", tab), part=PartSettings(instrument="double-bass"))
+    root = ET.fromstring(MusicNotator().notate(_riff([28, 33]), settings).musicxml)  # noqa: S314
+    tab_notes = _tab_notes(root, "2" if layout == "notation-and-tab" else None)
+    assert [_midi_of(n) for n in tab_notes] == [40, 45]
+    assert [_fret_of(n) for n in tab_notes] == [(4, 0), (3, 0)]
