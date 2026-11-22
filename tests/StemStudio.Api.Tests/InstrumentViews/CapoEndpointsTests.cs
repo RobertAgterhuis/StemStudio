@@ -93,6 +93,7 @@ public sealed class CapoEndpointsTests : ApiTestBase
         using var response = await Client.GetAsync(new Uri(ApiRoutes.CapoSuggestions(track.Id, transpose), UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        await ContractAssert.MatchesAsync(response, "getCapoSuggestions");
         (await response.JsonAsync()).GetProperty("errors").TryGetProperty("transpose", out _).ShouldBeTrue();
     }
 

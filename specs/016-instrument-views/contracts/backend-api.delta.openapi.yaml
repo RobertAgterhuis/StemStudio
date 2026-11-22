@@ -26,7 +26,9 @@ info:
     * Changelog: 1.15.0-delta.1 (additive, feature 016 planning). 1.15.0-delta.2 (016 Phase 0,
       2026-11-18): the `*Extension` properties are optional on the wire (absent = null, `false` or
       all `none`, so 1.14.0 producers stay valid); key display examples use the chord spelling
-      ("Eb major", data-model.md 2.5). See ADR-031..033 and contracts/DELTA.md.
+      ("Eb major", data-model.md 2.5). Integration (2026-11-22): `getKey` and `getCapoSuggestions`
+      declare `422` ValidationProblem (out-of-range `transpose`, unknown `instrument`), as the API
+      already answers. See ADR-031..033 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -248,6 +250,8 @@ paths:
                   - {startMs: 16500, endMs: 32500, startBar: 9, tonic: 2, mode: major, confidence: 0.77, display: E major}
         '404':
           $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/chords/capo-suggestions:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -278,6 +282,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/drum-hits:
     parameters:
       - $ref: '#/components/parameters/TrackId'

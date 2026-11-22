@@ -5388,6 +5388,8 @@ paths:
                   - {startMs: 16500, endMs: 32500, startBar: 9, tonic: 2, mode: major, confidence: 0.77, display: E major}
         '404':
           $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/chords/capo-suggestions:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -5418,6 +5420,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/drum-hits:
     parameters:
       - $ref: '#/components/parameters/TrackId'

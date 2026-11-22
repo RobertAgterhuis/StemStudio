@@ -139,6 +139,7 @@ public sealed class KeyEndpointsTests : ApiTestBase
         using var response = await Client.GetAsync(new Uri($"/api/tracks/{track.Id}/key?{query}", UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        await ContractAssert.MatchesAsync(response, "getKey");
         (await response.JsonAsync()).GetProperty("errors").TryGetProperty(field, out _).ShouldBeTrue();
     }
 }

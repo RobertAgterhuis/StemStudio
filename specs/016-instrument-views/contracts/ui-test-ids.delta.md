@@ -61,7 +61,7 @@ against these names now.
 | Sheet music dialog | `score-tab-layout` | select `notation-and-tab`/`tab-only`/`none` (guitar, bass profiles only; `none` sends `tablature: null`) | all |
 | Sheet music dialog | `score-tab-tuning` | select of catalogue tunings for the profile | all (Beginner: standard only + drop D) |
 | Sheet music dialog | `score-tab-capo` | number input 0..12 (guitar only) | advanced, expert |
-| Sheet music dialog | `score-part-instrument` | select of the written instrument catalogue (`concert` first) | all |
+| Sheet music dialog | `score-part-instrument` | select of the written instrument catalogue (`concert` first); also in the instrument view (Practise as strings/brass/woodwinds) | all |
 | Sheet music dialog | `score-part-clef` | select of clefs | advanced, expert |
 | Sheet music dialog | `score-include-chords` | checkbox (disabled with `aria-describedby` reason when chords are not ready) | advanced, expert |
 | Library | `asset-score-tab-<assetId>` | text e.g. "Tab: Drop D, capo 2 (3 notes moved by an octave)" | all |
