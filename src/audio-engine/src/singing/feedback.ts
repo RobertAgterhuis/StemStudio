@@ -10,7 +10,7 @@ import { PITCH_PROCESSOR_NAME } from '../pitch/worklet';
 import { onceLoader } from '../worklet-module';
 import type { InputInfo, LatencyMethod, RoundTripLatency, SingingFeedbackRequest, SingingState, SingingSummary, SingingUnitScore } from '../types';
 import { MedianSmoother } from './median';
-import { validateContour, validateRoundTrip, validateTolerance, validateUnits } from './validate';
+import { validateContour, validateLatencyMethod, validateRoundTrip, validateTolerance, validateUnits } from './validate';
 
 /** Default URL of the pitch worklet module. */
 export const DEFAULT_PITCH_WORKLET_URL = './js/audio-engine-pitch-worklet.js';
@@ -125,6 +125,8 @@ export class SingingFeedback {
   private session: SingingSession | null = null;
   private tolerance = 100;
   private last: SingingSummary | null = null;
+  /** Bumped by every start, stop and dispose; a start whose token is stale connects nothing. */
+  private startToken = 0;
 
   /** @param deps - Context, node factory, input, clock, notifications and session factory. */
   public constructor(private readonly deps: SingingFeedbackDeps) {}
@@ -140,15 +142,25 @@ export class SingingFeedback {
    */
   public async start(request: SingingFeedbackRequest): Promise<void> {
     const spec = this.prepare(request);
+    const token = ++this.startToken;
     this.setState('starting', null);
+    if (await this.loaded(token)) {
+      this.connect(spec);
+      this.setState('running', null);
+    }
+  }
+
+  /** Loads the module; false when a stop or dispose cancelled this start meanwhile (the state stays `stopped`). */
+  private async loaded(token: number): Promise<boolean> {
     try {
       await loadModule(this.deps.context, this.deps.workletUrl ?? DEFAULT_PITCH_WORKLET_URL);
     } catch (error) {
-      this.setState('failed', (error as Error).message);
+      if (token === this.startToken) {
+        this.setState('failed', (error as Error).message);
+      }
       throw error;
     }
-    this.connect(spec);
-    this.setState('running', null);
+    return token === this.startToken;
   }
 
   /** @param cents - Tolerance 10..200 for the current and later units. */
@@ -159,6 +171,7 @@ export class SingingFeedback {
 
   /** @returns The summary of the last feedback; idempotent. */
   public stop(): SingingSummary {
+    this.cancelStart();
     if (this.running !== null) {
       this.halt();
       this.setState('stopped', null);
@@ -181,6 +194,7 @@ export class SingingFeedback {
 
   /** Stops a running feedback and removes the view (engine disposal). */
   public dispose(): void {
+    this.cancelStart();
     if (this.running !== null) {
       this.halt();
     }
@@ -188,17 +202,26 @@ export class SingingFeedback {
     this.session = null;
   }
 
+  /** A stop or dispose while the module loads: the pending start connects nothing and the state is `stopped`. */
+  private cancelStart(): void {
+    this.startToken += 1;
+    if (this.current === 'starting') {
+      this.setState('stopped', null);
+    }
+  }
+
   private prepare(request: SingingFeedbackRequest): SessionSpec {
     const reference = validateContour(request.reference);
     validateUnits(request.units);
     validateTolerance(request.toleranceCents);
     const roundTripMs = validateRoundTrip(request.roundTripMs);
+    const method = validateLatencyMethod(request.latencyMethod);
     this.assertCanStart();
     const host = this.host(request.pitchViewElementId);
     const onUnit = (score: SingingUnitScore): void => {
       this.deps.notify.unit(score);
     };
-    return { request, reference, host, latency: this.latencyOf(roundTripMs, request.latencyMethod), onUnit };
+    return { request, reference, host, latency: this.latencyOf(roundTripMs, method), onUnit };
   }
 
   private assertCanStart(): void {

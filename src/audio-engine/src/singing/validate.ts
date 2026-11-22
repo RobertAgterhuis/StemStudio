@@ -4,7 +4,7 @@
  *
  * @packageDocumentation
  */
-import type { PitchContour, SingingUnit } from '../types';
+import type { LatencyMethod, PitchContour, SingingUnit } from '../types';
 
 /** Most reference frames (15 minutes at 10 ms). */
 export const MAX_CONTOUR_FRAMES = 90_000;
@@ -14,6 +14,10 @@ export const MAX_CENTS = 12_700;
 export const TOLERANCE_RANGE = { min: 10, max: 200 } as const;
 /** Largest accepted round trip (ms). */
 export const MAX_ROUND_TRIP_MS = 1000;
+/** Most units of one request (far above any song's lines or bars). */
+export const MAX_UNITS = 20_000;
+/** Accepted latency methods (015 `LatencyMethod`). */
+const LATENCY_METHODS: readonly LatencyMethod[] = ['loopback', 'manual', 'estimated'];
 
 function request(reason: string): never {
   throw new Error(`Invalid singing request: ${reason}`);
@@ -69,20 +73,55 @@ export function validateTolerance(cents: number): number {
 /**
  * @param units - Units from Blazor (untrusted shape).
  * @returns The units.
- * @throws Error `Invalid singing request: units missing | units not ordered`.
+ * @throws Error `Invalid singing request: units missing | more than 20000 units | unit index invalid |
+ *   unit times not finite | units not ordered`.
  */
 export function validateUnits(units: readonly SingingUnit[]): readonly SingingUnit[] {
   const list: unknown = units;
   if (!Array.isArray(list)) {
     request('units missing');
   }
+  if (units.length > MAX_UNITS) {
+    request(`more than ${String(MAX_UNITS)} units`);
+  }
   units.forEach((unit, i) => {
+    validateUnit(unit);
     const previousEnd = units[i - 1]?.endMs ?? Number.NEGATIVE_INFINITY;
     if (!(unit.startMs >= previousEnd && unit.endMs > unit.startMs)) {
       request('units not ordered');
     }
   });
   return units;
+}
+
+/** Checks the index and times of one unit (untrusted shape). */
+function validateUnit(unit: SingingUnit | null): void {
+  const fields: Partial<SingingUnit> = unit ?? {};
+  if (!isIndex(fields.index)) {
+    request('unit index invalid');
+  }
+  if (!(Number.isFinite(fields.startMs) && Number.isFinite(fields.endMs))) {
+    request('unit times not finite');
+  }
+}
+
+function isIndex(index: unknown): boolean {
+  return Number.isInteger(index) && (index as number) >= 0;
+}
+
+/**
+ * @param method - Latency method from Blazor (untrusted), or null/undefined.
+ * @returns The method when absent (undefined) or one of `loopback | manual | estimated`.
+ * @throws Error `Invalid singing request: latencyMethod`.
+ */
+export function validateLatencyMethod(method: LatencyMethod | null | undefined): LatencyMethod | undefined {
+  if (method === null || method === undefined) {
+    return undefined;
+  }
+  if (!LATENCY_METHODS.includes(method)) {
+    request('latencyMethod');
+  }
+  return method;
 }
 
 /**
