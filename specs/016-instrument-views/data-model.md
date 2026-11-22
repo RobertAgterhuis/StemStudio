@@ -405,7 +405,7 @@ Feature-catalogue ids (004 design-spec 5): `chords.view`, `chords.full`, `chords
 | `Engine` | string \| null | engine that produced the document |
 | `Device` | JobDevice \| null | 003 |
 | `SourceFingerprint` | string \| null | SHA-256 over the sorted `(channel, sha256)` of the input stems |
-| `EstimateSeconds` | int \| null | shown while queued/running |
+| `EstimateSeconds` | int \| null | shown while queued/running; on the wire also for `none` and for `unavailable` when the inputs exist (the estimate a run would get, not stored; integration 2026-11-22, backend review M3) |
 | `UpdatedAt` | date-time | |
 
 ### 7.2 Status transitions
