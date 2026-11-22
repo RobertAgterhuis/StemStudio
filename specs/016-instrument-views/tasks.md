@@ -229,8 +229,8 @@ text, the row wins.
 
 - [ ] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
 - [ ] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
-- [ ] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
-- [ ] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
+- [x] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
+- [x] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
 - [ ] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
 - [ ] T089 [US3] [audio-engine] Implement `src/drums/hit-lanes.ts` and the methods to pass T088
 - [ ] T090 [P] [US3] [frontend] Failing bUnit tests: `drumless` (family mute incl. expanded strips, metronome + one-bar count-in via 012, restore on second click), `drum-trainer`, `drum-lanes` host, `drum-hits-status`, `drum-hits-split-required`/`-start`, `drum-lane-label-<piece>` guide (Advanced), `drum-look-ahead` (Advanced), `drum-bar-text`, `drum-score` (014 view) / `drum-score-generate`; help id `drum-trainer` (FR-031..FR-034, FR-062)

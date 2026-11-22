@@ -63,7 +63,7 @@ public sealed class DrumHitEndpointsTests : ApiTestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         await ContractAssert.MatchesAsync(response, "detectDrumHits");
-        (await response.JsonAsync()).GetProperty("type").GetString().ShouldBe(InstrumentViewProblemTypes.DrumsNotSplit);
+        (await response.JsonAsync()).GetProperty("type").GetString().ShouldBe($"https://stemstudio.local/problems/{InstrumentViewProblemTypes.DrumsNotSplit}");
         Analysis.Requests.ShouldBeEmpty();
     }
 
@@ -96,7 +96,7 @@ public sealed class DrumHitEndpointsTests : ApiTestBase
 
         using var busy = await PostAsync(running.Id);
         busy.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await busy.JsonAsync()).GetProperty("type").GetString().ShouldBe(InstrumentViewProblemTypes.AnalysisRunning);
+        (await busy.JsonAsync()).GetProperty("type").GetString().ShouldBe($"https://stemstudio.local/problems/{InstrumentViewProblemTypes.AnalysisRunning}");
         using var unknown = await PostAsync(Guid.NewGuid());
         unknown.StatusCode.ShouldBe(HttpStatusCode.NotFound);
 
