@@ -42,7 +42,7 @@ function attached(chart: ChordChartData = regionChart()): KeyRig {
 }
 
 function texts(rig: KeyRig): string[] {
-  return [...rig.host.querySelectorAll<HTMLElement>('.chord-lane-item')].map((i) => String(i.textContent));
+  return [...rig.host.querySelectorAll<HTMLElement>('.chord-lane-item')].map((i) => i.textContent);
 }
 
 beforeEach(() => {

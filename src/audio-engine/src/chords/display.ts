@@ -94,6 +94,11 @@ export class SpelledChart {
     private readonly display: ChordDisplayState,
   ) {}
 
+  /** Current 012 transpose of the display (semitones). */
+  public get transpose(): number {
+    return this.display.transpose;
+  }
+
   /** Display version the symbols were spelled for. */
   public get version(): number {
     this.refresh();

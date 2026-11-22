@@ -12,6 +12,7 @@ import { Cursor } from '../timeline/cursor';
 import { HostSize } from '../timeline/host-size';
 import { pageStart } from '../timeline/paging';
 import { DomWriter, px } from '../views/dom-writer';
+import { CurrentKey } from './current-key';
 import type { SpelledChart } from './display';
 
 /** Most `.chord-lane-item` elements in the DOM (research R-12). */
@@ -20,7 +21,7 @@ export const MAX_LANE_ITEMS = 40;
 const ITEMS_BEHIND_WHEN_CAPPED = 4;
 
 /** Host attributes written by the lane (removed on detach). */
-export const LANE_HOST_ATTRIBUTES = ['data-chord-index', 'data-current-symbol', 'data-next-symbol', 'data-position-ms'] as const;
+export const LANE_HOST_ATTRIBUTES = ['data-chord-index', 'data-current-symbol', 'data-next-symbol', 'data-position-ms', 'data-current-key'] as const;
 
 /** Window of the lane in scale units. */
 export interface LaneWindow {
@@ -62,6 +63,7 @@ export class LaneView {
   private readonly windowStart: Cursor;
   private readonly windowEnd: Cursor;
   private readonly items = new Map<number, HTMLElement>();
+  private readonly key: CurrentKey;
   private unitPx = 0;
   private placedPx = -1;
   private spelled = -1;
@@ -78,6 +80,7 @@ export class LaneView {
     this.current = new Cursor(starts);
     this.windowStart = new Cursor(starts);
     this.windowEnd = new Cursor(starts);
+    this.key = new CurrentKey(options.chart.prepared.chart);
     this.size = new HostSize(options.host, this.onLayout);
     this.motion = new MotionPreference(options.reducedMotion, this.onLayout);
   }
@@ -90,7 +93,7 @@ export class LaneView {
     const located = this.current.index(t);
     this.syncItems(this.visible(start, located));
     this.paint(located, t);
-    this.options.writer.data(this.options.host, 'positionMs', String(t));
+    this.writePosition(t);
   }
 
   /** Removes the track, the host attributes and the observers. */
@@ -101,6 +104,13 @@ export class LaneView {
     LANE_HOST_ATTRIBUTES.forEach((name) => {
       this.options.host.removeAttribute(name);
     });
+  }
+
+  /** Position and the key at it (rewritten only when they change). */
+  private writePosition(t: number): void {
+    const { writer, host, chart } = this.options;
+    writer.data(host, 'positionMs', String(t));
+    writer.data(host, 'currentKey', this.key.at(t, chart.transpose));
   }
 
   private readonly onLayout = (): void => {
