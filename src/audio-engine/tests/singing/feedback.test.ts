@@ -109,7 +109,7 @@ function manyUnits(count: number): { index: number; startMs: number; endMs: numb
 
 /** Replaces the module load with a promise the test settles. */
 function deferLoad(): { resolve: () => void; reject: (error: Error) => void } {
-  const settle = { resolve: (): void => undefined, reject: (_: Error): void => undefined };
+  const settle: { resolve: () => void; reject: (error: Error) => void } = { resolve: () => undefined, reject: () => undefined };
   rig.ctx.audioWorklet.addModule = (url: string): Promise<void> => {
     rig.ctx.audioWorklet.modules.push(url);
     return new Promise<void>((resolve, reject) => {
