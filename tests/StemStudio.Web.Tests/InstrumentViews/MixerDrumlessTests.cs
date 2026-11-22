@@ -143,6 +143,31 @@ public sealed class MixerDrumlessTests : MixerTestContext
     }
 
     [Fact]
+    public async Task AClickWhileDrumlessIsStillBeingApplied_IsIgnored_SoTheEngineEndsConsistent()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Engine.SetChannelAsync(Arg.Any<ChannelSettingsDto>()).Returns(_ => gate.Task);
+        Engine.ClearReceivedCalls();
+
+        var restore = page.InvokeAsync(() => page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs()));
+        var guide = page.InvokeAsync(() => page.Find("[data-testid=drum-lane-label-kick]").ClickAsync(new MouseEventArgs()));
+        gate.SetResult();
+        await restore;
+        await guide;
+
+        page.WaitForAssertion(() => page.Find("[data-testid=drumless]").GetAttribute("aria-pressed").ShouldBe("false"));
+        var last = Engine.ReceivedCalls().Where(c => c.GetMethodInfo().Name == nameof(Engine.SetChannelAsync))
+            .Select(c => (ChannelSettingsDto)c.GetArguments()[0]!).GroupBy(c => c.Stem).ToDictionary(g => g.Key, g => g.Last());
+        foreach (var stem in new[] { "drums", "drums.kick", "drums.snare", "drums.hihat", "drums.rest" })
+        {
+            last[stem].Mute.ShouldBeFalse(stem);
+        }
+    }
+
+    [Fact]
     public void AStoredRestore_WhileTheDrumsAreAudible_IsDropped()
     {
         JSInterop.Setup<string?>("localStorage.getItem", StoreKey).SetResult("""{"flags":[],"metronomeEnabled":false,"countInBars":0}""");
