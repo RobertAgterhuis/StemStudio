@@ -105,6 +105,7 @@ public sealed partial class Mixer : IAsyncDisposable
         await RegisterKeysAsync();
         SubscribeEngine();
         await StartEngineAsync(State);
+        await LoadDrumlessAsync();
         OnEngineStarted();
         await StartRecorderAsync();
         RegisterAgentTools();

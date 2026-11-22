@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using NSubstitute;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.InstrumentViews;
+using StemStudio.Contracts.ScoreFollow;
 using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Api;
@@ -23,6 +24,8 @@ public sealed class DrumTrainerTests : PageTestContext
 
     private readonly List<DrumPieceDto?> _guides = [];
     private DrumPieceDto? _guide;
+    private bool _engineReady = true;
+    private bool _reducedMotion;
 
     public DrumTrainerTests() => Api.ListTrackScoresAsync(Track, Arg.Any<CancellationToken>()).Returns([]);
 
@@ -36,7 +39,8 @@ public sealed class DrumTrainerTests : PageTestContext
 
     private void Parameters(ComponentParameterCollectionBuilder<DrumTrainer> p) => p
         .Add(c => c.Track, DrumlessTests.DrumTrack())
-        .Add(c => c.EngineReady, true)
+        .Add(c => c.EngineReady, _engineReady)
+        .Add(c => c.ReducedMotion, _reducedMotion)
         .Add(c => c.Position, 1.2)
         .Add(c => c.GuidePiece, _guide)
         .Add(c => c.GuidePieces, Present)
@@ -113,7 +117,7 @@ public sealed class DrumTrainerTests : PageTestContext
     public async Task NotSplit_SaysSo_StartsTheDetailPhase_AndWaitsForTheHits()
     {
         var unavailable = InstrumentViewsData.DrumHits(AnalysisStatusDto.Unavailable) with { Reason = "The drums have not been split." };
-        Hits(unavailable, unavailable, InstrumentViewsData.DrumHits());
+        Hits(unavailable, InstrumentViewsData.DrumHits());
         Api.StartDetailAsync(Track, Arg.Any<CancellationToken>()).Returns(TestData.Track());
         var trainer = RenderTrainer();
 
@@ -240,11 +244,9 @@ public sealed class DrumTrainerTests : PageTestContext
     {
         Hits(InstrumentViewsData.DrumHits());
 
-        Render<DrumTrainer>(p =>
-        {
-            Parameters(p);
-            p.Add(c => c.ReducedMotion, true);
-        });
+        _reducedMotion = true;
+
+        RenderTrainer();
 
         Views.Received(1).AttachHitLanesAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<DrumHitEvent>>(), Arg.Is<HitLaneOptions>(o => o.ReducedMotion == true));
     }
@@ -254,11 +256,9 @@ public sealed class DrumTrainerTests : PageTestContext
     {
         Hits(InstrumentViewsData.DrumHits());
 
-        Render<DrumTrainer>(p =>
-        {
-            Parameters(p);
-            p.Add(c => c.EngineReady, false);
-        });
+        _engineReady = false;
+
+        RenderTrainer();
 
         Views.DidNotReceiveWithAnyArgs().AttachHitLanesAsync(default!, default!, default!);
     }

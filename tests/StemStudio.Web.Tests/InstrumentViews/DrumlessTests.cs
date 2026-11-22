@@ -1,5 +1,6 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
+using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.InstrumentViews;
 using StemStudio.Web.Mixer;
@@ -54,6 +55,7 @@ public sealed class DrumlessTests
     {
         _state.ToggleMute(StemNames.Bass);
         _state.ToggleSolo("vocals.lead");
+        _state.SetMetronome(_state.Metronome with { Enabled = false });
         var before = Drumless.Capture(_state);
 
         Drumless.Apply(_state, tempoKnown: true);
@@ -98,5 +100,17 @@ public sealed class DrumlessTests
 
         state.AllChannels.Where(c => c.Mute).Select(c => c.Stem).ShouldBe(["drums"]);
         Drumless.IsApplied(state).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Restore_IgnoresBrokenStoredEntries()
+    {
+        Drumless.Apply(_state, tempoKnown: true);
+        var stored = new DrumlessSnapshot([null!, new ChannelFlags(null!, true, true), new ChannelFlags("drums.kick", false, false)], false, 99);
+
+        Drumless.Restore(_state, stored);
+
+        _state.AllChannels.Single(c => c.Stem == "drums.kick").Mute.ShouldBeFalse();
+        _state.Practice.CountIn.Bars.ShouldBeLessThanOrEqualTo(PracticeLimits.MaxCountInBars);
     }
 }

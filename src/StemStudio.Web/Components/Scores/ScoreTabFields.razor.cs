@@ -3,9 +3,9 @@ using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Web.Api;
 using StemStudio.Web.Experience;
-using StemStudio.Web.Services;
 using StemStudio.Web.InstrumentViews;
 using StemStudio.Web.Scores;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Scores;
 

@@ -2,6 +2,8 @@
 @using StemStudio.Web.Components.Recording
 @using StemStudio.Web.Components.Practice
 @using StemStudio.Contracts.Sections
+@using StemStudio.Contracts.InstrumentViews
+@using StemStudio.Contracts.Scores
 
 <PageTitle>Mixer - StemStudio</PageTitle>
 
@@ -105,18 +107,33 @@ else
             </ItemExtra>
         </SectionLane>
         <div class="ss-section-nav">
-            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(ShowScore ? ButtonStyle.Primary : ButtonStyle.Light)"
-                          aria-expanded="@(ShowScore ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
+            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(MixerScoreShown ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(MixerScoreShown ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
             <RadzenButton Text="Practice log" Icon="timer" Size="ButtonSize.Small" ButtonStyle="@(ShowPracticeLog ? ButtonStyle.Primary : ButtonStyle.Light)"
                           aria-expanded="@(ShowPracticeLog ? "true" : "false")" Click="TogglePracticeLog" data-testid="practice-log-panel-toggle"
                           data-help-id="practice-log-panel" />
+            <RadzenButton Text="Drumless" Icon="volume_off" Size="ButtonSize.Small" ButtonStyle="@(DrumlessOn ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-pressed="@(DrumlessOn ? "true" : "false")" Click="ToggleDrumlessAsync" data-testid="drumless" data-help-id="drumless" />
         </div>
         <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
+        @if (OpenView == InstrumentViewDto.DrumTrainer && _track is not null)
+        {
+            <section class="ss-instrument-view" aria-label="Drum trainer" data-testid="instrument-view" data-view="drum-trainer">
+                <DrumTrainer Track="_track" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" Position="Position" GuidePiece="GuidePiece"
+                             GuidePieces="DrumGuidePieces" OnGuide="SetGuideAsync">
+                    <ScoreView>
+                        <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
+                                    Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync"
+                                    Profile="ScoreProfileDto.Drums" />
+                    </ScoreView>
+                </DrumTrainer>
+            </section>
+        }
         @if (ShowPracticeLog)
         {
             <PracticeLogPanel TrackId="Id" OnSettingsChanged="OnLogSettingsChanged" />
         }
-        @if (ShowScore)
+        @if (MixerScoreShown)
         {
             <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
                         Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync" />

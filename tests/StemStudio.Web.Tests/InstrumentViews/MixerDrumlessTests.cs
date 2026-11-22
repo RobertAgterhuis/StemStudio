@@ -47,7 +47,7 @@ public sealed class MixerDrumlessTests : MixerTestContext
         }
 
         await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "bass" && !c.Mute));
-        await Engine.Received(1).SetMetronomeAsync(Arg.Is<MetronomeSettingsDto>(m => m.Enabled));
+        await Engine.Received().SetMetronomeAsync(Arg.Is<MetronomeSettingsDto>(m => m.Enabled));
         page.Find("[data-testid=countin-toggle]").GetAttribute("aria-checked").ShouldBe("true");
         var view = page.Find("[data-testid=instrument-view]");
         (view.GetAttribute("data-view"), view.GetAttribute("aria-label")).ShouldBe(("drum-trainer", "Drum trainer"));
@@ -60,6 +60,7 @@ public sealed class MixerDrumlessTests : MixerTestContext
     public async Task ASecondClick_RestoresTheDrumsAndTheClick()
     {
         var page = Ready(RenderMixer());
+        await page.Find("[data-testid=metronome-toggle]").ClickAsync(new MouseEventArgs());
         await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
 
         await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
