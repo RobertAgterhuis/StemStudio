@@ -25,3 +25,7 @@ From the Advanced level you get more control over the chords.
   piano score. It is offered once the chords are ready.
 - Expert can choose the **method**: *Accurate* (the BTC model, Park et al. 2019, MIT licence; fetched once, about
   12 MB) or *Fast* (a chroma template match, works offline and on slow computers, less accurate).
+
+Limits: an edit replaces one chord and is kept when the song is opened again, but *Detect again* replaces every edit
+(you are asked first). The full vocabulary is less accurate than major and minor only; check sevenths and inversions by
+ear.
