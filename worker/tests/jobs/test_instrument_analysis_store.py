@@ -17,6 +17,7 @@ from stemstudio_worker.jobs.instrument_analysis_store import (
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.schemas import (
     RESTART_INTERRUPTED_TEXT,
+    AnyAnalysisRequest,
     ChordsJobRequest,
     DrumHitsJobRequest,
     DrumInputs,
@@ -39,8 +40,11 @@ PITCH = VocalPitchJobRequest(
 
 
 def _record(
-    job_id: str, status: S = S.QUEUED, request=CHORDS, age: timedelta = timedelta()
-) -> StoredAnalysisJob:  # type: ignore[no-untyped-def]
+    job_id: str,
+    status: S = S.QUEUED,
+    request: AnyAnalysisRequest = CHORDS,
+    age: timedelta = timedelta(),
+) -> StoredAnalysisJob:
     job = InstrumentAnalysisJob(
         analysis_job_id=job_id,
         kind=request.kind,

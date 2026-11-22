@@ -34,7 +34,7 @@ from stemstudio_worker.ports import (
     PostProcessOptions,
     TranscriptionError,
 )
-from stemstudio_worker.schemas import BeatGridTempo
+from stemstudio_worker.schemas import BeatGridTempo, ChordEngine
 
 SR = CHORD_SAMPLE_RATE
 CHORD_SECONDS = 2.0
@@ -183,7 +183,7 @@ def _cadence(tonic: int, minor: bool) -> npt.NDArray[np.float32]:
     """I IV V I (i iv V i in minor), 2 s per chord, twice."""
     steps = [(0, minor), (5, minor), (7, False), (0, minor)] * 2
     audio = np.concatenate([_triad((tonic + step) % 12, quality) for step, quality in steps])
-    return (0.2 * audio / np.max(np.abs(audio))).astype(np.float32)
+    return np.asarray(0.2 * audio / np.max(np.abs(audio)), dtype=np.float32)
 
 
 def _key_found(recognizer: BtcRecognizer, parts: tuple[Any, Any], tonic: int, minor: bool) -> bool:
@@ -199,7 +199,7 @@ def _key_found(recognizer: BtcRecognizer, parts: tuple[Any, Any], tonic: int, mi
 class _NoFallback:
     """The integration run must use BTC itself."""
 
-    engine = "chroma-hmm"
+    engine: ChordEngine = "chroma-hmm"
 
     def recognize(self, *_args: object) -> ChordFrames:
         raise AnalysisError("BTC weights unavailable in the integration run")

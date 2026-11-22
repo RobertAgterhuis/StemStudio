@@ -52,7 +52,7 @@ from stemstudio_worker.ports import (
     TranscriptionError,
     WeightsFile,
 )
-from stemstudio_worker.schemas import ChordVocabulary
+from stemstudio_worker.schemas import ChordEngine, ChordVocabulary
 
 SR = CHORD_SAMPLE_RATE
 
@@ -116,7 +116,7 @@ class FallbackRecognizer:
         self.calls: list[ChordVocabulary] = []
 
     @property
-    def engine(self) -> str:
+    def engine(self) -> ChordEngine:
         return "chroma-hmm"
 
     def recognize(self, audio: Any, vocabulary: ChordVocabulary, progress: Any) -> ChordFrames:

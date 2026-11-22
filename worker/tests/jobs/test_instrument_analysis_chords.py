@@ -33,6 +33,7 @@ from stemstudio_worker.schemas import (
     AnalysisWarning,
     BeatGridTempo,
     ChordChart,
+    ChordEngine,
     ChordSegment,
     ChordsJobRequest,
     ChordVocabulary,
@@ -55,12 +56,12 @@ class FakeMixer:
 
 @dataclass
 class FakeRecognizer:
-    name: str
+    name: ChordEngine
     fallback: bool = False
     calls: list[tuple[Any, ChordVocabulary]] = field(default_factory=list)
 
     @property
-    def engine(self) -> str:
+    def engine(self) -> ChordEngine:
         return self.name
 
     def recognize(self, audio: Any, vocabulary: ChordVocabulary, progress: Any) -> ChordFrames:
@@ -72,7 +73,7 @@ class FakeRecognizer:
             labels=("C:maj",),
             frame_seconds=0.1,
             chroma=np.full((2, 12), 7, dtype=np.float32),
-            engine="chroma-hmm" if self.fallback else self.name,  # type: ignore[arg-type]
+            engine="chroma-hmm" if self.fallback else self.name,
             device=None if self.fallback else GPU,
             fallback=self.fallback,
         )

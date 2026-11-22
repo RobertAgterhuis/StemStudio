@@ -22,8 +22,10 @@ from stemstudio_worker.schemas import (
     ANALYSIS_WARNING_TEXTS,
     AnalysisWarning,
     BeatGridTempo,
+    ChordChart,
     ChordsJobRequest,
     ChordVocabulary,
+    DrumPiece,
 )
 from stemstudio_worker.views_fake import (
     FAKE_WALK,
@@ -59,7 +61,7 @@ def _chart(
     seconds: float,
     vocabulary: ChordVocabulary = "simple",
     grid: BeatGridTempo | None = None,
-):  # type: ignore[no-untyped-def]
+) -> ChordChart:
     files = ChordInputs(
         harmonic=(_wav(tmp_path / "a.wav", seconds), _wav(tmp_path / "b.wav", min(seconds, 1.0)))
     )
@@ -192,10 +194,8 @@ def test_the_fake_chord_analyzer_reports_the_fake_engine_and_no_models(tmp_path:
 
 
 def _hits(tmp_path: Path) -> dict[str, list[float]]:
-    files = {
-        piece: _wav(tmp_path / f"{piece}.wav", 20.0)
-        for piece in ("kick", "snare", "hihat", "cymbals")
-    }
+    pieces: tuple[DrumPiece, ...] = ("kick", "snare", "hihat", "cymbals")
+    files = {piece: _wav(tmp_path / f"{piece}.wav", 20.0) for piece in pieces}
     hits = FakeDrumHitsTranscriber().transcribe(files, None, lambda _f: None)
     times: dict[str, list[float]] = {"all": [h.time for h in hits]}
     for hit in hits:

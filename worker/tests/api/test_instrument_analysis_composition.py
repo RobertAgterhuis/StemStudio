@@ -2,6 +2,7 @@
 
 import importlib
 import types
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -42,7 +43,7 @@ def _apply_key(chart: Any, estimate: Any) -> Any:
     return chart
 
 
-def _loader(modules: dict[str, dict[str, Any]]):  # type: ignore[no-untyped-def]
+def _loader(modules: dict[str, dict[str, Any]]) -> Callable[[str], types.ModuleType]:
     def load(name: str) -> types.ModuleType:
         short = name.removeprefix("stemstudio_worker.")
         if short not in modules:
@@ -55,7 +56,7 @@ def _loader(modules: dict[str, dict[str, Any]]):  # type: ignore[no-untyped-def]
     return load
 
 
-ALL = {
+ALL: dict[str, dict[str, Any]] = {
     "analysis_inputs.mixdown": {"SoundfileHarmonicMixer": _Made},
     "harmony.chroma_hmm": {"ChromaHmmRecognizer": _Made},
     "harmony.postprocess": {"BeatSnapPostProcessor": _Made},
@@ -71,7 +72,7 @@ def _settings(
     return replace(
         base,
         instrument_analysis=InstrumentAnalysisSettings(
-            chord_engine=chord,
+            chord_engine=chord,  # type: ignore[arg-type]
             pitch_engine=pitch,  # type: ignore[arg-type]
             threads=2,
         ),
@@ -126,9 +127,11 @@ def test_missing_adapters_become_parts_that_fail_readably(tmp_path: Path) -> Non
         _settings(tmp_path), FakeDeviceRunner("cpu"), _loader({})
     )
 
-    assert isinstance(parts.mixer, MissingPart) and isinstance(parts.pitch, MissingPart)
+    pitch: Any = parts.pitch
+    assert isinstance(parts.mixer, MissingPart) and isinstance(pitch, MissingPart)
     assert parts.pitch_engine == "pyin"
-    assert btc is not None and isinstance(btc.fallback, MissingPart)
+    fallback: Any = None if btc is None else btc.fallback
+    assert isinstance(fallback, MissingPart)
     with pytest.raises(AnalysisError, match=MISSING_PART_TEXT):
         parts.mixer.mix([], 22_050)
 
