@@ -1,5 +1,6 @@
 """Transposed parts, clefs and the section profiles (016 T025, data-model 4.2-4.6)."""
 
+import copy
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -7,11 +8,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from music21 import converter, stream
+from music21 import converter, harmony, stream, tie
 
 from stemstudio_worker.notation.notator import MusicNotator
 from stemstudio_worker.notation.parts import Music21PartWriter, with_transpose, written_key_name
 from stemstudio_worker.notation.profiles import get_profile, suggest_profile
+from stemstudio_worker.notation.writer import musicxml_bytes
 from stemstudio_worker.ports import WRITTEN_INSTRUMENTS, NotationSettings, NoteEvent, ScoreDocument
 from stemstudio_worker.schemas import (
     BeatGridTempo,
@@ -222,6 +224,23 @@ def test_part_writer_reports_the_notes_outside_the_instrument_range() -> None:
     piped = _notate(SCALE, _settings(part=PartSettings(instrument="tuba"))).part
     assert piped is not None
     assert piped.out_of_range == result.summary.out_of_range
+
+
+def test_part_writer_range_count_skips_chord_symbols_and_tied_continuations() -> None:
+    """A G7 symbol and a tie into a second C5 add no out-of-range notes for the tuba."""
+    score: Any = converter.parse(_notate([72], _settings()).musicxml, format="musicxml")
+    first: Any = score.recurse().getElementsByClass(stream.Measure).first()
+    first.insert(0, harmony.ChordSymbol("G7"))
+    make_tie: Any = tie.Tie
+    note: Any = score.recurse().notes.first()
+    note.tie = make_tie("start")
+    stopped = copy.deepcopy(note)
+    stopped.tie = make_tie("stop")
+    first.append(stopped)
+    result = Music21PartWriter().write(
+        musicxml_bytes(score), PartSettings(instrument="tuba"), "vocals"
+    )
+    assert result.summary.out_of_range == 1
 
 
 @pytest.mark.parametrize(
