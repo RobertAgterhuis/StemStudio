@@ -78,32 +78,14 @@ def test_chords_without_a_grid_change_every_bar_of_120_bpm_from_half_a_second(
     chart = _chart(tmp_path, 40.0)
 
     labels = [s.label for s in chart.segments]
-    assert labels[:10] == [
-        "N",
-        "C:maj",
-        "G:maj",
-        "A:min",
-        "F:maj",
-        "C:maj",
-        "G:maj",
-        "A:min",
-        "F:maj",
-        "D:maj",
-    ]
-    assert labels[10:13] == ["A:maj", "B:min", "G:maj"]
-    assert [(s.start_ms, s.end_ms) for s in chart.segments[:3]] == [
-        (0, 500),
-        (500, 2500),
-        (2500, 4500),
-    ]
+    bars = ["C:maj", "G:maj", "A:min", "F:maj"]
+    assert labels[:13] == ["N", *bars, *bars, "D:maj", "A:maj", "B:min", "G:maj"]
+    spans = [(s.start_ms, s.end_ms) for s in chart.segments[:3]]
+    assert spans == [(0, 500), (500, 2500), (2500, 4500)]
     assert chart.segments[-1].end_ms == 40_000
     assert all(s.confidence == 0.9 for s in chart.segments)
-    assert (chart.engine, chart.vocabulary, chart.beat_snapped, chart.no_chords) == (
-        "fake",
-        "simple",
-        False,
-        False,
-    )
+    facts = (chart.engine, chart.vocabulary, chart.beat_snapped, chart.no_chords)
+    assert facts == ("fake", "simple", False, False)
 
 
 def test_chords_carry_root_quality_and_bass(tmp_path: Path) -> None:

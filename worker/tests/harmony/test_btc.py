@@ -600,12 +600,15 @@ class _RealTinyNetwork:
 # ------------------------------------------------------------------ security rules
 
 
+def _imported(node: ast.AST) -> list[str]:
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    return [node.module or ""] if isinstance(node, ast.ImportFrom) else []
+
+
 def _imports(path: Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    names = {alias.name.split(".")[0] for node in ast.walk(tree)
-             if isinstance(node, ast.Import) for alias in node.names}  # fmt: skip
-    return names | {(node.module or "").split(".")[0] for node in ast.walk(tree)
-                    if isinstance(node, ast.ImportFrom)}  # fmt: skip
+    return {name.split(".")[0] for node in ast.walk(tree) for name in _imported(node)}
 
 
 def test_no_mir_eval_pretty_midi_pandas_or_pyrubberband_in_btc_or_its_vendor() -> None:

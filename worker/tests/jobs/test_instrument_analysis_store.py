@@ -39,21 +39,13 @@ PITCH = VocalPitchJobRequest(
 )
 
 
-def _record(
-    job_id: str,
-    status: S = S.QUEUED,
-    request: AnyAnalysisRequest = CHORDS,
-    age: timedelta = timedelta(),
-) -> StoredAnalysisJob:
-    job = InstrumentAnalysisJob(
-        analysis_job_id=job_id,
-        kind=request.kind,
-        status=status,
-        stage="analysing" if status is S.RUNNING else None,
-        progress=0.5 if status is S.RUNNING else 0,
-        created_at=T0 - age,
-        updated_at=T0 - age,
-    )
+def _record(job_id: str, status: S = S.QUEUED, request: AnyAnalysisRequest = CHORDS,
+            age: timedelta = timedelta()) -> StoredAnalysisJob:  # fmt: skip
+    running = status is S.RUNNING
+    job = InstrumentAnalysisJob(analysis_job_id=job_id, kind=request.kind, status=status,
+                                stage="analysing" if running else None,
+                                progress=0.5 if running else 0, created_at=T0 - age,
+                                updated_at=T0 - age)  # fmt: skip
     return StoredAnalysisJob(job=job, request=request)
 
 
@@ -96,12 +88,9 @@ def test_a_restart_fails_unfinished_jobs_and_drops_their_files(tmp_path: Path) -
 
     running = loaded.get("a" * 32)
     assert running is not None
-    assert (running.job.status, running.job.error, running.job.stage) == (
-        S.FAILED,
-        RESTART_INTERRUPTED_TEXT,
-        None,
-    )
-    assert running.job.updated_at == T0 + timedelta(seconds=5)
+    job = running.job
+    assert (job.status, job.error, job.stage) == (S.FAILED, RESTART_INTERRUPTED_TEXT, None)
+    assert job.updated_at == T0 + timedelta(seconds=5)
     assert loaded.get("b" * 32).job.status is S.FAILED  # type: ignore[union-attr]
     assert loaded.get("c" * 32).job.status is S.COMPLETED  # type: ignore[union-attr]
     assert not store.output_dir("a" * 32).exists()

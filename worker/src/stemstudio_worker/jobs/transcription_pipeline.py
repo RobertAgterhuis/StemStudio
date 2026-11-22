@@ -256,9 +256,14 @@ class Pipeline:
             )
             if applies
         ]
-        if self._request.profile == "drums" and self._request.single_piece is None:
-            found += [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
-        return found
+        return found + self._missing_piece_warnings(inputs)
+
+    def _missing_piece_warnings(self, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
+        """``missing-drum-piece`` per absent piece of ``drums`` (none with ``singlePiece``)."""
+        if self._request.profile != "drums" or self._request.single_piece is not None:
+            return []
+        warn = self._parts.rules.warning
+        return [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
 
     def _on_detail_stem(self) -> bool:
         """A pitched profile transcribes a detail stem (other instruments may bleed in)."""

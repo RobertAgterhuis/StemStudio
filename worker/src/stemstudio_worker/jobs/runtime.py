@@ -157,14 +157,10 @@ class Lanes:
         render = RenderService.start(paths, render_parts.executor, clock)
         transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
         practice = _practice(parts, wiring)
-        analysis = InstrumentAnalysisService.start(
-            paths, parts.instrument_analysis, AnalysisContext(render_parts.library, clock)
-        )
+        analysis = _analysis(parts, wiring)
         artwork = UserArtworkStore(paths, clock)
-        sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep,
-                  practice.lane.sweep, analysis.sweep]  # fmt: skip
-        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, sweeps)
-        sweeper.start()
+        sweeper = _sweeping(metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep,
+                            transcription.sweep, practice.lane.sweep, analysis.sweep)  # fmt: skip
         return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
                    lyrics, transcription, practice, analysis)  # fmt: skip
 
@@ -183,6 +179,19 @@ def _practice(parts: "WorkerParts", wiring: LaneWiring) -> PracticeServices:
     lane = PracticeLane.loaded(wiring.paths, wiring.clock)
     context = PracticeContext(lane, parts.render.library, wiring.clock)
     return PracticeServices.start(context, parts.practice)
+
+
+def _sweeping(*sweeps: Callable[[], object]) -> Sweeper:
+    """A started sweep timer over ``sweeps``."""
+    sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, list(sweeps))
+    sweeper.start()
+    return sweeper
+
+
+def _analysis(parts: "WorkerParts", wiring: LaneWiring) -> InstrumentAnalysisService:
+    """The instrument analysis lane (016; restart handled), started."""
+    context = AnalysisContext(parts.render.library, wiring.clock)
+    return InstrumentAnalysisService.start(wiring.paths, parts.instrument_analysis, context)
 
 
 def _transcription_parts(parts: "WorkerParts") -> TranscriptionParts:

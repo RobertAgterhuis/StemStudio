@@ -113,23 +113,25 @@ def _store_or_skip(tmp_path_factory: pytest.TempPathFactory) -> ChordModelStore:
 def test_real_btc_recognises_the_triad_set_and_records_its_speed(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    store = _store_or_skip(tmp_path_factory)
-    recognizer = BtcRecognizer(
-        BtcParts(store, FakeDeviceRunner("cpu"), TorchBtcRuntime(THREADS), _NoFallback())
-    )
+    recognizer = _btc(_store_or_skip(tmp_path_factory))
     audio, truth = chord_set()
 
     frames, per_second = _timed(recognizer, audio)
     accuracy = frame_accuracy(frames, truth)
-    full = recognizer.recognize(audio[: SR * 4], "full", lambda _f: None)
+    classes = recognizer.recognize(audio[: SR * 4], "full", lambda _f: None).posteriors.shape[1]
     print(f"\nBTC majmin: {per_second:.4f} s per audio second on {THREADS} threads; "  # noqa: T201
-          f"frames {accuracy:.1%}; large-voca classes {full.posteriors.shape[1]}")  # fmt: skip
+          f"frames {accuracy:.1%}; large-voca classes {classes}")  # fmt: skip
 
-    assert frames.engine == "btc" and not frames.fallback
-    assert full.posteriors.shape[1] == 170
-    assert accuracy >= MAJMIN_FRAME_TARGET
-    assert per_second <= SECONDS_PER_AUDIO_SECOND_BUDGET
+    assert frames.engine == "btc" and not frames.fallback and classes == 170
+    assert accuracy >= MAJMIN_FRAME_TARGET and per_second <= SECONDS_PER_AUDIO_SECOND_BUDGET
     _check_chart_and_key(recognizer, frames, truth)
+
+
+def _btc(store: ChordModelStore) -> BtcRecognizer:
+    """The real BTC recognizer on the CPU with ``THREADS`` threads and no fallback."""
+    return BtcRecognizer(
+        BtcParts(store, FakeDeviceRunner("cpu"), TorchBtcRuntime(THREADS), _NoFallback())
+    )
 
 
 def _timed(recognizer: BtcRecognizer, audio: npt.NDArray[np.float32]) -> tuple[ChordFrames, float]:

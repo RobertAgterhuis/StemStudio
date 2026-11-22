@@ -88,6 +88,7 @@ from stemstudio_worker.ports import (
     Aligner,
     AnalysisError,
     DeviceRunner,
+    DrumTranscriber,
     GpuNeed,
     ImageNormalizer,
     LibraryReader,
@@ -274,9 +275,7 @@ class _Parts:
         adapters = self.adapters or default_adapters(settings, devices)
         lyrics = default_lyrics(settings, self.overrides, devices)
         analysis, btc = self._analysis(settings, devices)
-        models = _GpuModels(pipeline, lyrics.aligner, btc)
-        devices.reclaim_with(models.reclaim)
-        hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
+        hooks = _GpuModels(pipeline, lyrics.aligner, btc).hooks(devices)
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
         scores = default_transcription(settings, self.overrides, devices, render.library)
@@ -343,14 +342,18 @@ class _GpuModels:
         self._aligner: Callable[[], None] | None = getattr(aligner, "release", None)
         self._btc: Callable[[], None] | None = getattr(btc, "release", None)
 
+    def hooks(self, devices: ManagedRunner) -> DeviceHooks:
+        """Register :meth:`reclaim` on ``devices``; the device hooks with the idle release."""
+        devices.reclaim_with(self.reclaim)
+        return DeviceHooks(info=devices.info, on_idle=self.idle_release(devices))
+
     def reclaim(self, need: GpuNeed) -> None:
         """Release the models a step that does not fit does not need (keeps its own)."""
         if self._pipeline is not None:
             self._pipeline(keep=need)
-        if self._aligner is not None and need != WHISPER_GPU_NEED:
-            self._aligner()
-        if self._btc is not None and need != BTC_GPU_NEED:
-            self._btc()
+        for drop, own in ((self._aligner, WHISPER_GPU_NEED), (self._btc, BTC_GPU_NEED)):
+            if drop is not None and need != own:
+                drop()
 
     def idle_release(self, devices: ManagedRunner) -> Callable[[], None]:
         """Idle hook: drop every cached model, then return the GPU memory."""
@@ -439,15 +442,25 @@ def create_instrument_analysis_parts(
                          allowed_root=settings.render.library_dir)  # fmt: skip
     btc = None if analysis.chord_engine == "fake" else _btc(settings, devices, lookup)
     chords = FakeChordAnalyzer() if btc is None else _pipeline(settings, mixer, btc, lookup)
-    pitch = (FakePitchAnalyzer() if analysis.pitch_engine == "fake" else
-             lookup.build("analysis.vocal_pitch:LibrosaPitchAnalyzer", analysis.pitch_engine,
-                          engine=analysis.pitch_engine))  # fmt: skip
-    fake_drums = settings.transcription.transcriber == "fake"
-    drums = FakeDrumHitsTranscriber() if fake_drums else LibrosaDrumTranscriber()
-    engine: DrumHitsEngine = "fake" if fake_drums else "drum-onsets"
-    parts = InstrumentAnalysisParts(chords=chords, drums=drums, pitch=pitch, mixer=mixer,
-                                    drum_engine=engine)  # fmt: skip
+    drums, engine = _drums(settings)
+    parts = InstrumentAnalysisParts(chords=chords, drums=drums, pitch=_pitch(settings, lookup),
+                                    mixer=mixer, drum_engine=engine)  # fmt: skip
     return parts, btc
+
+
+def _pitch(settings: WorkerSettings, lookup: _Lookup) -> Any:
+    """The configured ``PitchAnalyzer`` (L2's pYIN/YIN, or the fake)."""
+    engine = settings.instrument_analysis.pitch_engine
+    if engine == "fake":
+        return FakePitchAnalyzer()
+    return lookup.build("analysis.vocal_pitch:LibrosaPitchAnalyzer", engine, engine=engine)
+
+
+def _drums(settings: WorkerSettings) -> tuple[DrumTranscriber, DrumHitsEngine]:
+    """The 008 drum transcriber of the configured transcriber and its ``DrumHits.engine``."""
+    if settings.transcription.transcriber == "fake":
+        return FakeDrumHitsTranscriber(), "fake"
+    return LibrosaDrumTranscriber(), "drum-onsets"
 
 
 def _btc(settings: WorkerSettings, devices: DeviceRunner, lookup: _Lookup) -> BtcRecognizer:
