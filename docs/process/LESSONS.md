@@ -87,3 +87,13 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - Decisions a lane asks to be confirmed ("please confirm or redirect") need an explicit answer in the lane's
   next brief; unanswered ones (and contract wording such as `stopRecording` "stops") surfaced only at
   integration. (014/015)
+- A per-agent token cap (150k for the Tipoca trooper lanes) stopped lanes mid-task with uncommitted WIP; keep a
+  green committed state and a resume note (`handoff-resume.md`) at every checkpoint so a fresh agent can continue. (016)
+- A red test must compile: an uncompilable red commit (L5 T105, T127) turns the whole solution build red for every
+  other lane and the checkpoint; add the stubs the test needs in the red commit. (016)
+- Fakes must agree with the research: the fake drum split had no hi-hat stem although research R-11 lists it, so specs
+  and a lane reading were built on the fake's gap and the visual baselines changed at integration. Check every fake
+  against the research and contract examples when it is written. (016)
+- `toBeVisible()` never passes on an element with zero width by design (banner chords overflow above their word);
+  assert presence and position (count, bounding box of the anchor word) instead, and check such assertions on a real
+  stack at the checkpoint. (016)

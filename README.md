@@ -184,6 +184,28 @@ match lyrics of imported tracks (confirm your own work in the dialog), withholds
 lyrics and refuses "write like <artist>". For tests, `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` names
 scripted model answers (fake stack only).
 
+### Instrument views (feature 016)
+
+Every instrument family gets its own practice view, and **Practise as ...** in the mixer opens it with a minus-one mix
+(the family is muted, detail channels included, everything else unmuted):
+
+- **Keys and accompaniment**: chords found automatically once the stems are ready (BTC model, MIT, or a fast chroma
+  method), shown in a chords lane in the mixer, above the karaoke words and as a printable chord sheet with a ChordPro
+  download. Chords follow the practice transpose and are spelled for the key; from Advanced a chord can be corrected.
+- **Song key** next to the tempo, with key changes, the transposed key and the written key of your part.
+- **Guitar and bass**: tablature in the sheet music (tunings incl. drop D, DADGAD, 5- and 6-string bass, capo) and
+  **capo mode** with up to three suggested capo positions.
+- **Drums**: **Drumless** (one click mutes every drum channel, count-in on) and a drum trainer with five hit lanes from
+  the split drums, a guide piece and the drum notation.
+- **Vocals**: **singing feedback**: a pitch view of the lead melody and your voice, a score per lyric line and a summary.
+- **Strings, brass, woodwinds**: a part written for your instrument (B-flat, E-flat, F instruments, clefs, notes out
+  of range counted); MIDI per channel for every family.
+
+Limits: chord detection is right about 80 % of the time on pop songs and less on dense harmony; the key comes from the
+chords; drum hits and the reference melody come from separated stems, so bleed can add or miss notes; the tab
+fingering is chosen by the computer. **Microphone privacy**: singing feedback runs entirely in the browser; neither
+the microphone audio nor the scores are sent to the server. Use headphones while singing.
+
 ### AI composer agent (feature 011, optional)
 
 The **Agent** button in the header opens a panel on every page. The agent turns a command into a
