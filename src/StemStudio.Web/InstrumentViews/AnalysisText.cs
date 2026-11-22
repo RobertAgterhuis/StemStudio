@@ -25,6 +25,13 @@ public static class AnalysisText
             _ => $"The stems changed since the {result} were detected; detect them again.",
         };
 
+    /// <summary>The document the views show and edit, or null.</summary>
+    /// <typeparam name="T">The document type.</typeparam>
+    /// <param name="analysis">The analysis.</param>
+    /// <returns>The document.</returns>
+    public static T? Shown<T>(TrackAnalysisDto<T>? analysis)
+        where T : class => analysis?.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
+
     /// <summary>True while the analysis is queued or running (the UI polls).</summary>
     /// <typeparam name="T">The document type.</typeparam>
     /// <param name="analysis">The analysis.</param>

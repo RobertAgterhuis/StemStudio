@@ -37,6 +37,17 @@ public sealed class MixerChordsTests : MixerTestContext
     }
 
     [Fact]
+    public void StaleChords_StayOnTheBanner()
+    {
+        Api.GetChordsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.StaleEditedChords());
+
+        var page = RenderMixer();
+
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-banner]").GetAttribute("data-chords").ShouldBe("true"));
+        Views.Received(1).SetKaraokeChordsAsync(Arg.Is<ChordChartData>(c => c.Segments.Count == 2));
+    }
+
+    [Fact]
     public void WithoutReadyChords_TheBannerHasNoChords()
     {
         Api.GetChordsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.Chords(AnalysisStatusDto.None));

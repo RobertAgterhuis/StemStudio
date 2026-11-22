@@ -78,6 +78,19 @@ public sealed class ChordLabelsTests
         AnalysisText.Status(InstrumentViewsData.Chords(status, 0.4), "Chord detection", "chords").ShouldBe(text);
 
     [Fact]
+    public void Status_StaleWithReason_ShowsIt() =>
+        AnalysisText.Status(InstrumentViewsData.StaleEditedChords(), "Chord detection", "chords")
+            .ShouldBe("The stems changed since the chords were detected; detect them again. The drum stems were split again.");
+
+    [Theory]
+    [InlineData(AnalysisStatusDto.Ready, true)]
+    [InlineData(AnalysisStatusDto.Stale, true)]
+    [InlineData(AnalysisStatusDto.Running, false)]
+    [InlineData(AnalysisStatusDto.Failed, false)]
+    public void Shown_IsTheDocumentOfReadyAndStaleAnalyses(AnalysisStatusDto status, bool shown) =>
+        (AnalysisText.Shown(InstrumentViewsData.Chords(status) with { Document = InstrumentViewsData.Chords().Document }) is not null).ShouldBe(shown);
+
+    [Fact]
     public void Status_WithoutAnalysis_IsLoading() => AnalysisText.Status<ChordChartDocumentDto>(null, "Chord detection", "chords").ShouldBe("Loading chords...");
 
     [Fact]

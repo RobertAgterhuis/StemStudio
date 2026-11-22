@@ -39,6 +39,18 @@ public sealed class ChordSheetTests : PageTestContext
     }
 
     [Fact]
+    public void StaleEditedChart_StillRendersTheSheet_AndItsEditor()
+    {
+        Api.GetChordsAsync(Track, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.StaleEditedChords());
+
+        var sheet = RenderAt(ExperienceLevel.Expert);
+
+        sheet.Find("[data-testid=chord-sheet-row-0]").TextContent.ShouldBe("AFake Eline one");
+        sheet.Find("[data-testid=chord-edit-0]");
+        Api.Received(1).GetChordSheetAsync(Track, 0, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Transpose_ReloadsTheSheet_Clamped()
     {
         var sheet = RenderAt(ExperienceLevel.Beginner, capo: 3);

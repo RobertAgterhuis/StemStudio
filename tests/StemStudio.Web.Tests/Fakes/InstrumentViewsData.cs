@@ -63,6 +63,19 @@ public static class InstrumentViewsData
         EstimateSeconds = status is AnalysisStatusDto.Queued or AnalysisStatusDto.Running ? 12 : null,
     };
 
+    /// <summary>A stale chords analysis whose first segment the user corrected (review M2): the backend still serves it.</summary>
+    /// <returns>The analysis.</returns>
+    public static TrackAnalysisDto<ChordChartDocumentDto> StaleEditedChords()
+    {
+        var stale = Chords(AnalysisStatusDto.Stale);
+        var segments = stale.Document!.Segments;
+        return stale with
+        {
+            Reason = "The drum stems were split again.",
+            Document = stale.Document with { HasEdits = true, Segments = [segments[0] with { Edited = true }, .. segments.Skip(1)] },
+        };
+    }
+
     /// <summary>The sheet example as DTO.</summary>
     /// <returns>The sheet.</returns>
     public static ChordSheetDto Sheet() => Parse<ChordSheetDto>(SheetJson);
@@ -89,7 +102,7 @@ public static class InstrumentViewsData
         EstimateSeconds = null,
         UpdatedAt = DateTimeOffset.Parse("2026-11-16T10:00:06Z", System.Globalization.CultureInfo.InvariantCulture),
         Limits = "Drum hits are found from the split drum stems; fast fills may be missed.",
-        Document = status == AnalysisStatusDto.Ready
+        Document = status is AnalysisStatusDto.Ready or AnalysisStatusDto.Stale
             ? new DrumHitsDocumentDto
             {
                 Pieces = [DrumPieceDto.Kick, DrumPieceDto.Snare, DrumPieceDto.Hihat],

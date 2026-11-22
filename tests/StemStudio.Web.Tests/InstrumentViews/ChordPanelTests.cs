@@ -175,6 +175,23 @@ public sealed class ChordPanelTests : PageTestContext
     }
 
     [Fact]
+    public async Task StaleEditedChart_StaysOnTheLane_ShowsWhy_AndDetectingAsksBeforeReplacingTheEdits()
+    {
+        Chords(InstrumentViewsData.StaleEditedChords());
+        var panel = RenderPanel();
+
+        panel.Find("[data-testid=chord-lane]");
+        await Views.Received(1).AttachChordLaneAsync("chord-lane-host", Arg.Is<ChordChartData>(c => c.Segments.Count == 2), Arg.Any<ChordLaneOptions>());
+        var status = panel.Find("[data-testid=chords-status]");
+        (status.GetAttribute("data-status"), status.TextContent).ShouldBe(("stale", "The stems changed since the chords were detected; detect them again. The drum stems were split again."));
+
+        await panel.Find("[data-testid=chords-detect]").ClickAsync(new());
+
+        await Confirm.Received(1).ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), "Replace", "chords-overwrite-confirm");
+        Api.ReceivedCalls().ShouldNotContain(c => c.GetMethodInfo().Name == nameof(IStemStudioApiClient.DetectChordsAsync));
+    }
+
+    [Fact]
     public async Task EditsExistAnswer_AsksAndRetriesWithOverwrite()
     {
         Chords(InstrumentViewsData.Chords(AnalysisStatusDto.Stale));
