@@ -2,10 +2,11 @@
 
 ``pyin`` (default): ``librosa.pyin`` at 16 kHz, 65-1047 Hz, frame 2048, hop 160 (10 ms); a frame
 is voiced when its voicing probability is >= 0.5. ``yin`` (fast fallback): ``librosa.yin`` with
-the same frames, voiced when the frame RMS is >= -45 dBFS, then a 5-frame median (the voicing
-rule of the live tracker, R-05). The stem is analysed in 60 s chunks with a small overlap, so
-progress and cancellation are reported between chunks. Output: centi-semitones per 10 ms
-(0 = unvoiced), at most 90,000 frames.
+frame 1024 and the same hop, voiced when the frame RMS is >= -45 dBFS and the minimum
+cumulative-mean-normalised difference (65-1047 Hz lags, 512-sample window) is <= 0.25, then a
+5-frame median (the voicing rule of the live tracker, R-05). The stem is analysed in 60 s chunks
+with a small overlap, so progress and cancellation are reported between chunks. Output:
+centi-semitones per 10 ms (0 = unvoiced), at most 90,000 frames.
 """
 
 from collections.abc import Callable
@@ -49,6 +50,16 @@ VOICED_PROBABILITY: Final = 0.5
 
 YIN_MIN_DB: Final = -45.0
 """YIN frames quieter than this RMS level (dBFS) are unvoiced."""
+
+YIN_MAX_DIFFERENCE: Final = 0.25
+"""YIN frames whose minimum normalised difference is above this are unvoiced (R-05: noise and
+breath are loud but aperiodic)."""
+
+YIN_WINDOW: Final = FRAME_LENGTH // 2
+"""Difference window of the YIN frame (librosa's default ``win_length``)."""
+
+MIN_LAG: Final = int(np.floor(PITCH_SAMPLE_RATE / FMAX_HZ))
+MAX_LAG: Final = min(int(np.ceil(PITCH_SAMPLE_RATE / FMIN_HZ)), FRAME_LENGTH - YIN_WINDOW - 1)
 
 YIN_THRESHOLD: Final = 0.15
 """YIN trough threshold (absolute threshold of the normalised difference)."""
@@ -99,9 +110,33 @@ def _yin(audio: npt.NDArray[np.float32]) -> Voicing:
         trough_threshold=YIN_THRESHOLD,
     )
     rms = librosa.feature.rms(y=audio, frame_length=FRAME_LENGTH, hop_length=HOP)[0]
-    count = min(len(f0), len(rms))
-    voiced = librosa.amplitude_to_db(rms[:count], ref=1.0, amin=1e-10) >= YIN_MIN_DB
+    difference = _min_difference(audio)
+    count = min(len(f0), len(rms), len(difference))
+    loud = librosa.amplitude_to_db(rms[:count], ref=1.0, amin=1e-10) >= YIN_MIN_DB
+    voiced = loud & (difference[:count] <= YIN_MAX_DIFFERENCE)
     return _median(np.asarray(f0[:count], dtype=np.float64)), np.asarray(voiced, dtype=np.bool_)
+
+
+def _min_difference(audio: npt.NDArray[np.float32]) -> Floats:
+    """Minimum cumulative-mean-normalised difference per YIN frame (librosa's centred framing).
+
+    ``d(tau) = e(0) + e(tau) - 2 r(tau)`` over a ``YIN_WINDOW`` window (``e``: window energy at
+    lag ``tau``, ``r``: cross-correlation by FFT), normalised by its running mean; 1 where the
+    frame is silent.
+    """
+    padded = np.pad(np.asarray(audio, dtype=np.float64), FRAME_LENGTH // 2)
+    frames = librosa.util.frame(padded, frame_length=FRAME_LENGTH, hop_length=HOP)
+    frames = frames[: YIN_WINDOW + MAX_LAG]
+    head = np.fft.rfft(frames[:YIN_WINDOW], n=FRAME_LENGTH, axis=0)
+    cross = np.fft.irfft(np.fft.rfft(frames, n=FRAME_LENGTH, axis=0) * np.conj(head), axis=0)
+    squares = np.concatenate([np.zeros((1, frames.shape[1])), np.cumsum(frames**2, axis=0)])
+    lags = np.arange(MAX_LAG + 1)
+    energy = squares[lags + YIN_WINDOW] - squares[lags]
+    difference = (energy[0] + energy - 2 * cross[: MAX_LAG + 1])[1:]
+    running = np.cumsum(difference, axis=0)
+    scaled = difference * lags[1:, None]
+    normalised = np.divide(scaled, running, out=np.ones_like(scaled), where=running > 0)
+    return np.asarray(normalised[MIN_LAG - 1 :].min(axis=0), dtype=np.float64)
 
 
 _ENGINES: Final[dict[str, Callable[[npt.NDArray[np.float32]], Voicing]]] = {
