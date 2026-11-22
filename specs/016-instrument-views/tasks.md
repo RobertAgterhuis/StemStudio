@@ -215,8 +215,8 @@ text, the row wins.
 - [ ] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
 - [ ] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
 - [ ] T080 [US2] [backend] Implement to pass T079
-- [ ] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
-- [ ] T082 [US2] [frontend] Implement `ScoreDialog` tab options, `MidiAction`, help topics to pass T081
+- [x] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
+- [x] T082 [US2] [frontend] Implement `ScoreDialog` tab options, `MidiAction`, help topics to pass T081
 - [ ] T083 [US2] [qa] Author `e2e/tests/instrument-tab.spec.ts`: **guitar** drop D notation + tab (MusicXML `TAB` clef, 6 `staff-tuning`, `<fret>` values sound the pitches); **bass** 5-string tab only (5 lines); MIDI action on `drums-kick` downloads `MThd` with channel 10 notes 36 (SC-002, SC-006)
 
 **Checkpoint**: HO:us2.
