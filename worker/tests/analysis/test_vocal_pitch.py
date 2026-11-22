@@ -117,6 +117,21 @@ def test_a_stem_without_any_voiced_frame_raises_no_melody() -> None:
         _analyze(noise, "yin")
 
 
+def test_yin_leaves_loud_breath_noise_unvoiced() -> None:
+    """R-06 uses the R-05 voicing rule: RMS >= -45 dBFS *and* minimum difference <= 0.25."""
+    breath = np.random.default_rng(7).normal(0.0, 0.05, 2 * SR).astype(np.float32)  # ~ -26 dBFS
+    with pytest.raises(NoMelodyError):
+        _analyze(breath, "yin")
+
+
+def test_yin_voices_a_tone_but_not_the_breath_noise_after_it() -> None:
+    noise = np.random.default_rng(8).normal(0.0, 0.05, SR)
+    audio = np.concatenate([_sung(220.0, 1.0), noise]).astype(np.float32)
+    frames = np.asarray(_analyze(audio, "yin").frames)
+    assert np.all(frames[20:80] > 0)
+    assert np.count_nonzero(frames[120:]) <= 4
+
+
 def test_little_melody_warns_few_voiced() -> None:
     audio = np.concatenate([np.zeros(10 * SR), _sung(220.0, 0.4)]).astype(np.float32)
     result = _analyze(audio)
