@@ -1,0 +1,100 @@
+# Hand-off: stem-separation + devops + quality-gate (lane L3) / 016 HO:polish
+
+Branch `016-round-lane-l3` (worktree `.claude/worktrees/r16-l3`), not pushed, not merged. Tasks T132
+(stem-separation), T137 (devops), T138 (quality-gate). With this, every L3 row of the lane plan is ticked.
+
+## T132 - refactor, docstrings, coverage (stem-separation)
+
+| Change | Commit |
+|---|---|
+| `main.create_instrument_analysis_parts` split (`_pitch`, `_drums`), `WorkerParts.start` uses `_GpuModels.hooks`, `_GpuModels.reclaim` table-driven (CC 6 -> 4) | 9c00538a |
+| `jobs/runtime.Lanes.start` uses `_analysis` and `_sweeping`; `transcription_pipeline._job_warnings` split (`_missing_piece_warnings`) - both had grown over the soft limits with 016 | 9c00538a |
+| 016 test units within the soft limits (`test_btc._imports`, the T063 test, `test_views_fake`, the store test helpers) | 9c00538a |
+| 19 mypy findings in the 016 test files fixed (misplaced `type: ignore` after formatting, `str` vs the `ChordEngine`/`DrumPiece` literals) | 5befc586 |
+
+`sig_check` on `main.py`, `jobs/`, `api/`, `views_fake.py`, `harmony/btc.py` and every 016 worker test file:
+**0 errors, 0 warnings**. Public functions and classes have docstrings (ruff `D` rules clean). Vendored-source record:
+`harmony/vendor/btc/NOTICE` names BTC-ISMIR19 commit `2682317be668032e6e4b269ded36adaa2ad57df0` (2020-05-23), MIT
+`LICENSE` beside it; `vendor_check` passes.
+
+## T137 - compose, CI, image size (devops)
+
+- `docker compose config -q`: default, `+gpu`, `+e2e`, `+generative`, `+generative-fake`, `+e2e+generative-fake` all
+  valid; the worker gets `STEMSTUDIO_ANALYSIS_THREADS`, `STEMSTUDIO_CHORD_ENGINE`, `STEMSTUDIO_PITCH_ENGINE` (empty =
+  worker defaults). No stack was started (lane rule).
+- CI: every workflow and composite action parses (PyYAML); `scripts/tests` 125 passed with PyYAML (incl.
+  `test_ci_e2e_split.py`: the union of `e2e` + `e2e-passes` equals the 015 set plus `instrument` and `fake-mic`, every
+  job <= 90 min); `scripts/ci-e2e-pass.sh --dry-run instrument` -> `npm run test:instrument`, `fake-mic` -> `npm run
+  test:fake-mic`. No `actionlint` on this PC (not installed; not added as a dependency).
+- Fake-mic projects: `e2e/playwright.config.ts` projects `fake-mic-on-pitch` / `-semitone` / `-silence` feed
+  `tests/fixtures/audio/{sing-on-pitch,sing-semitone-off,silence}.wav`; these are exactly the names and the default
+  output folder of L2's `tests/fixtures/generate_instrument_fixtures.py` (checked on `016-round-lane-l2`), and the
+  `fake-stack` action runs every `tests/fixtures/generate_*.py`, so CI generates them before the pass; the
+  `e2e-passes` job checks they exist. `npx tsc --noEmit` and `eslint --max-warnings 0 playwright.config.ts` clean.
+  `playwright test --list` finds 0 specs here (L5's specs are on its branch); L5's `instrument-chords.spec.ts` carries
+  `@instrument` as agreed.
+- Image size delta (estimated from the sources, no image build in the lane): worker **+~0.12 MB** (vendored BTC 68 KB
+  + 016 worker modules ~47 KB; no new Python package, `uv.lock` unchanged); the BTC weights (12.2 MB + 12.2 MB) are
+  downloaded at first use into the models volume (`/models/harmony`), never into the image. Web: + the pitch worklet
+  module (L1's build output; the Dockerfile only gained a comment). T139/T140 can record the measured delta with
+  `docker image ls` after the integration build.
+
+## T138 - quality gate on the whole repo (quality-gate)
+
+`run_all.py` (this branch): **PASS, 0 errors**, 1851 warnings (-4 after T132), 3649 files, 29,145 units; jscpd ran
+(its own output: `duplication: 448 clones, 0 in production code, 1.08% duplicated lines`). `docs/quality/SIG-REPORT.md`
+regenerated.
+
+The other lanes' 016 files (`sig_check` over each lane branch's added/changed files in its worktree, read-only):
+**0 errors** in every lane; production soft-limit warnings L1 3, L2 18 (incl. web files that are on L2's branch
+after its mid-wave merge, owned by L5), L4 48, L5 15. Refactor requests (soft limits only, not blocking):
+
+| Owner | Units (file:line, finding) |
+|---|---|
+| L1 audio-engine | `engine.ts` `createParts` 17 LOC, `loadTrack` 16 LOC; `recording/capture.ts` `isBlock` 24 LOC |
+| L2 beat-analysis/qa | none of L2's own 016 Python production files is over a soft limit |
+| L4 backend | (first 20 of 48) `InstrumentViews/AnalysisKindStrategies.cs:114` (size + CC) and `:152` (CC); `AnalysisResultMapper.cs:34,63,110` (size), `:83` (CC); `AnalysisEndpoints.cs:45` (CC); `ChordService.cs:55` `EditAsync` (size), `:114` `FileName` (CC); `AnalysisJobApplier.cs:73`, `AnalysisEstimator.cs:32`, `InstrumentViewMapper.cs:61`, `CatalogueMapper.cs:12` (size); `ApiComposition.cs` `AddStemStudioApi`/`MapEndpoints` grew (24/27 LOC) |
+| L5 frontend | `ChordPanel.razor.cs:145` and `:199` (size + CC), `:170` (size); `MidiAction.razor.cs` (size; CC on L2's copy); `Mixer.InstrumentViews.cs:16` `OnChordsL...` (CC); `ScoreForm.cs:91` `Request` (CC); `ChordSheet.razor.cs:83`, `KaraokeBanner.Chords.cs:25`, `TopicParser.cs:32` (22 LOC), `ChordLabels.cs:15`, `ChordSheetLayout.cs:17`, `InstrumentCatalogueCache.cs:21`, `InstrumentFamilies.cs:24` (size); `Components/Scores/ScoreTabFields.razor:40` `@code` block 41 lines (razor-code rule, on L2's copy) |
+
+The full lists are in `.claude/scratchpad/016-round/l3/lanes-sig.txt` (main checkout, git-ignored). The lane
+branches move, so T139's `run_all.py` on the merged tree is the binding number.
+
+## Tests and coverage
+
+| Component | Command | Result | Coverage |
+|---|---|---|---|
+| Worker | `uv run --frozen pytest --cov --cov-branch` (worker/) | 2981 passed, 3 skipped (fonts/cairo), 11 deselected (integration) | **100 % line, 100 % branch** (12,843 statements, 1,440 branches; vendor omitted) |
+| T063 integration | `pytest -m integration tests/harmony/test_chords_integration.py` | 1 passed; 0.0022-0.0070 s per audio second (8 threads, varies with load), frames 81.4 %; with L2's modules overlaid chart 85.4 % (SC-001), keys 17/17 (SC-010) | - |
+| scripts | `pytest -c scripts/pyproject.toml scripts/tests` (+PyYAML) | 125 passed | - |
+| e2e | `tsc --noEmit`, `eslint playwright.config.ts` | clean | - |
+
+`ruff check`, `ruff format --check`, `mypy src tests` (worker): clean. `dotnet format`: no .NET file changed in this
+lane.
+
+Security self-review (whole lane diff since HO:foundational): no new input surface beyond the analysis routes
+(pydantic by `kind`, path guard at create and at run, 32-hex job ids, contract caps on hits/frames/segments, clamps
+on hit time and strength); BTC checkpoints only with `weights_only=True` and the three allow-listed globals; no
+subprocess or shell in the worker parts; `ci-e2e-pass.sh` evaluates only its own constant commands after checking
+the pass name.
+
+## Decisions
+
+1. Simultaneous drum hits keep the kit order (`DrumPiece` literal order) instead of the alphabetical order (bug fix,
+   T085).
+2. T084's "missing pieces listed in `pieces`" read as the contract says: `pieces` = the pieces that had an input.
+3. The L2 hooks stay module-path lookups until the merge (HO:foundational decision 2); verified with L2's files
+   overlaid. After the merge they can become direct imports (no behaviour change).
+
+## Deviations
+
+None from contracts or scope.
+
+## Requests for the orchestrator
+
+- T139: SC-001 passed with 0.4 points of margin (85.4 %); re-check on the reference machine.
+- T140: record the measured image size delta after the integration build (estimate above).
+- Relay the refactor requests above to L1, L4, L5 (soft limits only).
+
+## Dependencies added
+
+None.
