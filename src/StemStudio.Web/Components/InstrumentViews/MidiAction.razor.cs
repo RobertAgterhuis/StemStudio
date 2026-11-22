@@ -67,6 +67,16 @@ public sealed partial class MidiAction : IDisposable
 
     private async Task RunAsync()
     {
+        await GetAndDownloadAsync();
+        Busy = false;
+        if (!_stop.IsCancellationRequested)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task GetAndDownloadAsync()
+    {
         try
         {
             var item = await ReadyItemAsync() ?? await CreateAsync();
@@ -82,15 +92,6 @@ public sealed partial class MidiAction : IDisposable
         catch (OperationCanceledException)
         {
             // The component was removed while it waited.
-        }
-        finally
-        {
-            Busy = false;
-        }
-
-        if (!_stop.IsCancellationRequested)
-        {
-            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -122,18 +123,24 @@ public sealed partial class MidiAction : IDisposable
                 return null;
             }
 
-            item = await Api.GetAssetAsync(item.Id, _stop.Token);
-            Progress = item.Progress;
-            await InvokeAsync(StateHasChanged);
+            item = await RefreshAsync(item.Id);
         }
 
-        if (item.Status == AssetStatusDto.Failed)
-        {
-            Error = item.Error ?? "The MIDI file could not be made.";
-            return null;
-        }
+        return item.Status == AssetStatusDto.Failed ? Failed(item) : item;
+    }
 
+    private async Task<AssetDto> RefreshAsync(Guid id)
+    {
+        var item = await Api.GetAssetAsync(id, _stop.Token);
+        Progress = item.Progress;
+        await InvokeAsync(StateHasChanged);
         return item;
+    }
+
+    private AssetDto? Failed(AssetDto item)
+    {
+        Error = item.Error ?? "The MIDI file could not be made.";
+        return null;
     }
 
     private void Download(AssetDto item) =>
