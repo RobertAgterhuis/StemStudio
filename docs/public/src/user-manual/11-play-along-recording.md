@@ -160,12 +160,12 @@ channel.
 
 - Recordings stay on this computer. The audio goes only to the StemStudio server on this machine,
   never to the internet.
-- Takes are never offered to the AI composer agent (chapter 20) and cannot be used as a voice
-  sample (chapter 18).
+- Takes are never offered to the AI composer agent (chapter 21) and cannot be used as a voice
+  sample (chapter 19).
 - Takes are kept with their song, not in the library list; their exports are library items.
   Deleting a song deletes its takes; the confirmation says how many.
 - A stereo take uploads about 16 MB per minute (mono about half); the stored FLAC is usually
-  smaller. A take can be as long as the song, up to 15 minutes. **Library care** (chapter 21)
+  smaller. A take can be as long as the song, up to 15 minutes. **Library care** (chapter 22)
   counts takes as *recordings*, and a backup includes them unless you leave that part out.
 
 ## Levels

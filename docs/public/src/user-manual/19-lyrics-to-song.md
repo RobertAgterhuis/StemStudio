@@ -6,7 +6,7 @@ Write your own lyrics and let StemStudio generate a complete song with music and
 voice. Optionally, the voice can be converted into **your own voice**, under strict consent
 rules.
 
-Like style transfer, this needs an NVIDIA GPU and the generative option (chapter 17).
+Like style transfer, this needs an NVIDIA GPU and the generative option (chapter 18).
 
 ## Writing or uploading lyrics
 
@@ -19,14 +19,14 @@ Mark the parts of the song with section markers on their own line:
 markers for you: blocks separated by blank lines become verses and a repeated block becomes
 the chorus. Saved lyrics are kept on the **Lyrics** screen. Press the title of a saved sheet
 there to open it in the lyrics editor, where the **Assistant** checks spelling, grammar and
-flow and helps you write (chapter 19).
+flow and helps you write (chapter 20).
 
 ## Song options
 
 | Option | Values |
 |---|---|
 | Title and language | More than 50 languages, including English and Dutch |
-| Style | A style from the library, or your own short description (same rules as chapter 17) |
+| Style | A style from the library, or your own short description (same rules as chapter 18) |
 | Lead voice | Female, male or any; plus a delivery mood |
 | Instrumental | Generates music without vocals |
 | Tempo and key | 40 to 220 BPM; any key |
@@ -78,4 +78,4 @@ voice converted to** *profile name*. The same labels are written into the audio 
 Generated songs are for personal use.
 
 When lines of your lyrics came from the lyric assistant, the take details also say **Lyrics: n
-lines AI-assisted** (chapter 19).
+lines AI-assisted** (chapter 20).

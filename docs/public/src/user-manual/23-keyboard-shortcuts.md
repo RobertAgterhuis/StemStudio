@@ -83,7 +83,7 @@ The library search is described in chapter 15.
 
 ## In the lyrics editor
 
-The assistant keys (chapter 19) work in the lyrics editor:
+The assistant keys (chapter 20) work in the lyrics editor:
 
 | Keys | Action |
 |---|---|

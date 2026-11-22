@@ -5,7 +5,7 @@ checks spelling, grammar and flow, suggests rhymes and other devices, writes alt
 the next lines, looks up rhymes and counts syllables. It never changes your text by itself:
 every result is a **suggestion** that you accept or reject.
 
-It works on the lyrics sheets of chapter 18 and does nothing until you press a button. Nothing
+It works on the lyrics sheets of chapter 19 and does nothing until you press a button. Nothing
 is checked while you type.
 
 ## Opening the assistant
@@ -153,7 +153,7 @@ cannot confirm or revoke it.
 
 ## Local model or Claude
 
-The assistant uses the AI backend you chose in **Settings** for the agent (chapter 20):
+The assistant uses the AI backend you chose in **Settings** for the agent (chapter 21):
 
 - **Ollama (on this computer)**, the default. Nothing leaves your computer.
 - **Claude (online, paid per use)**: the first time you use a model action, a notice *Your
@@ -189,13 +189,13 @@ suggestions were discarded (invalid place, invalid answer, failed check, filtere
 and the tokens used. Expert also shows the source of each suggestion (dictionary, rules or
 model).
 
-When you generate a song from a sheet (chapter 18), the take details show **Lyrics: n lines
+When you generate a song from a sheet (chapter 19), the take details show **Lyrics: n lines
 AI-assisted**, counted from the lines that came from accepted suggestions and were not edited
 afterwards.
 
 ## Asking the agent
 
-In the agent panel (chapter 20) you can write *"Check my lyrics Zomeravond on spelling only"*.
+In the agent panel (chapter 21) you can write *"Check my lyrics Zomeravond on spelling only"*.
 The agent starts the check and tells you the counts and where to find them; it never shows or
 edits lyric text itself. Applying suggestions through the agent always shows an **approval
 card** that lists every change as before and after, taken from the stored suggestions.

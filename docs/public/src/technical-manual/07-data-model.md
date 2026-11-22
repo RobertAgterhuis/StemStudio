@@ -111,6 +111,12 @@ A take's asset has origin `recording`, the recipe `Provenance.recording` (`takeI
 start). Deleting a take removes its asset, files, audio-hash entries and the take channel of mixes
 that pointed at it; deleting a track deletes its takes in the same unit of work.
 
+**Instrument views (016)**:
+
+| Table | Content |
+|---|---|
+| `TrackAnalyses` | One analysis per track and kind (`chords`, `drum-hits`, `vocal-pitch`; key track id + kind, cascade with the track): status (indexed), reason, worker job id, progress, options (JSON), the result document (JSON, bounded before storing; chord edits live in it), engine, device (JSON), source fingerprint (marks the result `stale` when the source stems change) and the estimate in seconds |
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -132,6 +138,7 @@ that pointed at it; deleting a track deletes its takes in the same unit of work.
 | `20261117115929_AddLyricAssist` | 023 | `LyricsSheets`: `Revision` (existing rows 1), `Sensitivity`, `RhythmTarget`, `OwnWorkOverride`, `LastCause`; tables `LyricAssists`, `LyricSuggestions`, `LyricsSheetRevisions`, `LyricsIntentionalMarks`, `LyricsAssistedLines`, `LyricWords`, `LyricAssistSettings`, `LyricAssistEvents`; indexes on assist sheet and status, suggestion assist and status, and unique language and word |
 | `20261117212542_AddPracticeFlow` | 014 | Tables `TrackSections`, `Sections`, `ScoreViews`, `Setlists`, `SetlistEntries`, `PracticeLogSettings` (seeded), `PracticeSessions`, `PracticeSectionTimes`; the loop `sectionId` lives in the existing mix settings JSON |
 | `20261117215712_AddRecordingTakes` | 015 | `Mixes.TakeChannel` (nullable JSON); tables `InputCalibrations` and `RecordingTakes` with indexes on track and creation time, track and session, unique track and number, unique asset |
+| `20261118055631_AddTrackAnalyses` | 016 | Table `TrackAnalyses` (composite key track id + kind, cascade with the track) with index `IX_TrackAnalyses_Status` |
 
 ## File layout
 

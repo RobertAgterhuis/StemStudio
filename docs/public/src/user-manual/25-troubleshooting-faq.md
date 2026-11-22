@@ -88,7 +88,7 @@ approval.
 
 - **"The backups folder is not available" or "read-only"**: create the folder (`./backups` next
   to `docker-compose.yml`, or the folder in `STEMSTUDIO_BACKUP_HOST_DIR`) and make it writable;
-  on Linux `sudo chown 1654 ./backups` (chapter 21).
+  on Linux `sudo chown 1654 ./backups` (chapter 22).
 - **Not enough space**: the estimate needs the archive size plus a small reserve free in the
   backups folder; a restore needs the unpacked size free on the library volume.
 - **A restore lists active jobs**: wait for the listed imports, splits, exports or generations,
@@ -114,13 +114,13 @@ approval.
 ## The lyric assistant does not work
 
 - **The buttons are disabled**: the sheet must be saved and its language must be Dutch or
-  English. For *unknown* choose the language first (chapter 19).
+  English. For *unknown* choose the language first (chapter 20).
 - ***The assistant works on your own lyrics only***: the sheet matches the lyrics of a track in
   your library. If the text is your own, use **This is my own text**.
 - ***Grammar, flow and writing help need the AI model***: the model is switched off in
   **Settings**, Ollama is not running, or the graphics card is busy with another job. The
   spelling check, the syllable counts and the rhyme finder still work. Fix the cause named in
-  the pane (chapter 20 explains the backends) and press the button again.
+  the pane (chapter 21 explains the backends) and press the button again.
 - ***A check is running***: only one assist runs at a time; wait for it or press **Cancel**.
 - **Suggestions are outdated**: you changed the text or the language after the check. Check
   again.
@@ -151,7 +151,7 @@ approval.
 
 - **<kbd>R</kbd> or <kbd>C</kbd> no longer change the speed or the count-in**: they are the
   recording keys now. *Original speed and key* is <kbd>0</kbd>, the count-in
-  <kbd>Shift</kbd>+<kbd>K</kbd> (chapter 22).
+  <kbd>Shift</kbd>+<kbd>K</kbd> (chapter 23).
 - **No single-letter key works**: **Single-key shortcuts** is switched off in Preferences.
 - **A key cannot be chosen**: the browser, a screen reader or the lyrics editor needs it, or
   another command uses it; StemStudio names that command.
@@ -184,14 +184,14 @@ approval.
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
 the online lookups for cover art and band info (chapter 12) send the title, artist, duration
 and ISRC code, and lyrics lookups (chapter 13) the title, artist, album and duration; both
-can be switched off. The optional Claude backend for the agent (chapter 20) sends text only,
+can be switched off. The optional Claude backend for the agent (chapter 21) sends text only,
 never audio, and only when you select it.
 
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
 vocals and the remaining instruments further. Several guitars of the same kind cannot be
 separated from each other.
 
-**How do I move my library to another computer?** Make a backup (chapter 21), copy the
+**How do I move my library to another computer?** Make a backup (chapter 22), copy the
 archive into the backups folder of the other computer and restore it there. A stored Claude
 key must be entered again on the other computer: its encryption keys never leave the first one.
 
@@ -207,7 +207,7 @@ original speed and key; the practice tempo is only for listening and is saved wi
 **Does the lyric assistant send my lyrics anywhere?** Not by default: the dictionary, the
 syllable counter, the rhyme finder and the local model run on your computer. Only when you
 select Claude and press **I agree** in the notice is the text of the sheet sent to Anthropic,
-for the check you asked for (chapter 19).
+for the check you asked for (chapter 20).
 
 **Does the library create folders on my disk?** No. Artist, album and song folders exist inside
 StemStudio only; downloads, exports and backups are not changed (chapter 15).

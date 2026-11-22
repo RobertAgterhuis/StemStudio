@@ -204,6 +204,25 @@ empty); `deleteTrack` also deletes the takes. The delete, batch delete and audio
 carry the 013 write gate (`409 backup-running`, `503 library-maintenance`). The agent tool
 catalogue is unchanged: no tool accepts `take`.
 
+### Instrument views (016, backend API 1.15.0; tag `instrument-views`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET`, `POST`, `DELETE /api/tracks/{trackId}/chords` | Read the chords analysis (status, progress, estimate, segments, key, warnings), start or restart it (vocabulary `simple`/`full`, engine, `overwriteEdits`) and delete it. `409 track-not-ready`, `edits-exist`, `analysis-running`; `422`; `503` |
+| `PATCH /api/tracks/{trackId}/chords/segments/{segmentIndex}` | Correct one chord (Harte label pattern only); kept until the next detection |
+| `GET /api/tracks/{trackId}/chords/sheet`, `.../chordpro` | The chord sheet with the lyrics, and its ChordPro file (`no-store`, safe attachment name, title and artist without control characters or braces); `transpose` -12..12, `capo` 0..12, else `422` |
+| `GET /api/tracks/{trackId}/key` | Song key, key regions and the written key for `instrument` (catalogue id) at `transpose`; `422` on an out-of-range query |
+| `GET /api/tracks/{trackId}/chords/capo-suggestions` | Up to three capo positions 0..7 for `transpose`, best first, and the `original-shapes` shortcut; `409 chords-not-ready`, `422` |
+| `GET`, `POST`, `DELETE /api/tracks/{trackId}/drum-hits` | Drum hits per piece (`unavailable` with a reason while the drums are not split) |
+| `GET`, `POST`, `DELETE /api/tracks/{trackId}/vocal-pitch` | The reference melody (pYIN) of the lead vocal |
+| `GET /api/instruments/catalogue` | Written instruments (transposition, clefs, range) and tunings |
+
+Additions to existing operations (optional on the wire): `Track.instrumentViews` and `Track.key`;
+`CreateScoreRequest`, `ScoreRecipe`, `ScoreOptions` and `ScoreFacts` with the tablature, part and
+chord options; profiles `strings`, `brass`, `woodwinds`; `listAssets` query `channel` (with
+`trackId`); typed `422` score problems `tablature-not-allowed`, `capo-not-allowed`,
+`tuning-mismatch`, `clef-not-allowed`, `part-not-allowed` and `409 chords-not-ready`.
+
 ## Worker API (port 8000, internal)
 
 | Method and path | Purpose |
@@ -262,6 +281,17 @@ separate from separation, render and transcription. `Health.structure` reports t
 (`stems-novelty` or `fake`) and its version. Job states are those of the render lane, jobs are
 kept 24 h, and on restart a queued or running practice job fails with *"interrupted by
 restart"*; the API deletes every job after it has copied the result.
+
+### Instrument-analysis lane (016)
+
+`POST /v1/instrument-analysis-jobs` and `GET`, `DELETE /v1/instrument-analysis-jobs/{id}` run one
+job resource with a `kind` (`chords`, `drum-hits`, `vocal-pitch`) on the lane
+`instrument-analysis` (`Health.lanes.instrumentAnalysis`); results are returned inline. Model
+weights are downloaded at first use with a SHA-256 check and the pinned size as an upper bound,
+and the BTC checkpoints load with `torch.load(weights_only=True)` and three allow-listed globals.
+The transcription request gains the tablature, part and chord-symbol options and a single drum
+piece; MIDI files are always at sounding pitch, drums on the General MIDI channel 10 map (kick 36,
+snare 38, toms 47, hi-hat 42, cymbals 49).
 
 ## Generator API (port 8010, internal)
 
