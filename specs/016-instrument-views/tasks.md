@@ -122,14 +122,14 @@ text, the row wins.
 - [x] T018 [beat-analysis] Implement `harmony/chroma_hmm.py` to pass T017
 - [x] T019 [P] [beat-analysis] Failing tests `worker/tests/harmony/test_key.py` (S11): synthetic cadences in all 24 keys -> global key correct >= 90 %, correct or fifth/relative 100 %; modulation fixture C -> D reported within 2 bars; regions < 8 bars merged; alternative within 0.1; confidence; no chords -> null key; `key-uncertain` warning (FR-070, SC-010)
 - [x] T020 [beat-analysis] Implement `harmony/key.py` (`KeyEstimator`, research R-13) to pass T019
-- [ ] T021 [P] [beat-analysis] Failing tests `worker/tests/analysis/test_vocal_pitch.py`: sung sine sweeps 80-1000 Hz -> frames within 20 cents; unvoiced gaps 0; packing to centi-semitones, length, range percentiles; `yin` engine switch; silent stem -> `NoMelodyError`; `few-voiced`, `detail-bleed` warnings (FR-040)
-- [ ] T022 [beat-analysis] Implement `analysis/vocal_pitch.py` to pass T021
-- [ ] T023 [P] [beat-analysis] Failing tests `worker/tests/notation/test_tablature.py`: every tuning of data-model 4.1; drop D low D on string 6 fret 0; 5-string low B use; capo relative frets; octave moves and dropped chord notes with counts; span <= 4 fretted frets; golden fingering fixtures >= 95 % expected string; MusicXML has `TAB` clef, `staff-lines`, `staff-tuning`, `capo`, `<string>/<fret>` per note; every fret/string sounds its pitch (FR-020..FR-022, SC-002)
-- [ ] T024 [beat-analysis] Implement `notation/tablature.py` (`TabFingerer`) and its notator wiring to pass T023
-- [ ] T025 [P] [beat-analysis] Failing tests `worker/tests/notation/test_parts.py`: vectors for every written instrument (written pitches, transposed key signature with respelling beyond 7 accidentals, part name, `<transpose>`), clef choices and rejections, out-of-range counts, MIDI stays concert pitch, `concert`+`auto` output byte-identical to 008; new profiles strings/brass/woodwinds (single voice, ranges, `section-reduced`) (FR-050..FR-054, SC-005)
-- [ ] T026 [beat-analysis] Implement `notation/parts.py` and the new profiles to pass T025
-- [ ] T027 [P] [beat-analysis] Failing tests `worker/tests/notation/test_chord_symbols_drum_midi.py`: chord symbols quantised and written as `<harmony>` on the top staff (transposed with parts, skipped for `N`); drum MIDI channel 10 with the GM map; `singlePiece` drums scores without `missing-drum-piece` (FR-017, FR-023)
-- [ ] T028 [beat-analysis] Implement `notation/{chord_symbols,drum_midi}.py` to pass T027
+- [x] T021 [P] [beat-analysis] Failing tests `worker/tests/analysis/test_vocal_pitch.py`: sung sine sweeps 80-1000 Hz -> frames within 20 cents; unvoiced gaps 0; packing to centi-semitones, length, range percentiles; `yin` engine switch; silent stem -> `NoMelodyError`; `few-voiced`, `detail-bleed` warnings (FR-040)
+- [x] T022 [beat-analysis] Implement `analysis/vocal_pitch.py` to pass T021
+- [x] T023 [P] [beat-analysis] Failing tests `worker/tests/notation/test_tablature.py`: every tuning of data-model 4.1; drop D low D on string 6 fret 0; 5-string low B use; capo relative frets; octave moves and dropped chord notes with counts; span <= 4 fretted frets; golden fingering fixtures >= 95 % expected string; MusicXML has `TAB` clef, `staff-lines`, `staff-tuning`, `capo`, `<string>/<fret>` per note; every fret/string sounds its pitch (FR-020..FR-022, SC-002)
+- [x] T024 [beat-analysis] Implement `notation/tablature.py` (`TabFingerer`) and its notator wiring to pass T023
+- [x] T025 [P] [beat-analysis] Failing tests `worker/tests/notation/test_parts.py`: vectors for every written instrument (written pitches, transposed key signature with respelling beyond 7 accidentals, part name, `<transpose>`), clef choices and rejections, out-of-range counts, MIDI stays concert pitch, `concert`+`auto` output byte-identical to 008; new profiles strings/brass/woodwinds (single voice, ranges, `section-reduced`) (FR-050..FR-054, SC-005)
+- [x] T026 [beat-analysis] Implement `notation/parts.py` and the new profiles to pass T025
+- [x] T027 [P] [beat-analysis] Failing tests `worker/tests/notation/test_chord_symbols_drum_midi.py`: chord symbols quantised and written as `<harmony>` on the top staff (transposed with parts, skipped for `N`); drum MIDI channel 10 with the GM map; `singlePiece` drums scores without `missing-drum-piece` (FR-017, FR-023)
+- [x] T028 [beat-analysis] Implement `notation/{chord_symbols,drum_midi}.py` to pass T027
 
 ### stem-separation (tests first)
 
@@ -144,8 +144,8 @@ text, the row wins.
 
 - [x] T035 [P] [audio-ingest] Failing tests `worker/tests/analysis_inputs/test_mixdown.py`: sums 1-4 FLAC stems of different lengths to mono 22,050 Hz (and 16 kHz for pitch), clipping-safe scaling, missing file -> `InputNotFoundError`, path allow-list respected
 - [x] T036 [audio-ingest] Implement `analysis_inputs/mixdown.py` (`HarmonicMixer`) to pass T035
-- [ ] T037 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_tablature_engraving.py`: notation + TAB and TAB only MusicXML fixtures (6/5/4 lines, capo) engrave to SVG pages with the right line counts and fret numbers in the TAB staff and a PDF without missing glyphs (per the T006 decision: native Verovio or the fallback drawing) (FR-020, SC-002)
-- [ ] T038 [audio-ingest] Implement `engraving/tablature.py` (checks, and the fallback drawing if T006 chose it) to pass T037
+- [x] T037 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_tablature_engraving.py`: notation + TAB and TAB only MusicXML fixtures (6/5/4 lines, capo) engrave to SVG pages with the right line counts and fret numbers in the TAB staff and a PDF without missing glyphs (per the T006 decision: native Verovio or the fallback drawing) (FR-020, SC-002)
+- [x] T038 [audio-ingest] Implement `engraving/tablature.py` (checks, and the fallback drawing if T006 chose it) to pass T037
 
 ### backend (tests first)
 
