@@ -5,7 +5,9 @@
     globals only (``ports.BTC_SAFE_GLOBALS``).
 (b) The engine's pitch code (``src/audio-engine/src/pitch/**``) uses no DOM or Web Audio globals,
     so the YIN core, the scorer and the worklet run in the AudioWorklet scope and in unit tests
-    alike. Comments, string literals and member names (``options.window``) do not count.
+    alike. Comments, string literals, member names (``options.window``) and names the file
+    declares itself (a typed parameter or field, an object key or an initialised variable
+    ``window``) do not count.
 
 The worker layering of T009 (harmony, notation, views_fake, the BTC vendor) is part of
 ``dependency_check`` (``PYTHON_ALLOWED``, ``PYTHON_SCOPES``), as is "nothing but ``index.ts``
@@ -45,6 +47,9 @@ _TS_NOISE = re.compile(
     r"//[^\n]*|/\*[\s\S]*?\*/|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`"
 )
 _DOM = re.compile(rf"(?<![\w.$])(?P<name>{'|'.join(DOM_GLOBALS)})\b")
+_LOCAL = re.compile(rf"(?<![\w.$])(?P<name>{'|'.join(DOM_GLOBALS)})\s*(?=:(?!:)|=(?![=>]))")
+"""A declaration of a global's name in the file: a typed parameter or field, an object key, or an
+initialised variable or field. Such a file uses its own value, not the browser global."""
 
 
 def run(root: Path) -> list[Finding]:
@@ -79,7 +84,10 @@ def check_pitch_globals(root: Path) -> list[Finding]:
     findings = []
     for path in _files(root / PITCH_DIR, ".ts"):
         code = _TS_NOISE.sub(lambda m: re.sub(r"[^\n]", " ", m.group()), path.read_text("utf-8"))
+        local = {match.group("name") for match in _LOCAL.finditer(code)}
         for match in _DOM.finditer(code):
+            if match.group("name") in local:
+                continue
             message = f"pitch code uses the main-thread global {match.group('name')}"
             findings.append(_finding(relative(path, root), _line(code, match.start()), message))
     return findings
