@@ -65,7 +65,7 @@
                 <li class="ss-outcome">
                     <span class="ss-outcome-parent">@outcome.Parent</span>
                     <span data-testid="@($"detail-outcome-{outcome.Parent}")" data-outcome="@DetailPhaseText.Kind(outcome.Outcome)">@DetailPhaseText.Outcome(outcome)</span>
-                    <DetailStemList Outcome="outcome" OnExport="OnExport" OnScore="OnScore" />
+                    <DetailStemList Track="Track" Outcome="outcome" OnExport="OnExport" OnScore="OnScore" />
                 </li>
             }
         </ul>

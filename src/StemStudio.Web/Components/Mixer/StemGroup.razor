@@ -8,7 +8,12 @@
         var id = stem.Id;
         <ChannelStrip Channel="stem.Channel" Audible="IsAudible(stem.Channel)" Pattern="i"
                       OnVolume="v => OnVolume.InvokeAsync(new(id, v))" OnPan="p => OnPan.InvokeAsync(new(id, p))"
-                      OnMute="() => OnMute.InvokeAsync(id)" OnSolo="() => OnSolo.InvokeAsync(id)" />
+                      OnMute="() => OnMute.InvokeAsync(id)" OnSolo="() => OnSolo.InvokeAsync(id)">
+            @if (Track is not null)
+            {
+                <StemStudio.Web.Components.InstrumentViews.MidiAction Track="Track" Channel="@id" />
+            }
+        </ChannelStrip>
     }
 </div>
 
@@ -20,6 +25,10 @@
     /// <summary>The mixer's gate mirror, used to dim silent strips.</summary>
     [Parameter, EditorRequired]
     public Func<ChannelState, bool> IsAudible { get; set; } = default!;
+
+    /// <summary>The track (feeds the MIDI action of each strip); none hides the action.</summary>
+    [Parameter]
+    public TrackDto? Track { get; set; }
 
     /// <summary>Raised with the channel id and the new gain 0..1.</summary>
     [Parameter]

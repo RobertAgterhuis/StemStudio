@@ -1,0 +1,54 @@
+@* Chords in the mixer (016 US1, FR-012..FR-014, FR-064; ui-test-ids 1.15.0): status, detection, the engine-owned chord lane
+   host (rendered empty) and the quality limits. Lives in the scrolling mixer content, never in the fixed dock. *@
+
+<section class="ss-chords" aria-label="Chords">
+    <div class="ss-chords-bar">
+        <RadzenButton Text="Chords lane" Icon="queue_music" Size="ButtonSize.Small" ButtonStyle="@(LaneVisible ? ButtonStyle.Secondary : ButtonStyle.Light)"
+                      aria-pressed="@(LaneVisible ? "true" : "false")" Click="ToggleLaneAsync" data-testid="chord-lane-toggle" />
+        <span class="ss-small" role="status" data-testid="chords-status" data-status="@WireStatus">@StatusText</span>
+        @if (CanDetect)
+        {
+            <RadzenButton Text="@DetectText" Icon="auto_awesome" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                          Click="DetectAsync" data-testid="chords-detect" />
+        }
+        else if (CanRedetect)
+        {
+            <LevelGate Feature="chords.full">
+                <RadzenButton Text="Detect again" Icon="auto_awesome" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                              Click="DetectAsync" data-testid="chords-detect" />
+            </LevelGate>
+        }
+        <LevelGate Feature="chords.full">
+            <label class="ss-inline-label">
+                Vocabulary
+                <select class="ss-select" @bind="Vocabulary" data-testid="chords-vocabulary" data-help-id="chords-vocabulary" aria-label="Chord vocabulary">
+                    <option value="@ChordVocabularyDto.Simple">Simple (major and minor)</option>
+                    <option value="@ChordVocabularyDto.Full">Full (sevenths, sus, inversions)</option>
+                </select>
+            </label>
+        </LevelGate>
+        <LevelGate Feature="chords.engine">
+            <label class="ss-inline-label">
+                Method
+                <select class="ss-select" @bind="Engine" data-testid="chords-engine" aria-label="Chord detection method">
+                    <option value="@ChordEngineDto.Btc">Accurate (BTC model)</option>
+                    <option value="@ChordEngineDto.ChromaHmm">Fast (chroma)</option>
+                </select>
+            </label>
+        </LevelGate>
+        <HelpHint HelpId="chords" />
+    </div>
+    @if (Error is not null)
+    {
+        <p class="ss-small ss-error" role="alert">@Error</p>
+    }
+    @if (LaneVisible && Chart is not null)
+    {
+        <div id="@HostId" @key="Chart" class="ss-chord-lane" role="group" aria-label="Chord lane (the chord sheet on the track page lists the same chords)"
+             data-testid="chord-lane" data-help-id="chords"></div>
+    }
+    @if (Analysis is { Limits: { Length: > 0 } limits })
+    {
+        <p class="ss-small ss-muted" data-testid="chords-limits">@limits</p>
+    }
+</section>

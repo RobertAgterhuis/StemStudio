@@ -173,10 +173,10 @@ text, the row wins.
 
 ### frontend (tests first)
 
-- [ ] T057 [P] [frontend] Failing tests `FamilyMixServiceTests.cs`: minus-one per family mutes every family channel (expanded or not), unmutes/unsolos others, keeps volumes/pans; stored previous flags and restore; `play-along-<stem>` presets now family-wide (DELTA 6) (FR-032, FR-060)
-- [ ] T058 [frontend] Implement `InstrumentViews/FamilyMixService.cs` and the preset change to pass T057
-- [ ] T059 [P] [frontend] Failing tests of the API client additions (chords, sheet, ChordPro, key, capo suggestions, drum hits, vocal pitch, catalogue with caching, score extensions, `listAssets` channel)
-- [ ] T060 [frontend] Implement the client methods to pass T059
+- [x] T057 [P] [frontend] Failing tests `FamilyMixServiceTests.cs`: minus-one per family mutes every family channel (expanded or not), unmutes/unsolos others, keeps volumes/pans; stored previous flags and restore; `play-along-<stem>` presets now family-wide (DELTA 6) (FR-032, FR-060)
+- [x] T058 [frontend] Implement `InstrumentViews/FamilyMixService.cs` and the preset change to pass T057
+- [x] T059 [P] [frontend] Failing tests of the API client additions (chords, sheet, ChordPro, key, capo suggestions, drum hits, vocal pitch, catalogue with caching, score extensions, `listAssets` channel)
+- [x] T060 [frontend] Implement the client methods to pass T059
 
 **Checkpoint**: HO:foundational for every owner with foundational tasks.
 
@@ -195,13 +195,13 @@ text, the row wins.
 - [ ] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
 - [ ] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
 - [ ] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
-- [ ] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
-- [ ] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
+- [x] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
+- [x] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
 - [ ] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
 - [ ] T073 [US1] [backend] Implement to pass T072
-- [ ] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
-- [ ] T075 [US1] [frontend] Implement to pass T074
-- [ ] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)
+- [x] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
+- [x] T075 [US1] [frontend] Implement to pass T074
+- [x] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)
 
 **Checkpoint**: HO:us1.
 
@@ -215,8 +215,8 @@ text, the row wins.
 - [ ] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
 - [ ] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
 - [ ] T080 [US2] [backend] Implement to pass T079
-- [ ] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
-- [ ] T082 [US2] [frontend] Implement `ScoreDialog` tab options, `MidiAction`, help topics to pass T081
+- [x] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
+- [x] T082 [US2] [frontend] Implement `ScoreDialog` tab options, `MidiAction`, help topics to pass T081
 - [ ] T083 [US2] [qa] Author `e2e/tests/instrument-tab.spec.ts`: **guitar** drop D notation + tab (MusicXML `TAB` clef, 6 `staff-tuning`, `<fret>` values sound the pitches); **bass** 5-string tab only (5 lines); MIDI action on `drums-kick` downloads `MThd` with channel 10 notes 36 (SC-002, SC-006)
 
 **Checkpoint**: HO:us2.
