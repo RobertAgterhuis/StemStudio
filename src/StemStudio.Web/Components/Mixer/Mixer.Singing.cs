@@ -1,3 +1,4 @@
+using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Web.InstrumentViews;
 
@@ -10,6 +11,7 @@ namespace StemStudio.Web.Components.Mixer;
 public sealed partial class Mixer
 {
     private LeadMute? _leadMute;
+    private bool _leadExpanded;
 
     /// <summary>The last unit score of singing feedback, or null.</summary>
     private ScoredUnit? LastScore { get; set; }
@@ -27,9 +29,16 @@ public sealed partial class Mixer
 
     private Task OnSingingRunningAsync(bool running) => running ? MuteLeadAsync() : RestoreLeadAsync();
 
+    // The vocals group is expanded first, so only the lead detail is muted (FR-044); when the engine cannot expand it the
+    // parent is muted instead. Both are undone when the feedback stops.
     private async Task MuteLeadAsync()
     {
-        _leadMute ??= SingingMix.MuteLead(State!);
+        if (_leadMute is null)
+        {
+            _leadExpanded = await ExpandForViewAsync(StemNames.Vocals);
+            _leadMute = SingingMix.MuteLead(State!);
+        }
+
         await SendChannelAsync(_leadMute.Channel);
     }
 
@@ -42,6 +51,9 @@ public sealed partial class Mixer
             {
                 await SendChannelAsync(channel);
             }
+
+            await CollapseAfterViewAsync(StemNames.Vocals, _leadExpanded);
+            _leadExpanded = false;
         }
     }
 

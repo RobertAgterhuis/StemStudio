@@ -21,12 +21,15 @@ public static class SingingMix
 
     private const string LeadDetail = "vocals.lead";
 
-    /// <summary>Mutes the lead vocal detail channel, or the vocals stem when vocals are not split.</summary>
+    /// <summary>
+    /// Mutes the lead vocal detail channel when it is on the audible level (vocals split and expanded), else the vocals
+    /// stem: a collapsed group plays its parent, so muting the hidden lead would leave the lead audible (review H1).
+    /// </summary>
     /// <param name="state">The mixer.</param>
     /// <returns>What was changed.</returns>
     public static LeadMute MuteLead(MixerState state)
     {
-        var lead = state.AllChannels.FirstOrDefault(c => c.Stem == LeadDetail) ?? state.AllChannels.First(c => c.Stem == StemNames.Vocals);
+        var lead = state.AllChannels.FirstOrDefault(c => c.Stem == LeadDetail && !state.IsHidden(c)) ?? state.AllChannels.First(c => c.Stem == StemNames.Vocals);
         var flags = new ChannelFlags(lead.Stem, lead.Mute, lead.Solo);
         FamilyMixService.Set(state, lead, mute: true, solo: lead.Solo);
         return new LeadMute(flags, FamilyMixService.Settle(state, [lead])[0]);
