@@ -205,6 +205,9 @@ class Pipeline:
             resolution=rules.resolution(request.profile, request.resolution),
             key_override=request.key_override, titles=request.titles,
             duration_seconds=_duration(first, request.range),
+            tablature=request.tablature, part=request.part,
+            chords=tuple(request.chords or ()), prefer_flats=bool(request.prefer_flats),
+            single_piece=request.single_piece,
         )  # fmt: skip
 
     def _transcribe(
@@ -239,7 +242,8 @@ class Pipeline:
             key=document.key, bpm=document.bpm, time_signature=document.time_signature,
             bars=document.bars, notes=document.notes, pages=pages,
             resolution=self._notation.resolution, warnings=warnings,
-            attribution=done.attribution,
+            attribution=done.attribution, tablature=document.tablature, part=document.part,
+            chords_included=document.chords_included,
         )  # fmt: skip
 
     def _job_warnings(self, done: _Transcribed, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
@@ -252,7 +256,7 @@ class Pipeline:
             )
             if applies
         ]
-        if self._request.profile == "drums":
+        if self._request.profile == "drums" and self._request.single_piece is None:
             found += [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
         return found
 

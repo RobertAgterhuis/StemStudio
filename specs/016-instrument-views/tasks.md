@@ -211,8 +211,8 @@ text, the row wins.
 
 **Goal**: tab next to notation with tunings and capo; one-click MIDI per channel. **Independent test**: quickstart V5-V6; E2E `instrument-tab.spec.ts`.
 
-- [ ] T077 [P] [US2] [stem-separation] Failing route tests: `tablature`, `part`, `chords`, `preferFlats`, `singlePiece` reach the notator settings; 422 combinations (DELTA 1); `ScoreSummary` extensions returned (FR-020, FR-023, FR-051)
-- [ ] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
+- [x] T077 [P] [US2] [stem-separation] Failing route tests: `tablature`, `part`, `chords`, `preferFlats`, `singlePiece` reach the notator settings; 422 combinations (DELTA 1); `ScoreSummary` extensions returned (FR-020, FR-023, FR-051)
+- [x] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
 - [ ] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
 - [ ] T080 [US2] [backend] Implement to pass T079
 - [ ] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
