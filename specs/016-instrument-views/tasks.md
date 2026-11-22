@@ -327,7 +327,7 @@ text, the row wins.
 - [ ] T131 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `analysis_inputs/`, `engraving/tablature.py`
 - [ ] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
 - [ ] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
+- [x] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
 - [ ] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
 - [ ] T136 [P] [qa] axe checks on every new area (0 serious/critical), traceability matrix (US1-US8, FR-001..FR-078, per family), HO:polish (SC-008)
 - [ ] T137 [P] [devops] Validate compose/CI incl. fake-mic projects; image size delta (BTC weights are in the cache, not the image) recorded; HO:polish
