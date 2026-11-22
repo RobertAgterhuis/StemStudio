@@ -393,3 +393,26 @@ def test_a_part_without_a_clef_gets_frets_but_no_tab_attributes() -> None:
     root = _parse(result.musicxml)
     assert root.find(".//staff-details") is None
     assert root.findtext(".//technical/string") == "4"
+
+
+class _FirstNoteOnly:
+    """A fingerer that places only the first note of each event (the rest stays unfingered)."""
+
+    def assign(self, events: Sequence[Sequence[int]], tuning: Tuning, capo: int) -> TabAssignment:
+        return TabAssignment(
+            positions=tuple(((len(tuning.pitches), e[0] - tuning.pitches[0]),) for e in events)
+        )
+
+
+def test_a_chord_note_the_fingerer_left_out_gets_no_technical_mark() -> None:
+    chord = _pitch("E", 3) + _pitch("B", 3).replace("<note>", "<note><chord/>")
+    settings = TablatureSettings(tuning="guitar-standard", layout="tab-only")
+    root = _parse(add_tab_staff(_crafted(chord), settings, _FirstNoteOnly()).musicxml)
+    assert [n.find("notations") is None for n in root.iter("note")] == [False, True]
+
+
+def test_a_part_without_measures_is_written_back_without_tab_attributes() -> None:
+    document = b'<score-partwise><part id="P1"/></score-partwise>'
+    settings = TablatureSettings(tuning="guitar-standard")
+    result = add_tab_staff(document, settings, ViterbiTabFingerer())
+    assert _parse(result.musicxml).find(".//staff-details") is None

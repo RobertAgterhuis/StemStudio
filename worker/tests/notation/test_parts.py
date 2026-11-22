@@ -10,7 +10,7 @@ import pytest
 from music21 import converter, stream
 
 from stemstudio_worker.notation.notator import MusicNotator
-from stemstudio_worker.notation.parts import Music21PartWriter, written_key_name
+from stemstudio_worker.notation.parts import Music21PartWriter, with_transpose, written_key_name
 from stemstudio_worker.notation.profiles import get_profile, suggest_profile
 from stemstudio_worker.ports import WRITTEN_INSTRUMENTS, NotationSettings, NoteEvent, ScoreDocument
 from stemstudio_worker.schemas import (
@@ -271,3 +271,9 @@ def test_chords_of_a_grand_staff_part_are_transposed() -> None:
     settings = _settings("keys", PartSettings(instrument="clarinet-bb"))
     document = MusicNotator().notate(chord, settings)
     assert sorted(_written(document)) == [62, 66, 69]
+
+
+def test_with_transpose_skips_a_part_without_attributes() -> None:
+    xml = b'<score-partwise><part id="P1"><measure number="1"/></part></score-partwise>'
+    info = WRITTEN_INSTRUMENTS["alto-sax-eb"]
+    assert b"<transpose>" not in with_transpose(xml, info)
