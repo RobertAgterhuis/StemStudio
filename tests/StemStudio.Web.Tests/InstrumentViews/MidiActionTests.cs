@@ -161,4 +161,19 @@ public sealed class MidiActionTests : PageTestContext
         button.GetAttribute("data-help-id").ShouldBe("midi-download");
         InstrumentViewsAccessibility.EveryControlIsNamedWithItsVisibleText(action.Find(".ss-midi"));
     }
+
+    [Fact]
+    public async Task ADrumPiece_WithoutASuggestion_UsesItsOnlyAllowedProfile()
+    {
+        Existing();
+        Options(ScoreData.DrumOptions(requireSplit: false) with { SuggestedProfile = null });
+        Api.CreateScoreAsync(Arg.Any<CreateScoreRequest>(), Arg.Any<CancellationToken>()).Returns(ScoreData.Asset(AssetStatusDto.Ready));
+
+        var action = RenderAction("drums.kick");
+        await action.Find("[data-testid=midi-drums-kick]").ClickAsync(new());
+
+        WaitForCreate(action);
+        SentRequest().Profile.ShouldBe(ScoreProfileDto.Drums);
+        action.FindAll("[data-testid=midi-error-drums-kick]").ShouldBeEmpty();
+    }
 }
