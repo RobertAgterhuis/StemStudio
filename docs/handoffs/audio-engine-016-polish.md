@@ -82,3 +82,62 @@ Checks after the fix: Vitest 77 files / 1423 tests green; coverage all files 99.
 `eslint .` and `tsc --noEmit` clean; `npm run build` ok; `run_all.py` PASS (0 errors, 444 clones, jscpd ran), no
 unit-size/complexity warning on `feedback.ts` or `validate.ts` (`start` split into `start` + `loaded` to stay <= 15
 lines, `validateUnit` + `isIndex` to stay <= complexity 5). No contract or `types.ts` change, no new dependency.
+
+## Review fixes (independent code review, 2026-11-22; orchestrator decision: fix all, test-first)
+
+Red tests in `977b6747`, fix in `f50cfe0c`.
+
+| Id | File | Fix | Test |
+|---|---|---|---|
+| H1 | `src/singing/scorer.ts` | On a detected loop wrap, `finishAtWrap()` first scores the armed unit when the last frame came within `HOP_MS + NEAREST_MS` (25 ms) of the unit end, then `forget()`. A unit the loop leaves well before its end is still discarded. | unit [0, 2000), loop 0-2000, frames 0..1990 twice then 0 -> scores pass 1 and pass 2 (100 each); wrap at 1900 -> no score |
+| M2 | `src/singing/feedback.ts` | The overrun guard counts a late hop only when it is delivered >= 5 ms (`LATE_SPACING_SECONDS`) from the previous counted one: one stall delivers its queued hops in a burst at about one `currentTime`, a sustained overrun keeps producing late hops as the context time advances. 50 such hops within 5 s still fail (FR-045). | 50 hops t 0..0.49 at `currentTime` 0.55, then 50 on-time hops -> `running`; existing overrun tests unchanged and green |
+| M3 | `src/singing/take-score.ts`, `src/types.ts`, contract | Optional `TakeScoreRequest.transposeSemitones` (integer -12..12, default 0), validated before the fetch (`Invalid singing request: transposeSemitones`), passed to `scoreUnit` as the transpose. | take at reference +200 cents with transpose +2 -> 100/100 (0/0 without); 13, -13, 1.5, `'2'` rejected before fetching |
+| M4 | `src/pitch/yin.ts` | `refineLag` interpolates only inside a valley (`b <= a && b <= c`, non-zero denominator), shift clamped to [-1, 1]; `lagToCents` returns null for a non-positive lag or a non-finite / out-of-range (0..12700) value. Both exported for tests. | slope at tauMin keeps the lag; valley shift exact; NaN, -3, 0, 1 -> null; 1250/1500 Hz sines at 16 kHz -> null or finite in 0..12700 |
+| M5 | `src/singing/take-score.ts` | `trackInChunks` runs the decimator + YIN over ~1 s of take audio per chunk and awaits `setTimeout(0)` between chunks (offline analysis only, no audible timing). The tracker is block-size invariant, so results are identical. | fake `setTimeout`: a 3 s take waits on one zero-delay timer at a time, >= 2 yields, result equal to the real-timer run; bench reports ~5.4 s total for a 900 s take (linear from 30 s at 44.1 kHz), i.e. ~6 ms per chunk on the main thread |
+| L1 | `src/pitch/decimate.ts` | Halves while the rate is >= 64 kHz (96 kHz once, 176.4/192 kHz twice), so the resampler always runs at 44.1-63.9 kHz; a non-finite rate is rejected (would loop). | 176.4/192 kHz: 12 kHz < -60 dB, 9 kHz < -20 dB, 1 kHz kept at 16,000 +- 20 samples; `new Decimator(Infinity)` throws |
+| L6 | `src/drums/validate.ts`, `src/singing/feedback.ts` | `checkLookAhead` rejects a non-finite or non-number `lookAheadMs` (`Invalid drum hits: lookAheadMs`; NaN survived the clamp). `start()` re-reads the input after the module load: none -> state `failed`, reason `The input device closed while pitch tracking was starting.` (`INPUT_CLOSED_REASON`), the start rejects with the same message, no node or session. | NaN / Infinity / `'4000'` rejected, look-ahead stays 4000; input closed during a deferred load -> states `starting, failed(reason)`, no worklet node |
+
+### Contract diff (authorised for this field only)
+
+`src/audio-engine/src/types.ts`, `TakeScoreRequest`:
+
+```ts
+  /**
+   * 012 transpose the take was recorded at (integer -12..12, default 0): the reference target moves by 100 cents per
+   * semitone, as in the live scorer. Added at review 2026-11-22; optional, backwards compatible.
+   */
+  readonly transposeSemitones?: number;
+```
+
+`specs/016-instrument-views/contracts/audio-engine.md`, section "Instrument views", `scoreTake` row, appended:
+"Optional `transposeSemitones` (integer -12..12, default 0): the 012 transpose the take was recorded at; the reference
+target moves by 100 cents per semitone, as in the live scorer; another value rejects with
+`Error("Invalid singing request: transposeSemitones")` (added at review 2026-11-22, optional, backwards compatible)."
+
+### Deviations and open items
+
+- **L1 test numbers**: the review asked for "9 kHz at 192 kHz below -60 dB at 16 kHz". That is not reachable with the
+  binding R-05 filter (31-tap Blackman, 7 kHz pass-band edge): 9 kHz lies in its transition band, and 44.1/48 kHz
+  give -22.7 to -25 dB there too. Measured before the fix at 192 kHz: 9 kHz -12.4 dB, 12 kHz -29.9 dB; after: the
+  48 kHz values (9 kHz -22.7 dB, 12 kHz -82.7 dB). The test therefore asserts 12 kHz < -60 dB and 9 kHz < -20 dB at
+  176.4/192 kHz (the same behaviour as 44.1/48 kHz). A stricter 9 kHz figure would need a longer filter (R-05 change).
+- **H1 "loop end <= unit.endMs"**: the scorer does not know the loop bounds (it sees only the aligned song time), so
+  only the "last frame within one hop + 15 ms of the unit end" condition is implemented; a unit cut short by a loop end
+  inside it is still discarded as partial (unchanged data-model 3.4 reading). Passing the loop end into the scorer
+  would be a new internal dependency; ask if wanted.
+- **M4**: no real sine (1000-3000 Hz, with/without sub-harmonic, many offsets) reproduced NaN or > 12700 before the fix;
+  the guards are covered with constructed difference arrays through the exported `refineLag` / `lagToCents`.
+- **M3 playback rate (open item)**: `TakeScoreRequest` carries no playback rate, so a take recorded at a 012 rate other
+  than 1 is still placed and scored at rate 1. No contract change made (orchestrator instruction).
+- **Frontend**: Blazor must pass `transposeSemitones` of the take's practice settings (frontend fix agent).
+
+### Checks
+
+Vitest 77 files / 1444 tests green; coverage all files 99.77 % lines / 98.08 % branches / 99.86 % functions / 99.81 %
+statements (`decimate.ts` 97.29 / 100, the open line is the no-op default `emit`; `yin.ts` 98.38 / 96.96, pre-existing
+`tau <= 1` guard; `feedback.ts` 99.16 / 98.24, pre-existing `halt()` guard; `take-score.ts` 98.33 / 96, pre-existing
+`take` guard; `scorer.ts` and `drums/validate.ts` 100 %). `eslint .` and `tsc --noEmit` clean; `npm run build` ok;
+`run_all.py` PASS (0 errors, 444 clones, jscpd ran), no unit-size or complexity warning on the changed production
+files. Security: the new input (`transposeSemitones`, `lookAheadMs`) is validated with hostile cases (out of range,
+fractional, string, NaN, Infinity); `new Decimator(Infinity)` would have looped forever and is now rejected. No new
+dependency.
