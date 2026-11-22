@@ -1,5 +1,7 @@
 """Tablature: strings, frets and the TAB staff in MusicXML (016 T023, data-model 4.5, SC-002)."""
 
+import itertools
+import time
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from dataclasses import replace
@@ -7,6 +9,7 @@ from typing import get_args
 
 import pytest
 
+from stemstudio_worker.notation import tablature
 from stemstudio_worker.notation.notator import MusicNotator
 from stemstudio_worker.notation.tab_staff import TabResult, add_tab_staff
 from stemstudio_worker.notation.tablature import ViterbiTabFingerer
@@ -504,3 +507,40 @@ def test_the_tied_continuation_of_a_dropped_note_becomes_a_tab_rest() -> None:
         None,
     )
     assert result.notes_dropped == 1
+
+
+DENSE_CHORDS = ([52, 55, 59, 60, 62, 64], [57, 59, 60, 62, 64, 55], [50, 53, 57, 60, 62, 59])
+DENSE_900_S = [list(DENSE_CHORDS[i % 3]) for i in range(1800)]
+"""A 6-note chord on every beat of 900 s at 120 BPM (the longest score, data-model 4.5)."""
+
+
+def _brute_candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[object]:
+    """The R-08 candidate list built the slow way: every product, filtered, fully sorted."""
+    options = (tablature._options(p, tuning, capo) for p in pitches)
+    combos = filter(tablature._distinct, itertools.product(*options))
+    found = sorted(map(tablature._cost, combos), key=lambda c: (c.cost, c.order))
+    found = found[: tablature.MAX_CANDIDATES]
+    return [c for c in found if not c.wide] or found
+
+
+def test_pruned_candidates_give_the_same_fingering_as_the_full_product(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases = [(events, STANDARD) for events, _ in GOLDEN[:3]] + [
+        (GOLDEN[3][0], TUNINGS["bass-4-standard"]),
+        (DENSE_900_S[:30], STANDARD),
+        ([[88, 88, 88], [40, 41], [64, 64, 64, 64]], STANDARD),
+    ]
+    fast = [_assign(events, tuning) for events, tuning in cases]
+    monkeypatch.setattr(tablature, "_candidates", _brute_candidates)
+    assert fast == [_assign(events, tuning) for events, tuning in cases]
+
+
+def test_a_dense_900_second_chord_sequence_is_fingered_within_budget() -> None:
+    """Report-only bench with a budget (6^6 products per chord took 3.3 s before pruning)."""
+    started = time.perf_counter()
+    result = _assign(DENSE_900_S)
+    seconds = time.perf_counter() - started
+    print(f"tab fingering of {len(DENSE_900_S)} six-note chords: {seconds:.2f} s")  # noqa: T201
+    assert len(result.positions) == len(DENSE_900_S)
+    assert seconds < 2.5
