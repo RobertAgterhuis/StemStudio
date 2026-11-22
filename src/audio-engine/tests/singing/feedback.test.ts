@@ -102,6 +102,24 @@ function node(rig: Rig): MockAudioWorkletNode {
   return created;
 }
 
+/** `count` ordered 10 ms units. */
+function manyUnits(count: number): { index: number; startMs: number; endMs: number }[] {
+  return Array.from({ length: count }, (_, i) => ({ index: i, startMs: i * 10, endMs: i * 10 + 10 }));
+}
+
+/** Replaces the module load with a promise the test settles. */
+function deferLoad(): { resolve: () => void; reject: (error: Error) => void } {
+  const settle = { resolve: (): void => undefined, reject: (_: Error): void => undefined };
+  rig.ctx.audioWorklet.addModule = (url: string): Promise<void> => {
+    rig.ctx.audioWorklet.modules.push(url);
+    return new Promise<void>((resolve, reject) => {
+      settle.resolve = resolve;
+      settle.reject = reject;
+    });
+  };
+  return settle;
+}
+
 let rig: Rig;
 
 beforeEach(() => {
@@ -162,6 +180,15 @@ describe('startSingingFeedback', () => {
     ['frames', { ...REQUEST, reference: { hopMs: 10, frames: new Int16Array(90_001) } }, 'Invalid pitch contour: more than 90000 frames'],
     ['value', { ...REQUEST, reference: { hopMs: 10, frames: [12_701] } }, 'Invalid pitch contour: values outside 0..12700'],
     ['missing frames', { ...REQUEST, reference: { hopMs: 10, frames: null } }, 'Invalid pitch contour: frames missing'],
+    ['latency method', { ...REQUEST, roundTripMs: 50, latencyMethod: 'x' }, 'Invalid singing request: latencyMethod'],
+    ['latency method type', { ...REQUEST, latencyMethod: 7 }, 'Invalid singing request: latencyMethod'],
+    ['unit count', { ...REQUEST, units: manyUnits(100_001) }, 'Invalid singing request: more than 20000 units'],
+    ['negative index', { ...REQUEST, units: [{ index: -1, startMs: 0, endMs: 10 }] }, 'Invalid singing request: unit index invalid'],
+    ['fractional index', { ...REQUEST, units: [{ index: 1.5, startMs: 0, endMs: 10 }] }, 'Invalid singing request: unit index invalid'],
+    ['null unit', { ...REQUEST, units: [null] }, 'Invalid singing request: unit index invalid'],
+    ['NaN start', { ...REQUEST, units: [{ index: 0, startMs: Number.NaN, endMs: 10 }] }, 'Invalid singing request: unit times not finite'],
+    ['infinite end', { ...REQUEST, units: [{ index: 0, startMs: 0, endMs: Number.POSITIVE_INFINITY }] }, 'Invalid singing request: unit times not finite'],
+    ['string start', { ...REQUEST, units: [{ index: 0, startMs: '0', endMs: 10 }] }, 'Invalid singing request: unit times not finite'],
   ])('rejects an invalid %s', async (_, request, message) => {
     await expect(rig.feedback.start(request as unknown as SingingFeedbackRequest)).rejects.toThrow(message);
     expect(rig.states).toEqual([]);
@@ -174,6 +201,48 @@ describe('startSingingFeedback', () => {
     rig.ctx.audioWorklet.error = null;
     await rig.feedback.start(REQUEST);
     expect(rig.ctx.audioWorklet.modules).toHaveLength(2);
+    expect(rig.feedback.state).toBe('running');
+  });
+});
+
+describe('stop or dispose while the module loads', () => {
+  it.each([
+    ['stop', (): void => void rig.feedback.stop()],
+    ['dispose', (): void => {
+      rig.feedback.dispose();
+    }],
+  ])('%s cancels the start: no tracker, no session, state stopped, no running notification', async (_, cancel) => {
+    const load = deferLoad();
+    const starting = rig.feedback.start(REQUEST);
+    cancel();
+    load.resolve();
+    await starting;
+    expect(rig.ctx.workletNodes).toEqual([]);
+    expect(rig.sessions).toEqual([]);
+    expect((rig.input.current?.node as unknown as MockAudioNode).connections).toEqual([]);
+    expect(rig.feedback.state).toBe('stopped');
+    expect(rig.states).toEqual([['starting', null], ['stopped', null]]);
+  });
+
+  it('a failed load after a stop rejects but keeps the state stopped', async () => {
+    const load = deferLoad();
+    const starting = rig.feedback.start(REQUEST);
+    rig.feedback.stop();
+    load.reject(new Error('404'));
+    await expect(starting).rejects.toThrow('Pitch tracking could not start (Error: 404)');
+    expect(rig.feedback.state).toBe('stopped');
+    expect(rig.states).toEqual([['starting', null], ['stopped', null]]);
+  });
+
+  it('a new start after a cancelled one runs, the stale load connects nothing', async () => {
+    const load = deferLoad();
+    const first = rig.feedback.start(REQUEST);
+    rig.feedback.stop();
+    const second = rig.feedback.start(REQUEST);
+    load.resolve();
+    await Promise.all([first, second]);
+    expect(rig.ctx.workletNodes).toHaveLength(1);
+    expect(rig.sessions).toHaveLength(1);
     expect(rig.feedback.state).toBe('running');
   });
 });
