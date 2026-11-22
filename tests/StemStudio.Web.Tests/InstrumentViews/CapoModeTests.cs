@@ -203,6 +203,32 @@ public sealed class MixerCapoTests : MixerTestContext
     }
 
     [Theory]
+    [InlineData("keys")]
+    [InlineData("bass")]
+    public async Task LeavingGuitar_ResetsTheChordDisplay(string family)
+    {
+        var page = Ready();
+        await PractiseAsync(page, "guitar");
+        await page.Find("[data-testid=capo-mode]").ClickAsync(new MouseEventArgs());
+        await page.Find("[data-testid=capo-suggestion-0]").ClickAsync(new MouseEventArgs());
+        Views.ClearReceivedCalls();
+
+        await PractiseAsync(page, family);
+
+        await Views.Received(1).SetChordDisplayAsync(new ChordDisplay(0, false));
+    }
+
+    [Fact]
+    public async Task AnotherFamily_WithoutCapo_SendsNoChordDisplay()
+    {
+        var page = Ready();
+
+        await PractiseAsync(page, "keys");
+
+        await Views.DidNotReceiveWithAnyArgs().SetChordDisplayAsync(default!);
+    }
+
+    [Theory]
     [InlineData("bass")]
     [InlineData("keys")]
     public async Task BassAndKeys_HaveNoCapoControls(string family)
