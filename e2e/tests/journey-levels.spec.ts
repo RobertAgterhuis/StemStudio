@@ -1,5 +1,6 @@
+import { detailKey } from '../pages/mixer-page';
 import { isOn, numericValue, setNumericValue } from '../support/controls';
-import { fakeStems } from '../support/detail';
+import { fakeStems, keptStems } from '../support/detail';
 import { fakeJobTimeoutMs } from '../support/env';
 import {
   beginnerHiddenMixerIds,
@@ -14,7 +15,8 @@ import { levelState, readStoredPreferences } from '../support/preferences';
 import { expect, test } from '../support/ux-test';
 
 // T047 / FR-012..FR-014, FR-020, SC-010, ui-test-ids 1.3.0 R7-R9 (quickstart V-J3..V-J7).
-const drumDetails = ['drums-kick', 'drums-snare', 'drums-toms'];
+// Every kept drum stem of the fake detail split (kick, snare, toms, hi-hat), so a new fake stem is checked too.
+const drumDetails = keptStems('drums').map((name) => detailKey('drums', name));
 const switchBudgetMs = 200;
 
 test.describe('Beginner', () => {
@@ -26,7 +28,7 @@ test.describe('Beginner', () => {
     await expectNotRendered(page, beginnerHiddenMixerIds(fakeStems));
     await expectRendered(page, everyLevelMixerIds(fakeStems));
     await expectNotRendered(page, expertMixerIds(fakeStems));
-    await mixer.setExpanded('drums', true, ['kick', 'snare', 'toms']);
+    await mixer.setExpanded('drums', true, keptStems('drums'));
     await expectNotRendered(page, beginnerHiddenMixerIds(drumDetails).filter((id) => id.startsWith('pan-')));
     await expectRendered(page, drumDetails.map((key) => `fader-${key}`));
     await expect(page.getByTestId('journey-rail')).toBeVisible();

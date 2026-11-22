@@ -29,13 +29,13 @@ export interface ExpectedOutcome {
 
 /**
  * Outcome table of the fake detail models (stem-separation T042) on any input, because the fake
- * standard separator copies the mix into every stem: drums kick 0.5x, snare 0.3x, toms 0.2x;
- * vocals lead 0.7x, backing 0.3x; guitar one audible family; piano outputs summing to 0.3x;
+ * standard separator copies the mix into every stem: drums kick 0.5x, snare 0.25x, toms 0.15x,
+ * hi-hat 0.1x (the hi-hat of the research R-11 groove); vocals lead 0.7x, backing 0.3x; guitar one audible family; piano outputs summing to 0.3x;
  * other brass 0.6x, strings 0.4x (display order strings before brass).
  */
 export const fakeDetailOutcomes: Readonly<Record<StemName, ExpectedOutcome>> = {
   vocals: { outcome: 'split', stems: ['lead', 'backing', 'rest'] },
-  drums: { outcome: 'split', stems: ['kick', 'snare', 'toms', 'rest'] },
+  drums: { outcome: 'split', stems: ['kick', 'snare', 'toms', 'hihat', 'rest'] },
   bass: { outcome: 'not-supported', stems: [] },
   guitar: { outcome: 'nothing-further', stems: [] },
   piano: { outcome: 'not-reliable', stems: [] },
