@@ -97,7 +97,11 @@ public sealed class AudioEngineInteropInstrumentViewTests : IAsyncDisposable
         await _interop.InitializeAsync();
         var take = new TakeScoreRequest
         {
-            TakeUrl = "http://x/api/takes/1/audio", StartSample = 0, Reference = Melody, Units = [new SingingUnit(0, 0, 2000)], ToleranceCents = 50,
+            TakeUrl = "http://x/api/takes/1/audio",
+            StartSample = 0,
+            Reference = Melody,
+            Units = [new SingingUnit(0, 0, 2000)],
+            ToleranceCents = 50,
             TransposeSemitones = -3,
         };
 
