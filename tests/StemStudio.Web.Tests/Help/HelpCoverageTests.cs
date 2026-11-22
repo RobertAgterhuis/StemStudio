@@ -164,6 +164,8 @@ public sealed partial class HelpCoverageTests : PageTestContext
     [InlineData("save to library", "export-dialog")]
     [InlineData("export range", "export-range")]
     [InlineData("karaoke", "karaoke")]
+    [InlineData("sing along", "karaoke")]
+    [InlineData("whisper", "lyrics-align")]
     [InlineData("lyrics offset", "karaoke-offset")]
     [InlineData("lrclib", "lyrics-sources")]
     [InlineData("align lyrics", "lyrics-align")]
