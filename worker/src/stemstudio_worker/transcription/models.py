@@ -102,7 +102,6 @@ class ModelStore:
         target = self.path(weights)
         if self.ready(weights):
             return target
-        target.parent.mkdir(parents=True, exist_ok=True)
         partial = target.with_suffix(target.suffix + ".part")
         try:
             digest = self._fetch(weights, partial)
@@ -116,6 +115,7 @@ class ModelStore:
         return target
 
     def _fetch(self, weights: WeightsFile, partial: Path) -> str:
+        partial.parent.mkdir(parents=True, exist_ok=True)
         with self._opener(weights.url) as source, partial.open("wb") as sink:
             writer = _HashingWriter(sink, weights.size_bytes)
             shutil.copyfileobj(source, writer, _BLOCK)
