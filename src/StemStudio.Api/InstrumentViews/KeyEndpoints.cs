@@ -81,19 +81,19 @@ public static class KeyViewMapper
     public static KeyViewDto ToDto(AnalysisView view, int transpose, WrittenInstrument instrument)
     {
         ArgumentNullException.ThrowIfNull(view);
-        var chart = view.Status is AnalysisStatus.Ready or AnalysisStatus.Stale && view.Stored?.Document is ChordChart { Key: not null } ready ? ready : null;
-        var key = chart?.Key;
-        var sounding = key is null ? (MusicalKey?)null : Transposed(key.Key, transpose);
-        return new KeyViewDto
-        {
-            Status = InstrumentViewMapper.ToDto(view.Status),
-            Transpose = transpose,
-            Key = key is null ? null : ToDto(key),
-            Display = key is null ? null : KeyFormatter.Display(key.Key, transpose, key.Confidence),
-            WrittenKey = sounding is { } heard ? KeyFormatter.WrittenKey(heard, instrument) : null,
-            Regions = chart is null ? [] : chart.KeyRegions.Select(region => Region(region, transpose, view.Track.BeatGrid)).ToList(),
-        };
+        var empty = new KeyViewDto { Status = InstrumentViewMapper.ToDto(view.Status), Transpose = transpose, Key = null, Display = null, WrittenKey = null, Regions = [] };
+        return ShownChart(view) is { Key: { } key } chart
+            ? empty with
+            {
+                Key = ToDto(key),
+                Display = KeyFormatter.Display(key.Key, transpose, key.Confidence),
+                WrittenKey = KeyFormatter.WrittenKey(Transposed(key.Key, transpose), instrument),
+                Regions = chart.KeyRegions.Select(region => Region(region, transpose, view.Track.BeatGrid)).ToList(),
+            }
+            : empty;
     }
+
+    private static ChordChart? ShownChart(AnalysisView view) => view.Status is AnalysisStatus.Ready or AnalysisStatus.Stale ? view.Stored?.Document as ChordChart : null;
 
     private static MusicalKey Transposed(MusicalKey key, int transpose) => key with { Tonic = PitchClass.Of(key.Tonic + transpose) };
 
