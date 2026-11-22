@@ -90,11 +90,18 @@ internal static class AnalysisTestData
         });
 
     /// <summary>Stores a queued analysis with the given worker job.</summary>
-    public static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, string jobId, DateTime? at = null) =>
+    public static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, string jobId) =>
+        factory.SeedQueuedAsync((trackId, kind, jobId, T0));
+
+    /// <summary>Stores a queued chords analysis updated at the given time (the sync pass reads the oldest first).</summary>
+    public static Task<TrackAnalysis> SeedQueuedAtAsync(this ApiFactory factory, Guid trackId, string jobId, DateTime at) =>
+        factory.SeedQueuedAsync((trackId, AnalysisKind.Chords, jobId, at));
+
+    private static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, (Guid TrackId, AnalysisKind Kind, string JobId, DateTime At) seed) =>
         factory.WithScopeAsync(async sp =>
         {
-            var analysis = TrackAnalysis.Create(trackId, kind, at ?? T0);
-            analysis.Queue(new AnalysisRun(jobId, TrackAnalysisService.DefaultOptions(kind), new string('0', 64), 10), at ?? T0);
+            var analysis = TrackAnalysis.Create(seed.TrackId, seed.Kind, seed.At);
+            analysis.Queue(new AnalysisRun(seed.JobId, TrackAnalysisService.DefaultOptions(seed.Kind), new string('0', 64), 10), seed.At);
             await sp.GetRequiredService<ITrackAnalysisRepository>().AddAsync(analysis, CancellationToken.None);
             return analysis;
         });
