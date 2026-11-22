@@ -81,6 +81,62 @@ def test_a_failed_or_mismatching_download_leaves_nothing(tmp_path: Path, opener:
     assert not store.ready(WEIGHTS)
 
 
+class CountingStream(io.BytesIO):
+    """A response body that records how many bytes were read from it."""
+
+    def __init__(self, data: bytes) -> None:
+        super().__init__(data)
+        self.served = 0
+
+    def read(self, size: int | None = -1) -> bytes:
+        block = super().read(size)
+        self.served += len(block)
+        return block
+
+
+def test_a_download_larger_than_the_pinned_size_is_aborted(tmp_path: Path) -> None:
+    # Size cap (016 security review): a hostile or broken server cannot fill the disk.
+    stream = CountingStream(DATA + b"x" * (5 * models._BLOCK))
+    store = ModelStore(tmp_path, lambda _url: nullcontext(stream))
+
+    with pytest.raises(Exception, match=MODEL_DOWNLOAD_TEXT):
+        store.ensure(WEIGHTS)
+
+    assert stream.served <= WEIGHTS.size_bytes + models._BLOCK
+    assert list((tmp_path / "transcription" / "basic-pitch-icassp2022").iterdir()) == []
+
+
+def test_a_download_of_exactly_the_pinned_size_is_kept(tmp_path: Path) -> None:
+    assert ModelStore(tmp_path, Opener()).ensure(WEIGHTS).read_bytes() == DATA
+
+
+def test_ready_hashes_an_unchanged_file_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # /health and every job ask ready(); re-hashing two 12 MB checkpoints each time is waste.
+    store = ModelStore(tmp_path, Opener())
+    store.ensure(WEIGHTS)
+    hashed: list[Path] = []
+    digest = models._file_digest
+    monkeypatch.setattr(models, "_file_digest", lambda path: hashed.append(path) or digest(path))
+
+    assert store.ready(WEIGHTS) and store.ready(WEIGHTS)
+
+    assert len(hashed) <= 1
+
+
+def test_ready_hashes_again_after_the_file_changed(tmp_path: Path) -> None:
+    store = ModelStore(tmp_path, Opener())
+    path = store.ensure(WEIGHTS)
+    assert store.ready(WEIGHTS)
+
+    path.write_bytes(b"tampered and longer")
+
+    assert not store.ready(WEIGHTS)
+    assert store.ensure(WEIGHTS).read_bytes() == DATA
+    assert store.ready(WEIGHTS)
+
+
 def test_the_default_opener_uses_urllib_with_a_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, float]] = []
 

@@ -11,6 +11,8 @@ chroma-hmm fallback runs and the frames say so (``fallback-engine``); progress p
 import ast
 import contextlib
 import importlib
+import os
+import pickle
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -564,6 +566,35 @@ def test_the_real_torch_refuses_a_global_outside_the_allow_list(tmp_path: Path) 
 
     with pytest.raises(Exception, match=r"(?i)weights_only|unsupported global"):
         TorchBtcRuntime(1).load(checkpoint, 25, "cpu")
+
+
+class _Payload:
+    """A pickle that runs a shell command when it is unpickled (classic checkpoint attack)."""
+
+    def __init__(self, marker: Path) -> None:
+        self.marker = marker
+
+    def __reduce__(self) -> tuple[Any, tuple[str]]:
+        return os.system, (f'echo pwned > "{self.marker}"',)
+
+
+def test_the_real_torch_refuses_a_checkpoint_with_a_reduce_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import torch  # noqa: PLC0415
+
+    vendored = importlib.import_module("stemstudio_worker.harmony.vendor.btc.btc_model")
+    monkeypatch.setattr(vendored, "BTC_model", _RealTinyNetwork)
+    marker = tmp_path / "pwned.txt"
+    checkpoint = tmp_path / "evil.pt"
+    torch.save({"model": _Payload(marker), "mean": 0.0, "std": 1.0}, checkpoint)
+    threads = torch.get_num_threads()
+
+    with pytest.raises(pickle.UnpicklingError):
+        TorchBtcRuntime(1).load(checkpoint, 25, "cpu")
+    torch.set_num_threads(threads)
+
+    assert not marker.exists()
 
 
 def test_the_real_torch_loads_a_plain_checkpoint_inside_the_allow_list(
