@@ -53,5 +53,6 @@ describe('Decimator (31-tap windowed sinc, fractional phase, to 16 kHz)', () => 
 
   it('rejects a rate below 16 kHz', () => {
     expect(() => new Decimator(8000)).toThrow('Pitch input rate must be at least 16000 Hz');
+    expect(() => new Decimator(Number.POSITIVE_INFINITY)).toThrow('Pitch input rate must be at least 16000 Hz');
   });
 });

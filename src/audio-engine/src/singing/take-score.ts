@@ -2,12 +2,13 @@
  * Offline scoring of a saved 015 take (contract 2.6.0 `scoreTake`, FR-046): fetches and decodes the take, runs the
  * shared decimator + YIN core and the 5-frame median over it, places its frames at `startSample` (44.1 kHz song
  * samples; takes are already latency-compensated, so no round trip) and scores every unit the take overlaps with
- * the live scoring core. No worklet is needed.
+ * the live scoring core at the take's 012 transpose (`transposeSemitones`). The analysis yields to the event loop
+ * after every ~1 s of take audio. No worklet is needed.
  *
  * @packageDocumentation
  */
 import { DECIMATED_RATE } from '../pitch/decimate';
-import { PitchTracker, YIN } from '../pitch/yin';
+import { PitchTracker, YIN, type PitchFrame } from '../pitch/yin';
 import { loadStems } from '../stem-loader';
 import type { SingingUnit, SingingUnitScore, TakeScoreRequest, TakeScoreResult } from '../types';
 import { MedianSmoother } from './median';
@@ -18,6 +19,10 @@ import { validateContour, validateTolerance, validateUnits } from './validate';
 const SONG_RATE = 44_100;
 /** Silence padded before and after the take so its first and last 16 ms are analysed (s). */
 const PAD_SECONDS = YIN.window / 2 / DECIMATED_RATE;
+/** Take audio analysed between two yields to the event loop (s), so a long take never blocks the UI (review M5). */
+const CHUNK_SECONDS = 1;
+/** Largest 012 transpose (semitones). */
+const MAX_TRANSPOSE = 12;
 
 /** Engine parts the scoring uses. */
 export interface TakeScoreDeps {
@@ -40,6 +45,24 @@ function validateTake(request: TakeScoreRequest): void {
   }
 }
 
+/** @returns The validated transpose (integer -12..12; default 0). */
+function validateTranspose(transpose: unknown): number {
+  if (transpose === undefined) {
+    return 0;
+  }
+  if (!Number.isInteger(transpose) || Math.abs(transpose as number) > MAX_TRANSPOSE) {
+    fail('transposeSemitones');
+  }
+  return transpose as number;
+}
+
+/** Lets the event loop run (rendering, input, schedulers) between two analysis chunks. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
 /** Mono mix of the take, padded with {@link PAD_SECONDS} of silence on both sides. */
 function monoPadded(buffer: AudioBuffer): Float32Array {
   const pad = Math.round(buffer.sampleRate * PAD_SECONDS);
@@ -52,20 +75,36 @@ function monoPadded(buffer: AudioBuffer): Float32Array {
   return mono;
 }
 
-/** Singer frames of the take in song ms. */
-function singerOf(buffer: AudioBuffer, startMs: number): SingerTrack {
+/**
+ * Singer frames of the take in song ms. The tracker runs over chunks of {@link CHUNK_SECONDS} with a yield between
+ * them; its output does not depend on the block size, so the frames equal one synchronous pass.
+ */
+async function singerOf(buffer: AudioBuffer, startMs: number): Promise<SingerTrack> {
   const times: number[] = [];
   const cents: (number | null)[] = [];
   const median = new MedianSmoother();
-  new PitchTracker(buffer.sampleRate).process(monoPadded(buffer), (frame) => {
+  const onFrame = (frame: PitchFrame): void => {
     const centre = (frame.endSample - YIN.window / 2) / DECIMATED_RATE - PAD_SECONDS;
     if (frame.cents === null && (centre < PAD_SECONDS || centre > buffer.duration - PAD_SECONDS)) {
       return; // an edge window the padding silenced is no evidence about the singer
     }
     times.push(startMs + 1000 * centre);
     cents.push(median.next(frame.cents));
-  });
+  };
+  await trackInChunks(monoPadded(buffer), buffer.sampleRate, onFrame);
   return { times, cents };
+}
+
+/** Runs the tracker over `mono` in chunks of {@link CHUNK_SECONDS}, yielding to the event loop between chunks. */
+async function trackInChunks(mono: Float32Array, rate: number, onFrame: (frame: PitchFrame) => void): Promise<void> {
+  const tracker = new PitchTracker(rate);
+  const chunk = Math.max(1, Math.round(rate * CHUNK_SECONDS));
+  for (let i = 0; i < mono.length; i += chunk) {
+    if (i > 0) {
+      await yieldToEventLoop();
+    }
+    tracker.process(mono.subarray(i, i + chunk), onFrame);
+  }
 }
 
 function covered(units: readonly SingingUnit[], startMs: number, endMs: number): SingingUnit[] {
@@ -83,23 +122,36 @@ export async function scoreTake(request: TakeScoreRequest, deps: TakeScoreDeps):
   validateUnits(request.units);
   validateTolerance(request.toleranceCents);
   validateTake(request);
+  const transpose = validateTranspose(request.transposeSemitones);
   const buffers = await loadStems(deps.context, deps.fetch, [{ name: 'take', url: request.takeUrl }]);
   const buffer = buffers.get('take');
   if (buffer === undefined) {
     fail('take');
   }
-  const units = scoreUnits(request, reference, buffer);
+  const units = scoreUnits({ request, reference, transpose }, buffer, await singerOf(buffer, startMsOf(request)));
   return { ...summarise(units, request.toleranceCents), latencySource: 'estimated', units };
 }
 
+/** Song ms of the take's first sample. */
+function startMsOf(request: TakeScoreRequest): number {
+  return (1000 * request.startSample) / SONG_RATE;
+}
+
+/** The validated request with its reference frames and transpose. */
+interface TakeTarget {
+  readonly request: TakeScoreRequest;
+  readonly reference: Int16Array;
+  readonly transpose: number;
+}
+
 /** Scores every unit the decoded take overlaps; units without enough voiced frames are left out. */
-function scoreUnits(request: TakeScoreRequest, reference: Int16Array, buffer: AudioBuffer): SingingUnitScore[] {
-  const startMs = (1000 * request.startSample) / SONG_RATE;
-  const singer = singerOf(buffer, startMs);
+function scoreUnits(target: TakeTarget, buffer: AudioBuffer, singer: SingerTrack): SingingUnitScore[] {
+  const { request, reference, transpose } = target;
+  const startMs = startMsOf(request);
   return covered(request.units, startMs, startMs + 1000 * buffer.duration)
     .map((unit) => ({
       index: unit.index,
-      score: scoreUnit({ reference, unit, toleranceCents: request.toleranceCents, transpose: 0 }, singer),
+      score: scoreUnit({ reference, unit, toleranceCents: request.toleranceCents, transpose }, singer),
       pass: 1,
     }))
     .filter((unit) => unit.score !== null);

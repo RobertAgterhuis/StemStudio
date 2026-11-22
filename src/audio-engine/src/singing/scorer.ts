@@ -1,13 +1,14 @@
 /**
  * Live unit scorer (data-model 3.4): follows the aligned singer frames, arms a unit when the song enters it within
- * 50 ms of its start, scores it when the song passes its end (`OnSingingUnitScored`), scores it again on every loop
- * pass (a backwards jump without a seek) and discards the partial unit after a seek.
+ * 50 ms of its start, scores it when the song passes its end (`OnSingingUnitScored`) or a loop wrap follows within
+ * one hop of its end, scores it again on every loop pass (a backwards jump without a seek) and discards the partial
+ * unit after a seek.
  *
  * @packageDocumentation
  */
 import { Cursor } from '../timeline/cursor';
 import type { SingingUnit, SingingUnitScore } from '../types';
-import { NEAREST_MS, scoreUnit, summarise } from './score-core';
+import { HOP_MS, NEAREST_MS, scoreUnit, summarise } from './score-core';
 import type { SingingSummary } from '../types';
 
 /** A unit entered this close after its start is scored (ms). */
@@ -69,6 +70,7 @@ export class UnitScorer {
    */
   public frame(songMs: number, cents: number | null): void {
     if (songMs < this.lastMs - WRAP_MS) {
+      this.finishAtWrap();
       this.pass += 1;
       this.forget();
     }
@@ -108,6 +110,17 @@ export class UnitScorer {
     if (armed !== null && songMs >= armed.unit.endMs && songMs < armed.unit.endMs + NEAREST_MS) {
       armed.times.push(songMs);
       armed.cents.push(cents);
+    }
+  }
+
+  /**
+   * A loop wrap: a unit whose last frame came within one hop (+ the 15 ms nearest window) of its end ends at the loop
+   * end, so it is scored for this pass before the partial state is dropped (data-model 3.4).
+   */
+  private finishAtWrap(): void {
+    const armed = this.armed;
+    if (armed !== null && this.lastMs >= armed.unit.endMs - (HOP_MS + NEAREST_MS)) {
+      this.finish(armed.unit.endMs);
     }
   }
 

@@ -1,7 +1,8 @@
 /**
  * Decimation of the pitch input to 16 kHz (research R-05, binding): a 31-tap windowed-sinc (Blackman) low-pass with a
- * fractional-phase resampler, so any context rate (44.1, 48, 96 kHz) works. Rates of 64 kHz and more are first halved
- * with a 31-tap low-pass (the single stage's transition band would be too wide there). Pure code: no Web Audio types,
+ * fractional-phase resampler, so any context rate (44.1, 48, 96 kHz) works. Rates of 64 kHz and more are halved with a
+ * 31-tap low-pass until they are below 64 kHz (96 kHz once, 176.4/192 kHz twice; the single stage's transition band
+ * would be too wide there). Pure code: no Web Audio types,
  * shared by the pitch worklet and `scoreTake`.
  *
  * @packageDocumentation
@@ -118,19 +119,43 @@ class Resampler {
 
 /** Streams any input rate >= 16 kHz down to 16 kHz. */
 export class Decimator {
-  private readonly halver: Halver | null;
+  private readonly halvers: readonly Halver[];
   private readonly resampler: Resampler;
+  private readonly first: (sample: number) => void;
+  /** Output of the current {@link Decimator.process} call. */
+  private emit: (sample: number) => void = () => undefined;
 
   /**
    * @param rate - Input sample rate (Hz).
    * @throws Error `Pitch input rate must be at least 16000 Hz`.
    */
   public constructor(rate: number) {
-    if (!(rate >= DECIMATED_RATE)) {
+    if (!(rate >= DECIMATED_RATE && Number.isFinite(rate))) {
       throw new Error(`Pitch input rate must be at least ${String(DECIMATED_RATE)} Hz`);
     }
-    this.halver = rate >= HALVE_FROM ? new Halver() : null;
-    this.resampler = new Resampler(this.halver === null ? rate : rate / 2);
+    const halvers: Halver[] = [];
+    let resampled = rate;
+    while (resampled >= HALVE_FROM) {
+      halvers.push(new Halver());
+      resampled /= 2;
+    }
+    this.halvers = halvers;
+    this.resampler = new Resampler(resampled);
+    this.first = this.chain(0);
+  }
+
+  /** Stage `index` of the chain (a halver, or the resampler after the last). */
+  private chain(index: number): (sample: number) => void {
+    const halver = this.halvers[index];
+    if (halver === undefined) {
+      return (sample) => {
+        this.resampler.push(sample, this.emit);
+      };
+    }
+    const next = this.chain(index + 1);
+    return (sample) => {
+      halver.push(sample, next);
+    };
   }
 
   /**
@@ -138,15 +163,9 @@ export class Decimator {
    * @param emit - Receives every 16 kHz output sample in order.
    */
   public process(input: Float32Array, emit: (sample: number) => void): void {
-    const into = (sample: number): void => {
-      this.resampler.push(sample, emit);
-    };
+    this.emit = emit;
     for (const sample of input) {
-      if (this.halver === null) {
-        into(sample);
-      } else {
-        this.halver.push(sample, into);
-      }
+      this.first(sample);
     }
   }
 }

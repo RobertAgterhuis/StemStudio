@@ -30,6 +30,27 @@ function deps(ctx: MockAudioContext): { context: AudioContext; fetch: typeof fet
   return { context: ctx.asAudioContext(), fetch: new FetchStub().reply(REQUEST.takeUrl, { bytes: 64 }).fetch };
 }
 
+/** Settles `pending` under fake timers, counting the zero-delay timers it waits on (each one alone, nothing else runs). */
+async function countYields<T>(pending: Promise<T>): Promise<{ result: T; yields: number }> {
+  const state = { done: false };
+  const settled = pending.then((result) => {
+    state.done = true;
+    return result;
+  });
+  let yields = 0;
+  for (;;) {
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+    if (state.done) {
+      return { result: await settled, yields };
+    }
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersToNextTimerAsync();
+    yields += 1;
+  }
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -62,25 +83,9 @@ describe('scoreTake (FR-046)', () => {
     const expected = await scoreTake(REQUEST, deps(contextWith(tone(44_100, 3, [[440, 0.4]]))));
     vi.useFakeTimers({ toFake: ['setTimeout'] });
     try {
-      const state = { done: false };
-      const pending = scoreTake(REQUEST, deps(contextWith(tone(44_100, 3, [[440, 0.4]])))).then((result) => {
-        state.done = true;
-        return result;
-      });
-      let yields = 0;
-      for (;;) {
-        await new Promise<void>((resolve) => {
-          setImmediate(resolve);
-        });
-        if (state.done) {
-          break;
-        }
-        expect(vi.getTimerCount()).toBe(1);
-        await vi.advanceTimersToNextTimerAsync();
-        yields += 1;
-      }
+      const { result, yields } = await countYields(scoreTake(REQUEST, deps(contextWith(tone(44_100, 3, [[440, 0.4]])))));
       expect(yields).toBeGreaterThanOrEqual(2);
-      expect(await pending).toEqual(expected);
+      expect(result).toEqual(expected);
     } finally {
       vi.useRealTimers();
     }
