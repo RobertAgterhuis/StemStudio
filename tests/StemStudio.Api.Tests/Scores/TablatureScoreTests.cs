@@ -18,18 +18,33 @@ namespace StemStudio.Api.Tests.Scores;
 /// <summary>Feature 016 T079: tablature validation and options, single drum pieces and the <c>channel</c> filter of the library (FR-020..FR-023).</summary>
 public sealed class TablatureScoreTests : ApiTestBase
 {
-    private static CreateScoreRequest Tab(Guid trackId, string channel, ScoreProfileDto? profile, TuningIdDto tuning, int capo = 0) =>
-        Request(trackId, channel) with { Profile = profile, Tablature = new ScoreTablatureDto { Tuning = tuning, Capo = capo } };
+    public static TheoryData<string, ScoreProfileDto, ScoreTablatureDto, string> InvalidCases => new()
+    {
+        { "vocals", ScoreProfileDto.Keys, Settings(TuningIdDto.GuitarStandard), "tablature-not-allowed" },
+        { "guitar", ScoreProfileDto.Guitar, Settings(TuningIdDto.Bass4Standard), "tuning-mismatch" },
+        { "bass", ScoreProfileDto.Bass, Settings(TuningIdDto.Bass4Standard, 2), "capo-not-allowed" },
+    };
+
+    public static TheoryData<string, ScoreProfileDto, (bool Available, TuningIdDto? DefaultTuning, bool Capo, int Tunings)> OptionCases => new()
+    {
+        { "guitar", ScoreProfileDto.Guitar, (true, TuningIdDto.GuitarStandard, true, 7) },
+        { "bass", ScoreProfileDto.Bass, (true, TuningIdDto.Bass4Standard, false, 5) },
+        { "vocals", ScoreProfileDto.Vocals, (false, null, false, 0) },
+        { "piano", ScoreProfileDto.Piano, (false, null, false, 0) },
+    };
+
+    private static ScoreTablatureDto Settings(TuningIdDto tuning, int capo = 0) => new() { Tuning = tuning, Capo = capo };
+
+    private static CreateScoreRequest Tab(Guid trackId, string channel, ScoreProfileDto? profile, ScoreTablatureDto tablature) =>
+        Request(trackId, channel) with { Profile = profile, Tablature = tablature };
 
     [Theory]
-    [InlineData("vocals", ScoreProfileDto.Keys, TuningIdDto.GuitarStandard, 0, "tablature-not-allowed")]
-    [InlineData("guitar", ScoreProfileDto.Guitar, TuningIdDto.Bass4Standard, 0, "tuning-mismatch")]
-    [InlineData("bass", ScoreProfileDto.Bass, TuningIdDto.Bass4Standard, 2, "capo-not-allowed")]
-    public async Task InvalidTablature_Is422WithATypedProblem(string channel, ScoreProfileDto profile, TuningIdDto tuning, int capo, string type)
+    [MemberData(nameof(InvalidCases))]
+    public async Task InvalidTablature_Is422WithATypedProblem(string channel, ScoreProfileDto profile, ScoreTablatureDto tablature, string type)
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
 
-        using var response = await Client.PostScoreAsync(Tab(track.Id, channel, profile, tuning, capo));
+        using var response = await Client.PostScoreAsync(Tab(track.Id, channel, profile, tablature));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         await ContractAssert.MatchesAsync(response, "createScore");
@@ -42,7 +57,7 @@ public sealed class TablatureScoreTests : ApiTestBase
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
 
-        using var response = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, TuningIdDto.GuitarStandard, 13));
+        using var response = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, Settings(TuningIdDto.GuitarStandard, 13)));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.JsonAsync()).GetProperty("errors").TryGetProperty("tablature.capo", out _).ShouldBeTrue();
@@ -53,7 +68,7 @@ public sealed class TablatureScoreTests : ApiTestBase
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
 
-        using var response = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, TuningIdDto.GuitarDropD, 2));
+        using var response = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, Settings(TuningIdDto.GuitarDropD, 2)));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         Worker.TranscriptionCreates.Single().Tablature!.Capo.ShouldBe(2);
@@ -65,7 +80,7 @@ public sealed class TablatureScoreTests : ApiTestBase
     public async Task TheFacts_ReportTheTablatureSummary()
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
-        using var created = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, TuningIdDto.GuitarDropD, 2));
+        using var created = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, Settings(TuningIdDto.GuitarDropD, 2)));
         var asset = await created.BodyAsync<AssetDto>();
         var summary = new WorkerTablatureSummary { Tuning = "guitar-drop-d", Strings = 6, Capo = 2, Layout = "notation-and-tab", OctaveMoved = 1, NotesDropped = 0, WideStretches = 3 };
         CompleteTranscriptions(Worker, Result(Summary(ScoreProfile.Guitar) with { Tablature = summary }));
@@ -78,11 +93,8 @@ public sealed class TablatureScoreTests : ApiTestBase
     }
 
     [Theory]
-    [InlineData("guitar", ScoreProfileDto.Guitar, true, TuningIdDto.GuitarStandard, true, 7)]
-    [InlineData("bass", ScoreProfileDto.Bass, true, TuningIdDto.Bass4Standard, false, 5)]
-    [InlineData("vocals", ScoreProfileDto.Vocals, false, null, false, 0)]
-    [InlineData("piano", ScoreProfileDto.Piano, false, null, false, 0)]
-    public async Task Options_OfferTablatureOnlyForTheSuggestedGuitarOrBass(string channel, ScoreProfileDto suggested, bool available, TuningIdDto? defaultTuning, bool capo, int tunings)
+    [MemberData(nameof(OptionCases))]
+    public async Task Options_OfferTablatureOnlyForTheSuggestedGuitarOrBass(string channel, ScoreProfileDto suggested, (bool Available, TuningIdDto? DefaultTuning, bool Capo, int Tunings) expected)
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
 
@@ -92,7 +104,7 @@ public sealed class TablatureScoreTests : ApiTestBase
         var options = await response.BodyAsync<ScoreOptionsDto>();
         options.SuggestedProfile.ShouldBe(suggested);
         var tablature = options.Tablature!;
-        (tablature.Available, tablature.DefaultTuning, tablature.CapoAllowed, tablature.Tunings.Count).ShouldBe((available, defaultTuning, capo, tunings));
+        (tablature.Available, tablature.DefaultTuning, tablature.CapoAllowed, tablature.Tunings.Count).ShouldBe(expected);
     }
 
     [Fact]
