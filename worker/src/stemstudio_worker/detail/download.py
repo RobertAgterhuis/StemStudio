@@ -1,8 +1,9 @@
 """First-use download of detail model weights with SHA-256 verification (FR-018, D-07).
 
 The file is streamed to ``<file>.part`` while hashing, verified and then renamed, so a
-half-written or tampered file is never used. Failures raise ``DetailModelUnavailableError`` with
-the fixed user texts of data-model.md 4.2.
+half-written or tampered file is never used. A download is aborted as soon as it exceeds the pinned
+size, so a hostile or broken server cannot fill the disk. Failures raise
+``DetailModelUnavailableError`` with the fixed user texts of data-model.md 4.2.
 """
 
 import hashlib
@@ -70,24 +71,29 @@ class ModelDownloader:
         target.unlink(missing_ok=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         part = target.with_name(target.name + ".part")
-        if self._download(spec.url, part) != spec.sha256:
+        if self._download(spec, part) != spec.sha256:
             part.unlink(missing_ok=True)
             raise DetailModelUnavailableError(DOWNLOAD_CORRUPT)
         part.replace(target)
         return target
 
-    def _download(self, url: str, part: Path) -> str:
-        """Stream ``url`` into ``part`` and return its SHA-256; failures remove ``part``."""
+    def _download(self, spec: ModelSpec, part: Path) -> str:
+        """Stream ``spec`` into ``part`` and return its SHA-256; failures remove ``part``."""
         try:
-            return self._fetch(url, part)
+            return self._fetch(spec, part)
         except (OSError, HTTPException) as exc:
             part.unlink(missing_ok=True)
             raise DetailModelUnavailableError(DOWNLOAD_FAILED) from exc
 
-    def _fetch(self, url: str, part: Path) -> str:
+    def _fetch(self, spec: ModelSpec, part: Path) -> str:
         digest = hashlib.sha256()
-        with self._opener(url) as source, part.open("wb") as out:
-            while chunk := source.read(_CHUNK):
+        left = spec.size_bytes
+        with self._opener(spec.url) as source, part.open("wb") as out:
+            while chunk := source.read(min(_CHUNK, left + 1)):
+                left -= len(chunk)
+                if left < 0:
+                    msg = "the download is larger than the pinned size"
+                    raise OSError(msg)
                 digest.update(chunk)
                 out.write(chunk)
         return digest.hexdigest()

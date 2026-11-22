@@ -23,7 +23,7 @@ class ModelSpec:
         model_id: Registry id recorded in the parent outcomes.
         file_name: File name below ``<model_dir>/detail/<model_id>/``.
         url: HTTPS download URL.
-        size_bytes: Expected size (informational).
+        size_bytes: Exact size; a download above it is aborted.
         sha256: Lower-case hex SHA-256 of the file.
         licence: Licence status (ADR-009).
     """
