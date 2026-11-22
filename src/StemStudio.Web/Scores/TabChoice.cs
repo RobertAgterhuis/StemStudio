@@ -25,26 +25,65 @@ public enum TabLayoutChoice
 /// <param name="capo">The capo of capo mode (0 when none).</param>
 public sealed class TabChoice(ScoreTablatureOptionsDto options, int capo)
 {
+    /// <summary>Select value of <see cref="TabLayoutChoice.NotationAndTab"/>.</summary>
+    public const string NotationAndTabValue = "notation-and-tab";
+
+    /// <summary>Select value of <see cref="TabLayoutChoice.TabOnly"/>.</summary>
+    public const string TabOnlyValue = "tab-only";
+
+    /// <summary>Select value of <see cref="TabLayoutChoice.None"/>.</summary>
+    public const string NoneValue = "none";
+
     private static readonly HashSet<TuningIdDto> BeginnerTunings =
         [TuningIdDto.GuitarStandard, TuningIdDto.GuitarDropD, TuningIdDto.Bass4Standard, TuningIdDto.Bass4DropD];
+
+    private ScoreProfileDto _profile = ScoreProfileDto.Guitar;
 
     /// <summary>The chosen layout.</summary>
     public TabLayoutChoice Layout { get; set; } = TabLayoutChoice.NotationAndTab;
 
+    /// <summary>The layout as its select value (<c>notation-and-tab</c>, <c>tab-only</c>, <c>none</c>).</summary>
+    public string LayoutValue
+    {
+        get => Layout switch
+        {
+            TabLayoutChoice.TabOnly => TabOnlyValue,
+            TabLayoutChoice.None => NoneValue,
+            _ => NotationAndTabValue,
+        };
+        set => Layout = value switch
+        {
+            TabOnlyValue => TabLayoutChoice.TabOnly,
+            NoneValue => TabLayoutChoice.None,
+            _ => TabLayoutChoice.NotationAndTab,
+        };
+    }
+
     /// <summary>The chosen tuning; the backend's default at first.</summary>
     public TuningIdDto Tuning { get; set; } = options.DefaultTuning ?? (options.Tunings.Count > 0 ? options.Tunings[0] : default);
 
-    /// <summary>True when a capo may be set (guitar).</summary>
-    public bool CapoAllowed => options.CapoAllowed;
+    /// <summary>True when a capo may be set (guitar profile and the backend allows it).</summary>
+    public bool CapoAllowed => options.CapoAllowed && _profile == ScoreProfileDto.Guitar;
 
     /// <summary>The capo 0..12 (ignored unless <see cref="CapoAllowed"/>).</summary>
-    public int Capo { get; set; } = options.CapoAllowed ? Math.Clamp(capo, 0, ContractLimits.CapoMax) : 0;
+    public int Capo { get; set; } = Math.Clamp(capo, 0, ContractLimits.CapoMax);
 
-    /// <summary>The tunings offered at a level.</summary>
+    /// <summary>Follows the dialog's profile: keeps the tuning when it belongs to the profile, else takes its first one.</summary>
+    /// <param name="profile">The chosen profile (guitar or bass).</param>
+    public void UseProfile(ScoreProfileDto profile)
+    {
+        _profile = profile;
+        if (!Fits(Tuning, profile))
+        {
+            Tuning = options.Tunings.FirstOrDefault(t => Fits(t, profile));
+        }
+    }
+
+    /// <summary>The tunings offered for the current profile at a level.</summary>
     /// <param name="all">True from Advanced on (<c>tab.tunings</c>); Beginner gets standard and drop D.</param>
     /// <returns>The tunings in the backend's order.</returns>
     public IReadOnlyList<TuningIdDto> Tunings(bool all) =>
-        all ? options.Tunings : options.Tunings.Where(t => BeginnerTunings.Contains(t) || t == Tuning).ToList();
+        [.. options.Tunings.Where(t => Fits(t, _profile) && (all || BeginnerTunings.Contains(t) || t == Tuning))];
 
     /// <summary>The request part, or null for no tablature.</summary>
     /// <returns>The tablature.</returns>
@@ -56,4 +95,7 @@ public sealed class TabChoice(ScoreTablatureOptionsDto options, int capo)
             Capo = CapoAllowed ? Capo : 0,
             Layout = Layout == TabLayoutChoice.TabOnly ? TabLayoutDto.TabOnly : TabLayoutDto.NotationAndTab,
         };
+
+    private static bool Fits(TuningIdDto tuning, ScoreProfileDto profile) =>
+        tuning.ToString().StartsWith(profile == ScoreProfileDto.Bass ? "Bass" : "Guitar", StringComparison.Ordinal);
 }

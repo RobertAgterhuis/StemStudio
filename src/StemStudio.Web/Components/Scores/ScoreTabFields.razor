@@ -7,20 +7,20 @@
     <legend class="ss-label">Tablature <HelpHint HelpId="score-tablature" /></legend>
     <div class="ss-field">
         <label class="ss-label" for="score-tab-layout">Layout</label>
-        <select id="score-tab-layout" class="ss-select" @bind="Tab.Layout" data-testid="score-tab-layout" data-help-id="score-tablature">
-            <option value="@TabLayoutChoice.NotationAndTab">Notation and tab</option>
-            <option value="@TabLayoutChoice.TabOnly">Tab only</option>
-            <option value="@TabLayoutChoice.None">No tab</option>
+        <select id="score-tab-layout" class="ss-select" @bind:get="Tab.LayoutValue" @bind:set="SetLayout" data-testid="score-tab-layout" data-help-id="score-tablature">
+            <option value="@TabChoice.NotationAndTabValue">Notation and tab</option>
+            <option value="@TabChoice.TabOnlyValue">Tab only</option>
+            <option value="@TabChoice.NoneValue">No tab</option>
         </select>
     </div>
     @if (Tab.Layout != TabLayoutChoice.None)
     {
         <div class="ss-field">
             <label class="ss-label" for="score-tab-tuning">Tuning</label>
-            <select id="score-tab-tuning" class="ss-select" @bind="Tab.Tuning" data-testid="score-tab-tuning" data-help-id="score-tab-tuning">
+            <select id="score-tab-tuning" class="ss-select" @bind:get="WireName.Of(Tab.Tuning)" @bind:set="SetTuning" data-testid="score-tab-tuning" data-help-id="score-tab-tuning">
                 @foreach (var tuning in Tab.Tunings(AllTunings))
                 {
-                    <option value="@tuning">@TuningLabel(tuning)</option>
+                    <option value="@WireName.Of(tuning)">@TuningLabel(tuning)</option>
                 }
             </select>
         </div>
@@ -67,6 +67,16 @@
     }
 
     private string TuningLabel(TuningIdDto tuning) => Labels.TryGetValue(tuning, out var label) ? label : WireName.Of(tuning);
+
+    private void SetLayout(string? value) => Tab.LayoutValue = value ?? TabChoice.NotationAndTabValue;
+
+    private void SetTuning(string? value)
+    {
+        foreach (var tuning in Tab.Tunings(all: true).Where(t => WireName.Of(t) == value))
+        {
+            Tab.Tuning = tuning;
+        }
+    }
 
     private void SetCapo(int capo) => Tab.Capo = Math.Clamp(capo, 0, ContractLimits.CapoMax);
 }

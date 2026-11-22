@@ -164,6 +164,10 @@ else
                     <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded" Selected="channel.Stem == SelectedStem"
                                   OnVolume="v => SetVolumeAsync(channel.Stem, v)" OnPan="p => SetPanAsync(channel.Stem, p)"
                                   OnMute="() => ToggleMuteAsync(channel.Stem)" OnSolo="() => ToggleSoloAsync(channel.Stem)">
+                        @if (_track is not null)
+                        {
+                            <StemStudio.Web.Components.InstrumentViews.MidiAction Track="_track" Channel="@channel.Stem" />
+                        }
                         @if (group is not null)
                         {
                             <ExpandToggle Parent="@group.Parent" Expanded="group.Expanded" Busy="IsExpanding(group.Parent)"
@@ -173,7 +177,7 @@ else
                     @if (group is { Expanded: true })
                     {
                         <StemGroup Group="group" IsAudible="State.IsAudible" OnVolume="c => SetVolumeAsync(c.Id, c.Value)"
-                                   OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
+                                   OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" Track="_track" />
                     }
                 }
                 <TakeStripSlot Mixer="this" />

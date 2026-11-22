@@ -1,0 +1,18 @@
+@* One-click MIDI of a channel (016 US2, FR-023; ui-test-ids midi-<key>, midi-progress-<key>, midi-error-<key>): reuses the
+   newest ready sheet music item of the channel or makes one, then downloads its MIDI. *@
+
+<span class="ss-midi">
+    <button type="button" class="ss-text-button ss-export-button" aria-label="@($"MIDI of {Label}")" aria-busy="@(Busy ? "true" : null)"
+            disabled="@Busy" @onclick="StartAsync" data-testid="@($"midi-{Key}")" data-help-id="midi-download">
+        <span class="rzi" aria-hidden="true">piano</span>MIDI
+    </button>
+    @if (Busy)
+    {
+        <span class="ss-small ss-muted" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Progress"
+              aria-label="@($"Making MIDI of {Label}")" data-testid="@($"midi-progress-{Key}")">@Progress %</span>
+    }
+    @if (Error is not null)
+    {
+        <span class="ss-small ss-error" role="alert" data-testid="@($"midi-error-{Key}")">@Error</span>
+    }
+</span>
