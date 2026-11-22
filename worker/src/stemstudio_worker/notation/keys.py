@@ -25,10 +25,17 @@ MIN_KEY_NOTES: Final = 8
 KEY_CONFIDENCE_THRESHOLD: Final = 0.6
 """A lower confidence raises ``low-key-confidence``."""
 
-_SHARP_NAMES: Final = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
-_FLAT_NAMES: Final = ("C", "D-", "D", "E-", "E", "F", "G-", "G", "A-", "A", "B-", "B")
+SHARP_NAMES: Final = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+FLAT_NAMES: Final = ("C", "D-", "D", "E-", "E", "F", "G-", "G", "A-", "A", "B-", "B")
+_FLAT_MAJOR_TONICS: Final = frozenset({1, 3, 5, 6, 8, 10})
 _STEP_CLASSES: Final = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 _FALLBACK: Final = KeyInfo(tonic="C", mode="major", confidence=0.0, source="estimated")
+
+
+def prefers_flats(tonic: int, mode: str) -> bool:
+    """True when the key spells with flats (its relative major tonic is F Bb Eb Ab Db Gb)."""
+    major = tonic if mode == "major" else (tonic + 3) % 12
+    return major in _FLAT_MAJOR_TONICS
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,7 +86,7 @@ def key_sharps(info: KeyInfo) -> int:
 def spell(pitch: int, info: KeyInfo) -> str:
     """Return the spelled name with octave of MIDI ``pitch`` in the key (``"G-4"``)."""
     sharps, scale = _signature(info.tonic, info.mode)
-    chromatic = _SHARP_NAMES if sharps >= 0 else _FLAT_NAMES
+    chromatic = SHARP_NAMES if sharps >= 0 else FLAT_NAMES
     name = scale.get(pitch % 12, chromatic[pitch % 12])
     return f"{name}{_octave(name, pitch)}"
 

@@ -14,8 +14,7 @@ from typing import Final
 from music21 import harmony as m21_harmony
 from music21 import stream as m21_stream
 
-from stemstudio_worker.harmony.labels import FLAT_NAMES, SHARP_NAMES
-from stemstudio_worker.notation.keys import spell
+from stemstudio_worker.notation.keys import FLAT_NAMES, SHARP_NAMES, spell
 from stemstudio_worker.notation.timebase import GridQuantiser
 from stemstudio_worker.schemas import ChordQuality, KeyInfo, ScoreChordSymbol
 
@@ -41,8 +40,7 @@ _QUALITY_OF_KIND: Final = {kind: quality for quality, kind in KINDS.items()}
 
 
 def _concert_name(pitch_class: int, prefer_flats: bool) -> str:
-    name = (FLAT_NAMES if prefer_flats else SHARP_NAMES)[pitch_class]
-    return name[0] + name[1:].replace("b", "-")
+    return (FLAT_NAMES if prefer_flats else SHARP_NAMES)[pitch_class]
 
 
 def _symbol(root: str, quality: ChordQuality, bass: str | None) -> m21_harmony.ChordSymbol:

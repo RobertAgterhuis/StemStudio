@@ -23,10 +23,15 @@ from music21 import key as m21_key
 from music21 import pitch as m21_pitch
 from music21 import stream as m21_stream
 
-from stemstudio_worker.harmony.labels import FLAT_NAMES, SHARP_NAMES, prefer_flats
 from stemstudio_worker.notation.chord_symbols import transpose_symbols
 from stemstudio_worker.notation.cleaning import PlacedNote
-from stemstudio_worker.notation.keys import key_sharps, spell
+from stemstudio_worker.notation.keys import (
+    FLAT_NAMES,
+    SHARP_NAMES,
+    key_sharps,
+    prefers_flats,
+    spell,
+)
 from stemstudio_worker.notation.profiles import Clef, Profile, get_profile
 from stemstudio_worker.notation.writer import musicxml_bytes
 from stemstudio_worker.ports import WRITTEN_INSTRUMENTS, PartResult, WrittenInstrumentInfo
@@ -83,8 +88,7 @@ def written_key_name(display: str) -> KeyName:
 def written_key(concert: KeyInfo, semitones: int) -> KeyInfo:
     """The concert key moved by ``semitones`` and spelled by the shared rule."""
     tonic = (m21_pitch.Pitch(concert.tonic).pitchClass + semitones) % 12
-    names = FLAT_NAMES if prefer_flats(tonic, concert.mode) else SHARP_NAMES
-    name = written_key_name(f"{names[tonic]} {concert.mode}").split(" ")[0]
+    name = (FLAT_NAMES if prefers_flats(tonic, concert.mode) else SHARP_NAMES)[tonic]
     return KeyInfo(
         tonic=name, mode=concert.mode, confidence=concert.confidence, source=concert.source
     )

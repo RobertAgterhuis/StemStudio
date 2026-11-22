@@ -26,13 +26,12 @@ GRID = BeatGridTempo(
     bpm=120, beats_per_bar=4, beats=[i * QUARTER_SECONDS for i in range(80)], downbeats=[0.0]
 )
 LINE = [note(i * QUARTER_SECONDS, (i + 1) * QUARTER_SECONDS, 60 + i % 5) for i in range(8)]
-KINDS: dict[ChordQuality, str] = {
-    "maj": "major", "min": "minor", "dim": "diminished", "aug": "augmented",
-    "min6": "minor-sixth", "maj6": "major-sixth", "min7": "minor-seventh",
-    "minmaj7": "major-minor", "maj7": "major-seventh", "7": "dominant",
-    "dim7": "diminished-seventh", "hdim7": "half-diminished", "sus2": "suspended-second",
-    "sus4": "suspended-fourth",
-}  # fmt: skip
+_KIND_PAIRS = (
+    "maj=major min=minor dim=diminished aug=augmented min6=minor-sixth maj6=major-sixth "
+    "min7=minor-seventh minmaj7=major-minor maj7=major-seventh 7=dominant "
+    "dim7=diminished-seventh hdim7=half-diminished sus2=suspended-second sus4=suspended-fourth"
+)
+KINDS = dict(pair.split("=") for pair in _KIND_PAIRS.split())
 
 
 def _settings(
