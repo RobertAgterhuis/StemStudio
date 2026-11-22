@@ -214,6 +214,16 @@ def test_part_writer_protocol_transposes_concert_musicxml() -> None:
     assert result.summary.written_key == "D major"
 
 
+def test_part_writer_reports_the_notes_outside_the_instrument_range() -> None:
+    """Tuba sounds 28-65: G4, A4, B4 and C5 of the scale are out, as in the notator pipeline."""
+    concert = _notate(SCALE, _settings())
+    result = Music21PartWriter().write(concert.musicxml, PartSettings(instrument="tuba"), "vocals")
+    assert result.summary.out_of_range == 4
+    piped = _notate(SCALE, _settings(part=PartSettings(instrument="tuba"))).part
+    assert piped is not None
+    assert piped.out_of_range == result.summary.out_of_range
+
+
 @pytest.mark.parametrize(
     ("profile", "low", "high"), [("strings", 28, 103), ("brass", 28, 84), ("woodwinds", 34, 98)]
 )
