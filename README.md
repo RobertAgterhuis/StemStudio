@@ -72,6 +72,10 @@ metronome so you can mute the guitar and play it yourself.
 - **Play-along recording** (feature 015): record yourself over the mix (vocals, guitar or bass, acoustic,
   keys in stereo, drums) with latency calibration, loop takes, a Takes panel, compare take and original,
   fine timing adjustment and export with the take. Recordings stay on this computer.
+- **Instrument views** (feature 016): a view per instrument family, opened with **Practise as ...** and a
+  minus-one mix: chords (lane, karaoke banner, chord sheet, ChordPro) with the song key, capo mode and tablature for
+  guitar and bass, a drum trainer with Drumless, singing feedback with a score per line (in the browser only), and
+  parts for B-flat, E-flat and F instruments.
 
 ### Online lookups (feature 005, 006)
 
@@ -189,16 +193,16 @@ scripted model answers (fake stack only).
 Every instrument family gets its own practice view, and **Practise as ...** in the mixer opens it with a minus-one mix
 (the family is muted, detail channels included, everything else unmuted):
 
-- **Keys and accompaniment**: chords found automatically once the stems are ready (BTC model, MIT, or a fast chroma
+- Keys and accompaniment: chords found automatically once the stems are ready (BTC model, MIT, or a fast chroma
   method), shown in a chords lane in the mixer, above the karaoke words and as a printable chord sheet with a ChordPro
   download. Chords follow the practice transpose and are spelled for the key; from Advanced a chord can be corrected.
-- **Song key** next to the tempo, with key changes, the transposed key and the written key of your part.
-- **Guitar and bass**: tablature in the sheet music (tunings incl. drop D, DADGAD, 5- and 6-string bass, capo) and
+- The song key next to the tempo, with key changes, the transposed key and the written key of your part.
+- Guitar and bass: tablature in the sheet music (tunings incl. drop D, DADGAD, 5- and 6-string bass, capo) and
   **capo mode** with up to three suggested capo positions.
-- **Drums**: **Drumless** (one click mutes every drum channel, count-in on) and a drum trainer with five hit lanes from
+- Drums: **Drumless** (one click mutes every drum channel, count-in on) and a drum trainer with five hit lanes from
   the split drums, a guide piece and the drum notation.
-- **Vocals**: **singing feedback**: a pitch view of the lead melody and your voice, a score per lyric line and a summary.
-- **Strings, brass, woodwinds**: a part written for your instrument (B-flat, E-flat, F instruments, clefs, notes out
+- Vocals: **singing feedback**: a pitch view of the lead melody and your voice, a score per lyric line and a summary.
+- Strings, brass, woodwinds: a part written for your instrument (B-flat, E-flat, F instruments, clefs, notes out
   of range counted); MIDI per channel for every family.
 
 Limits: chord detection is right about 80 % of the time on pop songs and less on dense harmony; the key comes from the
