@@ -17,7 +17,7 @@ public sealed partial class Mixer
     private ScoredUnit? LastScore { get; set; }
 
     /// <summary>What "Score this take" needs from this page.</summary>
-    private SingingSource? SingingSource => _track is null ? null : new SingingSource(_track, State?.SectionSet?.Sections, State?.Duration ?? 0);
+    private SingingSource? SingingSource => _track is null ? null : new SingingSource(_track, State?.SectionSet?.Sections, State?.Duration ?? 0, State?.Practice.TransposeSemitones ?? 0);
 
     /// <summary>Opens a family view in the <c>instrument-view</c> region ("Practise as" of US6, Drumless).</summary>
     /// <param name="view">The view.</param>

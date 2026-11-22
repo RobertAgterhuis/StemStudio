@@ -84,6 +84,7 @@ public sealed partial class TakeScoreAction
         {
             TakeUrl = new Uri(Options.Value.PublicApiBaseUrl, take.AudioUrl).ToString(),
             StartSample = take.StartSample,
+            TransposeSemitones = Source!.TransposeSemitones,
             Reference = SingingUnits.Reference(document),
             Units = SingingUnits.From(lyrics, Source!.Sections, Source.Track.BeatGrid, Source.Duration).Units,
             ToleranceCents = SingingMix.Tolerance(level, await Preferences.GetAsync<int?>(ViewPreferences.ToleranceKey)),
