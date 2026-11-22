@@ -86,3 +86,8 @@ export function showAt(rig: ViewRig, ms: number): void {
   rig.transport.seek(ms / 1000);
   rig.frames.step(ms);
 }
+
+/** A chord segment (`root` null = N.C.). */
+export function chordSegment(startMs: number, endMs: number, root: number | null, quality: ChordSymbolEvent['quality'] = 'maj'): ChordSymbolEvent {
+  return { startMs, endMs, root, quality: root === null ? null : quality, bass: null };
+}

@@ -2,16 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bannerChords } from '../../src/chords/banner';
 import { ChordDisplayState } from '../../src/chords/display';
 import { ChordLane } from '../../src/chords/lane';
-import type { ChordChartData, ChordSymbolEvent } from '../../src/types';
+import type { ChordChartData } from '../../src/types';
 import { attached as attachedBanner, type KaraokeRig } from '../mocks/karaoke-rig';
 import { stubLayout, stubResizeObserver } from '../mocks/layout';
-import { GRID, addHost, frameAt, makeViewRig, showAt, type ViewRig } from '../mocks/views-rig';
+import { GRID, addHost, chordSegment as seg, frameAt, makeViewRig, showAt, type ViewRig } from '../mocks/views-rig';
 
 /** FR-075: capo mode (data-model 2.9): shapes with the capo, sounding symbols, host `data-capo`. */
-
-function seg(startMs: number, endMs: number, root: number | null, quality: ChordSymbolEvent['quality'] = 'maj'): ChordSymbolEvent {
-  return { startMs, endMs, root, quality: root === null ? null : quality, bass: null };
-}
 
 /** Eb major, Cm, Ab, Bb of 2 s each in E-flat major (sounding); with capo 3 the shapes are C, Am, F, G. */
 const CHART: ChordChartData = {
@@ -160,6 +156,13 @@ describe('capo display in the karaoke banner', () => {
     return [...rig.host.querySelectorAll<HTMLElement>('.karaoke-chord')];
   }
 
+  /** Sets the capo with sounding symbols and draws frame `frame`. */
+  function showCapo(rig: KaraokeRig, capo: number, frame: number): void {
+    display.set({ capo, showSounding: true });
+    rig.karaoke.redraw();
+    rig.frames.step(frame);
+  }
+
   function firstSounding(rig: KaraokeRig): Element {
     const element = rig.host.querySelector('.karaoke-chord > .chord-sounding');
     if (element === null) {
@@ -177,9 +180,7 @@ describe('capo display in the karaoke banner', () => {
   it('shows the capo shapes with .chord-sounding children', () => {
     const rig = banner();
     const sounding = shapes(bannerChordsShown(rig));
-    display.set({ capo: 3, showSounding: true });
-    rig.karaoke.redraw();
-    rig.frames.step(2);
+    showCapo(rig, 3, 2);
     const shown = bannerChordsShown(rig);
     expect(shown.length).toBeGreaterThan(0);
     expect(soundings(shown)).toEqual(sounding);
@@ -188,16 +189,12 @@ describe('capo display in the karaoke banner', () => {
 
   it('keeps the .chord-sounding children across frames and replaces them only when a symbol changes', () => {
     const rig = banner();
-    display.set({ capo: 3, showSounding: true });
-    rig.karaoke.redraw();
-    rig.frames.step(2);
+    showCapo(rig, 3, 2);
     const first = firstSounding(rig);
     rig.karaoke.redraw();
     rig.frames.step(3);
     expect(firstSounding(rig)).toBe(first);
-    display.set({ capo: 5, showSounding: true });
-    rig.karaoke.redraw();
-    rig.frames.step(4);
+    showCapo(rig, 5, 4);
     const after = firstSounding(rig);
     expect(after).not.toBe(first);
     expect(after.textContent).toBe(first.textContent);
@@ -205,9 +202,7 @@ describe('capo display in the karaoke banner', () => {
 
   it('drops the .chord-sounding children when showSounding is cleared', () => {
     const rig = banner();
-    display.set({ capo: 3, showSounding: true });
-    rig.karaoke.redraw();
-    rig.frames.step(2);
+    showCapo(rig, 3, 2);
     display.set({ capo: 3 });
     rig.karaoke.redraw();
     rig.frames.step(3);
