@@ -37,6 +37,7 @@ from stemstudio_worker.schemas import (
     AnalysisWarningCode,
     BeatGridTempo,
     ChordChart,
+    ChordQuality,
     ChordSegment,
     ChordVocabulary,
 )
@@ -103,18 +104,30 @@ def _ms(seconds: float) -> int:
 
 def _beat_spans(frames: ChordFrames, grid: BeatGridTempo) -> list[_Span]:
     """One span per beat interval (plus the part before the first beat), best summed label."""
+    cuts = _cuts(frames, grid)
+    return [
+        _Span(i0, i1, _ms(t0), _ms(t1), int(np.argmax(frames.posteriors[i0:i1].sum(axis=0))))
+        for (i0, t0), (i1, t1) in itertools.pairwise(cuts)
+    ]
+
+
+def _inside(beats: Sequence[float], end: float) -> list[float]:
+    """The beats strictly between 0 and ``end``."""
+    return [b for b in beats if 0 < b < end]
+
+
+def _cuts(frames: ChordFrames, grid: BeatGridTempo) -> list[tuple[int, float]]:
+    """``(frame, seconds)`` of 0, every beat inside the audio and the end; no empty interval."""
     fs, count = frames.frame_seconds, frames.posteriors.shape[0]
-    times = [0.0, *(b for b in grid.beats if 0 < b < count * fs), count * fs]
+    times = [0.0, *_inside(grid.beats, count * fs)]
     cuts: list[tuple[int, float]] = []
     for t in times:
         index = min(count, round(t / fs))
         if not cuts or index > cuts[-1][0]:
             cuts.append((index, t))
-    cuts[-1] = (count, count * fs)
-    return [
-        _Span(i0, i1, _ms(t0), _ms(t1), int(np.argmax(frames.posteriors[i0:i1].sum(axis=0))))
-        for (i0, t0), (i1, t1) in itertools.pairwise(cuts)
-    ]
+    if cuts[-1][0] == count:
+        cuts.pop()
+    return [*cuts, (count, count * fs)]
 
 
 def _frame_runs(frames: ChordFrames) -> list[_Span]:
@@ -196,13 +209,18 @@ def _with_bass(chord: Chord, bass: npt.NDArray[np.float64] | None, span: _Span) 
     """Add the inversion the bass stem plays during ``span`` (data-model 2.3 step 4)."""
     if bass is None or chord.root is None or chord.quality is None:
         return chord
-    energy = bass[:, span.first : span.last].sum(axis=1)
-    if energy.sum() < SILENT_BASS:
-        return chord
-    strongest = int(np.argmax(energy))
-    if is_inversion(chord.root, chord.quality, strongest):
-        return Chord(chord.root, chord.quality, strongest)
-    return chord
+    strongest = _strongest(bass[:, span.first : span.last].sum(axis=1))
+    inverted = _inverts(chord.root, chord.quality, strongest)
+    return Chord(chord.root, chord.quality, strongest) if inverted else chord
+
+
+def _inverts(root: int, quality: ChordQuality, bass: int | None) -> bool:
+    return bass is not None and is_inversion(root, quality, bass)
+
+
+def _strongest(energy: npt.NDArray[np.float64]) -> int | None:
+    """The loudest bass pitch class of a span, None when the bass is silent there."""
+    return None if energy.sum() < SILENT_BASS else int(np.argmax(energy))
 
 
 def _segment(
@@ -211,12 +229,10 @@ def _segment(
     """The contract segment of one span."""
     label = frames.labels[span.cls]
     chord = _with_bass(parse_label(label), bass, span)
-    if chord.root is not None and chord.quality is not None:
-        label = format_label(chord.root, chord.quality, chord.bass)
     return ChordSegment(
         start_ms=span.start_ms,
         end_ms=span.end_ms,
-        label=label,
+        label=_label(chord) or label,
         root=chord.root,
         quality=chord.quality,
         bass=chord.bass if chord.bass != chord.root else None,
@@ -224,19 +240,31 @@ def _segment(
     )
 
 
+def _label(chord: Chord) -> str | None:
+    """The Harte label of a chord (with its inversion), None for ``N``/``X``."""
+    if chord.root is None or chord.quality is None:
+        return None
+    return format_label(chord.root, chord.quality, chord.bass)
+
+
 def _warning(code: AnalysisWarningCode) -> AnalysisWarning:
     return AnalysisWarning(code=code, text=ANALYSIS_WARNING_TEXTS[code])
+
+
+def _distinct_chords(segments: Sequence[ChordSegment]) -> int:
+    """Number of distinct chords, inversions ignored."""
+    return len({s.label.split("/")[0] for s in segments if is_chord(s.label)})
 
 
 def _warnings(
     frames: ChordFrames, options: PostProcessOptions, segments: Sequence[ChordSegment]
 ) -> list[AnalysisWarning]:
     """``fallback-engine``, ``vocabulary-reduced``, ``grid-unreliable``, ``few-chords``."""
-    distinct = {s.label.split("/")[0] for s in segments if is_chord(s.label)}
+    reduced = options.vocabulary == "full" and frames.engine == "chroma-hmm"
     flags: list[tuple[AnalysisWarningCode, bool]] = [
         ("fallback-engine", frames.fallback),
-        ("vocabulary-reduced", options.vocabulary == "full" and frames.engine == "chroma-hmm"),
+        ("vocabulary-reduced", reduced),
         ("grid-unreliable", options.grid is None),
-        ("few-chords", 0 < len(distinct) < FEW_CHORDS),
+        ("few-chords", 0 < _distinct_chords(segments) < FEW_CHORDS),
     ]
     return [_warning(code) for code, raised in flags if raised]

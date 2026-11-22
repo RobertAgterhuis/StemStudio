@@ -139,11 +139,13 @@ class HmmKeyEstimator:
         units = _units(chords[0].start_ms / 1000, chords[-1].end_ms / 1000, grid)
         scores = self._scores(chroma, chords, units)
         probs = _softmax(CONFIDENCE_BETA * scores)
-        states = librosa.sequence.viterbi(_softmax(self._beta * scores), self._transition)
-        runs = _regions(_runs(states), probs, _min_units(units, grid))
-        return KeyEstimate(
-            _global(runs, probs, units), tuple(_region(r, probs, units) for r in runs)
-        )
+        runs = _regions(self._decode(scores), probs, _min_units(units, grid))
+        regions = tuple(_region(r, probs, units) for r in runs)
+        return KeyEstimate(_global(runs, probs, units), regions)
+
+    def _decode(self, scores: Floats) -> list[_Run]:
+        """Runs of equal key states of the Viterbi path over ``softmax(beta * scores)``."""
+        return _runs(librosa.sequence.viterbi(_softmax(self._beta * scores), self._transition))
 
     def _scores(
         self, chroma: npt.NDArray[np.float32], chords: Sequence[ChordSegment], units: _Units
@@ -279,22 +281,29 @@ def _region(run: _Run, probs: Floats, units: _Units) -> KeyRegion:
 
 def _global(runs: Sequence[_Run], probs: Floats, units: _Units) -> AnalysisKey:
     """The key with the longest total duration, its confidence and the relative alternative."""
-    totals: dict[int, int] = {}
-    for run in runs:
-        totals[run.state] = totals.get(run.state, 0) + units.ms(run.last) - units.ms(run.first)
-    state = max(totals, key=lambda s: (totals[s], -s))
+    state = _longest_state(runs, units)
     mask = np.zeros(units.count, dtype=np.bool_)
     for run in (r for r in runs if r.state == state):
         mask[run.first : run.last] = True
     confidence = float(probs[state, mask].mean())
     alternative = float(probs[_relative(state), mask].mean())
     tonic, mode = _key_of(state)
-    other = None
-    if confidence - alternative <= ALTERNATIVE_MARGIN:
-        other = KeyAlternative(
-            tonic=_key_of(_relative(state))[0], mode=_key_of(_relative(state))[1]
-        )
+    close = confidence - alternative <= ALTERNATIVE_MARGIN
+    other = _alternative(_relative(state)) if close else None
     return AnalysisKey(tonic=tonic, mode=mode, confidence=min(1.0, confidence), alternative=other)
+
+
+def _longest_state(runs: Sequence[_Run], units: _Units) -> int:
+    """The key state with the longest total duration (ties: the lower state)."""
+    totals: dict[int, int] = {}
+    for run in runs:
+        totals[run.state] = totals.get(run.state, 0) + units.ms(run.last) - units.ms(run.first)
+    return max(totals, key=lambda s: (totals[s], -s))
+
+
+def _alternative(state: int) -> KeyAlternative:
+    tonic, mode = _key_of(state)
+    return KeyAlternative(tonic=tonic, mode=mode)
 
 
 def apply_key(chart: ChordChart, estimate: KeyEstimate) -> ChordChart:

@@ -25,6 +25,15 @@ UNREADABLE_TEXT: Final = "A stem could not be read."
 """Failure text of a stem that exists but is not readable audio."""
 
 
+def _sum(stems: Sequence[npt.NDArray[np.float64]]) -> MonoAudio:
+    """Zero-pad to the longest stem, add, and scale down when the peak exceeds 1."""
+    total = np.zeros(max(len(s) for s in stems), dtype=np.float64)
+    for stem in stems:
+        total[: len(stem)] += stem
+    peak = float(np.max(np.abs(total))) if total.size else 0.0
+    return np.asarray(total / max(1.0, peak), dtype=np.float32)
+
+
 class SoundfileHarmonicMixer:
     """``ports.HarmonicMixer`` reading FLAC/WAV stems with soundfile and soxr."""
 
@@ -44,12 +53,7 @@ class SoundfileHarmonicMixer:
         if not 1 <= len(paths) <= MAX_STEMS:
             msg = f"a mix needs 1-4 stems, got {len(paths)}"
             raise ValueError(msg)
-        stems = [self._load(path, sample_rate) for path in paths]
-        total = np.zeros(max(len(s) for s in stems), dtype=np.float64)
-        for stem in stems:
-            total[: len(stem)] += stem
-        peak = float(np.max(np.abs(total))) if total.size else 0.0
-        return np.asarray(total / max(1.0, peak), dtype=np.float32)
+        return _sum([self._load(path, sample_rate) for path in paths])
 
     def _load(self, path: Path, sample_rate: int) -> npt.NDArray[np.float64]:
         """One stem as mono float64 at ``sample_rate``."""

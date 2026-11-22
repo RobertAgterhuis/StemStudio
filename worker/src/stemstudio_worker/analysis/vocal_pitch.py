@@ -181,11 +181,6 @@ def _result(cents: npt.NDArray[np.int64], source: VocalSource, engine: PitchEngi
     """Pack the frames with voiced share, range and warnings."""
     voiced = cents[cents > 0]
     ratio = len(voiced) / len(cents)
-    codes: list[AnalysisWarningCode] = []
-    if ratio < FEW_VOICED:
-        codes.append("few-voiced")
-    if source == "vocals.lead":
-        codes.append("detail-bleed")
     return VocalPitch(
         frames=cents.tolist(),
         source=source,
@@ -195,5 +190,14 @@ def _result(cents: npt.NDArray[np.int64], source: VocalSource, engine: PitchEngi
             low_cents=round(float(np.percentile(voiced, 5))),
             high_cents=round(float(np.percentile(voiced, 95))),
         ),
-        warnings=[AnalysisWarning(code=c, text=ANALYSIS_WARNING_TEXTS[c]) for c in codes],
+        warnings=_warnings(ratio, source),
     )
+
+
+def _warnings(ratio: float, source: VocalSource) -> list[AnalysisWarning]:
+    """``few-voiced`` below ``FEW_VOICED``; ``detail-bleed`` for the lead detail stem."""
+    flags: tuple[tuple[AnalysisWarningCode, bool], ...] = (
+        ("few-voiced", ratio < FEW_VOICED),
+        ("detail-bleed", source == "vocals.lead"),
+    )
+    return [AnalysisWarning(code=c, text=ANALYSIS_WARNING_TEXTS[c]) for c, on in flags if on]

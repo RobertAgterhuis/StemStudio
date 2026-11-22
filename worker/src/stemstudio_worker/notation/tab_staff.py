@@ -138,15 +138,15 @@ def _set_staff(element: ET.Element, staff: str) -> None:
     element.insert(index, marker)
 
 
+def _direction(child: ET.Element) -> int:
+    """+1 when ``child`` moves the position forward, -1 for ``<backup>``, 0 otherwise."""
+    if child.tag == "backup":
+        return -1
+    return int(child.tag == "forward" or (child.tag == "note" and child.find("chord") is None))
+
+
 def _measure_length(measure: ET.Element) -> int:
-    position = 0
-    for child in measure:
-        duration = int(child.findtext("duration", "0"))
-        if child.tag == "backup":
-            position -= duration
-        elif child.tag == "forward" or (child.tag == "note" and child.find("chord") is None):
-            position += duration
-    return position
+    return sum(_direction(c) * int(c.findtext("duration", "0")) for c in measure)
 
 
 def _tab_copy(element: ET.Element) -> ET.Element:
@@ -154,28 +154,38 @@ def _tab_copy(element: ET.Element) -> ET.Element:
     for tag in _DROPPED_IN_TAB:
         for child in twin.findall(tag):
             twin.remove(child)
-    voice = twin.find("voice")
-    if voice is not None:
-        voice.text = str(int(voice.text or "1") + _TAB_VOICE_OFFSET)
+    _shift_voice(twin)
     if twin.tag != "backup":
         _set_staff(twin, "2")
     return twin
+
+
+def _shift_voice(element: ET.Element) -> None:
+    """Move the voice of a TAB copy out of the notation staff's voices."""
+    voice = element.find("voice")
+    if voice is not None:
+        voice.text = str(int(voice.text or "1") + _TAB_VOICE_OFFSET)
 
 
 def _second_staff(part: ET.Element) -> dict[int, ET.Element]:
     """Append a copy of every measure's notes as staff 2; returns copy by original ``id``."""
     copies: dict[int, ET.Element] = {}
     for measure in part.iter("measure"):
-        timed = [c for c in measure if c.tag in ("note", "forward", "backup")]
-        backup = ET.SubElement(measure, "backup")
-        ET.SubElement(backup, "duration").text = str(_measure_length(measure))
-        for element in timed:
-            twin = _tab_copy(element)
-            measure.append(twin)
-            copies[id(element)] = twin
-            if element.tag != "backup":
-                _set_staff(element, "1")
+        _copy_measure(measure, copies)
     return copies
+
+
+def _copy_measure(measure: ET.Element, copies: dict[int, ET.Element]) -> None:
+    """Back up over ``measure`` and append the staff-2 copy of its timed elements."""
+    timed = [c for c in measure if c.tag in ("note", "forward", "backup")]
+    backup = ET.SubElement(measure, "backup")
+    ET.SubElement(backup, "duration").text = str(_measure_length(measure))
+    for element in timed:
+        twin = _tab_copy(element)
+        measure.append(twin)
+        copies[id(element)] = twin
+        if element.tag != "backup":
+            _set_staff(element, "1")
 
 
 def _capo_direction(capo: int) -> ET.Element:
@@ -187,11 +197,10 @@ def _capo_direction(capo: int) -> ET.Element:
 
 def _attributes(part: ET.Element, tuning: Tuning, settings: TablatureSettings) -> None:
     """Clefs, ``<staves>`` and staff details of the first measure."""
-    measure = part.find("measure")
-    attributes = measure.find("attributes") if measure is not None else None
-    clef = attributes.find("clef") if attributes is not None else None
-    if measure is None or attributes is None or clef is None:
+    first = _first_clef(part)
+    if first is None:
         return
+    measure, attributes, clef = first
     details = _staff_details(tuning, settings.capo, None if settings.layout == "tab-only" else "2")
     if settings.layout == "tab-only":
         _insert_after(attributes, clef, _tab_clef(None), details)
@@ -200,6 +209,16 @@ def _attributes(part: ET.Element, tuning: Tuning, settings: TablatureSettings) -
         _two_staves(attributes, clef, details)
     if settings.capo:
         _insert_after(measure, attributes, _capo_direction(settings.capo))
+
+
+def _first_clef(part: ET.Element) -> tuple[ET.Element, ET.Element, ET.Element] | None:
+    """The first measure, its ``<attributes>`` and its ``<clef>``, or None when one is missing."""
+    measure = part.find("measure")
+    if measure is None:
+        return None
+    attributes = measure.find("attributes")
+    clef = None if attributes is None else attributes.find("clef")
+    return None if attributes is None or clef is None else (measure, attributes, clef)
 
 
 def _two_staves(attributes: ET.Element, clef: ET.Element, details: ET.Element) -> None:
@@ -211,6 +230,15 @@ def _two_staves(attributes: ET.Element, clef: ET.Element, details: ET.Element) -
     _insert_after(attributes, clef, _tab_clef("2"), details)
 
 
+def _targets(part: ET.Element, settings: TablatureSettings) -> dict[int, ET.Element]:
+    """The note that gets the frets, by the ``id`` of the notation note (staff 2 copy or itself)."""
+    targets = {id(n): n for n in _pitched(part)}
+    if settings.layout != "notation-and-tab":
+        return targets
+    copies = _second_staff(part)
+    return {key: copies[key] for key in targets}
+
+
 def add_tab_staff(musicxml: bytes, settings: TablatureSettings, fingerer: TabFingerer) -> TabResult:
     """Add the TAB staff to the one-part MusicXML of a guitar or bass score."""
     root = ET.fromstring(musicxml)  # noqa: S314 - our own music21 output, never user XML
@@ -219,10 +247,7 @@ def add_tab_staff(musicxml: bytes, settings: TablatureSettings, fingerer: TabFin
         return TabResult(musicxml, 0)
     tuning = TUNINGS[settings.tuning]
     positions, wide = _positions(part, tuning, settings, fingerer)
-    targets = {id(n): n for n in _pitched(part)}
-    if settings.layout == "notation-and-tab":
-        copies = _second_staff(part)
-        targets = {key: copies[key] for key in targets}
+    targets = _targets(part, settings)
     for key, position in positions.items():
         _technical(targets[key], position)
     _attributes(part, tuning, settings)
@@ -234,15 +259,7 @@ def tablature_document(
 ) -> ScoreDocument:
     """``document`` with the TAB staff, ``tablature`` summary and the tab warnings."""
     result = add_tab_staff(document.musicxml, settings, fingerer)
-    summary = TablatureSummary(
-        tuning=settings.tuning,
-        strings=len(TUNINGS[settings.tuning].pitches),
-        capo=settings.capo,
-        layout=settings.layout,
-        octave_moved=fit.octave_moved,
-        notes_dropped=fit.notes_dropped,
-        wide_stretches=result.wide_stretches,
-    )
+    summary = _summary(settings, fit, result.wide_stretches)
     counts: tuple[tuple[ScoreWarningCode, int], ...] = (
         ("tab-octave-moved", fit.octave_moved),
         ("tab-notes-dropped", fit.notes_dropped),
@@ -251,4 +268,17 @@ def tablature_document(
     extra = tuple(score_warning(code, n=n) for code, n in counts if n)
     return replace(
         document, musicxml=result.musicxml, tablature=summary, warnings=document.warnings + extra
+    )
+
+
+def _summary(settings: TablatureSettings, fit: FitResult, wide: int) -> TablatureSummary:
+    """The ``tablature`` facts of the score item."""
+    return TablatureSummary(
+        tuning=settings.tuning,
+        strings=len(TUNINGS[settings.tuning].pitches),
+        capo=settings.capo,
+        layout=settings.layout,
+        octave_moved=fit.octave_moved,
+        notes_dropped=fit.notes_dropped,
+        wide_stretches=wide,
     )

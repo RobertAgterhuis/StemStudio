@@ -76,19 +76,21 @@ def insert_symbols(
     score: m21_stream.Score, symbols: Sequence[ScoreChordSymbol], placement: Placement
 ) -> int:
     """Insert the symbols into the top staff of ``score``; returns how many were placed."""
-    placed = 0
     part = score.parts[0]
+    return sum(_insert(part, item, placement) for item in symbols)
+
+
+def _insert(part: m21_stream.Part, item: ScoreChordSymbol, placement: Placement) -> bool:
+    """Insert one symbol into the bar its start falls in; False when it is past the last bar."""
+    position = placement.quantiser.snap(item.start_ms / 1000) + placement.lead
+    measure = _measure_at(part, position)
+    if measure is None:
+        return False
     flats = placement.prefer_flats
-    for item in symbols:
-        position = placement.quantiser.snap(item.start_ms / 1000) + placement.lead
-        measure = _measure_at(part, position)
-        if measure is None:
-            continue
-        bass = _concert_name(item.bass, flats) if item.bass is not None else None
-        symbol = _symbol(_concert_name(item.root, flats), item.quality, bass)
-        measure.insert(float(position - Fraction(measure.offset)), symbol)
-        placed += 1
-    return placed
+    bass = _concert_name(item.bass, flats) if item.bass is not None else None
+    symbol = _symbol(_concert_name(item.root, flats), item.quality, bass)
+    measure.insert(float(position - Fraction(measure.offset)), symbol)
+    return True
 
 
 def _written_name(pitch_class: int, semitones: int, written: KeyInfo) -> str:

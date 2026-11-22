@@ -17,7 +17,7 @@ from stemstudio_worker.notation.cleaning import (
     cleaning_warnings,
 )
 from stemstudio_worker.notation.extensions import Extensions, extend, section_warnings
-from stemstudio_worker.notation.keys import MIN_KEY_NOTES, resolve_key
+from stemstudio_worker.notation.keys import MIN_KEY_NOTES, KeyResult, resolve_key
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.profiles import Profile, get_profile
 from stemstudio_worker.notation.tablature import FitResult, fit_notes
@@ -53,21 +53,13 @@ class MusicNotator:
         if not cleaned.notes:
             raise NoNotesError
         fit = _fitted(cleaned.notes, settings)
-        key = resolve_key(fit.notes, settings.key_override)
-        built = build_pitched_score(
-            fit.notes, ScoreSpec(profile, timebase, key.info, settings.titles)
+        key, built = _built(fit, profile, timebase, settings)
+        warnings = (*cleaning_warnings(cleaned), *key.warnings, *section_warnings(notes, profile))
+        facts = _Facts(key.info, len(fit.notes), (*_tempo_warnings(settings), *warnings))
+        extensions = Extensions(
+            settings, profile, key.info, fit, timebase.quantiser(settings.resolution)
         )
-        warnings = (
-            *_tempo_warnings(settings),
-            *cleaning_warnings(cleaned),
-            *key.warnings,
-            *section_warnings(notes, profile),
-        )
-        document = _document(built, timebase, _Facts(key.info, len(fit.notes), warnings))
-        quantiser = timebase.quantiser(settings.resolution)
-        return extend(
-            document, built.score, Extensions(settings, profile, key.info, fit, quantiser)
-        )
+        return extend(_document(built, timebase, facts), built.score, extensions)
 
     def notate_drums(self, hits: Sequence[DrumHit], settings: NotationSettings) -> ScoreDocument:
         """Build the two-voice percussion score of the ``drums`` profile.
@@ -84,6 +76,15 @@ class MusicNotator:
         few = (score_warning("few-notes"),) if len(cleaned.hits) < MIN_KEY_NOTES else ()
         warnings = (*_tempo_warnings(settings), *cleaning_warnings(cleaned), *few)
         return _document(built, timebase, _Facts(None, len(cleaned.hits), warnings))
+
+
+def _built(
+    fit: FitResult, profile: Profile, timebase: TimeBase, settings: NotationSettings
+) -> tuple[KeyResult, BuiltScore]:
+    """The key of the fitted notes and the pitched score spelled in it."""
+    key = resolve_key(fit.notes, settings.key_override)
+    spec = ScoreSpec(profile, timebase, key.info, settings.titles)
+    return key, build_pitched_score(fit.notes, spec)
 
 
 def _with_tuning_range(profile: Profile, settings: NotationSettings) -> Profile:

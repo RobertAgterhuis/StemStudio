@@ -7,6 +7,7 @@ spelling vectors).
 """
 
 import re
+from collections.abc import Sequence
 from typing import Final, NamedTuple, cast, get_args
 
 from stemstudio_worker.schemas import ChordQuality, KeyMode
@@ -95,10 +96,14 @@ def parse_label(label: str) -> Chord:
         raise ValueError(msg)
     letter, accidental, quality, flat, degree = match.groups()
     root = (SHARP_NAMES.index(letter) + _ACCIDENTAL[accidental or ""]) % 12
-    bass = None
-    if degree is not None:
-        bass = (root + _DEGREE_SEMITONES[degree] - (1 if flat else 0)) % 12
-    return Chord(root, cast("ChordQuality", quality), bass)
+    return Chord(root, cast("ChordQuality", quality), _bass_of(root, flat, degree))
+
+
+def _bass_of(root: int, flat: str | None, degree: str | None) -> int | None:
+    """Pitch class of the ``/[b]degree`` bass of a Harte label, None without one."""
+    if degree is None:
+        return None
+    return (root + _DEGREE_SEMITONES[degree] - (1 if flat else 0)) % 12
 
 
 def is_chord(label: str) -> bool:
@@ -151,7 +156,9 @@ def display_symbol(chord: Chord, *, prefer_flats: bool = False) -> str:
     if chord.root is None or chord.quality is None:
         return "N.C."
     names = FLAT_NAMES if prefer_flats else SHARP_NAMES
-    symbol = names[chord.root] + DISPLAY_SUFFIX[chord.quality]
-    if chord.bass is None or chord.bass == chord.root:
-        return symbol
-    return f"{symbol}/{names[chord.bass]}"
+    return names[chord.root] + DISPLAY_SUFFIX[chord.quality] + _slash(chord, names)
+
+
+def _slash(chord: Chord, names: Sequence[str]) -> str:
+    """``/G`` for an inversion, empty when the bass is the root or missing."""
+    return "" if chord.bass is None or chord.bass == chord.root else f"/{names[chord.bass]}"

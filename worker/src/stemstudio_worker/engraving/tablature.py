@@ -79,6 +79,6 @@ def check_tab_pages(pages: Sequence[str], strings: int) -> None:
     Raises:
         TranscriptionError: ``TAB_ENGRAVING_FAILED_TEXT`` otherwise.
     """
-    staves = [staff for page in pages for staff in tab_staves(page)]
-    if not staves or any(staff.lines != strings for staff in staves):
+    lines = {staff.lines for page in pages for staff in tab_staves(page)}
+    if lines != {strings}:
         raise TranscriptionError(TAB_ENGRAVING_FAILED_TEXT)

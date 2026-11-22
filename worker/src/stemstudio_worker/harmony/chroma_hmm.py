@@ -6,7 +6,7 @@ pass over a 25-state self-loop HMM. Major/minor only: a ``full`` request yields 
 classes; the post-processor then writes ``vocabulary-reduced``.
 """
 
-from typing import Final
+from typing import Any, Final
 
 import librosa
 import numpy as np
@@ -47,6 +47,24 @@ def _templates() -> npt.NDArray[np.float64]:
     return rows / np.linalg.norm(rows, axis=1, keepdims=True)
 
 
+def _frames(states: npt.NDArray[np.integer[Any]], chroma: npt.NDArray[np.float64]) -> ChordFrames:
+    """The chroma-hmm result: one-hot posteriors over the simple classes and the chroma."""
+    return ChordFrames(
+        posteriors=_one_hot(states),
+        labels=simple_labels(),
+        frame_seconds=CHORD_HOP / CHORD_SAMPLE_RATE,
+        chroma=np.ascontiguousarray(chroma.T, dtype=np.float32),
+        engine="chroma-hmm",
+    )
+
+
+def _one_hot(states: npt.NDArray[np.integer[Any]]) -> npt.NDArray[np.float32]:
+    """``(frames, 25)`` posteriors with 1 at the decoded class of every frame."""
+    posteriors = np.zeros((len(states), _CLASSES), dtype=np.float32)
+    posteriors[np.arange(len(states)), states] = 1.0
+    return posteriors
+
+
 class ChromaHmmRecognizer:
     """``ports.ChordRecognizer`` of the ``chroma-hmm`` engine (no model, CPU only)."""
 
@@ -71,16 +89,8 @@ class ChromaHmmRecognizer:
         chroma, silent = _features(np.asarray(audio, dtype=np.float32))
         progress(0.5)
         states = librosa.sequence.viterbi(self._emissions(chroma, silent), self._transition)
-        posteriors = np.zeros((len(states), _CLASSES), dtype=np.float32)
-        posteriors[np.arange(len(states)), states] = 1.0
         progress(1.0)
-        return ChordFrames(
-            posteriors=posteriors,
-            labels=simple_labels(),
-            frame_seconds=CHORD_HOP / CHORD_SAMPLE_RATE,
-            chroma=np.ascontiguousarray(chroma.T, dtype=np.float32),
-            engine="chroma-hmm",
-        )
+        return _frames(states, chroma)
 
     def _emissions(
         self, chroma: npt.NDArray[np.float64], silent: npt.NDArray[np.bool_]

@@ -16,6 +16,7 @@ from stemstudio_worker.notation.chord_symbols import Placement, insert_symbols
 from stemstudio_worker.notation.cleaning import reduce_monophonic
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.parts import (
+    PartPlan,
     out_of_range,
     plan_part,
     summary,
@@ -77,17 +78,24 @@ def _with_part(
         return document
     plan = plan_part(part, extensions.profile, extensions.key, _name(extensions))
     outside = out_of_range(extensions.fit.notes, plan.info)
-    warnings = (score_warning("part-out-of-range", n=outside),) if outside else ()
-    musicxml = document.musicxml
-    if part.instrument != "concert" or part.clef != "auto":
-        written = written_score(score, plan, len(extensions.profile.clefs) > 1)
-        musicxml = with_transpose(musicxml_bytes(written), plan.info)
+    concert = part.instrument == "concert" and part.clef == "auto"
     return replace(
         document,
-        musicxml=musicxml,
+        musicxml=document.musicxml if concert else _written_musicxml(score, extensions, plan),
         part=summary(plan, outside),
-        warnings=document.warnings + warnings,
+        warnings=document.warnings + _range_warnings(outside),
     )
+
+
+def _range_warnings(outside: int) -> tuple[ScoreWarning, ...]:
+    """``part-out-of-range`` with the count, or nothing."""
+    return (score_warning("part-out-of-range", n=outside),) if outside else ()
+
+
+def _written_musicxml(score: m21_stream.Score, extensions: Extensions, plan: PartPlan) -> bytes:
+    """The MusicXML of the written part (transposed, respelled, clef, ``<transpose>``)."""
+    written = written_score(score, plan, len(extensions.profile.clefs) > 1)
+    return with_transpose(musicxml_bytes(written), plan.info)
 
 
 def _with_chords(
