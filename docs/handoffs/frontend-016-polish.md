@@ -43,7 +43,7 @@ None from the contracts.
 ## Review fixes (2026-11-22)
 
 Independent code review of lane L5; orchestrator decision: fix all, test-first (red `test(web)` then green commit per
-finding). Commits `b57c9f2a..91f9e991` on `016-round-lane-l5`.
+finding). Commits `b57c9f2a..73b4fd33` plus this hand-off on `016-round-lane-l5`.
 
 | Finding | Red | Green | Fix |
 |---|---|---|---|
@@ -54,10 +54,10 @@ finding). Commits `b57c9f2a..91f9e991` on `016-round-lane-l5`.
 | L1 tab seeded from the suggestion; guitar default for bass | 2d88d5ff | ab1e44d4 | `NewTab` uses `Initial(options)`; `TabChoice.HasTuning` is false when no catalogue tuning fits the profile, and then no tab options are shown or sent. |
 | L2 rapid Drumless clicks | 159e7422 | 274b74f1, 91f9e991 | One Drumless or guide change at a time (`_drumBusy`); a click while a change is being sent is ignored. Tested with a delayed engine fake. |
 | L5 polling after 404 | 1a9b7937 | b347ba2a | Chord panel, singing panel and drum trainer stop polling after a 404 (`AnalysisText.KeepPolling`) and keep the not-found error in their existing alert. |
-| Take transpose (orchestrator item, engine 2.6.0) | a5625d53 | 36b2d116 | `TakeScoreRequest.TransposeSemitones` (camelCase `transposeSemitones`, default 0). The 015 take DTO carries no transpose, so "Score this take" sends the mixer's current 012 transpose (`SingingSource.TransposeSemitones`). |
+| Take transpose (orchestrator item, engine 2.6.0) | a5625d53, then c2ca16dd | 36b2d116, then 73b4fd33 | `TakeScoreRequest.TransposeSemitones` (camelCase `transposeSemitones`, default 0). Orchestrator decision: "Score this take" sends the take's recorded transpose, which is 0 under the 015 upload rule (`RecordingTakeUploadDto.TransposeSemitones` must be 0); the mixer's current transpose is not used. The field stays plumbed for a future `RecordingTakeDto` transpose (code comment in `TakeScoreAction`). |
 
-Test corrections inside the package: the two H2 mixer tests open the trainer through Drumless first (750ea77e/756f3593
-note); `SingingUnitsTests.LeadMute_MutesTheLeadVocal_AndRestoresIt` now expands the vocals group first (the old
+Test corrections inside the package: the two H2 mixer tests open the trainer through Drumless first (corrected in
+756f3593); `SingingUnitsTests.LeadMute_MutesTheLeadVocal_AndRestoresIt` now expands the vocals group first (the old
 expectation encoded the H1 bug).
 
 ### Checks after the fixes
@@ -71,9 +71,6 @@ expectation encoded the H1 bug).
 
 Security: no new untrusted input; the stale reason is backend text rendered as text (Blazor-encoded). No new dependencies.
 
-### Request for the orchestrator
+### Take transpose decision
 
-- Take transpose: the 015 upload contract requires `transposeSemitones = 0` for a take (`RecordingTakeUploadDto`), so
-  every saved take was recorded at transpose 0, while scoring now uses the mixer's current transpose as instructed. If
-  the transpose changes after recording, the reference is compared in a different key. Either keep it (the singer
-  practises at the current transpose) or send 0 for takes; a `transposeSemitones` on `RecordingTakeDto` would settle it.
+Settled by the orchestrator: takes are scored at their recorded transpose (0), see the table row above.
