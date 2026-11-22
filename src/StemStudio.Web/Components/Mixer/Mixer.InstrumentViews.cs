@@ -7,6 +7,9 @@ namespace StemStudio.Web.Components.Mixer;
 /// <summary>Instrument views of the mixer page (feature 016): the chord analysis shared by the chord lane, the banner and the key.</summary>
 public sealed partial class Mixer
 {
+    [Microsoft.AspNetCore.Components.Inject]
+    private IInstrumentViewEngine Views { get; set; } = default!;
+
     /// <summary>The last loaded chord analysis, or null before the first answer.</summary>
     internal TrackAnalysisDto<ChordChartDocumentDto>? ChordAnalysis { get; private set; }
 
@@ -22,5 +25,21 @@ public sealed partial class Mixer
         }
 
         ChordAnalysis = analysis;
+    }
+
+    // Capo mode (US8): the engine re-spells the lane and the banner for the capo (setChordDisplay).
+    private Task SetCapoAsync(CapoSetting setting) =>
+        EngineViewsAsync(() => Views.SetChordDisplayAsync(new ChordDisplay(setting.Effective, setting.On && setting.ShowSounding)));
+
+    private async Task EngineViewsAsync(Func<Task> call)
+    {
+        try
+        {
+            await call();
+        }
+        catch (AudioEngineException ex)
+        {
+            EngineError = ex.Message;
+        }
     }
 }

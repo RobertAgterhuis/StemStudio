@@ -151,3 +151,43 @@
     will-change: auto;
   }
 }
+
+/* Capo mode (016 US8): the engine adds .chord-sounding (sounding symbol only) to lane items and banner chords; the
+   brackets and the smaller size are ours, from the design tokens only. */
+.chord-sounding {
+  margin-inline-start: 0.25em;
+  font-size: 0.8em;
+  color: var(--ss-color-muted);
+}
+
+.chord-sounding::before {
+  content: "(";
+}
+
+.chord-sounding::after {
+  content: ")";
+}
+
+.ss-capo-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-capo-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-capo-suggestions button,
+.ss-drum-lane-label,
+.ss-take-score button {
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+}
+

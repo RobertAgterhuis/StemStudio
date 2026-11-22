@@ -16,6 +16,10 @@ public sealed partial class LyricsSection
     [Parameter, EditorRequired]
     public TrackDto Track { get; set; } = default!;
 
+    /// <summary>The capo of capo mode (016 US8) for the chord sheet; 0 without.</summary>
+    [Parameter]
+    public int Capo { get; set; }
+
     private LyricsDto? Lyrics { get; set; }
 
     private string? LoadError { get; set; }

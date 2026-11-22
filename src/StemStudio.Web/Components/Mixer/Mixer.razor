@@ -131,6 +131,10 @@ else
             }
         </div>
         <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
+        @if (Family == InstrumentFamilyDto.Guitar)
+        {
+            <CapoMode TrackId="Id" TransposeSemitones="State.Practice.TransposeSemitones" OnChanged="SetCapoAsync" />
+        }
         @if (OpenedView is { } openView && _track is not null)
         {
             <section class="ss-instrument-view" aria-label="@ViewLabel" data-testid="instrument-view" data-view="@WireName.Of(openView)" data-help-id="practise-as">
