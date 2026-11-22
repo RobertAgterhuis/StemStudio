@@ -20,6 +20,7 @@ public sealed class InstrumentViewsHelpTests
         { "singing-feedback", ["singing", "pitch-view"] },
         { "singing-tolerance-latency", ["singing-tolerance", "singing-latency"] },
         { "transposed-parts", ["score-part", "score-part-clef"] },
+        { "instrument-views", ["practise-as"] },
     };
 
     [Theory]
@@ -65,5 +66,18 @@ public sealed class InstrumentViewsHelpTests
         body.ShouldContain("headphones", Case.Insensitive);
         body.ShouldContain("stays in your browser", Case.Insensitive);
         body.ShouldContain("Limits", Case.Sensitive);
+    }
+
+    [Fact]
+    public void ViewsTopic_NamesEveryFamily_AndThePresetFix()
+    {
+        var body = Catalog.Topic("instrument-views")!.Markdown;
+
+        foreach (var family in new[] { "Vocals", "Drums", "Bass", "Guitar", "Keys", "Strings / brass / woodwinds" })
+        {
+            body.ShouldContain(family);
+        }
+
+        body.ShouldContain("detail", Case.Insensitive);
     }
 }

@@ -111,6 +111,7 @@ public sealed class FeatureCatalogTests
         { "singing.raw", [E], "singing-tolerance-latency" },
         { "parts.instrument", [B, A, E], "transposed-parts" },
         { "parts.clef", [A, E], "transposed-parts" },
+        { "views.practise-as", [B, A, E], "instrument-views" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
