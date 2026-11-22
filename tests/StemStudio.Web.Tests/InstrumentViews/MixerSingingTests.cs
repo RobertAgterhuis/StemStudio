@@ -54,6 +54,38 @@ public sealed class MixerSingingTests : MixerTestContext
     }
 
     [Fact]
+    public async Task WithTheVocalsCollapsed_TheGroupIsExpandedWhileRunning_AndCollapsedAfterwards()
+    {
+        var page = OpenSinging();
+        page.Find("[data-testid=expand-vocals]").GetAttribute("aria-expanded").ShouldBe("false");
+        Engine.ClearReceivedCalls();
+
+        await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
+
+        await Engine.Received(1).SetExpandedAsync("vocals", true);
+        page.Find("[data-testid=expand-vocals]").GetAttribute("aria-expanded").ShouldBe("true");
+        await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "vocals.lead" && c.Mute));
+        await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
+        await Engine.Received(1).SetExpandedAsync("vocals", false);
+        page.Find("[data-testid=expand-vocals]").GetAttribute("aria-expanded").ShouldBe("false");
+    }
+
+    [Fact]
+    public async Task WhenTheEngineCannotExpand_TheParentVocalsAreMuted()
+    {
+        var page = OpenSinging();
+        Engine.SetExpandedAsync("vocals", true).Returns(Task.FromException(new AudioEngineException("Failed to load stem")));
+        Engine.ClearReceivedCalls();
+
+        await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
+
+        await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "vocals" && c.Mute));
+        await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
+        await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "vocals" && !c.Mute));
+        await Engine.DidNotReceive().SetExpandedAsync("vocals", false);
+    }
+
+    [Fact]
     public async Task TheLastUnitScore_StandsNextToTheBanner()
     {
         var page = OpenSinging();
