@@ -33,7 +33,7 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
         var chordsReady = await chords.ChartAsync(source!.Track?.Id, cancellationToken) is not null;
         return TypedResults.Ok(options with
         {
-            Chords = new ScoreChordOptionsDto { Available = chordsReady && ProfileCatalog.Allowed(source.Channel).Any(ScoreNotation.ChordsAllowed) },
+            Chords = new ScoreChordOptionsDto { Available = chordsReady && ProfileCatalog.Allowed(source.Channel, source.AssetSuggestion).Any(ScoreNotation.ChordsAllowed) },
         });
     }
 
@@ -49,12 +49,13 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
 
     private ScoreOptionsDto WithProfiles(ResolvedSource source, ScoreEnvironment environment, ScoreOptionsDto options)
     {
-        var allowed = ProfileCatalog.Allowed(source.Channel);
+        var allowed = ProfileCatalog.Allowed(source.Channel, source.AssetSuggestion);
         var suggested = source.Channel is { } channel ? ProfileCatalog.Suggest(channel) : source.AssetSuggestion;
         return options with
         {
             SuggestedProfile = Dto(suggested),
             Tablature = Tablature(suggested),
+            Parts = Parts(suggested),
             AllowedProfiles = allowed.Select(profile => ScoreMapper.Map<ScoreProfileDto>(profile)).ToList(),
             Estimates = allowed.SelectMany(profile => Estimates(profile, source.DurationSeconds, environment)).ToList(),
             Limits = allowed.Select(profile => new ProfileLimitDto(ScoreMapper.Map<ScoreProfileDto>(profile), ProfileCatalog.Limit(profile))).ToList(),
@@ -81,6 +82,18 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             DefaultTuning = tunings.Count > 0 ? tunings[0] : null,
             Tunings = tunings,
             CapoAllowed = instrument == InstrumentCatalogue.GuitarInstrument,
+        };
+    }
+
+    /// <summary>Part options of the suggested profile: a written instrument for every pitched profile, a clef outside the grand staff.</summary>
+    private static ScorePartOptionsDto Parts(ScoreProfile? suggested)
+    {
+        var available = suggested is { } profile && ScorePartRules.PartAllowed(profile);
+        return new ScorePartOptionsDto
+        {
+            Available = available,
+            DefaultInstrument = Contracts.InstrumentViews.WrittenInstrumentDto.Concert,
+            ClefAllowed = available && !ScorePartRules.IsGrandStaff(suggested!.Value),
         };
     }
 

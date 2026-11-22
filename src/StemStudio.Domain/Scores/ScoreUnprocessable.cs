@@ -12,10 +12,10 @@ public enum ScoreUnprocessable
     /// <summary>A capo with a bass tuning.</summary>
     CapoNotAllowed,
 
-    /// <summary>A clef the written instrument does not allow.</summary>
+    /// <summary>A clef for a grand-staff profile (keys, piano).</summary>
     ClefNotAllowed,
 
-    /// <summary>A transposed part for a profile that has none.</summary>
+    /// <summary>A part for the drums profile.</summary>
     PartNotAllowed,
 }
 
@@ -84,22 +84,9 @@ public static class ScoreTablatureRules
     /// <exception cref="ScoreUnprocessableException">A rule is broken.</exception>
     public static void Check(TablatureSettings? tablature, ScoreProfile profile)
     {
-        if (tablature is null)
+        if (tablature is not null)
         {
-            return;
-        }
-
-        var instrument = InstrumentOf(profile)
-            ?? throw new ScoreUnprocessableException(ScoreUnprocessable.TablatureNotAllowed, TablatureNotAllowedText);
-        var tuning = InstrumentViews.InstrumentCatalogue.TuningOf(tablature.Tuning);
-        if (tuning.Instrument != instrument)
-        {
-            throw new ScoreUnprocessableException(ScoreUnprocessable.TuningMismatch, $"The tuning {tuning.Label} is not a {instrument} tuning.");
-        }
-
-        if (!tuning.IsGuitar && tablature.Capo > 0)
-        {
-            throw new ScoreUnprocessableException(ScoreUnprocessable.CapoNotAllowed, "A capo is available for guitar tunings only.");
+            CheckTuning(InstrumentViews.InstrumentCatalogue.TuningOf(tablature.Tuning), tablature.Capo, profile);
         }
     }
 
@@ -107,4 +94,49 @@ public static class ScoreTablatureRules
     /// <param name="tablature">The settings, or null.</param>
     /// <returns>Whether the capo is valid.</returns>
     public static bool CapoInRange(TablatureSettings? tablature) => tablature is null || tablature.Capo is >= 0 and <= MaxCapo;
+
+    private static void CheckTuning(InstrumentViews.Tuning tuning, int capo, ScoreProfile profile)
+    {
+        var instrument = InstrumentOf(profile) ?? throw new ScoreUnprocessableException(ScoreUnprocessable.TablatureNotAllowed, TablatureNotAllowedText);
+        if (tuning.Instrument != instrument)
+        {
+            throw new ScoreUnprocessableException(ScoreUnprocessable.TuningMismatch, $"The tuning {tuning.Label} is not a {instrument} tuning.");
+        }
+
+        if (!tuning.IsGuitar && capo > 0)
+        {
+            throw new ScoreUnprocessableException(ScoreUnprocessable.CapoNotAllowed, "A capo is available for guitar tunings only.");
+        }
+    }
+}
+
+/// <summary>The part rules of a score request (data-model 4.2, 4.3; FR-051, FR-052).</summary>
+public static class ScorePartRules
+{
+    /// <summary>True for the profiles written on a grand staff, which keep their own clefs.</summary>
+    /// <param name="profile">The profile.</param>
+    /// <returns>Whether the clef is fixed.</returns>
+    public static bool IsGrandStaff(ScoreProfile profile) => profile is ScoreProfile.Keys or ScoreProfile.Piano;
+
+    /// <summary>True when a part (written instrument) can be chosen: every pitched profile, not drums.</summary>
+    /// <param name="profile">The profile.</param>
+    /// <returns>Whether a part is allowed.</returns>
+    public static bool PartAllowed(ScoreProfile profile) => profile != ScoreProfile.Drums;
+
+    /// <summary>Checks a part against the profile: drums take none, grand-staff profiles take no clef but <c>auto</c>.</summary>
+    /// <param name="part">The part, or null.</param>
+    /// <param name="profile">The resolved profile.</param>
+    /// <exception cref="ScoreUnprocessableException">A rule is broken.</exception>
+    public static void Check(PartSettings? part, ScoreProfile profile)
+    {
+        if (part is not null && !PartAllowed(profile))
+        {
+            throw new ScoreUnprocessableException(ScoreUnprocessable.PartNotAllowed, "Drum notation has no written instrument or clef.");
+        }
+
+        if (part is { Clef: not InstrumentViews.ClefChoice.Auto } && IsGrandStaff(profile))
+        {
+            throw new ScoreUnprocessableException(ScoreUnprocessable.ClefNotAllowed, "Keys and piano scores keep their two staves; choose the automatic clef.");
+        }
+    }
 }

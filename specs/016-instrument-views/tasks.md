@@ -269,8 +269,8 @@ text, the row wins.
 
 **Goal**: new profiles, written instrument and clef, same bars. **Independent test**: quickstart V11; E2E `instrument-parts.spec.ts`.
 
-- [ ] T108 [P] [US5] [backend] Failing tests: profiles `strings`/`brass`/`woodwinds` suggested for `<parent>.strings|brass|woodwinds`; `part` validation (`part-not-allowed`, `clef-not-allowed`), `ScoreOptions.parts`, `ScoreFacts.part`, recipe round trip (FR-050..FR-053)
-- [ ] T109 [US5] [backend] Implement to pass T108
+- [x] T108 [P] [US5] [backend] Failing tests: profiles `strings`/`brass`/`woodwinds` suggested for `<parent>.strings|brass|woodwinds`; `part` validation (`part-not-allowed`, `clef-not-allowed`), `ScoreOptions.parts`, `ScoreFacts.part`, recipe round trip (FR-050..FR-053)
+- [x] T109 [US5] [backend] Implement to pass T108
 - [ ] T110 [P] [US5] [frontend] Failing bUnit tests: `score-part-instrument` (all levels, `concert` first), `score-part-clef` (Advanced), `asset-score-part-<id>`, new profile names; help id `transposed-parts` (FR-051, FR-052, FR-061)
 - [ ] T111 [US5] [frontend] Implement to pass T110
 - [ ] T112 [US5] [qa] Author `e2e/tests/instrument-parts.spec.ts`: **brass** as alto sax E-flat (`<transpose><chromatic>-9`, `<fifths>3` for concert C), **woodwinds** as clarinet B-flat, **strings** as viola (alto clef `<sign>C</sign>`); MIDI at concert pitch; the 014 score view shows the same current bar for the part and the concert part at a fixed position (SC-005, SC-006)
