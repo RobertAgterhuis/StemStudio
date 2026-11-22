@@ -12,8 +12,8 @@ import { expect, test } from '../support/test';
 // Feature 016 US3 (T092; FR-024..FR-034, SC-003, SC-006, quickstart V7/V8): the drum trainer for the drums family on
 // the fake stack. The fake drum hits follow the 008 pattern (kick on 1 and 3, snare on 2 and 4, hi-hat on every eighth,
 // research R-11) and are detected by the backend after the drum split, so the spec waits on the track's own drum-hits
-// analysis. The fake detail split has no hi-hat stem (kick, snare, toms, rest), so the guide-piece case listens to the
-// first split piece the lanes also show (kick); the hi-hat is checked in the lanes.
+// analysis. The fake detail split carries kick, snare and hi-hat stems (research R-11), so the guide-piece case listens
+// to the hi-hat as T092 names it.
 const hitsMs = 60_000;
 const scoreMs = 90_000;
 const meterWindowMs = 1500;
@@ -89,13 +89,13 @@ test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
     const ui = new InstrumentViews(page);
     await openDrumTrainer(mixer, ui, track);
     await setAllExpanded(mixer, track, true);
-    const others = drumDetailKeys(track).filter((key) => key !== 'drums-kick');
+    const others = drumDetailKeys(track).filter((key) => key !== 'drums-hihat');
 
-    await ui.drumLaneLabel('kick').click();
-    await expect(ui.drumLaneLabel('kick')).toHaveAttribute('aria-pressed', 'true');
+    await ui.drumLaneLabel('hihat').click();
+    await expect(ui.drumLaneLabel('hihat')).toHaveAttribute('aria-pressed', 'true');
     await mixer.play();
 
-    await expectSomeMeterMoves(mixer, ['drums-kick'], meterWindowMs);
+    await expectSomeMeterMoves(mixer, ['drums-hihat'], meterWindowMs);
     await expectSilentMeters(mixer, others, meterWindowMs);
   });
 });

@@ -53,9 +53,17 @@ test.describe('chords in the mixer (016 US1)', { tag: '@instrument' }, () => {
 
     await expect(mixer.karaokeBanner).toHaveAttribute('data-chords', 'true');
     await mixer.seek(2);
-    await expect(mixer.karaokeBanner.locator('.karaoke-chord').first()).toBeVisible();
+    // A banner chord has width 0 by design (instruments.css: the symbol overflows above its word), so it is never
+    // "visible" to Playwright: assert presence, text and that it sits above the word it is anchored to.
+    const chord = mixer.karaokeBanner.locator('.karaoke-chord').first();
+    await expect(chord).toBeAttached();
+    await expect(chord).not.toBeEmpty();
     // The engine anchors a chord right before its word (audio-engine 2.6.0, L1 hand-off).
-    await expect(mixer.karaokeBanner.locator('.karaoke-chord + .karaoke-word').first()).toBeAttached();
+    const word = mixer.karaokeBanner.locator('.karaoke-chord + .karaoke-word').first();
+    await expect(word).toBeVisible();
+    const chordBox = required(await chord.boundingBox(), 'chord box');
+    const wordBox = required(await word.boundingBox(), 'word box');
+    expect(chordBox.y).toBeLessThan(wordBox.y);
   });
 });
 

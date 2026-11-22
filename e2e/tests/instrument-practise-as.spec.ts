@@ -49,7 +49,7 @@ test.describe('004 presets follow the family rule (016 DELTA 6)', { tag: '@instr
     await mixer.waitForReady(fakeStems);
     await setAllExpanded(mixer, track, true);
 
-    await mixer.byId('preset-play-along-drums').click();
+    await mixer.applyPreset('play-along-drums');
 
     for (const key of drumDetailKeys(track)) {
       await expect.poll(() => isOn(mixer.mute(key)), { message: `mute-${key}` }).toBe(true);
