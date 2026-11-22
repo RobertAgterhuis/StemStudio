@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Web.InstrumentViews;
 
@@ -12,6 +13,7 @@ namespace StemStudio.Web.Components.Mixer;
 public sealed partial class Mixer
 {
     private DrumlessSnapshot? _drumless;
+    private bool _guideExpanded;
 
     [Inject]
     private ViewPreferences ViewPreferences { get; set; } = default!;
@@ -59,16 +61,28 @@ public sealed partial class Mixer
         (_drumless, GuidePiece) = (null, null);
         await ViewPreferences.RemoveAsync(DrumlessKey);
         await SendDrumlessAsync(change);
+        await CollapseGuideAsync();
     }
 
+    // A guide piece is a detail channel: the drums group is expanded while a guide is active, so the piece is on the
+    // audible level (FR-033), and collapsed again when the guide is cleared or Drumless ends.
     private async Task SetGuideAsync(DrumPieceDto? piece)
     {
         await (DrumlessOn ? Task.CompletedTask : ApplyDrumlessAsync());
         GuidePiece = piece;
+        _guideExpanded |= piece is not null && await ExpandForViewAsync(StemNames.Drums);
         foreach (var channel in Drumless.Guide(State!, piece))
         {
             await SendChannelAsync(channel);
         }
+
+        await (piece is null ? CollapseGuideAsync() : Task.CompletedTask);
+    }
+
+    private async Task CollapseGuideAsync()
+    {
+        await CollapseAfterViewAsync(StemNames.Drums, _guideExpanded);
+        _guideExpanded = false;
     }
 
     private async Task SendDrumlessAsync(DrumlessChange change)

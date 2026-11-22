@@ -96,6 +96,7 @@ public sealed class MixerDrumlessTests : MixerTestContext
     {
         var page = RenderAt(ExperienceLevel.Advanced);
         page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
         page.Find("[data-testid=expand-drums]").GetAttribute("aria-expanded").ShouldBe("false");
         Engine.ClearReceivedCalls();
 
@@ -116,6 +117,7 @@ public sealed class MixerDrumlessTests : MixerTestContext
     {
         var page = RenderAt(ExperienceLevel.Advanced);
         page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
         await page.Find("[data-testid=drum-lane-label-hihat]").ClickAsync(new MouseEventArgs());
         Engine.ClearReceivedCalls();
 

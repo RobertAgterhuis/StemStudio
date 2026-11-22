@@ -56,8 +56,9 @@ public static class FamilyMixService
     }
 
     /// <summary>
-    /// The guide piece (FR-033, Advanced): solo off for every channel and only <c>drums.&lt;piece&gt;</c> unmuted on top of
-    /// the drumless mix. Nothing changes when the track has no such detail channel.
+    /// The guide piece (FR-033, Advanced): the drumless mix (every drum channel muted, solo off) with only
+    /// <c>drums.&lt;piece&gt;</c> unmuted, so a second piece replaces the first. Nothing changes when the track has no such
+    /// detail channel.
     /// </summary>
     /// <param name="state">The mixer.</param>
     /// <param name="piece">The drum piece to keep audible.</param>
@@ -70,11 +71,8 @@ public static class FamilyMixService
             return [];
         }
 
-        foreach (var channel in state.AllChannels)
-        {
-            Set(state, channel, mute: channel.Stem != id && channel.Mute, solo: false);
-        }
-
+        MinusOne(state, InstrumentFamilyDto.Drums);
+        Set(state, state.AllChannels.First(c => c.Stem == id), mute: false, solo: false);
         return Settle(state, state.AllChannels);
     }
 
