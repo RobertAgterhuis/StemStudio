@@ -227,8 +227,8 @@ text, the row wins.
 
 **Goal**: hit lanes, Drumless, guide piece, drum score with follow. **Independent test**: quickstart V7-V8; E2E `instrument-drums.spec.ts`.
 
-- [ ] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
-- [ ] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
+- [x] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
+- [x] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
 - [ ] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
 - [ ] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
 - [ ] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
@@ -245,8 +245,8 @@ text, the row wins.
 
 **Goal**: reference melody, live pitch line, per-line scores, summary, take scoring. **Independent test**: quickstart V9-V10; E2E `instrument-singing.spec.ts`.
 
-- [ ] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
-- [ ] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
+- [x] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
+- [x] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
 - [ ] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
 - [ ] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
 - [ ] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
