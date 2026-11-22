@@ -145,4 +145,23 @@ public sealed class MixerDrumlessTests : MixerTestContext
         page.Find("[data-testid=drum-score] [data-testid=score-panel]").ShouldNotBeNull();
         page.Find("[data-testid=score-panel-toggle]").GetAttribute("aria-expanded").ShouldBe("false");
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TheMetronome_IsRestoredToItsSettingBeforeDrumless(bool onBefore)
+    {
+        var page = Ready(RenderMixer());
+        var toggle = page.Find("[data-testid=metronome-toggle]");
+        if ((toggle.GetAttribute("aria-pressed") == "true") != onBefore)
+        {
+            await toggle.ClickAsync(new MouseEventArgs());
+        }
+
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+        page.Find("[data-testid=metronome-toggle]").GetAttribute("aria-pressed").ShouldBe("true");
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+
+        page.Find("[data-testid=metronome-toggle]").GetAttribute("aria-pressed").ShouldBe(onBefore ? "true" : "false");
+    }
 }
