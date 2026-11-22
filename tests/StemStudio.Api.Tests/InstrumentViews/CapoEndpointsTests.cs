@@ -110,4 +110,11 @@ public sealed class CapoEndpointsTests : ApiTestBase
         chordPro.ShouldContain("{capo: 1}\n");
         chordPro.ShouldContain("[D]");
     }
+
+    [Fact]
+    public void AChartWithoutAKey_NamesTheShapesInCMajor_AndSkipsTheNoChordSegments()
+    {
+        Api.InstrumentViews.CapoEndpoints.KeyOf(Chart() with { Key = null }).ShouldBe(new MusicalKey(0, KeyMode.Major));
+        Api.InstrumentViews.CapoEndpoints.Timed(EbChart()).Select(chord => chord.Root).ShouldBe([3, 8, 10, 3]);
+    }
 }

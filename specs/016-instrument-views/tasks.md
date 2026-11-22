@@ -309,8 +309,8 @@ text, the row wins.
 
 **Goal**: capo badge, shapes, suggestions, original-shapes shortcut, tab prefill. **Independent test**: quickstart V13; E2E `instrument-capo.spec.ts`.
 
-- [ ] T123 [P] [US8] [backend] Failing tests `CapoEndpointsTests.cs`: `GET .../chords/capo-suggestions?transpose` (shortcut, ranking from `CapoAdvisor`, `409 chords-not-ready`), sheet/ChordPro with `capo` show shapes and `{capo: n}`; un-stage `getCapoSuggestions` (FR-075..FR-077)
-- [ ] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
+- [x] T123 [P] [US8] [backend] Failing tests `CapoEndpointsTests.cs`: `GET .../chords/capo-suggestions?transpose` (shortcut, ranking from `CapoAdvisor`, `409 chords-not-ready`), sheet/ChordPro with `capo` show shapes and `{capo: n}`; un-stage `getCapoSuggestions` (FR-075..FR-077)
+- [x] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
 - [ ] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
 - [ ] T126 [US8] [audio-engine] Implement to pass T125
 - [ ] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
