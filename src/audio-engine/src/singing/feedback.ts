@@ -18,8 +18,15 @@ export const DEFAULT_PITCH_WORKLET_URL = './js/audio-engine-pitch-worklet.js';
 export const OVERRUN_REASON = 'Pitch tracking is too slow on this device.';
 /** A hop is late when its window lags the context time by more than this (s). */
 const LATE_SECONDS = 0.05;
-/** Late hops within {@link OVERRUN_WINDOW_SECONDS} that stop tracking. */
+/** Failure reason when the 015 input closed while the module loaded. */
+export const INPUT_CLOSED_REASON = 'The input device closed while pitch tracking was starting.';
+/** Late hops, at distinct delivery times, within {@link OVERRUN_WINDOW_SECONDS} that stop tracking. */
 const OVERRUN_HOPS = 50;
+/**
+ * Late hops delivered closer together than this count once (s): one main-thread stall delivers its queued hops in a
+ * burst at about one context time, a sustained overrun keeps delivering late hops as the context time advances.
+ */
+const LATE_SPACING_SECONDS = 0.005;
 /** Window of the overrun guard (s). */
 const OVERRUN_WINDOW_SECONDS = 5;
 /** Round trip without any input information (ms, research R-07). */
@@ -118,6 +125,12 @@ function isFrame(data: unknown): data is FrameMessage {
   return typeof frame?.t === 'number' && (frame.cents === null || typeof frame.cents === 'number');
 }
 
+/** A late hop counts only when delivered at least {@link LATE_SPACING_SECONDS} from the previous counted one. */
+function isNewLateInterval(late: readonly number[], now: number): boolean {
+  const previous = late.at(-1);
+  return previous === undefined || Math.abs(now - previous) >= LATE_SPACING_SECONDS;
+}
+
 /** Live singing feedback of one engine. */
 export class SingingFeedback {
   private current: SingingState = 'idle';
@@ -145,9 +158,19 @@ export class SingingFeedback {
     const token = ++this.startToken;
     this.setState('starting', null);
     if (await this.loaded(token)) {
-      this.connect(spec);
-      this.setState('running', null);
+      this.connectOrFail(spec);
     }
+  }
+
+  /** Connects the tracker, or fails the start when the input closed while the module loaded. */
+  private connectOrFail(spec: SessionSpec): void {
+    const input = this.deps.input();
+    if (input === null) {
+      this.setState('failed', INPUT_CLOSED_REASON);
+      throw new Error(INPUT_CLOSED_REASON);
+    }
+    this.connect(spec, input);
+    this.setState('running', null);
   }
 
   /** Loads the module; false when a stop or dispose cancelled this start meanwhile (the state stays `stopped`). */
@@ -245,10 +268,10 @@ export class SingingFeedback {
     return roundTripMs === null ? this.estimate() : { ms: roundTripMs, source: method ?? 'manual' };
   }
 
-  private connect(spec: SessionSpec): void {
+  private connect(spec: SessionSpec, input: OpenInput): void {
     const { context } = this.deps;
     const node = this.deps.createNode(context, PITCH_PROCESSOR_NAME, { ...PITCH_NODE_OPTIONS });
-    this.deps.input()?.node.connect(node);
+    input.node.connect(node);
     this.session?.dispose();
     this.tolerance = spec.request.toleranceCents;
     this.session = this.deps.session(spec);
@@ -274,10 +297,10 @@ export class SingingFeedback {
     }
   }
 
-  /** Counts late hops; true when 50 of them fell within 5 s. */
+  /** Counts late hops at distinct delivery times; true when 50 of them fell within 5 s (sustained, FR-045). */
   private overrun(running: Running, t: number): boolean {
     const now = this.deps.context.currentTime;
-    if (now - t > LATE_SECONDS) {
+    if (now - t > LATE_SECONDS && isNewLateInterval(running.late, now)) {
       running.late.push(now);
     }
     while (running.late.length > 0 && now - Number(running.late[0]) > OVERRUN_WINDOW_SECONDS) {

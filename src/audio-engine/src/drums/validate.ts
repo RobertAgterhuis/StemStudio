@@ -72,16 +72,24 @@ export function validateHits(hits: readonly DrumHitEvent[]): readonly DrumHitEve
   return hits;
 }
 
+/** @returns The look-ahead when it is a finite number (NaN would survive the clamp). */
+function checkLookAhead(look: unknown): number {
+  if (typeof look !== 'number' || !Number.isFinite(look)) {
+    fail('lookAheadMs');
+  }
+  return look;
+}
+
 /**
  * @param options - New options (absent fields keep `previous`).
  * @param previous - Current settings.
  * @returns The resolved settings (look-ahead clamped to 2000..8000 ms).
- * @throws Error `Invalid drum hits: unknown piece <p>`.
+ * @throws Error `Invalid drum hits: unknown piece <p>` or `Invalid drum hits: lookAheadMs` (not a finite number).
  */
 export function resolveHitOptions(options: HitLaneOptions, previous: HitLaneSettings): HitLaneSettings {
   const pieces = options.pieces ?? previous.pieces;
   pieces.forEach(checkPiece);
-  const look = options.lookAheadMs ?? previous.lookAheadMs;
+  const look = checkLookAhead(options.lookAheadMs ?? previous.lookAheadMs);
   return {
     lookAheadMs: Math.min(Math.max(look, LOOK_AHEAD_RANGE.min), LOOK_AHEAD_RANGE.max),
     pieces: LANE_ORDER.filter((piece) => pieces.includes(piece)),

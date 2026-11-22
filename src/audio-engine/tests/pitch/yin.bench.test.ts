@@ -21,4 +21,13 @@ describe('YIN core benchmark', () => {
     console.info(`[yin.bench] ${String(rate)} Hz: ${(total / blocks).toFixed(4)} ms avg, ${worst.toFixed(3)} ms worst per 128-frame block`);
     expect(Number.isFinite(total / blocks)).toBe(true);
   });
+
+  it('reports the estimated cost of scoring a 900 s take (linear from 30 s at 44.1 kHz; review M5)', () => {
+    const input = tone(44_100, 30, [[220, 0.3], [440, 0.2]]);
+    const start = performance.now();
+    new PitchTracker(44_100).process(input, () => undefined);
+    const ms = performance.now() - start;
+    console.info(`[yin.bench] 900 s take: ~${((ms * 900) / 30 / 1000).toFixed(1)} s total, scored in ~1 s chunks with event-loop yields`);
+    expect(Number.isFinite(ms)).toBe(true);
+  });
 });

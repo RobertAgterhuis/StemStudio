@@ -22,6 +22,8 @@ export const YIN = {
 
 /** Lowest window RMS of a voiced frame (linear). */
 const MIN_RMS = 10 ** (YIN.voicedDb / 20);
+/** Highest pitch value of a contour (centi-semitones). */
+const MAX_CENTS = 12_700;
 /** Samples integrated per lag. */
 const INTEGRATION = YIN.window - YIN.tauMax;
 
@@ -91,14 +93,35 @@ function localMinimum(d: Float64Array, start: number): number {
   return tau;
 }
 
-/** Parabolic interpolation of the lag around `tau`. */
-function refine(d: Float64Array, tau: number): number {
+/**
+ * Parabolic interpolation of the lag around `tau`, only inside a valley (`d[tau]` at most both neighbours) and by at
+ * most one lag (exported for tests).
+ *
+ * @param d - Normalised difference.
+ * @param tau - Chosen lag.
+ * @returns The refined lag.
+ */
+export function refineLag(d: Float64Array, tau: number): number {
   if (tau <= 1 || tau >= YIN.tauMax) {
     return tau;
   }
   const [a, b, c] = [Number(d[tau - 1]), Number(d[tau]), Number(d[tau + 1])];
   const denominator = a - 2 * b + c;
-  return denominator === 0 ? tau : tau + (a - c) / (2 * denominator);
+  // on a slope (e.g. at tauMin) the parabola's vertex lies outside the bracket: keep the lag
+  return isValley(a, b, c) && denominator !== 0 ? tau + Math.min(Math.max((a - c) / (2 * denominator), -1), 1) : tau;
+}
+
+function isValley(a: number, b: number, c: number): boolean {
+  return b <= a && b <= c;
+}
+
+/**
+ * @param tau - Refined lag in 16 kHz samples.
+ * @returns Its pitch in centi-semitones, or null when not finite or outside 0..12700 (exported for tests).
+ */
+export function lagToCents(tau: number): number | null {
+  const cents = tau > 0 ? hzToCents(YIN.rate / tau) : Number.NaN;
+  return Number.isFinite(cents) && cents >= 0 && cents <= MAX_CENTS ? cents : null;
 }
 
 /**
@@ -116,7 +139,7 @@ export function analyseWindow(window: Float32Array, scratch: Float64Array): Pitc
   const tau = chooseLag(scratch);
   const difference = Number(scratch[tau]);
   const clarity = Math.min(Math.max(1 - difference, 0), 1);
-  return { cents: difference <= YIN.maxDifference ? hzToCents(YIN.rate / refine(scratch, tau)) : null, clarity };
+  return { cents: difference <= YIN.maxDifference ? lagToCents(refineLag(scratch, tau)) : null, clarity };
 }
 
 /** Streams input at any rate >= 16 kHz and posts one {@link PitchFrame} per hop once the first window is full. */

@@ -34,6 +34,15 @@ describe('Decimator (31-tap windowed sinc, fractional phase, to 16 kHz)', () => 
     expect(20 * Math.log10(rms(out) / (0.5 / Math.SQRT2))).toBeLessThan(-20);
   });
 
+  it.each([176_400, 192_000])('halves %i Hz twice, so it filters like 44.1/48 kHz (review L1)', (rate) => {
+    const level = (input: Float32Array, at: number): number => 20 * Math.log10(rms(decimate(input, at).slice(100)) / (0.5 / Math.SQRT2));
+    expect(level(tone(rate, 0.5, [[12_000, 0.5]]), rate)).toBeLessThan(-60);
+    expect(level(tone(rate, 0.5, [[9000, 0.5]]), rate)).toBeLessThan(-20);
+    const kept = decimate(tone(rate, 1, [[1000, 0.5]]), rate);
+    expect(Math.abs(kept.length - 16_000)).toBeLessThanOrEqual(20);
+    expect(rms(kept.slice(100))).toBeCloseTo(0.5 / Math.SQRT2, 2);
+  });
+
   it('gives the same output for any block size', () => {
     const input = tone(48_000, 0.2, [[440, 0.3], [1500, 0.1]]);
     const a = decimate(input, 48_000, 128);
@@ -44,5 +53,6 @@ describe('Decimator (31-tap windowed sinc, fractional phase, to 16 kHz)', () => 
 
   it('rejects a rate below 16 kHz', () => {
     expect(() => new Decimator(8000)).toThrow('Pitch input rate must be at least 16000 Hz');
+    expect(() => new Decimator(Number.POSITIVE_INFINITY)).toThrow('Pitch input rate must be at least 16000 Hz');
   });
 });

@@ -234,6 +234,19 @@ describe('stop or dispose while the module loads', () => {
     expect(rig.states).toEqual([['starting', null], ['stopped', null]]);
   });
 
+  it('the input closing while the module loads fails the start with a clear reason (review L6)', async () => {
+    const load = deferLoad();
+    const starting = rig.feedback.start(REQUEST);
+    rig.input.current = null;
+    load.resolve();
+    const reason = 'The input device closed while pitch tracking was starting.';
+    await expect(starting).rejects.toThrow(reason);
+    expect(rig.ctx.workletNodes).toEqual([]);
+    expect(rig.sessions).toEqual([]);
+    expect(rig.feedback.state).toBe('failed');
+    expect(rig.states).toEqual([['starting', null], ['failed', reason]]);
+  });
+
   it('a new start after a cancelled one runs, the stale load connects nothing', async () => {
     const load = deferLoad();
     const first = rig.feedback.start(REQUEST);
@@ -300,6 +313,19 @@ describe('overrun guard', () => {
     expect(OVERRUN_REASON).toBe('Pitch tracking is too slow on this device.');
     expect(tracker.disconnected).toBe(true);
     expect(rig.sessions[0]?.stopped).toBe(true);
+  });
+
+  it('keeps running after one ~0.5 s main-thread stall delivers 50 queued hops at once (review M2)', async () => {
+    await rig.feedback.start(REQUEST);
+    rig.ctx.currentTime = 0.55;
+    for (let i = 0; i < 50; i += 1) {
+      node(rig).port.reply({ t: i * 0.01, cents: null, clarity: 0 });
+    }
+    for (let i = 0; i < 50; i += 1) {
+      rig.ctx.currentTime = 0.56 + i * 0.01;
+      node(rig).port.reply({ t: rig.ctx.currentTime - 0.01, cents: null, clarity: 0 });
+    }
+    expect(rig.feedback.state).toBe('running');
   });
 
   it('does not fail when the lagging hops are spread over more than 5 s', async () => {

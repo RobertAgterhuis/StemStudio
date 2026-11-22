@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PitchTracker, YIN, hzToCents, type PitchFrame } from '../../src/pitch/yin';
+import { PitchTracker, YIN, analyseWindow, hzToCents, lagToCents, refineLag, type PitchFrame } from '../../src/pitch/yin';
 import { centsOf, median, noise, tone } from './signals';
 
 function track(input: Float32Array, rate: number): PitchFrame[] {
@@ -73,5 +73,48 @@ describe('PitchTracker voicing', () => {
   it('a tone below -45 dBFS RMS is unvoiced', () => {
     const frames = track(tone(48_000, 0.5, [[220, 0.005]]), 48_000);
     expect(frames.every((f) => f.cents === null)).toBe(true);
+  });
+});
+
+describe('lag refinement guards (review M4)', () => {
+  function differences(values: Record<number, number>): Float64Array {
+    const d = new Float64Array(YIN.tauMax + 1).fill(1);
+    for (const [tau, value] of Object.entries(values)) {
+      d[Number(tau)] = value;
+    }
+    return d;
+  }
+
+  it('does not interpolate on a slope (the lag is not a local minimum)', () => {
+    expect(refineLag(differences({ 13: 0, 14: 0.1, 15: 0.21 }), YIN.tauMin)).toBe(YIN.tauMin);
+    expect(refineLag(differences({ 13: 0.21, 14: 0.1, 15: 0 }), YIN.tauMin)).toBe(YIN.tauMin);
+  });
+
+  it('interpolates inside a valley and clamps the shift to one lag', () => {
+    expect(refineLag(differences({ 19: 0.2, 20: 0.1, 21: 0.2 }), 20)).toBe(20);
+    expect(refineLag(differences({ 19: 0.3, 20: 0.1, 21: 0.2 }), 20)).toBeCloseTo(20 + 0.1 / 0.6, 9);
+    const flat = refineLag(differences({ 19: 0.1, 20: 0.1, 21: 0.1 + 1e-12 }), 20);
+    expect(flat).toBeGreaterThanOrEqual(19);
+    expect(flat).toBeLessThanOrEqual(21);
+  });
+
+  it('maps a non-finite or out-of-range lag to null', () => {
+    expect(lagToCents(Number.NaN)).toBeNull();
+    expect(lagToCents(-3)).toBeNull();
+    expect(lagToCents(0)).toBeNull();
+    expect(lagToCents(1)).toBeNull();
+    expect(lagToCents(YIN.rate / 440)).toBeCloseTo(6900, 6);
+  });
+
+  it.each([1250, 1500])('gives null or finite cents within 0..12700 for a %i Hz sine above the lag range', (hz) => {
+    const signal = tone(YIN.rate, 0.1, [[hz, 0.5]]);
+    for (let offset = 0; offset < 160; offset += 9) {
+      const { cents } = analyseWindow(signal.slice(offset, offset + YIN.window), new Float64Array(YIN.tauMax + 1));
+      if (cents !== null) {
+        expect(Number.isFinite(cents)).toBe(true);
+        expect(cents).toBeGreaterThanOrEqual(0);
+        expect(cents).toBeLessThanOrEqual(12_700);
+      }
+    }
   });
 });

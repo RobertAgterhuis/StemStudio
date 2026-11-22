@@ -88,6 +88,33 @@ describe('UnitScorer (data-model 3.4)', () => {
     expect(rig.scorer.summary()).toEqual({ unitsScored: 1, average: 0, best: { index: 0, score: 0 }, toleranceCents: 100 });
   });
 
+  it('scores a unit that ends exactly at the loop end on every pass (review H1)', () => {
+    const scores: SingingUnitScore[] = [];
+    const units: readonly SingingUnit[] = [{ index: 0, startMs: 0, endMs: 2000 }];
+    const scorer = new UnitScorer({ reference: REFERENCE, units, toleranceCents: 100, transpose: () => 0, onUnit: (s) => scores.push(s) });
+    for (let pass = 0; pass < 2; pass += 1) {
+      for (let ms = 0; ms <= 1990; ms += 10) {
+        scorer.frame(ms, 6900);
+      }
+    }
+    scorer.frame(0, 6900);
+    expect(scores).toEqual([
+      { index: 0, score: 100, pass: 1 },
+      { index: 0, score: 100, pass: 2 },
+    ]);
+  });
+
+  it('still discards a unit the loop wraps out of well before its end', () => {
+    const scores: SingingUnitScore[] = [];
+    const units: readonly SingingUnit[] = [{ index: 0, startMs: 0, endMs: 2000 }];
+    const scorer = new UnitScorer({ reference: REFERENCE, units, toleranceCents: 100, transpose: () => 0, onUnit: (s) => scores.push(s) });
+    for (let ms = 0; ms <= 1900; ms += 10) {
+      scorer.frame(ms, 6900);
+    }
+    scorer.frame(0, 6900);
+    expect(scores).toEqual([]);
+  });
+
   it('discards the partial unit after a seek into it and starts again at pass 1', () => {
     const rig = makeScorer();
     sing(rig, { from: 0, to: 300 }, () => 6900);
