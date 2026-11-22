@@ -250,6 +250,36 @@ def test_pitch_code_may_mention_globals_in_comments_strings_and_members(tmp_path
     assert _messages(tmp_path) == []
 
 
+def test_pitch_code_may_declare_its_own_window(tmp_path: Path) -> None:
+    """A parameter, field or object key named like a global shadows it (the YIN analysis window)."""
+    write_file(
+        tmp_path,
+        f"{ENGINE}/pitch/yin.ts",
+        "export const YIN = { rate: 16000, window: 512 };\n"
+        "function rms(window: Float32Array): number {\n"
+        "  let sum = 0;\n"
+        "  for (const v of window) { sum += v * v; }\n"
+        "  return Math.sqrt(sum / window.length);\n"
+        "}\n"
+        "class Tracker { private readonly window = new Float32Array(YIN.window); }\n",
+    )
+
+    assert _messages(tmp_path) == []
+
+
+def test_a_local_name_does_not_hide_another_global(tmp_path: Path) -> None:
+    write_file(
+        tmp_path,
+        f"{ENGINE}/pitch/yin.ts",
+        "function f(window: Float32Array): number { return window.length; }\n"
+        "export const ctx = new AudioContext();\n",
+    )
+
+    messages = _messages(tmp_path)
+
+    assert len(messages) == 1 and "AudioContext" in messages[0][2]
+
+
 def test_other_engine_folders_may_use_web_audio(tmp_path: Path) -> None:
     write_file(tmp_path, f"{ENGINE}/views/lane.ts", "const c = new AudioContext(); window.x;\n")
 
