@@ -6,7 +6,7 @@ import { stubCanvas } from '../mocks/canvas';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 import { FetchStub } from '../mocks/fetch';
 import { stubResizeObserver } from '../mocks/layout';
-import { FakeMediaDevices, RecordingContext } from '../mocks/media';
+import { FakeMediaDevices, RecordingContext, stubSecureWorklets } from '../mocks/media';
 import type { MockAudioWorkletNode } from '../mocks/worklet-node';
 import { practice } from '../mocks/practice-rig';
 
@@ -68,12 +68,9 @@ function sing(rig: Rig, from: number, to: number, cents: number | null): void {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('isSecureContext', true);
+  stubSecureWorklets();
   vi.stubGlobal('requestAnimationFrame', () => 0);
   vi.stubGlobal('cancelAnimationFrame', () => undefined);
-  vi.stubGlobal('AudioWorkletNode', function AudioWorkletNode(context: RecordingContext, name: string, options: AudioWorkletNodeOptions) {
-    return context.createWorkletNode(name, options);
-  });
   stubResizeObserver();
   stubCanvas();
 });

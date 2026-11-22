@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createEngine, type AudioEngine } from '../../src/index';
+import { createEngine, type AudioEngine, type SingingFeedbackRequest } from '../../src/index';
 import type { DrumHitEvent, KaraokeLyrics } from '../../src/types';
 import { PITCH_PROCESSOR_NAME } from '../../src/pitch/worklet';
 import { FakeStretchStage } from '../../src/stretch/fake-stage';
 import { FakeContext2D, stubCanvas } from '../mocks/canvas';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 import { FetchStub } from '../mocks/fetch';
-import { stubResizeObserver } from '../mocks/layout';
-import { FakeMediaDevices, RecordingContext } from '../mocks/media';
-import { GRID, addHost, cycleChart, hostSize } from '../mocks/views-rig';
+import { stubHostLayout } from '../mocks/engine-rig';
+import { FakeMediaDevices, RecordingContext, stubSecureWorklets } from '../mocks/media';
+import { GRID, addHost, cycleChart } from '../mocks/views-rig';
 
 /**
  * Contract 2.6.0 / research R-12 frame budget: every view attached and playing at once (karaoke banner with chords,
@@ -53,10 +53,33 @@ function hits(): DrumHitEvent[] {
   return all;
 }
 
-async function makeRig(): Promise<BenchRig> {
+/** Collects the requested animation frames; the returned step runs them once. */
+function stubFrames(): () => void {
   const frames: FrameRequestCallback[] = [];
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
+  return () => {
+    frames.splice(0).forEach((cb) => {
+      cb(0);
+    });
+  };
+}
+
+/** 60 s melody: 0.5 s notes stepping through an octave, every third one a rest. */
+const MELODY = Array.from({ length: 6000 }, (_, i) => (Math.floor(i / 50) % 3 === 2 ? 0 : 6000 + 100 * (Math.floor(i / 50) % 12)));
+
+const SINGING: SingingFeedbackRequest = {
+  pitchViewElementId: 'pitch-view',
+  reference: { hopMs: 10, frames: MELODY },
+  units: Array.from({ length: 30 }, (_, i) => ({ index: i, startMs: i * 2000, endMs: i * 2000 + 2000 })),
+  toleranceCents: 50,
+  roundTripMs: 0,
+  latencyMethod: 'loopback',
+  reducedMotion: false,
+};
+
+async function makeRig(): Promise<BenchRig> {
+  const step = stubFrames();
   const ctx = new RecordingContext();
   ctx.decodeDurations.set(100, 60);
   const engine = createEngine(new FakeDotNetRef(), {
@@ -68,11 +91,6 @@ async function makeRig(): Promise<BenchRig> {
   });
   await engine.loadTrack({ stems: [{ name: 'vocals', url: '/vocals' }], beatGrid: GRID });
   await engine.openInput({ deviceId: 'usb', mode: 'mono-1' });
-  const step = (): void => {
-    frames.splice(0).forEach((cb) => {
-      cb(0);
-    });
-  };
   return { ctx, engine, step };
 }
 
@@ -83,16 +101,7 @@ async function attachAll(rig: BenchRig): Promise<void> {
   engine.attachKaraoke('karaoke-banner', lyrics(), { offsetMs: 0, reducedMotion: false });
   engine.attachChordLane('chord-lane', cycleChart(), { reducedMotion: false });
   engine.attachHitLanes('hits', hits(), { reducedMotion: false });
-  const reference = Array.from({ length: 6000 }, (_, i) => (Math.floor(i / 50) % 3 === 2 ? 0 : 6000 + 100 * (Math.floor(i / 50) % 12)));
-  await engine.startSingingFeedback({
-    pitchViewElementId: 'pitch-view',
-    reference: { hopMs: 10, frames: reference },
-    units: Array.from({ length: 30 }, (_, i) => ({ index: i, startMs: i * 2000, endMs: i * 2000 + 2000 })),
-    toleranceCents: 50,
-    roundTripMs: 0,
-    latencyMethod: 'loopback',
-    reducedMotion: false,
-  });
+  await engine.startSingingFeedback(SINGING);
 }
 
 /** Posts the pitch frames of one display frame (10 ms hops) up to the context time. */
@@ -107,19 +116,36 @@ function primitives(): number {
   return FakeContext2D.instances.reduce((sum, c) => sum + c.calls.length, 0);
 }
 
+interface Measurement {
+  readonly average: number;
+  readonly p95: number;
+  readonly worstPrimitives: number;
+}
+
+/** Plays {@link FRAMES} display frames with live pitch frames and times only the drawing. */
+function measure(rig: BenchRig): Measurement {
+  const timings: number[] = [];
+  let worstPrimitives = 0;
+  for (let i = 0; i < FRAMES; i += 1) {
+    const from = rig.ctx.currentTime;
+    rig.ctx.currentTime = from + FRAME_MS / 1000;
+    sing(rig, from, rig.ctx.currentTime);
+    const drawn = primitives();
+    const start = performance.now();
+    rig.step();
+    timings.push(performance.now() - start);
+    worstPrimitives = Math.max(worstPrimitives, primitives() - drawn);
+  }
+  const sorted = [...timings].sort((a, b) => a - b);
+  const average = timings.reduce((a, b) => a + b, 0) / timings.length;
+  return { average, p95: sorted[Math.floor(0.95 * sorted.length)] ?? 0, worstPrimitives };
+}
+
 beforeEach(() => {
   document.body.replaceChildren();
-  vi.stubGlobal('isSecureContext', true);
-  vi.stubGlobal('AudioWorkletNode', function AudioWorkletNode(context: RecordingContext, name: string, options: AudioWorkletNodeOptions) {
-    return context.createWorkletNode(name, options);
-  });
-  stubResizeObserver();
+  stubSecureWorklets();
+  stubHostLayout();
   stubCanvas();
-  hostSize.width = 800;
-  hostSize.height = 120;
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
-    () => ({ left: 0, top: 0, width: hostSize.width, height: hostSize.height, right: hostSize.width, bottom: hostSize.height, x: 0, y: 0 }) as DOMRect,
-  );
 });
 
 afterEach(() => {
@@ -134,21 +160,7 @@ describe('frame budget of all views together (R-12)', () => {
     rig.ctx.currentTime = 0;
     await rig.engine.play();
     rig.step();
-    const timings: number[] = [];
-    let worstPrimitives = 0;
-    for (let i = 0; i < FRAMES; i += 1) {
-      const from = rig.ctx.currentTime;
-      rig.ctx.currentTime = from + FRAME_MS / 1000;
-      sing(rig, from, rig.ctx.currentTime);
-      const drawn = primitives();
-      const start = performance.now();
-      rig.step();
-      timings.push(performance.now() - start);
-      worstPrimitives = Math.max(worstPrimitives, primitives() - drawn);
-    }
-    const average = timings.reduce((a, b) => a + b, 0) / timings.length;
-    const sorted = [...timings].sort((a, b) => a - b);
-    const p95 = sorted[Math.floor(0.95 * sorted.length)] ?? 0;
+    const { average, p95, worstPrimitives } = measure(rig);
     console.info(`[frame-budget] all views: ${average.toFixed(3)} ms avg, ${p95.toFixed(3)} ms p95, ${String(worstPrimitives)} canvas primitives worst`);
     expect(document.querySelectorAll('.karaoke-chord').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('.chord-lane-item').length).toBeGreaterThan(0);

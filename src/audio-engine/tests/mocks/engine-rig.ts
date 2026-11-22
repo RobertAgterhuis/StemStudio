@@ -25,12 +25,7 @@ export function makeEngineRig(options: EngineOptions = {}): EngineRig {
   const frames: FrameRequestCallback[] = [];
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
-  stubResizeObserver();
-  hostSize.width = 800;
-  hostSize.height = 120;
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
-    () => ({ left: 0, top: 0, width: hostSize.width, height: hostSize.height, right: hostSize.width, bottom: hostSize.height, x: 0, y: 0 }) as DOMRect,
-  );
+  stubHostLayout();
   const ctx = new MockAudioContext();
   ctx.decodeDurations.set(100, 60);
   const ref = new FakeDotNetRef();
@@ -42,6 +37,16 @@ export function makeEngineRig(options: EngineOptions = {}): EngineRig {
     });
   };
   return { ctx, ref, stub, engine, step };
+}
+
+/** Stubs `ResizeObserver` and gives every element the 800 x 120 px host rectangle. */
+export function stubHostLayout(): void {
+  stubResizeObserver();
+  hostSize.width = 800;
+  hostSize.height = 120;
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+    () => ({ left: 0, top: 0, width: hostSize.width, height: hostSize.height, right: hostSize.width, bottom: hostSize.height, x: 0, y: 0 }) as DOMRect,
+  );
 }
 
 /** Loads the 60 s `vocals` stem with `grid`. */

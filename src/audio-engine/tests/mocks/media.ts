@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { MediaEnvironment } from '../../src/recording/environment';
 import { MockAudioNode, type MockAudioContext } from './audio-context';
 import { MockAudioWorkletNode, WorkletContext } from './worklet-node';
@@ -166,4 +167,12 @@ export function fakeEnvironment(
     createWorkletNode: (context, name, options) => (context as unknown as RecordingContext).createWorkletNode(name, options) as unknown as AudioWorkletNode,
     ...overrides,
   };
+}
+
+/** Stubs a secure page whose `new AudioWorkletNode(...)` creates the {@link RecordingContext}'s mock nodes. */
+export function stubSecureWorklets(): void {
+  vi.stubGlobal('isSecureContext', true);
+  vi.stubGlobal('AudioWorkletNode', function AudioWorkletNode(context: RecordingContext, name: string, options: AudioWorkletNodeOptions) {
+    return context.createWorkletNode(name, options);
+  });
 }
