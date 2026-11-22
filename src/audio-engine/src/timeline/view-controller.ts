@@ -5,8 +5,7 @@
  * @packageDocumentation
  */
 import type { FrameLoop } from '../frame-loop';
-import type { TransportListener } from '../transport';
-import type { PlaybackState } from '../types';
+import { FrameListener } from './frame-listener';
 import { TimelineFrames } from './frames';
 
 /** The drawing side of one attached view. */
@@ -30,14 +29,15 @@ export interface ViewControllerDeps {
 }
 
 /** Base of the view controllers; listens to the transport. */
-export abstract class ViewController<V extends AttachedView> implements TransportListener {
+export abstract class ViewController<V extends AttachedView> extends FrameListener {
   /** The attached view, or null. */
   protected view: V | null = null;
-  private readonly frames: TimelineFrames;
+  protected readonly frames: TimelineFrames;
   private drawn = 0;
 
   /** @param base - Loop, clock, transport state and document. */
   protected constructor(private readonly base: ViewControllerDeps) {
+    super();
     this.frames = new TimelineFrames({ loop: base.loop, playing: base.playing, draw: this.draw });
   }
 
@@ -56,21 +56,6 @@ export abstract class ViewController<V extends AttachedView> implements Transpor
   /** Draws one frame when attached. */
   public redraw(): void {
     this.frames.redraw();
-  }
-
-  /** {@inheritDoc TransportListener.onStateChanged} */
-  public onStateChanged(state: PlaybackState): void {
-    this.frames.onStateChanged(state);
-  }
-
-  /** {@inheritDoc TransportListener.onReposition} */
-  public onReposition(): void {
-    this.frames.onReposition();
-  }
-
-  /** {@inheritDoc TransportListener.onTimingChanged} */
-  public onTimingChanged(): void {
-    this.frames.onTimingChanged();
   }
 
   /**

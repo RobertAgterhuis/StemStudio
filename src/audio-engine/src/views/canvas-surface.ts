@@ -133,6 +133,19 @@ export class CanvasSurface {
     return this.colours[name] ?? '';
   }
 
+  /**
+   * Draws the full-height "now" line.
+   *
+   * @param x - Horizontal position in CSS pixels.
+   * @param property - CSS custom property holding the colour.
+   */
+  public drawNowLine(x: number, property: string): void {
+    this.painter.beginStroke(this.colour(property), 2);
+    this.painter.moveTo(x, 0);
+    this.painter.lineTo(x, this.height);
+    this.painter.stroke();
+  }
+
   /** Removes the canvas and stops observing. */
   public dispose(): void {
     this.size.dispose();

@@ -5,9 +5,9 @@
  * @packageDocumentation
  */
 import type { FrameLoop } from '../frame-loop';
+import { FrameListener } from '../timeline/frame-listener';
 import { TimelineFrames } from '../timeline/frames';
-import type { TransportListener } from '../transport';
-import type { PlaybackState, SingingState, SingingSummary } from '../types';
+import type { SingingState, SingingSummary } from '../types';
 import type { SessionSpec, SingingSession } from './feedback';
 import { PitchView } from './pitch-view';
 import { UnitScorer } from './scorer';
@@ -25,16 +25,17 @@ export interface SessionDeps {
 }
 
 /** Scorer + pitch view of one feedback; listens to the transport for its frames. */
-export class LiveSession implements SingingSession, TransportListener {
+export class LiveSession extends FrameListener implements SingingSession {
   private readonly scorer: UnitScorer;
   private readonly view: PitchView;
-  private readonly frames: TimelineFrames;
+  protected readonly frames: TimelineFrames;
 
   /**
    * @param spec - Validated request, host, latency and unit callback.
    * @param deps - Frame loop, clock, transport state and transpose.
    */
   public constructor(spec: SessionSpec, deps: SessionDeps) {
+    super();
     const { request } = spec;
     this.frames = new TimelineFrames({ loop: deps.loop, playing: deps.playing, draw: () => {
       this.view.draw(deps.clock.positionMs());
@@ -87,20 +88,5 @@ export class LiveSession implements SingingSession, TransportListener {
   public dispose(): void {
     this.frames.stop();
     this.view.dispose();
-  }
-
-  /** {@inheritDoc TransportListener.onStateChanged} */
-  public onStateChanged(state: PlaybackState): void {
-    this.frames.onStateChanged(state);
-  }
-
-  /** {@inheritDoc TransportListener.onReposition} */
-  public onReposition(): void {
-    this.frames.onReposition();
-  }
-
-  /** {@inheritDoc TransportListener.onTimingChanged} */
-  public onTimingChanged(): void {
-    this.frames.onTimingChanged();
   }
 }

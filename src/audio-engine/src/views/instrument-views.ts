@@ -12,7 +12,7 @@ import { HitLanes } from '../drums/hit-lanes';
 import { singingNotifier } from '../callbacks';
 import type { FrameLoop } from '../frame-loop';
 import type { Karaoke } from '../karaoke/index';
-import type { WorkletNodeCreator } from '../recording/environment';
+import type { WorkletNodeCreator } from '../worklet-module';
 import { SingingFeedback, type OpenInput } from '../singing/feedback';
 import { LiveSession } from '../singing/session';
 import { TimelineClock } from '../timeline/clock';

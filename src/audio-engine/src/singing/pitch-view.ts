@@ -166,7 +166,7 @@ export class PitchView {
     this.surface.painter.clear(this.surface.width, this.surface.height);
     this.drawBars(start, x);
     this.drawSinger(start, x);
-    this.drawNow(x(t));
+    this.surface.drawNowLine(x(t), '--pitch-view-now');
     this.writeHost(t);
   }
 
@@ -241,14 +241,6 @@ export class PitchView {
   private targetAt(ms: number): number | null {
     const value = this.options.reference[Math.round(ms / HOP_MS)] ?? 0;
     return value > 0 ? value + 100 * this.options.transpose() : null;
-  }
-
-  private drawNow(x: number): void {
-    const { painter } = this.surface;
-    painter.beginStroke(this.surface.colour('--pitch-view-now'), 2);
-    painter.moveTo(x, 0);
-    painter.lineTo(x, this.surface.height);
-    painter.stroke();
   }
 
   private writeHost(t: number): void {

@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 import { PITCH_PROCESSOR_NAME } from '../pitch/worklet';
+import { onceLoader } from '../worklet-module';
 import type { InputInfo, LatencyMethod, RoundTripLatency, SingingFeedbackRequest, SingingState, SingingSummary, SingingUnitScore } from '../types';
 import { MedianSmoother } from './median';
 import { validateContour, validateRoundTrip, validateTolerance, validateUnits } from './validate';
@@ -101,19 +102,7 @@ interface FrameMessage {
   readonly cents: number | null;
 }
 
-const modules = new WeakMap<BaseAudioContext, Promise<void>>();
-
-function loadModule(context: AudioContext, url: string): Promise<void> {
-  let loading = modules.get(context);
-  if (loading === undefined) {
-    loading = context.audioWorklet.addModule(url).catch((error: unknown) => {
-      modules.delete(context);
-      throw new Error(`Pitch tracking could not start (${String(error)})`, { cause: error });
-    });
-    modules.set(context, loading);
-  }
-  return loading;
-}
+const loadModule = onceLoader((cause) => `Pitch tracking could not start (${cause})`);
 
 function isFrame(data: unknown): data is FrameMessage {
   const frame = data as Partial<FrameMessage> | null;

@@ -93,7 +93,7 @@ export class HitView {
     painter.clear(this.surface.width, this.surface.height);
     this.fillMarks(normal, this.surface.colour('--hit-lane-mark'));
     this.fillMarks(flashing, this.surface.colour('--hit-lane-flash'));
-    this.drawNow((t - window.start) * window.pxPerMs);
+    this.surface.drawNowLine((t - window.start) * window.pxPerMs, '--hit-lane-now');
     this.writeHost(t, normal.length + flashing.length);
   }
 
@@ -169,14 +169,6 @@ export class HitView {
       painter.roundRect(m.x - MARK_WIDTH / 2, m.y, MARK_WIDTH, m.height);
     });
     painter.fill();
-  }
-
-  private drawNow(x: number): void {
-    const { painter } = this.surface;
-    painter.beginStroke(this.surface.colour('--hit-lane-now'), 2);
-    painter.moveTo(x, 0);
-    painter.lineTo(x, this.surface.height);
-    painter.stroke();
   }
 
   private writeHost(t: number, visible: number): void {
