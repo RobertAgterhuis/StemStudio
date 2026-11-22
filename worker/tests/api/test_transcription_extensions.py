@@ -32,6 +32,8 @@ ONE = f"{JOBS}/{{transcriptionJobId}}"
 GUITAR = f"{TRACK}/stems/guitar.flac"
 TAB = {"tuning": "bass-4-standard", "capo": 0, "layout": "notation-and-tab"}
 PART = {"instrument": "double-bass", "clef": "auto"}
+GUITAR_TAB = {"tuning": "guitar-standard", "capo": 2, "layout": "notation-and-tab"}
+GUITAR_PART = {"instrument": "concert", "clef": "treble"}
 CHORDS = [{"startMs": 0, "root": 0, "quality": "maj", "bass": None},
           {"startMs": 2000, "root": 10, "quality": "7", "bass": 2}]  # fmt: skip
 TAB_SUMMARY = TablatureSummary(tuning="bass-4-standard", strings=4, capo=0,
@@ -84,23 +86,27 @@ def _completed(api: Api, body: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _guitar_body(**changes: Any) -> dict[str, Any]:
+    return request_body(profile="guitar", input={"path": GUITAR}, **changes)
+
+
 def test_tablature_part_chords_and_prefer_flats_reach_the_notator(
     score_api: Api, notator: ExtendedNotator
 ) -> None:
-    body = request_body(tablature=TAB, part=PART, chords=CHORDS, preferFlats=True)
+    body = _guitar_body(tablature=GUITAR_TAB, part=GUITAR_PART, chords=CHORDS, preferFlats=True)
 
     job = _completed(score_api, body)
 
     settings = notator.calls[0][1]
     assert job["status"] == "completed"
-    assert settings.tablature == TablatureSettings.model_validate(TAB)
-    assert settings.part == PartSettings.model_validate(PART)
+    assert settings.tablature == TablatureSettings.model_validate(GUITAR_TAB)
+    assert settings.part == PartSettings.model_validate(GUITAR_PART)
     assert settings.chords == tuple(ScoreChordSymbol.model_validate(c) for c in CHORDS)
     assert settings.prefer_flats is True and settings.single_piece is None
 
 
 def test_the_summary_carries_the_tablature_part_and_chord_facts(score_api: Api) -> None:
-    job = _completed(score_api, request_body(tablature=TAB, part=PART, chords=CHORDS))
+    job = _completed(score_api, _guitar_body(tablature=GUITAR_TAB, part=GUITAR_PART, chords=CHORDS))
 
     summary = job["result"]["summary"]
     assert summary["tablature"] == TAB_SUMMARY.model_dump(mode="json", by_alias=True)
@@ -173,7 +179,7 @@ def test_without_single_piece_the_missing_pieces_are_still_warned(score_api: Api
         {"chords": CHORDS},
         {"chords": [{"startMs": 0, "root": 12, "quality": "maj", "bass": None}]},
         {"singlePiece": "kick"},
-        {"preferFlats": "yes"},
+        {"preferFlats": "maybe"},
     ],
 )
 def test_invalid_extension_combinations_answer_422(score_api: Api, changes: dict[str, Any]) -> None:
