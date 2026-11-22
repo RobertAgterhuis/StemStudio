@@ -37,6 +37,10 @@ public sealed partial class ScorePanel : IAsyncDisposable
     [Parameter, EditorRequired]
     public Guid TrackId { get; set; }
 
+    /// <summary>The profile chosen first when the track has a score of it (the drum trainer asks for drums, 016 FR-034).</summary>
+    [Parameter]
+    public StemStudio.Contracts.Scores.ScoreProfileDto? Profile { get; set; }
+
     /// <summary>True when the engine has loaded the track (the follower needs it).</summary>
     [Parameter]
     public bool EngineReady { get; set; }
@@ -139,7 +143,7 @@ public sealed partial class ScorePanel : IAsyncDisposable
 
         if (Scores.Count > 0)
         {
-            await LoadAsync(Scores[0]);
+            await LoadAsync(Scores.FirstOrDefault(s => s.Profile == Profile) ?? Scores[0]);
         }
     }
 

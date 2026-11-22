@@ -29,6 +29,7 @@
             <span data-testid="@($"rec-take-pass-{Item.Id}")" data-help-id="recording-loop-takes">@pass</span>
         </LevelGate>
     }
+    <StemStudio.Web.Components.InstrumentViews.TakeScoreAction Item="Item" />
     @if (Item.Take is { } take)
     {
         <LevelGate Feature="recording.manual-latency">

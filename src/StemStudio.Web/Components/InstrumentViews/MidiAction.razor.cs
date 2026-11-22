@@ -13,6 +13,7 @@ namespace StemStudio.Web.Components.InstrumentViews;
 public sealed partial class MidiAction : IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
+    private ChannelScoreMaker? _maker;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -36,7 +37,9 @@ public sealed partial class MidiAction : IDisposable
 
     private bool Busy { get; set; }
 
-    private int Progress { get; set; }
+    private int Progress => _maker?.Progress ?? 0;
+
+    private ChannelScoreMaker Maker => _maker ??= new ChannelScoreMaker(Api, Timer, "The MIDI file could not be made.");
 
     private string? Error { get; set; }
 
@@ -57,7 +60,6 @@ public sealed partial class MidiAction : IDisposable
         if (!Busy)
         {
             Busy = true;
-            Progress = 0;
             Error = null;
             _ = RunAsync();
         }
@@ -67,13 +69,19 @@ public sealed partial class MidiAction : IDisposable
 
     private async Task RunAsync()
     {
+        await GetAndDownloadAsync();
+        Busy = false;
+        if (!_stop.IsCancellationRequested)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task GetAndDownloadAsync()
+    {
         try
         {
-            var item = await ReadyItemAsync() ?? await CreateAsync();
-            if (item is not null)
-            {
-                Download(item);
-            }
+            Download(await ReadyItemAsync() ?? await CreateAsync());
         }
         catch (ApiException ex)
         {
@@ -82,15 +90,6 @@ public sealed partial class MidiAction : IDisposable
         catch (OperationCanceledException)
         {
             // The component was removed while it waited.
-        }
-        finally
-        {
-            Busy = false;
-        }
-
-        if (!_stop.IsCancellationRequested)
-        {
-            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -102,40 +101,16 @@ public sealed partial class MidiAction : IDisposable
 
     private async Task<AssetDto?> CreateAsync()
     {
-        var target = ScoreTarget.ForChannel(Track, Channel);
-        var form = new ScoreForm(await Api.GetScoreOptionsAsync(target.Source, _stop.Token), target);
-        if (form.Tab is { } tab)
-        {
-            tab.Layout = TabLayoutChoice.None;
-        }
-
-        Error = form.Validate();
-        return Error is null ? await WaitAsync(await Api.CreateScoreAsync(form.Request(), _stop.Token)) : null;
-    }
-
-    private async Task<AssetDto?> WaitAsync(AssetDto item)
-    {
-        while (item.Status is AssetStatusDto.Queued or AssetStatusDto.Rendering)
-        {
-            if (!await Timer.WaitAsync(_stop.Token))
-            {
-                return null;
-            }
-
-            item = await Api.GetAssetAsync(item.Id, _stop.Token);
-            Progress = item.Progress;
-            await InvokeAsync(StateHasChanged);
-        }
-
-        if (item.Status == AssetStatusDto.Failed)
-        {
-            Error = item.Error ?? "The MIDI file could not be made.";
-            return null;
-        }
-
+        var item = await Maker.CreateAsync(Track, Channel, () => InvokeAsync(StateHasChanged), _stop.Token);
+        Error = Maker.Error;
         return item;
     }
 
-    private void Download(AssetDto item) =>
-        Navigation.NavigateTo(new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(item.Id, ApiRoutes.AssetFileMidi, false)).ToString(), forceLoad: true);
+    private void Download(AssetDto? item)
+    {
+        if (item is not null)
+        {
+            Navigation.NavigateTo(new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(item.Id, ApiRoutes.AssetFileMidi, false)).ToString(), forceLoad: true);
+        }
+    }
 }

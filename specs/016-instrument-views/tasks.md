@@ -233,8 +233,8 @@ text, the row wins.
 - [x] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
 - [x] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
 - [x] T089 [US3] [audio-engine] Implement `src/drums/hit-lanes.ts` and the methods to pass T088
-- [ ] T090 [P] [US3] [frontend] Failing bUnit tests: `drumless` (family mute incl. expanded strips, metronome + one-bar count-in via 012, restore on second click), `drum-trainer`, `drum-lanes` host, `drum-hits-status`, `drum-hits-split-required`/`-start`, `drum-lane-label-<piece>` guide (Advanced), `drum-look-ahead` (Advanced), `drum-bar-text`, `drum-score` (014 view) / `drum-score-generate`; help id `drum-trainer` (FR-031..FR-034, FR-062)
-- [ ] T091 [US3] [frontend] Implement `DrumTrainer`, `DrumlessToggle`, help topic to pass T090
+- [x] T090 [P] [US3] [frontend] Failing bUnit tests: `drumless` (family mute incl. expanded strips, metronome + one-bar count-in via 012, restore on second click), `drum-trainer`, `drum-lanes` host, `drum-hits-status`, `drum-hits-split-required`/`-start`, `drum-lane-label-<piece>` guide (Advanced), `drum-look-ahead` (Advanced), `drum-bar-text`, `drum-score` (014 view) / `drum-score-generate`; help id `drum-trainer` (FR-031..FR-034, FR-062)
+- [x] T091 [US3] [frontend] Implement `DrumTrainer`, `DrumlessToggle`, help topic to pass T090
 - [x] T092 [US3] [qa] Author `e2e/tests/instrument-drums.spec.ts`: **drums** with fake split: lanes `data-next-hit-piece` follows kick/snare/hihat pattern at the fake beat times; `drumless` -> every `meter-drums*` at -60 dB while other meters move; restore; guide hi-hat audible; drum score follows the bar (014 ids) (SC-003, SC-006)
 
 **Checkpoint**: HO:us3.
@@ -257,8 +257,8 @@ text, the row wins.
 - [x] T102 [US4] [audio-engine] Implement `src/singing/{scorer,pitch-view}.ts` to pass T101
 - [x] T103 [P] [US4] [audio-engine] Failing tests `tests/singing/score-take.test.ts`: decoded take (fake fetch/decode) scored with the same core and units; latency default 0 (FR-046)
 - [x] T104 [US4] [audio-engine] Implement `scoreTake` to pass T103
-- [ ] T105 [P] [US4] [frontend] Failing bUnit tests: `singing` panel, `singing-reference-status`/`-analyse`/`-estimate`, `singing-toggle`, `singing-state`, `pitch-view` host, lead vocal muted while running and restored, `singing-headphones-hint`, `singing-error` (permission, device, too slow) with the 015 link, `singing-tolerance` (Advanced/Expert defaults), `singing-latency`, `singing-raw` (Expert), `singing-announcer` text, `karaoke-score`, `singing-summary`, units from lyrics/sections/blocks, `take-score-<takeId>` (P2); help ids `singing-feedback`, `singing-tolerance-latency` (FR-041..FR-047, FR-061, FR-062)
-- [ ] T106 [US4] [frontend] Implement `SingingPanel`, `PitchView`, take scoring action, help topics to pass T105
+- [x] T105 [P] [US4] [frontend] Failing bUnit tests: `singing` panel, `singing-reference-status`/`-analyse`/`-estimate`, `singing-toggle`, `singing-state`, `pitch-view` host, lead vocal muted while running and restored, `singing-headphones-hint`, `singing-error` (permission, device, too slow) with the 015 link, `singing-tolerance` (Advanced/Expert defaults), `singing-latency`, `singing-raw` (Expert), `singing-announcer` text, `karaoke-score`, `singing-summary`, units from lyrics/sections/blocks, `take-score-<takeId>` (P2); help ids `singing-feedback`, `singing-tolerance-latency` (FR-041..FR-047, FR-061, FR-062)
+- [x] T106 [US4] [frontend] Implement `SingingPanel`, `PitchView`, take scoring action, help topics to pass T105
 - [x] T107 [US4] [qa] Author `e2e/tests/instrument-singing.spec.ts` in the fake-mic projects: **vocals** with `sing-on-pitch.wav` every `karaoke-score` >= 90 and summary >= 90; `sing-semitone-off.wav` <= 20 at 50 cents; `silence.wav` 0; no request to the API carries audio or scores (network log); take scoring of a fake 015 take (SC-004, SC-006, FR-047)
 
 **Checkpoint**: HO:us4.
@@ -271,8 +271,8 @@ text, the row wins.
 
 - [x] T108 [P] [US5] [backend] Failing tests: profiles `strings`/`brass`/`woodwinds` suggested for `<parent>.strings|brass|woodwinds`; `part` validation (`part-not-allowed`, `clef-not-allowed`), `ScoreOptions.parts`, `ScoreFacts.part`, recipe round trip (FR-050..FR-053)
 - [x] T109 [US5] [backend] Implement to pass T108
-- [ ] T110 [P] [US5] [frontend] Failing bUnit tests: `score-part-instrument` (all levels, `concert` first), `score-part-clef` (Advanced), `asset-score-part-<id>`, new profile names; help id `transposed-parts` (FR-051, FR-052, FR-061)
-- [ ] T111 [US5] [frontend] Implement to pass T110
+- [x] T110 [P] [US5] [frontend] Failing bUnit tests: `score-part-instrument` (all levels, `concert` first), `score-part-clef` (Advanced), `asset-score-part-<id>`, new profile names; help id `transposed-parts` (FR-051, FR-052, FR-061)
+- [x] T111 [US5] [frontend] Implement to pass T110
 - [x] T112 [US5] [qa] Author `e2e/tests/instrument-parts.spec.ts`: **brass** as alto sax E-flat (`<transpose><chromatic>-9`, `<fifths>3` for concert C), **woodwinds** as clarinet B-flat, **strings** as viola (alto clef `<sign>C</sign>`); MIDI at concert pitch; the 014 score view shows the same current bar for the part and the concert part at a fixed position (SC-005, SC-006)
 
 **Checkpoint**: HO:us5.
@@ -281,8 +281,8 @@ text, the row wins.
 
 ## Phase 8: User Story 6 - "Practise as ..." for every family (P2)
 
-- [ ] T113 [P] [US6] [frontend] Failing bUnit tests: `practise-as` menu with every family, applying minus-one and opening `instrument-view` with the family's view, `practise-as-offer` from localStorage (offered, not applied), keyboard operation; help id `instrument-views` (FR-060, FR-062)
-- [ ] T114 [US6] [frontend] Implement `PractiseAsMenu` and the view host to pass T113
+- [x] T113 [P] [US6] [frontend] Failing bUnit tests: `practise-as` menu with every family, applying minus-one and opening `instrument-view` with the family's view, `practise-as-offer` from localStorage (offered, not applied), keyboard operation; help id `instrument-views` (FR-060, FR-062)
+- [x] T114 [US6] [frontend] Implement `PractiseAsMenu` and the view host to pass T113
 - [x] T115 [US6] [qa] Author `e2e/tests/instrument-practise-as.spec.ts`: for **vocals, drums, bass, guitar, keys, orchestral**: muted channels per data-model 5.3 (expanded and collapsed), opened `data-view`; `play-along-drums` with expanded drums mutes the drum detail strips (DELTA 6) (SC-006, SC-009)
 
 **Checkpoint**: HO:us6.
@@ -297,8 +297,8 @@ text, the row wins.
 - [x] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
 - [x] T118 [P] [US7] [audio-engine] Failing tests `tests/chords/current-key.test.ts`: chord lane host `data-current-key` follows the region at the position and the 012 transpose; spelling uses the region key (D major sharps, D-flat major flats) (FR-071, FR-073)
 - [x] T119 [US7] [audio-engine] Implement to pass T118
-- [ ] T120 [P] [US7] [frontend] Failing bUnit tests: `track-key` next to `track-bpm`, `mixer-key`, `mixer-key-current` (mirrors `data-current-key`), transposed display with the 012 transpose, `mixer-key-written` for the orchestral family with a chosen instrument, `mixer-key-confidence` and `track-key-regions` (Advanced); help id `song-key` (FR-071..FR-074, FR-061)
-- [ ] T121 [US7] [frontend] Implement the key components and help topic to pass T120
+- [x] T120 [P] [US7] [frontend] Failing bUnit tests: `track-key` next to `track-bpm`, `mixer-key`, `mixer-key-current` (mirrors `data-current-key`), transposed display with the 012 transpose, `mixer-key-written` for the orchestral family with a chosen instrument, `mixer-key-confidence` and `track-key-regions` (Advanced); help id `song-key` (FR-071..FR-074, FR-061)
+- [x] T121 [US7] [frontend] Implement the key components and help topic to pass T120
 - [x] T122 [US7] [qa] Author `e2e/tests/instrument-key.spec.ts`: "C major" shown on the track page and in the mixer for **each family** chosen via "Practise as" (vocals, drums, bass, guitar, keys, orchestral); playing past bar 9 shows "D major" in `mixer-key-current`; transpose +2 shows "D major (original C major, +2)"; orchestral with alto sax shows "Your part: A major"; chord lane symbols in the D region use sharps (SC-006, SC-010)
 
 **Checkpoint**: HO:us7.
@@ -313,8 +313,8 @@ text, the row wins.
 - [x] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
 - [x] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
 - [x] T126 [US8] [audio-engine] Implement to pass T125
-- [ ] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
-- [ ] T128 [US8] [frontend] Implement the capo components and help topic to pass T127
+- [x] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
+- [x] T128 [US8] [frontend] Implement the capo components and help topic to pass T127
 - [x] T129 [US8] [qa] Author `e2e/tests/instrument-capo.spec.ts`: **guitar**: transpose +3, `capo-shortcut` reads "Capo 3", apply -> lane shows C/G/Am/F, `capo-badge` "Capo 3", chord sheet shapes; suggestion list order equals the R-14 rule (expected values computed in the spec from the vectors); tablature dialog has capo 3; **bass** and **keys**: no `capo-mode` (SC-006, SC-011)
 
 **Checkpoint**: HO:us8.
@@ -328,7 +328,7 @@ text, the row wins.
 - [x] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
 - [x] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
-- [ ] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
+- [x] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
 - [x] T136 [P] [qa] axe checks on every new area (0 serious/critical), traceability matrix (US1-US8, FR-001..FR-078, per family), HO:polish (SC-008)
 - [x] T137 [P] [devops] Validate compose/CI incl. fake-mic projects; image size delta (BTC weights are in the cache, not the image) recorded; HO:polish
 - [x] T144 [devops] (added in Phase 0, LESSONS 014/015) Split the CI E2E job before the eight `instrument-*` specs land: the default suite and the feature passes (recording, practice-flow, agent, lyric, restart, gpu, instrument, fake-mic) run as parallel jobs, each under 90 minutes; acceptance: the workflow validates, each job names its projects/`--grep`, and their union equals today's set plus the 016 projects

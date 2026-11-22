@@ -98,7 +98,7 @@ public sealed partial class ChordPanel : IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         LaneVisible = await Preferences.GetAsync<bool?>(ViewPreferences.LaneKey) ?? true;
-        await LoadAsync(Api.GetChordsAsync(TrackId, _stop.Token));
+        await LoadAsync(() => Api.GetChordsAsync(TrackId, _stop.Token));
         StartPolling();
     }
 
@@ -110,15 +110,15 @@ public sealed partial class ChordPanel : IAsyncDisposable
 
     private async Task PollAsync(CancellationToken ct)
     {
-        await LoadAsync(Api.GetChordsAsync(TrackId, ct));
+        await LoadAsync(() => Api.GetChordsAsync(TrackId, ct));
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task LoadAsync(Task<TrackAnalysisDto<ChordChartDocumentDto>> request, bool rethrowEditsExist = false)
+    private async Task LoadAsync(Func<Task<TrackAnalysisDto<ChordChartDocumentDto>>> request, bool rethrowEditsExist = false)
     {
         try
         {
-            Apply(await request);
+            Apply(await request());
             Error = null;
             await OnLoaded.InvokeAsync(Analysis!);
         }
@@ -151,37 +151,31 @@ public sealed partial class ChordPanel : IAsyncDisposable
         }
 
         Busy = true;
-        try
-        {
-            if (!await TryDetectAsync(overwrite) && await ConfirmOverwriteAsync())
-            {
-                await TryDetectAsync(overwrite: true);
-            }
-        }
-        finally
-        {
-            Busy = false;
-        }
-
+        await DetectOrAskAsync(overwrite);
+        Busy = false;
         StartPolling();
     }
 
-    // False when the backend refuses because edits exist (409 edits-exist, FR-012): the caller asks first.
+    // The backend refuses when edits exist (409 edits-exist, FR-012): ask, then detect again with the overwrite.
+    private async Task DetectOrAskAsync(bool overwrite)
+    {
+        if (!await TryDetectAsync(overwrite) && await ConfirmOverwriteAsync())
+        {
+            await TryDetectAsync(overwrite: true);
+        }
+    }
+
+    // False when the backend refuses because edits exist; every other API error is shown by LoadAsync.
     private async Task<bool> TryDetectAsync(bool overwrite)
     {
         try
         {
-            await LoadAsync(Api.DetectChordsAsync(TrackId, Request(overwrite), _stop.Token), rethrowEditsExist: true);
+            await LoadAsync(() => Api.DetectChordsAsync(TrackId, Request(overwrite), _stop.Token), rethrowEditsExist: true);
             return true;
         }
         catch (ApiException ex) when (ex.Error.Code == "edits-exist")
         {
             return false;
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-            return true;
         }
     }
 
@@ -199,15 +193,18 @@ public sealed partial class ChordPanel : IAsyncDisposable
     private async Task SyncLaneAsync()
     {
         var wanted = LaneVisible && EngineReady ? Chart : null;
-        if (ReferenceEquals(wanted, _attached))
+        if (!ReferenceEquals(wanted, _attached))
         {
-            return;
+            _attached = wanted;
+            await ShowLaneAsync(wanted);
         }
+    }
 
-        _attached = wanted;
+    private async Task ShowLaneAsync(ChordChartData? chart)
+    {
         try
         {
-            await (wanted is null ? Views.DetachChordLaneAsync() : Views.AttachChordLaneAsync(HostId, wanted, new ChordLaneOptions { ReducedMotion = ReducedMotion ? true : null }));
+            await (chart is null ? Views.DetachChordLaneAsync() : Views.AttachChordLaneAsync(HostId, chart, LaneOptions));
         }
         catch (AudioEngineException ex)
         {
@@ -215,4 +212,6 @@ public sealed partial class ChordPanel : IAsyncDisposable
             StateHasChanged();
         }
     }
+
+    private ChordLaneOptions LaneOptions => new() { ReducedMotion = ReducedMotion ? true : null };
 }

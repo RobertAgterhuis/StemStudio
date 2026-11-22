@@ -4,6 +4,7 @@
     <h2 id="summary-heading" class="ss-heading">Stems</h2>
     <dl class="ss-facts ss-facts-row" data-help-id="track-facts">
         <div><dt>Tempo</dt><dd data-testid="track-bpm" data-help-id="track-bpm">@TrackFacts.Bpm(Track)</dd></div>
+        <div><dt>Key</dt><StemStudio.Web.Components.InstrumentViews.TrackKey Track="Track" /></div>
         <div><dt>Duration</dt><dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd></div>
         <div><dt>Model</dt><dd data-testid="track-model">@TrackFacts.Model(Track)</dd></div>
     </dl>

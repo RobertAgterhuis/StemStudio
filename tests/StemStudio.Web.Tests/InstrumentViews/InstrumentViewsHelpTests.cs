@@ -14,6 +14,15 @@ public sealed class InstrumentViewsHelpTests
     {
         { "chords", ["chords", "chord-sheet"] },
         { "chords-advanced", ["chords-vocabulary", "chord-edit"] },
+        { "tablature", ["score-tablature", "score-tab-tuning"] },
+        { "midi-download", ["midi-download"] },
+        { "drum-trainer", ["drum-trainer", "drum-lanes", "drumless"] },
+        { "singing-feedback", ["singing", "pitch-view"] },
+        { "singing-tolerance-latency", ["singing-tolerance", "singing-latency"] },
+        { "transposed-parts", ["score-part", "score-part-clef"] },
+        { "instrument-views", ["practise-as"] },
+        { "song-key", ["song-key"] },
+        { "capo-mode", ["capo-mode"] },
     };
 
     [Theory]
@@ -39,5 +48,38 @@ public sealed class InstrumentViewsHelpTests
         Catalog.Topic("chords")!.Markdown.ShouldContain("80 %");
         Catalog.Topic("chords")!.Markdown.ShouldContain("Park et al. 2019, MIT licence");
         Catalog.Topic("chords-advanced")!.Levels.Select(l => l.ToString()).ShouldBe(["Advanced", "Expert"]);
+    }
+
+    [Fact]
+    public void DrumTrainerTopic_NamesTheSplitTheGuideAndTheLimits()
+    {
+        var body = Catalog.Topic("drum-trainer")!.Markdown;
+
+        body.ShouldContain("split", Case.Insensitive);
+        body.ShouldContain("guide", Case.Insensitive);
+        body.ShouldContain("Limits", Case.Sensitive);
+    }
+
+    [Fact]
+    public void SingingTopic_SaysTheAudioStaysInTheBrowser()
+    {
+        var body = Catalog.Topic("singing-feedback")!.Markdown;
+
+        body.ShouldContain("headphones", Case.Insensitive);
+        body.ShouldContain("stays in your browser", Case.Insensitive);
+        body.ShouldContain("Limits", Case.Sensitive);
+    }
+
+    [Fact]
+    public void ViewsTopic_NamesEveryFamily_AndThePresetFix()
+    {
+        var body = Catalog.Topic("instrument-views")!.Markdown;
+
+        foreach (var family in new[] { "Vocals", "Drums", "Bass", "Guitar", "Keys", "Strings / brass / woodwinds" })
+        {
+            body.ShouldContain(family);
+        }
+
+        body.ShouldContain("detail", Case.Insensitive);
     }
 }

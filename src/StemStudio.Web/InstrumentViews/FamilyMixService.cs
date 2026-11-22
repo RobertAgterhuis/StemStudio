@@ -37,7 +37,7 @@ public static class FamilyMixService
     public static IReadOnlyList<ChannelFlags> Capture(MixerState state) =>
         state.AllChannels.Select(c => new ChannelFlags(c.Stem, c.Mute, c.Solo)).ToList();
 
-    /// <summary>Restores captured flags; channels the track does not have are ignored.</summary>
+    /// <summary>Restores captured flags; channels the track does not have and empty entries (stored in the browser) are ignored.</summary>
     /// <param name="state">The mixer.</param>
     /// <param name="flags">Flags from <see cref="Capture"/>.</param>
     /// <returns>The settings of the restored channels.</returns>
@@ -45,7 +45,7 @@ public static class FamilyMixService
     {
         var known = state.AllChannels.ToDictionary(c => c.Stem, StringComparer.Ordinal);
         var restored = new List<ChannelState>();
-        foreach (var flag in flags.Where(f => known.ContainsKey(f.Stem)))
+        foreach (var flag in flags.Where(f => f?.Stem is not null && known.ContainsKey(f.Stem)))
         {
             var channel = known[flag.Stem];
             Set(state, channel, flag.Mute, flag.Solo);

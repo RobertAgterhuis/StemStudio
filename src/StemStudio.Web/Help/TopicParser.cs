@@ -32,25 +32,26 @@ internal static partial class TopicParser
     public static HelpTopic Parse(HelpFile file, string folder, string fileId)
     {
         var (yaml, body) = Split(file);
-        var front = Deserialize(file, yaml);
-        var topic = new HelpTopic
-        {
-            Id = Required(file, front.Id, "id"),
-            Title = Required(file, front.Title, "title"),
-            Area = Required(file, front.Area, "area"),
-            Summary = Required(file, front.Summary, "summary"),
-            Feature = front.Feature,
-            Levels = Levels(file, front.Levels),
-            Route = front.Route,
-            Anchors = front.Anchors ?? [],
-            Keywords = front.Keywords ?? [],
-            Related = front.Related ?? [],
-            Reviewed = Required(file, front.Reviewed, "reviewed"),
-            Markdown = body,
-        };
+        var topic = Topic(file, Deserialize(file, yaml), body);
         Validate(file, topic, folder, fileId);
         return topic;
     }
+
+    private static HelpTopic Topic(HelpFile file, FrontMatter front, string body) => new()
+    {
+        Id = Required(file, front.Id, "id"),
+        Title = Required(file, front.Title, "title"),
+        Area = Required(file, front.Area, "area"),
+        Summary = Required(file, front.Summary, "summary"),
+        Feature = front.Feature,
+        Levels = Levels(file, front.Levels),
+        Route = front.Route,
+        Anchors = front.Anchors ?? [],
+        Keywords = front.Keywords ?? [],
+        Related = front.Related ?? [],
+        Reviewed = Required(file, front.Reviewed, "reviewed"),
+        Markdown = body,
+    };
 
     /// <summary>Parses a level name (lower-case).</summary>
     /// <param name="path">File path for the error.</param>

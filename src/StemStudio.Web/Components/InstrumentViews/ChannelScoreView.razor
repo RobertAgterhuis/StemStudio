@@ -1,0 +1,23 @@
+@* The sheet music of one channel inside a family view (016 FR-034, US6 AS1): the 014 score view of a matching item, or a
+   button that makes one and shows its progress. Shared by the drum trainer, the tab view and the part view. *@
+
+<section class="ss-channel-score" aria-label="@Label" data-testid="@RegionTestId">
+    @if (HasScore)
+    {
+        @ScoreView
+    }
+    else if (Scores is not null)
+    {
+        <p class="ss-small ss-muted">@EmptyText</p>
+        <RadzenButton Text="@GenerateText" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Making"
+                      Click="StartGenerate" data-testid="@GenerateTestId" />
+        @if (Making)
+        {
+            <span class="ss-small ss-muted" role="status">@ProgressText</span>
+        }
+        @if (Error is not null)
+        {
+            <p class="ss-small ss-error" role="alert">@Error</p>
+        }
+    }
+</section>

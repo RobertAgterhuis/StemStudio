@@ -1,0 +1,28 @@
+@* The song key in the mixer (016 US7, FR-071..FR-074; ui-test-ids mixer-key, mixer-key-current, mixer-key-written,
+   mixer-key-confidence at Advanced): the key at the current transpose, the key of the region being played and, for a
+   transposing written instrument, the key of the player's part. *@
+@using StemStudio.Web.InstrumentViews
+
+<span class="ss-mixer-key">
+    <span class="ss-muted">Key</span>
+    @if (View is { Key: { } key, Display: { } display })
+    {
+        <span data-testid="mixer-key" data-tonic="@(((key.Tonic + View.Transpose) % 12 + 12) % 12)" data-mode="@KeyText.ModeName(key.Mode)"
+              data-uncertain="@KeyText.Uncertain(key.Confidence)" data-help-id="song-key">@KeyText.WithUncertainty(display, key.Confidence)</span>
+        <LevelGate Feature="key.details">
+            <span class="ss-small ss-muted" data-testid="mixer-key-confidence">@KeyText.Confidence(key)</span>
+        </LevelGate>
+        @if (Current is { } current)
+        {
+            <span class="ss-small" data-testid="mixer-key-current" data-region-index="@current.Index">@($"Now: {current.Region.Display}")</span>
+        }
+        @if (View.WrittenKey is { } written)
+        {
+            <span class="ss-small" data-testid="mixer-key-written">@($"Your part: {written}")</span>
+        }
+    }
+    else
+    {
+        <span data-testid="mixer-key" data-status="@Status" data-help-id="song-key"></span>
+    }
+</span>

@@ -25,24 +25,26 @@ public sealed partial class KaraokeBanner
     private async Task SyncChordsAsync()
     {
         var wanted = EngineReady ? Chords : null;
-        if (ReferenceEquals(wanted, _sent))
+        if (!ReferenceEquals(wanted, _sent))
         {
-            return;
+            // A chart the engine refused is not sent again; the flag stays off.
+            _sent = wanted;
+            await SendChordsAsync(wanted);
+            StateHasChanged();
         }
+    }
 
-        // A chart the engine refused is not sent again; the flag stays off.
-        _sent = wanted;
+    private async Task SendChordsAsync(ChordChartData? chart)
+    {
         try
         {
-            await Views.SetKaraokeChordsAsync(wanted);
-            _chords = wanted;
+            await Views.SetKaraokeChordsAsync(chart);
+            _chords = chart;
         }
         catch (AudioEngineException ex)
         {
             _chords = null;
             Error = $"The chords could not be shown on the lyrics: {ex.Message}";
         }
-
-        StateHasChanged();
     }
 }

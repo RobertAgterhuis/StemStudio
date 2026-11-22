@@ -14,6 +14,9 @@ public static class ScoreText
         [ScoreProfileDto.Guitar] = "Chords are notated as stacked notes without fingering or tablature; strums can add extra notes.",
         [ScoreProfileDto.Keys] = "Two staves split at middle C; pedal and voicing are not notated.",
         [ScoreProfileDto.Piano] = "Two staves split at middle C; the accurate model is slow on the CPU.",
+        [ScoreProfileDto.Strings] = "One line: a whole section shows its loudest line; bowing and double stops are not notated.",
+        [ScoreProfileDto.Brass] = "One line: a whole section shows its loudest line; falls and growls are not notated.",
+        [ScoreProfileDto.Woodwinds] = "One line: a whole section shows its loudest line; breath noises and trills are simplified.",
         [ScoreProfileDto.Drums] = "Kick, snare, toms, hi-hat and cymbals on one staff; bleed between the detail stems can add extra hits.",
     };
 

@@ -17,22 +17,15 @@ public static class ChordSheetLayout
     public static IReadOnlyList<ChordSheetPart> Parts(ChordSheetRowDto row)
     {
         var text = row.Text;
-        var parts = new List<ChordSheetPart>();
         var first = row.Chords.Count == 0 ? text.Length : Index(row.Chords[0], text);
-        if (first > 0)
-        {
-            parts.Add(new ChordSheetPart(null, -1, text[..first]));
-        }
-
-        for (var m = 0; m < row.Chords.Count; m++)
-        {
-            var start = Index(row.Chords[m], text);
-            var end = m + 1 < row.Chords.Count ? Math.Max(start, Index(row.Chords[m + 1], text)) : text.Length;
-            parts.Add(new ChordSheetPart(row.Chords[m], m, text[start..end]));
-        }
-
+        var parts = first > 0 ? new List<ChordSheetPart> { new(null, -1, text[..first]) } : [];
+        parts.AddRange(row.Chords.Select((chord, m) => new ChordSheetPart(chord, m, text[Index(chord, text)..End(row, m, text)])));
         return parts;
     }
+
+    // The end of the m-th chord's text: the next chord's position (never before its own) or the end of the row.
+    private static int End(ChordSheetRowDto row, int m, string text) =>
+        m + 1 < row.Chords.Count ? Math.Max(Index(row.Chords[m], text), Index(row.Chords[m + 1], text)) : text.Length;
 
     private static int Index(ChordSheetChordDto chord, string text) => Math.Clamp(chord.CharIndex, 0, text.Length);
 }

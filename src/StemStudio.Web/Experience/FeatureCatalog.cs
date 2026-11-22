@@ -107,6 +107,18 @@ public static class FeatureCatalog
         new("scores.chords", Advanced, null, "chords-advanced"),
         new("tab.basic", Beginner, null, "tablature"),
         new("tab.tunings", Advanced, null, "tablature"),
+        new("drums.trainer", Beginner, null, "drum-trainer"),
+        new("drums.guide", Advanced, null, "drum-trainer"),
+        new("singing.feedback", Beginner, null, "singing-feedback"),
+        new("singing.tolerance", Advanced, null, "singing-tolerance-latency"),
+        new("singing.raw", Expert, null, "singing-tolerance-latency"),
+        new("parts.instrument", Beginner, null, "transposed-parts"),
+        new("parts.clef", Advanced, null, "transposed-parts"),
+        new("views.practise-as", Beginner, null, "instrument-views"),
+        new("key.view", Beginner, null, "song-key"),
+        new("key.details", Advanced, null, "song-key"),
+        new("capo.mode", Beginner, null, "capo-mode"),
+        new("capo.sounding", Advanced, null, "capo-mode"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>
