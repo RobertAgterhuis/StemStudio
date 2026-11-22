@@ -765,6 +765,11 @@ export interface TakeScoreRequest {
   readonly units: readonly SingingUnit[];
   /** Tolerance 10..200 cents. */
   readonly toleranceCents: number;
+  /**
+   * 012 transpose the take was recorded at (integer -12..12, default 0): the reference target moves by 100 cents per
+   * semitone, as in the live scorer. Added at review 2026-11-22; optional, backwards compatible.
+   */
+  readonly transposeSemitones?: number;
 }
 
 /** Result of {@link AudioEngine.scoreTake}. */

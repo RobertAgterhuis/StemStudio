@@ -91,14 +91,28 @@ function localMinimum(d: Float64Array, start: number): number {
   return tau;
 }
 
-/** Parabolic interpolation of the lag around `tau`. */
-function refine(d: Float64Array, tau: number): number {
+/**
+ * Parabolic interpolation of the lag around `tau` (exported for tests).
+ *
+ * @param d - Normalised difference.
+ * @param tau - Chosen lag.
+ * @returns The refined lag.
+ */
+export function refineLag(d: Float64Array, tau: number): number {
   if (tau <= 1 || tau >= YIN.tauMax) {
     return tau;
   }
   const [a, b, c] = [Number(d[tau - 1]), Number(d[tau]), Number(d[tau + 1])];
   const denominator = a - 2 * b + c;
   return denominator === 0 ? tau : tau + (a - c) / (2 * denominator);
+}
+
+/**
+ * @param tau - Refined lag in 16 kHz samples.
+ * @returns Its pitch in centi-semitones (exported for tests).
+ */
+export function lagToCents(tau: number): number | null {
+  return hzToCents(YIN.rate / tau);
 }
 
 /**
@@ -116,7 +130,7 @@ export function analyseWindow(window: Float32Array, scratch: Float64Array): Pitc
   const tau = chooseLag(scratch);
   const difference = Number(scratch[tau]);
   const clarity = Math.min(Math.max(1 - difference, 0), 1);
-  return { cents: difference <= YIN.maxDifference ? hzToCents(YIN.rate / refine(scratch, tau)) : null, clarity };
+  return { cents: difference <= YIN.maxDifference ? lagToCents(refineLag(scratch, tau)) : null, clarity };
 }
 
 /** Streams input at any rate >= 16 kHz and posts one {@link PitchFrame} per hop once the first window is full. */

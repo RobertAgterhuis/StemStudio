@@ -50,6 +50,42 @@ describe('scoreTake (FR-046)', () => {
     expect(result.units.map((u) => u.score)).toEqual([0, 0]);
   });
 
+  it('scores against the transposed reference when the take was recorded at a 012 transpose (review M3)', async () => {
+    const twoUp = 440 * 2 ** (2 / 12);
+    const transposed = await scoreTake({ ...REQUEST, transposeSemitones: 2 }, deps(contextWith(tone(44_100, 2, [[twoUp, 0.4]]))));
+    expect(transposed.units.map((u) => u.score)).toEqual([100, 100]);
+    const untransposed = await scoreTake(REQUEST, deps(contextWith(tone(44_100, 2, [[twoUp, 0.4]]))));
+    expect(untransposed.units.map((u) => u.score)).toEqual([0, 0]);
+  });
+
+  it('yields to the event loop between chunks of about 1 s of take audio with identical results (review M5)', async () => {
+    const expected = await scoreTake(REQUEST, deps(contextWith(tone(44_100, 3, [[440, 0.4]]))));
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      const state = { done: false };
+      const pending = scoreTake(REQUEST, deps(contextWith(tone(44_100, 3, [[440, 0.4]])))).then((result) => {
+        state.done = true;
+        return result;
+      });
+      let yields = 0;
+      for (;;) {
+        await new Promise<void>((resolve) => {
+          setImmediate(resolve);
+        });
+        if (state.done) {
+          break;
+        }
+        expect(vi.getTimerCount()).toBe(1);
+        await vi.advanceTimersToNextTimerAsync();
+        yields += 1;
+      }
+      expect(yields).toBeGreaterThanOrEqual(2);
+      expect(await pending).toEqual(expected);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('applies no latency (015 takes are already compensated)', async () => {
     const reference = Array.from({ length: 400 }, (_, i) => (i >= 101 && i < 150 ? 6900 : 0));
     const samples = new Float32Array(44_100);
@@ -78,6 +114,10 @@ describe('scoreTake (FR-046)', () => {
     ['startSample', { ...REQUEST, startSample: -1 }, 'Invalid singing request: startSample'],
     ['fractional startSample', { ...REQUEST, startSample: 1.5 }, 'Invalid singing request: startSample'],
     ['takeUrl', { ...REQUEST, takeUrl: '' }, 'Invalid singing request: takeUrl'],
+    ['transpose above 12', { ...REQUEST, transposeSemitones: 13 }, 'Invalid singing request: transposeSemitones'],
+    ['transpose below -12', { ...REQUEST, transposeSemitones: -13 }, 'Invalid singing request: transposeSemitones'],
+    ['fractional transpose', { ...REQUEST, transposeSemitones: 1.5 }, 'Invalid singing request: transposeSemitones'],
+    ['transpose type', { ...REQUEST, transposeSemitones: '2' }, 'Invalid singing request: transposeSemitones'],
     ['tolerance', { ...REQUEST, toleranceCents: 300 }, 'Invalid singing request: tolerance outside 10..200'],
     ['contour', { ...REQUEST, reference: { hopMs: 10, frames: [13_000] } }, 'Invalid pitch contour: values outside 0..12700'],
   ])('rejects an invalid %s before fetching', async (_, request, message) => {

@@ -172,6 +172,15 @@ describe('hit lanes options', () => {
     expect(rig.host.dataset.lookAheadMs).toBe('8000');
   });
 
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, '4000'])('rejects a non-finite look-ahead %s and keeps the old one (review L6)', (look) => {
+    const rig = attached();
+    expect(() => {
+      rig.lanes.setOptions({ lookAheadMs: look as number });
+    }).toThrow('Invalid drum hits: lookAheadMs');
+    rig.frames.step(1);
+    expect(rig.host.dataset.lookAheadMs).toBe('4000');
+  });
+
   it('rejects an unknown piece in the options and keeps the old ones', () => {
     const rig = attached();
     expect(() => {
