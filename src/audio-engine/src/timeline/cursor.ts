@@ -1,5 +1,5 @@
 /**
- * Lookup of the current line or word: a cached index that advances forward in O(1) per frame,
+ * Lookup of the current item (karaoke line or word, chord, hit, unit): a cached index that advances forward in O(1) per frame,
  * with a binary search after any jump (seek, loop wrap, offset change).
  *
  * @packageDocumentation

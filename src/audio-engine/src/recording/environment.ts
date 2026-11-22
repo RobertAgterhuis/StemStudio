@@ -5,6 +5,9 @@
  * @packageDocumentation
  */
 import type { EngineOptions } from '../types';
+import type { WorkletNodeCreator } from '../worklet-module';
+
+export type { WorkletNodeCreator } from '../worklet-module';
 
 /** The part of `navigator.mediaDevices` the engine uses. */
 export type MediaDevicesLike = Pick<MediaDevices, 'getUserMedia' | 'enumerateDevices' | 'addEventListener' | 'removeEventListener'>;
@@ -14,9 +17,6 @@ export interface PermissionsLike {
   /** `navigator.permissions.query`. */
   query(descriptor: { readonly name: 'microphone' }): Promise<{ readonly state: string }>;
 }
-
-/** Creates an `AudioWorkletNode`. */
-export type WorkletNodeCreator = (context: AudioContext, name: string, options: AudioWorkletNodeOptions) => AudioWorkletNode;
 
 /** Browser facilities of the recording. */
 export interface MediaEnvironment {

@@ -166,10 +166,10 @@ text, the row wins.
 
 ### audio-engine (tests first)
 
-- [ ] T053 [P] [audio-engine] Failing tests `tests/timeline/*.test.ts`: shared clock = karaoke clock (output latency before loop wrap, 012 rate), cursor O(1) advance and binary search after seek/wrap, one-frame redraw triggers, reduced-motion paging helper (FR-003, SC-007)
-- [ ] T054 [audio-engine] Implement `src/timeline/` (and move the karaoke clock onto it without behaviour change) to pass T053
-- [ ] T055 [P] [audio-engine] Failing tests `tests/chords/chord-spelling.test.ts`: every case of `chord-spelling-vectors.json` (region keys, transpose, capo, shapes, `N.C.`) (FR-014, FR-073, SC-011)
-- [ ] T056 [audio-engine] Implement `src/chords/spelling.ts` to pass T055
+- [x] T053 [P] [audio-engine] Failing tests `tests/timeline/*.test.ts`: shared clock = karaoke clock (output latency before loop wrap, 012 rate), cursor O(1) advance and binary search after seek/wrap, one-frame redraw triggers, reduced-motion paging helper (FR-003, SC-007)
+- [x] T054 [audio-engine] Implement `src/timeline/` (and move the karaoke clock onto it without behaviour change) to pass T053
+- [x] T055 [P] [audio-engine] Failing tests `tests/chords/chord-spelling.test.ts`: every case of `chord-spelling-vectors.json` (region keys, transpose, capo, shapes, `N.C.`) (FR-014, FR-073, SC-011)
+- [x] T056 [audio-engine] Implement `src/chords/spelling.ts` to pass T055
 
 ### frontend (tests first)
 
@@ -191,10 +191,10 @@ text, the row wins.
 - [x] T063 [US1] [stem-separation] Integration test `worker/tests/harmony/test_chords_integration.py` (`@pytest.mark.integration`, downloads BTC): synthetic chord set through real BTC + post-processing >= 85 % majmin time (SC-001) and key test set >= 90 % (SC-010); records time per audio second
 - [x] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
 - [x] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
-- [ ] T066 [P] [US1] [audio-engine] Failing tests `tests/chords/chord-lane.test.ts`: DOM items, states, window by bars, host attributes, validation errors, detach, reduced motion, frame budget (counted writes) (FR-013, SC-007)
-- [ ] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
-- [ ] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
-- [ ] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
+- [x] T066 [P] [US1] [audio-engine] Failing tests `tests/chords/chord-lane.test.ts`: DOM items, states, window by bars, host attributes, validation errors, detach, reduced motion, frame budget (counted writes) (FR-013, SC-007)
+- [x] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
+- [x] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
+- [x] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
 - [x] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
 - [x] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
 - [x] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
@@ -231,8 +231,8 @@ text, the row wins.
 - [x] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
 - [x] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
 - [x] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
-- [ ] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
-- [ ] T089 [US3] [audio-engine] Implement `src/drums/hit-lanes.ts` and the methods to pass T088
+- [x] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
+- [x] T089 [US3] [audio-engine] Implement `src/drums/hit-lanes.ts` and the methods to pass T088
 - [ ] T090 [P] [US3] [frontend] Failing bUnit tests: `drumless` (family mute incl. expanded strips, metronome + one-bar count-in via 012, restore on second click), `drum-trainer`, `drum-lanes` host, `drum-hits-status`, `drum-hits-split-required`/`-start`, `drum-lane-label-<piece>` guide (Advanced), `drum-look-ahead` (Advanced), `drum-bar-text`, `drum-score` (014 view) / `drum-score-generate`; help id `drum-trainer` (FR-031..FR-034, FR-062)
 - [ ] T091 [US3] [frontend] Implement `DrumTrainer`, `DrumlessToggle`, help topic to pass T090
 - [x] T092 [US3] [qa] Author `e2e/tests/instrument-drums.spec.ts`: **drums** with fake split: lanes `data-next-hit-piece` follows kick/snare/hihat pattern at the fake beat times; `drumless` -> every `meter-drums*` at -60 dB while other meters move; restore; guide hi-hat audible; drum score follows the bar (014 ids) (SC-003, SC-006)
@@ -249,14 +249,14 @@ text, the row wins.
 - [x] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
 - [x] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
 - [x] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
-- [ ] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
-- [ ] T098 [US4] [audio-engine] Implement `src/pitch/{yin,decimate}.ts` to pass T097
-- [ ] T099 [P] [US4] [audio-engine] Failing tests `tests/singing/feedback.test.ts` with a fake worklet and fake 015 input: `startSingingFeedback` loads the module once, connects the input, states, errors (no input, already running), overrun guard -> `failed` with the reason, `stopSingingFeedback` idempotent summary, `getRoundTripLatency` calibrated/estimated (FR-041, FR-045)
-- [ ] T100 [US4] [audio-engine] Implement `src/pitch/worklet.ts` (processor) and `src/singing/feedback.ts` to pass T099
-- [ ] T101 [P] [US4] [audio-engine] Failing tests `tests/singing/scorer.test.ts`, `pitch-view.test.ts`: octave folding, tolerance, 012 transpose, units < 20 voiced frames null, loop passes, seek discards, latency alignment (R-07), callbacks per unit; pitch view window, bars and polyline, host attributes, reduced motion (FR-042, FR-043, SC-004)
-- [ ] T102 [US4] [audio-engine] Implement `src/singing/{scorer,pitch-view}.ts` to pass T101
-- [ ] T103 [P] [US4] [audio-engine] Failing tests `tests/singing/score-take.test.ts`: decoded take (fake fetch/decode) scored with the same core and units; latency default 0 (FR-046)
-- [ ] T104 [US4] [audio-engine] Implement `scoreTake` to pass T103
+- [x] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
+- [x] T098 [US4] [audio-engine] Implement `src/pitch/{yin,decimate}.ts` to pass T097
+- [x] T099 [P] [US4] [audio-engine] Failing tests `tests/singing/feedback.test.ts` with a fake worklet and fake 015 input: `startSingingFeedback` loads the module once, connects the input, states, errors (no input, already running), overrun guard -> `failed` with the reason, `stopSingingFeedback` idempotent summary, `getRoundTripLatency` calibrated/estimated (FR-041, FR-045)
+- [x] T100 [US4] [audio-engine] Implement `src/pitch/worklet.ts` (processor) and `src/singing/feedback.ts` to pass T099
+- [x] T101 [P] [US4] [audio-engine] Failing tests `tests/singing/scorer.test.ts`, `pitch-view.test.ts`: octave folding, tolerance, 012 transpose, units < 20 voiced frames null, loop passes, seek discards, latency alignment (R-07), callbacks per unit; pitch view window, bars and polyline, host attributes, reduced motion (FR-042, FR-043, SC-004)
+- [x] T102 [US4] [audio-engine] Implement `src/singing/{scorer,pitch-view}.ts` to pass T101
+- [x] T103 [P] [US4] [audio-engine] Failing tests `tests/singing/score-take.test.ts`: decoded take (fake fetch/decode) scored with the same core and units; latency default 0 (FR-046)
+- [x] T104 [US4] [audio-engine] Implement `scoreTake` to pass T103
 - [ ] T105 [P] [US4] [frontend] Failing bUnit tests: `singing` panel, `singing-reference-status`/`-analyse`/`-estimate`, `singing-toggle`, `singing-state`, `pitch-view` host, lead vocal muted while running and restored, `singing-headphones-hint`, `singing-error` (permission, device, too slow) with the 015 link, `singing-tolerance` (Advanced/Expert defaults), `singing-latency`, `singing-raw` (Expert), `singing-announcer` text, `karaoke-score`, `singing-summary`, units from lyrics/sections/blocks, `take-score-<takeId>` (P2); help ids `singing-feedback`, `singing-tolerance-latency` (FR-041..FR-047, FR-061, FR-062)
 - [ ] T106 [US4] [frontend] Implement `SingingPanel`, `PitchView`, take scoring action, help topics to pass T105
 - [x] T107 [US4] [qa] Author `e2e/tests/instrument-singing.spec.ts` in the fake-mic projects: **vocals** with `sing-on-pitch.wav` every `karaoke-score` >= 90 and summary >= 90; `sing-semitone-off.wav` <= 20 at 50 cents; `silence.wav` 0; no request to the API carries audio or scores (network log); take scoring of a fake 015 take (SC-004, SC-006, FR-047)
@@ -295,8 +295,8 @@ text, the row wins.
 
 - [x] T116 [P] [US7] [backend] Failing tests `KeyEndpointsTests.cs`: `Track.key` summary when chords are ready (null otherwise), `GET /api/tracks/{id}/key` with transpose and instrument (written key), regions with start bars from the grid, uncertainty; un-stage `getKey` (FR-070..FR-074)
 - [x] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
-- [ ] T118 [P] [US7] [audio-engine] Failing tests `tests/chords/current-key.test.ts`: chord lane host `data-current-key` follows the region at the position and the 012 transpose; spelling uses the region key (D major sharps, D-flat major flats) (FR-071, FR-073)
-- [ ] T119 [US7] [audio-engine] Implement to pass T118
+- [x] T118 [P] [US7] [audio-engine] Failing tests `tests/chords/current-key.test.ts`: chord lane host `data-current-key` follows the region at the position and the 012 transpose; spelling uses the region key (D major sharps, D-flat major flats) (FR-071, FR-073)
+- [x] T119 [US7] [audio-engine] Implement to pass T118
 - [ ] T120 [P] [US7] [frontend] Failing bUnit tests: `track-key` next to `track-bpm`, `mixer-key`, `mixer-key-current` (mirrors `data-current-key`), transposed display with the 012 transpose, `mixer-key-written` for the orchestral family with a chosen instrument, `mixer-key-confidence` and `track-key-regions` (Advanced); help id `song-key` (FR-071..FR-074, FR-061)
 - [ ] T121 [US7] [frontend] Implement the key components and help topic to pass T120
 - [x] T122 [US7] [qa] Author `e2e/tests/instrument-key.spec.ts`: "C major" shown on the track page and in the mixer for **each family** chosen via "Practise as" (vocals, drums, bass, guitar, keys, orchestral); playing past bar 9 shows "D major" in `mixer-key-current`; transpose +2 shows "D major (original C major, +2)"; orchestral with alto sax shows "Your part: A major"; chord lane symbols in the D region use sharps (SC-006, SC-010)
@@ -311,8 +311,8 @@ text, the row wins.
 
 - [x] T123 [P] [US8] [backend] Failing tests `CapoEndpointsTests.cs`: `GET .../chords/capo-suggestions?transpose` (shortcut, ranking from `CapoAdvisor`, `409 chords-not-ready`), sheet/ChordPro with `capo` show shapes and `{capo: n}`; un-stage `getCapoSuggestions` (FR-075..FR-077)
 - [x] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
-- [ ] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
-- [ ] T126 [US8] [audio-engine] Implement to pass T125
+- [x] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
+- [x] T126 [US8] [audio-engine] Implement to pass T125
 - [ ] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
 - [ ] T128 [US8] [frontend] Implement the capo components and help topic to pass T127
 - [x] T129 [US8] [qa] Author `e2e/tests/instrument-capo.spec.ts`: **guitar**: transpose +3, `capo-shortcut` reads "Capo 3", apply -> lane shows C/G/Am/F, `capo-badge` "Capo 3", chord sheet shapes; suggestion list order equals the R-14 rule (expected values computed in the spec from the vectors); tablature dialog has capo 3; **bass** and **keys**: no `capo-mode` (SC-006, SC-011)
@@ -327,7 +327,7 @@ text, the row wins.
 - [x] T131 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `analysis_inputs/`, `engraving/tablature.py`
 - [x] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
 - [x] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
+- [x] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
 - [ ] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
 - [x] T136 [P] [qa] axe checks on every new area (0 serious/critical), traceability matrix (US1-US8, FR-001..FR-078, per family), HO:polish (SC-008)
 - [x] T137 [P] [devops] Validate compose/CI incl. fake-mic projects; image size delta (BTC weights are in the cache, not the image) recorded; HO:polish

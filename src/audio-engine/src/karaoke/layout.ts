@@ -36,7 +36,7 @@ export function measureSlots(host: HTMLElement, slots: readonly [SlotView, SlotV
   const origin = host.getBoundingClientRect();
   const lines = new Map<number, readonly Point[]>();
   slots.forEach((slot) => {
-    const points = [...slot.element.children].map((word) => {
+    const points = [...slot.element.querySelectorAll(':scope > .karaoke-word')].map((word) => {
       const rect = word.getBoundingClientRect();
       return { x: rect.left + rect.width / 2 - origin.left, y: rect.top - origin.top };
     });

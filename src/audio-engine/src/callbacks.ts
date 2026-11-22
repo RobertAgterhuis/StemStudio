@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { TransportListener } from './transport';
-import type { CapturedTake, DotNetCallbacks, DotNetObjectReference, LoopPassInfo, PlaybackState, PracticeStatus, RecordingProgress, RecordingState } from './types';
+import type { CapturedTake, DotNetCallbacks, DotNetObjectReference, LoopPassInfo, PlaybackState, PracticeStatus, RecordingProgress, RecordingState, SingingState, SingingUnitScore } from './types';
 
 /** Interval of position reports while playing (10 Hz). UI feedback only, never audible timing. */
 export const POSITION_REPORT_INTERVAL_MS = 100;
@@ -142,10 +142,7 @@ export interface RecordingNotifier {
  * @returns The recording notifier.
  */
 export function recordingNotifier(ref: DotNetObjectReference): RecordingNotifier {
-  const send = (method: DotNetCallbacks, ...args: unknown[]): void => {
-    // A disconnected circuit rejects; the engine must keep working regardless.
-    ref.invokeMethodAsync(method, ...args).catch(() => undefined);
-  };
+  const send = sender(ref);
   return {
     state: (state) => {
       send('OnRecordingStateChanged', state);
@@ -161,6 +158,37 @@ export function recordingNotifier(ref: DotNetObjectReference): RecordingNotifier
     },
     devicesChanged: () => {
       send('OnInputDevicesChanged');
+    },
+  };
+}
+
+/** Sends a callback, ignoring a rejection (a disconnected circuit must not break the engine). */
+function sender(ref: DotNetObjectReference): (method: DotNetCallbacks, ...args: unknown[]) => void {
+  return (method, ...args) => {
+    ref.invokeMethodAsync(method, ...args).catch(() => undefined);
+  };
+}
+
+/** The singing callbacks (contract 2.6.0). */
+export interface SingingNotifier {
+  /** `OnSingingStateChanged(state, reason)`. */
+  state(state: SingingState, reason: string | null): void;
+  /** `OnSingingUnitScored(index, score, pass)`. */
+  unit(score: SingingUnitScore): void;
+}
+
+/**
+ * @param ref - .NET object implementing the callbacks.
+ * @returns The singing notifier.
+ */
+export function singingNotifier(ref: DotNetObjectReference): SingingNotifier {
+  const send = sender(ref);
+  return {
+    state: (state, reason) => {
+      send('OnSingingStateChanged', state, reason);
+    },
+    unit: (score) => {
+      send('OnSingingUnitScored', score.index, score.score, score.pass);
     },
   };
 }

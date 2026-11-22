@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Cursor, lastAtOrBefore } from '../../src/karaoke/cursor';
+import { Cursor, lastAtOrBefore } from '../../src/timeline/cursor';
 import { attached, attr, frameAt, play, showAt } from '../mocks/karaoke-rig';
 import { stubLayout, stubResizeObserver } from '../mocks/layout';
 
