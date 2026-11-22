@@ -8,7 +8,10 @@ be read then fails the job when it runs. Kinds:
 * ``chords``: the ``ChordAnalyzer`` (mixdown -> recognizer -> post-processing -> key) over the
   resolved harmonic stems and the bass stem; the device of a BTC run is recorded.
 * ``drum-hits``: the 008 ``DrumTranscriber`` per given piece -> hits in time order (ms);
-  hits in the same millisecond keep the kit order kick, snare, toms, hihat, cymbals.
+  hits in the same millisecond keep the kit order kick, snare, toms, hihat, cymbals. Above
+  ``MAX_DRUM_HITS`` every piece keeps its share of the cap (largest remainder) with its strongest
+  hits (ties: the earlier), so the whole song stays covered; the cap is logged as a warning
+  (``DrumHits`` 1.9.0 has no warnings field).
 * ``vocal-pitch``: the vocal stem at 16 kHz -> the ``PitchAnalyzer`` (``NoMelodyError`` fails
   the job with ``NO_MELODY_TEXT``).
 
@@ -16,6 +19,8 @@ Stages follow the progress: ``preparing`` below 0.05 (``loading-model`` when the
 the request are not cached yet), ``analysing`` below 0.95, then ``finishing``.
 """
 
+import heapq
+import logging
 from typing import Any, ClassVar, Final, get_args
 
 from stemstudio_worker.jobs.instrument_analysis_chords import MIXED, scaled
@@ -55,6 +60,7 @@ from stemstudio_worker.schemas import (
     VocalPitchJobRequest,
 )
 
+_LOG = logging.getLogger(__name__)
 _S = RenderJobStatus
 FINISHING: Final = 0.95
 """Progress from which a job is ``finishing``."""
@@ -151,11 +157,9 @@ class InstrumentAnalysisService(LaneJobService[StoredAnalysisJob]):
         files = {piece: self._library.resolve(path)
                  for piece, path in request.drum_inputs.pieces().items()}  # fmt: skip
         hits = self.parts.drums.transcribe(files, None, scaled(report, MIXED, FINISHING))
-        events = sorted(
-            (_event(hit) for hit in hits), key=lambda e: (e.time_ms, _KIT.index(e.piece))
-        )
+        events = sorted((_event(hit) for hit in hits), key=_kit_order)
         result = DrumHits(engine=self.parts.drum_engine, pieces=list(files),
-                          hits=events[:MAX_DRUM_HITS])  # fmt: skip
+                          hits=_capped(events))  # fmt: skip
         return _completed(result)
 
     def _vocal_pitch(self, request: VocalPitchJobRequest, report: AnalysisProgress) -> Outcome:
@@ -183,6 +187,38 @@ def _check(library: LibraryReader, path: str) -> None:
         raise
     except RenderError:
         return
+
+
+def _kit_order(event: DrumHitEvent) -> tuple[int, int]:
+    return event.time_ms, _KIT.index(event.piece)
+
+
+def _capped(events: list[DrumHitEvent]) -> list[DrumHitEvent]:
+    """At most ``MAX_DRUM_HITS``: each piece keeps its share, strongest hits first."""
+    if len(events) <= MAX_DRUM_HITS:
+        return events
+    _LOG.warning("Drum hits capped from %d to %d (a share per piece, strongest first)",
+                 len(events), MAX_DRUM_HITS)  # fmt: skip
+    by_piece: dict[DrumPiece, list[DrumHitEvent]] = {}
+    for event in events:
+        by_piece.setdefault(event.piece, []).append(event)
+    shares = _shares({piece: len(hits) for piece, hits in by_piece.items()}, MAX_DRUM_HITS)
+    kept = (
+        event
+        for piece, hits in by_piece.items()
+        for event in heapq.nsmallest(shares[piece], hits, key=lambda e: -e.strength)
+    )
+    return sorted(kept, key=_kit_order)
+
+
+def _shares(counts: dict[DrumPiece, int], cap: int) -> dict[DrumPiece, int]:
+    """``cap`` split in proportion to ``counts`` (largest remainder; ties in kit order)."""
+    total = sum(counts.values())
+    shares = {piece: count * cap // total for piece, count in counts.items()}
+    by_remainder = sorted(counts, key=lambda p: (-(counts[p] * cap % total), _KIT.index(p)))
+    for piece in by_remainder[: cap - sum(shares.values())]:
+        shares[piece] += 1
+    return shares
 
 
 def _event(hit: Any) -> DrumHitEvent:

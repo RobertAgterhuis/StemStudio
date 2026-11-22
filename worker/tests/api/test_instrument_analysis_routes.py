@@ -273,6 +273,20 @@ def test_a_capped_result_keeps_a_fair_share_of_every_piece_and_logs_it(
     assert any("50000" in r.getMessage() and "40000" in r.getMessage() for r in caplog.records)
 
 
+def test_the_capped_shares_round_by_largest_remainder_then_kit_order(
+    started: Api, fakes: Fakes
+) -> None:
+    kick = (DrumHit(i / 100, "kick", 0.5) for i in range(20_001))
+    snare = (DrumHit(i / 100, "snare", 0.5) for i in range(20_001))
+    fakes.drums.hits = (*kick, *snare, DrumHit(1.0, "hihat", 0.5))
+
+    job = _done(started, _post(started, drums_body(("kick", "snare", "hihat"))))
+
+    pieces = [h["piece"] for h in job["result"]["hits"]]
+    counts = {p: pieces.count(p) for p in ("kick", "snare", "hihat")}
+    assert counts == {"kick": 20_000, "snare": 19_999, "hihat": 1}
+
+
 def test_a_drum_transcription_error_fails_the_job_with_its_text(started: Api, fakes: Fakes) -> None:
     fakes.drums.error = TranscriptionError("The drum stems could not be read.")
 
