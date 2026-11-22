@@ -49,7 +49,7 @@ public sealed class SingingPanelTests : PageTestContext
         (SingingFeedbackRequest)Views.ReceivedCalls().Single(c => c.GetMethodInfo().Name == nameof(Views.StartSingingFeedbackAsync)).GetArguments()[0]!;
 
     private void State(string state, string? reason = null) =>
-        Views.SingingStateChanged += Raise.EventWith(Views, new SingingStateChange(state, reason));
+        Views.SingingStateChanged += Raise.Event<EventHandler<SingingStateChange>>(Views, new SingingStateChange(state, reason));
 
     [Fact]
     public void Ready_ShowsTheRegion_TheEmptyPitchHost_TheHint_AndAnIdleState()
@@ -111,7 +111,7 @@ public sealed class SingingPanelTests : PageTestContext
         request.PitchViewElementId.ShouldBe(panel.Find("[data-testid=pitch-view]").Id);
         request.Reference.Frames.ShouldBe([0, 4500, 4510, 4700]);
         request.Units.Count.ShouldBe(2);
-        (request.ToleranceCents, request.RoundTripMs, request.LatencyMethod).ShouldBe((100, 42.0, "loopback"));
+        (request.ToleranceCents, request.RoundTripMs, request.LatencyMethod).ShouldBe((50, 42.0, "loopback"), "the default level is Advanced");
         panel.Find("[data-testid=singing-toggle]").GetAttribute("aria-pressed").ShouldBe("true");
 
         await panel.Find("[data-testid=singing-toggle]").ClickAsync(new());
@@ -139,7 +139,7 @@ public sealed class SingingPanelTests : PageTestContext
         var panel = RenderPanel();
         await panel.Find("[data-testid=singing-toggle]").ClickAsync(new());
 
-        Views.SingingUnitScored += Raise.EventWith(Views, new SingingUnitScore(1, 87, 1));
+        Views.SingingUnitScored += Raise.Event<EventHandler<SingingUnitScore>>(Views, new SingingUnitScore(1, 87, 1));
 
         panel.WaitForAssertion(() => panel.Find("[data-testid=singing-announcer]").TextContent.ShouldBe("Line 2: 87 points"));
         panel.Find("[data-testid=singing-announcer]").GetAttribute("aria-live").ShouldBe("polite");

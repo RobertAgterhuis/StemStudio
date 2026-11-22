@@ -17,7 +17,7 @@ public sealed partial class Mixer
     private ViewPreferences ViewPreferences { get; set; } = default!;
 
     /// <summary>The open family view of the <c>instrument-view</c> region, or null.</summary>
-    private InstrumentViewDto? OpenView { get; set; }
+    private InstrumentViewDto? OpenedView { get; set; }
 
     private DrumPieceDto? GuidePiece { get; set; }
 
@@ -26,7 +26,7 @@ public sealed partial class Mixer
     private IReadOnlyList<DrumPieceDto> DrumGuidePieces => Drumless.GuidePieces(State!);
 
     // One engine score follower: while the trainer is open its drum score takes the place of the mixer's score panel.
-    private bool MixerScoreShown => ShowScore && OpenView != InstrumentViewDto.DrumTrainer;
+    private bool MixerScoreShown => ShowScore && OpenedView != InstrumentViewDto.DrumTrainer;
 
     private string DrumlessKey => ViewPreferences.DrumlessKey(Id);
 
@@ -50,7 +50,7 @@ public sealed partial class Mixer
         _drumless = Drumless.Capture(State!);
         await ViewPreferences.SetAsync(DrumlessKey, _drumless);
         await SendDrumlessAsync(Drumless.Apply(State!, TrackBpm is not null));
-        OpenView = InstrumentViewDto.DrumTrainer;
+        OpenedView = InstrumentViewDto.DrumTrainer;
     }
 
     private async Task RestoreDrumsAsync()

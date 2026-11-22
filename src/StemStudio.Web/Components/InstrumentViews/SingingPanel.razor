@@ -1,0 +1,56 @@
+@* Singing feedback (016 US4, FR-041..FR-047, FR-062; ui-test-ids 1.15.0 singing-*, pitch-view): the reference melody status,
+   start/stop, the engine-owned pitch view host (rendered empty), the scores as announcements and a summary. Microphone
+   audio and scores stay in the browser (FR-047). Lives in the scrolling mixer content, never in the fixed dock. *@
+
+<section class="ss-singing" aria-label="Singing feedback" data-testid="singing" data-help-id="singing">
+    <div class="ss-singing-bar">
+        <span id="@StatusId" class="ss-small" role="status" data-testid="singing-reference-status" data-status="@ReferenceStatus">@ReferenceText</span>
+        @if (CanAnalyse)
+        {
+            <RadzenButton Text="@AnalyseText" Icon="graphic_eq" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                          Click="AnalyseAsync" data-testid="singing-reference-analyse" />
+            @if (EstimateText is { } estimate)
+            {
+                <span class="ss-small ss-muted" data-testid="singing-reference-estimate">@estimate</span>
+            }
+        }
+        <RadzenButton Text="@ToggleText" Icon="mic" Size="ButtonSize.Small" ButtonStyle="@(Running ? ButtonStyle.Primary : ButtonStyle.Light)"
+                      Disabled="@(!ReferenceReady)" aria-pressed="@(Running ? "true" : "false")" aria-describedby="@(ReferenceReady ? null : StatusId)"
+                      Click="ToggleAsync" data-testid="singing-toggle" />
+        <span class="ss-small" data-testid="singing-state" data-state="@StateName">@StateText</span>
+        <HelpHint HelpId="singing" />
+    </div>
+    <p class="ss-help ss-small" data-testid="singing-headphones-hint">Use headphones, so the microphone hears only you and not the song.</p>
+    <LevelGate Feature="singing.tolerance">
+        <div class="ss-singing-bar">
+            <label class="ss-inline-label">
+                Tolerance @Tolerance cents
+                <input type="range" class="ss-range" min="@SingingMix.MinTolerance" max="@SingingMix.MaxTolerance" step="5" value="@Tolerance"
+                       aria-valuenow="@Tolerance" aria-valuetext="@($"{Tolerance} cents")" @onchange="SetToleranceAsync"
+                       data-testid="singing-tolerance" data-help-id="singing-tolerance" />
+            </label>
+            <span class="ss-small ss-muted" data-testid="singing-latency" data-latency-source="@LatencySource" data-help-id="singing-latency">@LatencyText</span>
+        </div>
+    </LevelGate>
+    <LevelGate Feature="singing.raw">
+        <span class="ss-small ss-muted ss-singing-raw" aria-live="off" data-singing-raw-for="@HostId" data-testid="singing-raw"></span>
+    </LevelGate>
+    @if (Error is not null)
+    {
+        <div class="ss-small ss-error" role="alert" data-testid="singing-error">
+            <span>@Error</span>
+            <button type="button" class="ss-text-button" @onclick="OpenInputSettingsAsync">Open the input settings</button>
+        </div>
+    }
+    <div id="@HostId" class="ss-pitch-view" role="img" data-testid="pitch-view" data-help-id="pitch-view"
+         aria-label="Pitch view: the melody as bars and your voice as a line; every line score is announced"></div>
+    <div class="ss-sr-only" aria-live="polite" data-testid="singing-announcer">@Announcement</div>
+    @if (Summary is { } summary)
+    {
+        <div class="ss-singing-summary" data-testid="singing-summary" data-average="@summary.Average" data-units="@summary.UnitsScored">@SummaryText(summary)</div>
+    }
+    @if (Analysis is { Limits: { Length: > 0 } limits })
+    {
+        <p class="ss-small ss-muted ss-singing-limits">@limits</p>
+    }
+</section>

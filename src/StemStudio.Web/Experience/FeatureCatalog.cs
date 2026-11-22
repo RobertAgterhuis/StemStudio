@@ -109,6 +109,9 @@ public static class FeatureCatalog
         new("tab.tunings", Advanced, null, "tablature"),
         new("drums.trainer", Beginner, null, "drum-trainer"),
         new("drums.guide", Advanced, null, "drum-trainer"),
+        new("singing.feedback", Beginner, null, "singing-feedback"),
+        new("singing.tolerance", Advanced, null, "singing-tolerance-latency"),
+        new("singing.raw", Expert, null, "singing-tolerance-latency"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

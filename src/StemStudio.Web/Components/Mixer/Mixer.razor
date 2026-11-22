@@ -116,7 +116,7 @@ else
                           aria-pressed="@(DrumlessOn ? "true" : "false")" Click="ToggleDrumlessAsync" data-testid="drumless" data-help-id="drumless" />
         </div>
         <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
-        @if (OpenView == InstrumentViewDto.DrumTrainer && _track is not null)
+        @if (OpenedView == InstrumentViewDto.DrumTrainer && _track is not null)
         {
             <section class="ss-instrument-view" aria-label="Drum trainer" data-testid="instrument-view" data-view="drum-trainer">
                 <DrumTrainer Track="_track" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" Position="Position" GuidePiece="GuidePiece"
@@ -127,6 +127,14 @@ else
                                     Profile="ScoreProfileDto.Drums" />
                     </ScoreView>
                 </DrumTrainer>
+            </section>
+        }
+        @if (OpenedView == InstrumentViewDto.Singing && _track is not null)
+        {
+            <section class="ss-instrument-view" aria-label="Singing feedback" data-testid="instrument-view" data-view="singing">
+                <SingingPanel Track="_track" Duration="State.Duration" Sections="State.SectionSet?.Sections" EngineReady="EngineReady"
+                              ReducedMotion="@(ReducedMotion == true)" Latency="Recording?.LatencyInUse" OnRunningChanged="OnSingingRunningAsync"
+                              OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" />
             </section>
         }
         @if (ShowPracticeLog)
@@ -163,7 +171,9 @@ else
             </PracticePanel>
         </div>
 
-        <RecordingArea Mixer="this" />
+        <CascadingValue Value="SingingSource">
+            <RecordingArea Mixer="this" />
+        </CascadingValue>
 
         @if (State.KeepsRemovedDetailSettings)
         {
@@ -206,6 +216,10 @@ else
 
         <div class="ss-mixer-dock">
             <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" Chords="BannerChords" />
+            @if (OpenedView == InstrumentViewDto.Singing && LastScore is { } scored)
+            {
+                <span class="ss-karaoke-score" data-testid="karaoke-score" data-unit-index="@scored.Score.Index" data-score="@(scored.Score.Score?.ToString() ?? string.Empty)">@scored.Text</span>
+            }
             <div class="ss-countin-slot"><CountInIndicator Status="PracticeLive.CountIn" /></div>
             <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
                           OnStop="StopAsync" OnSeek="SeekAsync" />

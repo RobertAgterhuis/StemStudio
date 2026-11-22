@@ -59,13 +59,13 @@ public sealed class MixerSingingTests : MixerTestContext
         var page = OpenSinging();
         await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
 
-        Views.SingingUnitScored += Raise.EventWith(Views, new SingingUnitScore(0, 92, 1));
+        Views.SingingUnitScored += Raise.Event<EventHandler<SingingUnitScore>>(Views, new SingingUnitScore(0, 92, 1));
 
         page.WaitForAssertion(() => page.Find("[data-testid=karaoke-score]").GetAttribute("data-score").ShouldBe("92"));
         var score = page.Find("[data-testid=karaoke-score]");
         (score.GetAttribute("data-unit-index"), score.TextContent.Trim()).ShouldBe(("0", "Line 1: 92"));
         score.Closest(".ss-mixer-dock").ShouldNotBeNull();
-        Views.SingingUnitScored += Raise.EventWith(Views, new SingingUnitScore(1, null, 1));
+        Views.SingingUnitScored += Raise.Event<EventHandler<SingingUnitScore>>(Views, new SingingUnitScore(1, null, 1));
         page.WaitForAssertion(() => page.Find("[data-testid=karaoke-score]").GetAttribute("data-score").ShouldBe(string.Empty));
     }
 

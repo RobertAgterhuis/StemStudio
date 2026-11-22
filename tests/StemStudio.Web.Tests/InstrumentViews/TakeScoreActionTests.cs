@@ -39,8 +39,8 @@ public sealed class TakeScoreActionTests : PageTestContext
         (result.GetAttribute("data-average"), result.TextContent.Trim()).ShouldBe(("74", "Average 74 over 2 lines"));
         var request = (TakeScoreRequest)Views.ReceivedCalls().Single(c => c.GetMethodInfo().Name == nameof(Views.ScoreTakeAsync)).GetArguments()[0]!;
         request.TakeUrl.ShouldEndWith($"/api/takes/{Take:D}/audio");
-        (request.StartSample, request.ToleranceCents, request.Units.Count).ShouldBe((441_000L, 100, 2));
-        _ = Api.DidNotReceiveWithAnyArgs().AnalyseVocalPitchAsync(default, default);
+        (request.StartSample, request.ToleranceCents, request.Units.Count).ShouldBe((441_000L, 50, 2), "the default level is Advanced");
+        _ = Api.DidNotReceive().AnalyseVocalPitchAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class TakeScoreActionTests : PageTestContext
         await action.Find($"[data-testid=take-score-{Take}]").ClickAsync(new());
 
         action.Find($"[data-testid=take-score-result-{Take}]").TextContent.ShouldContain("Singing feedback");
-        Views.DidNotReceiveWithAnyArgs().ScoreTakeAsync(default!);
+        _ = Views.DidNotReceiveWithAnyArgs().ScoreTakeAsync(default!);
     }
 
     [Fact]
