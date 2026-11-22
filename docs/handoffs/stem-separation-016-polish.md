@@ -63,7 +63,7 @@ branches move, so T139's `run_all.py` on the merged tree is the binding number.
 
 | Component | Command | Result | Coverage |
 |---|---|---|---|
-| Worker | `uv run --frozen pytest --cov --cov-branch` (worker/) | 2981 passed, 3 skipped (fonts/cairo), 11 deselected (integration) | **100 % line, 100 % branch** (12,843 statements, 1,440 branches; vendor omitted) |
+| Worker | `uv run --frozen pytest --cov --cov-branch` (worker/) | 2987 passed, 3 skipped (fonts/cairo), 11 deselected (integration) | **100 % line, 100 % branch** (12,862 statements, 1,446 branches; vendor omitted; after the security fixes) |
 | T063 integration | `pytest -m integration tests/harmony/test_chords_integration.py` | 1 passed; 0.0022-0.0070 s per audio second (8 threads, varies with load), frames 81.4 %; with L2's modules overlaid chart 85.4 % (SC-001), keys 17/17 (SC-010) | - |
 | scripts | `pytest -c scripts/pyproject.toml scripts/tests` (+PyYAML) | 125 passed | - |
 | e2e | `tsc --noEmit`, `eslint playwright.config.ts` | clean | - |
@@ -76,6 +76,26 @@ Security self-review (whole lane diff since HO:foundational): no new input surfa
 on hit time and strength); BTC checkpoints only with `weights_only=True` and the three allow-listed globals; no
 subprocess or shell in the worker parts; `ci-e2e-pass.sh` evaluates only its own constant commands after checking
 the pass name.
+
+## Security fixes (orchestrator's independent review, findings 3-5)
+
+| # | Finding | Test (red first) | Fix |
+|---|---|---|---|
+| 3 | LOW: the weights download (`transcription/models.py`, shared by 008 and `ChordModelStore`) had no size cap | 319807c9: `test_a_download_larger_than_the_pinned_size_is_aborted` (5 MB stream after the pinned bytes -> `TranscriptionError`, no `.part`, at most `size_bytes` + one 1 MB block read); `..._of_exactly_the_pinned_size_is_kept` | 7b008db4: `_HashingWriter` counts bytes and raises `OSError` past `WeightsFile.size_bytes` (handled like any failed download) |
+| 4 | LOW: `ready()` re-hashed both 12 MB BTC checkpoints on every `/health` and job | 319807c9: `test_ready_hashes_an_unchanged_file_once` (counting `_file_digest`), `..._again_after_the_file_changed`; plus `test_an_unreadable_cache_entry_is_not_ready` | 7b008db4: digest cached per path keyed by `(st_size, st_mtime_ns)`; `ensure()` drops the entry when it replaces the file; 9cae7cc6 keeps `ensure` within 15 LOC |
+| 5 | LOW test gap: no real-torch test with a `__reduce__` payload | 319807c9: `test_the_real_torch_refuses_a_checkpoint_with_a_reduce_payload` (`os.system` writing a marker file; `pickle.UnpicklingError`, marker absent) | none needed (passes against the `weights_only=True` loading) |
+
+`transcription/models.py` and `tests/transcription/test_models.py` are 008 files, edited additively with the
+orchestrator's permission. Observation (not changed, other owner): `detail/download.py` (002 model downloads) has
+its own `_fetch` without a size cap either.
+
+## L2 request: `harmony` and `analysis_inputs` in the dependency map
+
+Already on this branch since T010 (4eb51ea3, tested in `tools/quality/tests/test_instrument_rules.py`): `harmony`,
+`analysis_inputs`, `views_fake` are adapters in `PYTHON_ALLOWED`, with the scoped rules for the harmony core and
+`harmony/btc.py`. L2 sees the "not in the dependency map" warnings because its branch has the old `tools/quality`.
+Running this branch's `dependency_check.py` on L2's worktree: **0 errors, 0 warnings** (incl. no `notation` ->
+`harmony` edge). No change needed; the warnings disappear at the merge.
 
 ## Decisions
 
