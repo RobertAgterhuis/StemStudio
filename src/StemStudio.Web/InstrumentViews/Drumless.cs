@@ -56,11 +56,10 @@ public static class Drumless
     /// <param name="state">The mixer.</param>
     /// <param name="piece">The guide piece, or null to mute every drum channel again.</param>
     /// <returns>The channel settings to send.</returns>
-    public static IReadOnlyList<ChannelSettingsDto> Guide(MixerState state, DrumPieceDto? piece)
-    {
-        var channels = FamilyMixService.MinusOne(state, InstrumentFamilyDto.Drums);
-        return piece is { } guide ? FamilyMixService.Guide(state, guide) : channels;
-    }
+    public static IReadOnlyList<ChannelSettingsDto> Guide(MixerState state, DrumPieceDto? piece) =>
+        piece is { } guide && FamilyMixService.Guide(state, guide) is { Count: > 0 } channels
+            ? channels
+            : FamilyMixService.MinusOne(state, InstrumentFamilyDto.Drums);
 
     /// <summary>True when every channel of the drum family is muted.</summary>
     /// <param name="state">The mixer.</param>

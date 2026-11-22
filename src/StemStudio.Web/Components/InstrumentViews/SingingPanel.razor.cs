@@ -27,6 +27,7 @@ public sealed partial class SingingPanel
 
     private readonly CancellationTokenSource _stop = new();
     private PollLoop? _poll;
+    private bool _gone;
 
     /// <summary>The track of the mixer.</summary>
     [Parameter, EditorRequired]
@@ -115,7 +116,7 @@ public sealed partial class SingingPanel
     }
 
     private void StartPolling() =>
-        (_poll ??= new PollLoop(Timer)).Start(() => AnalysisText.InProgress(Analysis), PollAsync, () => Task.CompletedTask, _stop.Token);
+        (_poll ??= new PollLoop(Timer)).Start(() => AnalysisText.KeepPolling(Analysis, _gone), PollAsync, () => Task.CompletedTask, _stop.Token);
 
     private async Task PollAsync(CancellationToken ct)
     {
@@ -131,7 +132,7 @@ public sealed partial class SingingPanel
         }
         catch (ApiException ex)
         {
-            Error = ex.Error.UserMessage;
+            (Error, _gone) = (ex.Error.UserMessage, _gone || ex.Error.IsNotFound);
         }
     }
 

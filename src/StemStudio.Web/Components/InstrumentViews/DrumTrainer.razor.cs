@@ -31,6 +31,7 @@ public sealed partial class DrumTrainer : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private IReadOnlyList<DrumHitEvent>? _attached;
     private PollLoop? _poll;
+    private bool _gone;
 
     [Inject]
     private ViewPreferences Preferences { get; set; } = default!;
@@ -137,7 +138,7 @@ public sealed partial class DrumTrainer : IAsyncDisposable
     private Task ToggleGuideAsync(DrumPieceDto piece) => OnGuide.InvokeAsync(GuidePiece == piece ? null : piece);
 
     private void StartPolling() =>
-        (_poll ??= new PollLoop(Timer)).Start(() => AnalysisText.InProgress(Analysis) || (Splitting && SplitRequired), PollAsync, () => Task.CompletedTask, _stop.Token);
+        (_poll ??= new PollLoop(Timer)).Start(() => !_gone && (AnalysisText.InProgress(Analysis) || (Splitting && SplitRequired)), PollAsync, () => Task.CompletedTask, _stop.Token);
 
     private async Task PollAsync(CancellationToken ct)
     {
@@ -150,12 +151,12 @@ public sealed partial class DrumTrainer : IAsyncDisposable
         try
         {
             Analysis = await request();
-            Events = Analysis is { Status: AnalysisStatusDto.Ready, Document: { } document } ? ToEngine(document) : null;
+            Events = AnalysisText.Shown(Analysis) is { } document ? ToEngine(document) : null;
             Error = null;
         }
         catch (ApiException ex)
         {
-            Error = ex.Error.UserMessage;
+            (Error, _gone) = (ex.Error.UserMessage, _gone || ex.Error.IsNotFound);
         }
     }
 

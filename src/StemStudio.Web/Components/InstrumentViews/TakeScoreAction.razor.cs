@@ -84,11 +84,17 @@ public sealed partial class TakeScoreAction
         {
             TakeUrl = new Uri(Options.Value.PublicApiBaseUrl, take.AudioUrl).ToString(),
             StartSample = take.StartSample,
+            TransposeSemitones = RecordedTakeTranspose,
             Reference = SingingUnits.Reference(document),
             Units = SingingUnits.From(lyrics, Source!.Sections, Source.Track.BeatGrid, Source.Duration).Units,
             ToleranceCents = SingingMix.Tolerance(level, await Preferences.GetAsync<int?>(ViewPreferences.ToleranceKey)),
         };
     }
+
+    // The transpose the take was sung at. The 015 upload rule (RecordingTakeUploadDto.TransposeSemitones "must be 0",
+    // else 422) means every saved take was recorded at transpose 0, and RecordingTakeDto carries no transpose yet; once
+    // it does, read it from the take here. The mixer's current transpose is deliberately not used.
+    private const int RecordedTakeTranspose = 0;
 
     private async Task<LyricsDto?> LyricsAsync()
     {

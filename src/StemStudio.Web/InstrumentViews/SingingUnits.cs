@@ -25,7 +25,8 @@ public sealed record ScoredUnit(string Kind, SingingUnitScore Score)
 /// <param name="Track">The track.</param>
 /// <param name="Sections">The 014 sections, or null.</param>
 /// <param name="Duration">The track length in seconds.</param>
-public sealed record SingingSource(TrackDto Track, IReadOnlyList<SectionDto>? Sections, double Duration);
+/// <param name="TransposeSemitones">The mixer's current 012 transpose; not used for saved takes, which are recorded at 0 (015 upload rule).</param>
+public sealed record SingingSource(TrackDto Track, IReadOnlyList<SectionDto>? Sections, double Duration, int TransposeSemitones = 0);
 
 /// <summary>
 /// Scoring units of singing feedback (016 data-model 3.4): synced lyric lines, else 014 sections, else blocks of four bars

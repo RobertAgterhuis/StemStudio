@@ -77,6 +77,17 @@ public sealed class DrumTrainerTests : PageTestContext
     }
 
     [Fact]
+    public void StaleHits_StayOnTheLanes()
+    {
+        Hits(InstrumentViewsData.DrumHits(AnalysisStatusDto.Stale));
+
+        var trainer = RenderTrainer();
+
+        trainer.Find("[data-testid=drum-hits-status]").GetAttribute("data-status").ShouldBe("stale");
+        Views.Received(1).AttachHitLanesAsync(Arg.Any<string>(), Arg.Is<IReadOnlyList<DrumHitEvent>>(h => h.Count == 3), Arg.Any<HitLaneOptions>());
+    }
+
+    [Fact]
     public void NoHitsYet_DetectsThemOnFirstOpen()
     {
         Hits(InstrumentViewsData.DrumHits(AnalysisStatusDto.None));

@@ -39,6 +39,21 @@ public sealed class ChordSheetTests : PageTestContext
     }
 
     [Fact]
+    public void StaleEditedChart_StillRendersTheSheet_AndItsEditor()
+    {
+        Api.GetChordsAsync(Track, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.StaleEditedChords());
+        Api.GetChordSheetAsync(Track, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new ChordSheetDto { Transpose = 0, Capo = 0, Rows = [new() { Text = "Line", Chords = [new() { CharIndex = 0, Symbol = "C", Lead = false }] }] });
+
+        var sheet = RenderAt(ExperienceLevel.Expert);
+
+        sheet.Find("[data-testid=chord-sheet-chord-0-0]").TextContent.ShouldBe("C");
+        sheet.Find("[data-testid=chord-edit-1]");
+        sheet.Find(".ss-chord-sheet-card").TextContent.ShouldContain("The drum stems were split again.");
+        Api.Received(1).GetChordSheetAsync(Track, 0, 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Transpose_ReloadsTheSheet_Clamped()
     {
         var sheet = RenderAt(ExperienceLevel.Beginner, capo: 3);

@@ -150,6 +150,12 @@ public sealed record TakeScoreRequest : ScoringRequest
 
     /// <summary>Song sample of the take's first sample.</summary>
     public required long StartSample { get; init; }
+
+    /// <summary>
+    /// Transpose (-12..12 semitones) the take was sung at, so the reference melody is compared in the same key (engine
+    /// contract 2.6.0, default 0).
+    /// </summary>
+    public int TransposeSemitones { get; init; }
 }
 
 /// <summary>Result of <c>getRoundTripLatency</c>.</summary>

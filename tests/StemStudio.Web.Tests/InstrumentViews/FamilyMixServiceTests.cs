@@ -122,6 +122,25 @@ public sealed class FamilyMixServiceTests
     }
 
     [Fact]
+    public void Guide_ASecondPiece_ReplacesTheFirst()
+    {
+        FamilyMixService.MinusOne(_state, InstrumentFamilyDto.Drums);
+        FamilyMixService.Guide(_state, DrumPieceDto.Kick);
+
+        FamilyMixService.Guide(_state, DrumPieceDto.Snare);
+
+        Muted().ShouldBe(["drums", "drums.kick", "drums.rest"]);
+    }
+
+    [Fact]
+    public void Guide_WithoutDrumlessFirst_StillMutesTheOtherDrums()
+    {
+        FamilyMixService.Guide(_state, DrumPieceDto.Kick);
+
+        Muted().ShouldBe(["drums", "drums.rest", "drums.snare"]);
+    }
+
+    [Fact]
     public void Guide_WithoutThePieceOnTheTrack_ChangesNothing()
     {
         FamilyMixService.MinusOne(_state, InstrumentFamilyDto.Drums);

@@ -18,7 +18,7 @@ public sealed partial class Mixer
 
     private void OnChordsLoaded(TrackAnalysisDto<ChordChartDocumentDto> analysis)
     {
-        var document = analysis.Status == AnalysisStatusDto.Ready ? analysis.Document : null;
+        var document = AnalysisText.Shown(analysis);
         if (ChordsChanged(document, analysis.Status))
         {
             BannerChords = document is { NoChords: false } ? ChordLabels.ToEngine(document) : null;
@@ -30,9 +30,21 @@ public sealed partial class Mixer
     private bool ChordsChanged(ChordChartDocumentDto? document, AnalysisStatusDto status) =>
         !ReferenceEquals(document, ChordAnalysis?.Document) || ChordAnalysis?.Status != status;
 
+    /// <summary>The chord display the engine was last given (capo mode of the guitar family), or null for the default.</summary>
+    private ChordDisplay? CapoDisplay { get; set; }
+
     // Capo mode (US8): the engine re-spells the lane and the banner for the capo (setChordDisplay).
-    private Task SetCapoAsync(CapoSetting setting) =>
-        EngineViewsAsync(() => Views.SetChordDisplayAsync(new ChordDisplay(setting.Effective, setting.On && setting.ShowSounding)));
+    private Task SetCapoAsync(CapoSetting setting) => SendChordDisplayAsync(new ChordDisplay(setting.Effective, setting.On && setting.ShowSounding));
+
+    // The chord display is engine-wide while capo mode belongs to the guitar family: another family resets it (review M1).
+    private Task ResetCapoAsync(InstrumentFamilyDto family) =>
+        family != InstrumentFamilyDto.Guitar && CapoDisplay is not null ? SendChordDisplayAsync(new ChordDisplay(0, false)) : Task.CompletedTask;
+
+    private Task SendChordDisplayAsync(ChordDisplay display)
+    {
+        CapoDisplay = display == new ChordDisplay(0, false) ? null : display;
+        return EngineViewsAsync(() => Views.SetChordDisplayAsync(display));
+    }
 
     private async Task EngineViewsAsync(Func<Task> call)
     {

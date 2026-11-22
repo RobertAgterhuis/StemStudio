@@ -92,6 +92,42 @@ public sealed class MixerDrumlessTests : MixerTestContext
     }
 
     [Fact]
+    public async Task AGuide_OnCollapsedDrums_ExpandsTheGroup_SoThePieceIsHeard_AndCollapsesWhenCleared()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+        page.Find("[data-testid=expand-drums]").GetAttribute("aria-expanded").ShouldBe("false");
+        Engine.ClearReceivedCalls();
+
+        await page.Find("[data-testid=drum-lane-label-kick]").ClickAsync(new MouseEventArgs());
+
+        await Engine.Received(1).SetExpandedAsync("drums", true);
+        page.Find("[data-testid=expand-drums]").GetAttribute("aria-expanded").ShouldBe("true");
+        await page.Find("[data-testid=drum-lane-label-snare]").ClickAsync(new MouseEventArgs());
+        await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "drums.kick" && c.Mute));
+        await Engine.Received().SetChannelAsync(Arg.Is<ChannelSettingsDto>(c => c.Stem == "drums.snare" && !c.Mute));
+        await page.Find("[data-testid=drum-lane-label-snare]").ClickAsync(new MouseEventArgs());
+        await Engine.Received(1).SetExpandedAsync("drums", false);
+        page.Find("[data-testid=expand-drums]").GetAttribute("aria-expanded").ShouldBe("false");
+    }
+
+    [Fact]
+    public async Task LeavingDrumless_WithAGuide_CollapsesTheGroupAgain()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+        await page.Find("[data-testid=drum-lane-label-hihat]").ClickAsync(new MouseEventArgs());
+        Engine.ClearReceivedCalls();
+
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+
+        await Engine.Received(1).SetExpandedAsync("drums", false);
+        page.Find("[data-testid=expand-drums]").GetAttribute("aria-expanded").ShouldBe("false");
+    }
+
+    [Fact]
     public async Task AGuide_WithoutDrumless_TurnsDrumlessOnFirst()
     {
         var page = RenderAt(ExperienceLevel.Advanced);
@@ -104,6 +140,31 @@ public sealed class MixerDrumlessTests : MixerTestContext
         page.Find("[data-testid=drumless]").GetAttribute("aria-pressed").ShouldBe("true");
         page.Find("[data-testid=mute-drums]").GetAttribute("aria-pressed").ShouldBe("true");
         page.Find("[data-testid=drum-lane-label-snare]").GetAttribute("aria-pressed").ShouldBe("true");
+    }
+
+    [Fact]
+    public async Task AClickWhileDrumlessIsStillBeingApplied_IsIgnored_SoTheEngineEndsConsistent()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        page.WaitForAssertion(() => page.Find("[data-testid=transport-play]").HasAttribute("disabled").ShouldBeFalse());
+        await page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs());
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Engine.SetChannelAsync(Arg.Any<ChannelSettingsDto>()).Returns(_ => gate.Task);
+        Engine.ClearReceivedCalls();
+
+        var restore = page.InvokeAsync(() => page.Find("[data-testid=drumless]").ClickAsync(new MouseEventArgs()));
+        var guide = page.InvokeAsync(() => page.Find("[data-testid=drum-lane-label-kick]").ClickAsync(new MouseEventArgs()));
+        gate.SetResult();
+        await restore;
+        await guide;
+
+        page.WaitForAssertion(() => page.Find("[data-testid=drumless]").GetAttribute("aria-pressed").ShouldBe("false"));
+        var last = Engine.ReceivedCalls().Where(c => c.GetMethodInfo().Name == nameof(Engine.SetChannelAsync))
+            .Select(c => (ChannelSettingsDto)c.GetArguments()[0]!).GroupBy(c => c.Stem).ToDictionary(g => g.Key, g => g.Last());
+        foreach (var stem in new[] { "drums", "drums.kick", "drums.snare", "drums.hihat", "drums.rest" })
+        {
+            last[stem].Mute.ShouldBeFalse(stem);
+        }
     }
 
     [Fact]

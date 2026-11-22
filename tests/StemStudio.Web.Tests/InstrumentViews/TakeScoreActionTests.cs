@@ -22,9 +22,9 @@ public sealed class TakeScoreActionTests : PageTestContext
         Api.GetVocalPitchAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(InstrumentViewsData.VocalPitch());
     }
 
-    private IRenderedComponent<Microsoft.AspNetCore.Components.CascadingValue<SingingSource>> RenderAction(TakeStatusDto status = TakeStatusDto.Ready) =>
+    private IRenderedComponent<Microsoft.AspNetCore.Components.CascadingValue<SingingSource>> RenderAction(TakeStatusDto status = TakeStatusDto.Ready, int transpose = 0) =>
         Render<Microsoft.AspNetCore.Components.CascadingValue<SingingSource>>(p => p
-            .Add(c => c.Value, new SingingSource(TestData.Track(), PracticeFlowData.Sections(), 213))
+            .Add(c => c.Value, new SingingSource(TestData.Track(), PracticeFlowData.Sections(), 213, transpose))
             .AddChildContent<TakeScoreAction>(a => a.Add(c => c.Item, TakeItem.Saved(RecordingData.Take(status: status)))));
 
     [Fact]
@@ -41,6 +41,17 @@ public sealed class TakeScoreActionTests : PageTestContext
         request.TakeUrl.ShouldEndWith($"/api/takes/{Take:D}/audio");
         (request.StartSample, request.ToleranceCents, request.Units.Count).ShouldBe((441_000L, 50, 2), "the default level is Advanced");
         _ = Api.DidNotReceive().AnalyseVocalPitchAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task TheTakesRecordedTranspose_IsSent_NotTheMixersCurrentOne()
+    {
+        Views.ScoreTakeAsync(Arg.Any<TakeScoreRequest>()).Returns(new TakeScoreResult { UnitsScored = 1, Average = 60 });
+        var action = RenderAction(transpose: 2);
+
+        await action.Find($"[data-testid=take-score-{Take}]").ClickAsync(new());
+
+        await Views.Received(1).ScoreTakeAsync(Arg.Is<TakeScoreRequest>(r => r.TransposeSemitones == 0));
     }
 
     [Fact]

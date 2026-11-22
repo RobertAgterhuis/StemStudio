@@ -10,6 +10,7 @@ public sealed class AudioEngineInteropInstrumentViewTests : IAsyncDisposable
 {
     private static readonly ChordChartData Chart = new([new ChordSymbolEvent(0, 500, 0, "maj", null)], 0, "major", []);
     private static readonly PitchContour Melody = new([0, 4500]);
+    private static readonly System.Text.Json.JsonSerializerOptions WebJson = new(System.Text.Json.JsonSerializerDefaults.Web);
     private readonly BunitContext _context = new();
     private readonly BunitJSInterop _engine;
     private readonly AudioEngineInterop _interop;
@@ -87,6 +88,29 @@ public sealed class AudioEngineInteropInstrumentViewTests : IAsyncDisposable
 
         _engine.VerifyInvoke("startSingingFeedback").Arguments.ShouldBe([request]);
         _engine.VerifyInvoke("setSingingTolerance").Arguments.ShouldBe([75]);
+    }
+
+    [Fact]
+    public async Task ScoreTake_SendsTheTranspose_AsCamelCaseTransposeSemitones()
+    {
+        _engine.Setup<TakeScoreResult>("scoreTake", _ => true).SetResult(new TakeScoreResult());
+        await _interop.InitializeAsync();
+        var take = new TakeScoreRequest
+        {
+            TakeUrl = "http://x/api/takes/1/audio",
+            StartSample = 0,
+            Reference = Melody,
+            Units = [new SingingUnit(0, 0, 2000)],
+            ToleranceCents = 50,
+            TransposeSemitones = -3,
+        };
+
+        await _interop.ScoreTakeAsync(take);
+
+        var sent = (TakeScoreRequest)_engine.VerifyInvoke("scoreTake").Arguments[0]!;
+        sent.TransposeSemitones.ShouldBe(-3);
+        System.Text.Json.JsonSerializer.Serialize(sent, WebJson)
+            .ShouldContain("\"transposeSemitones\":-3");
     }
 
     [Fact]

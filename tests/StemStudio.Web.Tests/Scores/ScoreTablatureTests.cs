@@ -68,6 +68,31 @@ public sealed class ScoreTablatureTests : ScoreTestContext
     }
 
     [Fact]
+    public void TheOnlyAllowedProfile_SeedsTheTuning_WhenNothingIsSuggested()
+    {
+        var options = Options(ScoreProfileDto.Bass) with { SuggestedProfile = null, AllowedProfiles = [ScoreProfileDto.Bass] };
+        options = options with { Tablature = options.Tablature! with { DefaultTuning = TuningIdDto.GuitarStandard } };
+
+        var form = new ScoreForm(options, ScoreTarget.ForChannel(TestData.Track(), "bass"));
+
+        form.Profile.ShouldBe(ScoreProfileDto.Bass);
+        form.Request().Tablature!.Tuning.ShouldBe(TuningIdDto.Bass4Standard);
+    }
+
+    [Fact]
+    public async Task WithoutATuningForTheProfile_NoTablatureIsOfferedOrSent()
+    {
+        var options = Options(ScoreProfileDto.Bass);
+        options = options with { Tablature = options.Tablature! with { DefaultTuning = TuningIdDto.GuitarStandard, Tunings = [TuningIdDto.GuitarStandard, TuningIdDto.GuitarDropD] } };
+        var page = RenderDialogAt(ExperienceLevel.Expert, options, ScoreTarget.ForChannel(TestData.Track(), "bass"));
+
+        page.FindAll("[data-testid=score-tab-layout], [data-testid=score-tab-tuning]").ShouldBeEmpty();
+        await page.Find("[data-testid=score-submit]").ClickAsync(new());
+
+        SentRequest().Tablature.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Bass_HasNoCapo_AndOffersBassTuningsOnly()
     {
         var page = RenderDialogAt(ExperienceLevel.Expert, Options(ScoreProfileDto.Bass), ScoreTarget.ForChannel(TestData.Track(), "bass"));
