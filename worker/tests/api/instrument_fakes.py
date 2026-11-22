@@ -152,11 +152,12 @@ class FakeChords(Gate):
 
 
 class FakeDrums(Gate):
-    """``DrumTranscriber``: one hit per piece at 0.25 s steps, recorded inputs."""
+    """``DrumTranscriber``: one hit per piece at 0.25 s steps (or ``hits``), recorded inputs."""
 
     def __init__(self) -> None:
         super().__init__()
         self.calls: list[Mapping[DrumPiece, Path]] = []
+        self.hits: tuple[DrumHit, ...] | None = None
 
     def transcribe(
         self,
@@ -166,6 +167,8 @@ class FakeDrums(Gate):
     ) -> tuple[DrumHit, ...]:
         self.calls.append(inputs)
         self.hold(progress)
+        if self.hits is not None:
+            return self.hits
         return tuple(DrumHit(0.25 * i, piece, 1.5 if i == 0 else 0.5)
                      for i, piece in reversed(list(enumerate(inputs))))  # fmt: skip
 

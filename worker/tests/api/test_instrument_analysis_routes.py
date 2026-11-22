@@ -18,9 +18,11 @@ from stemstudio_worker.ports import (
     PITCH_SAMPLE_RATE,
     AnalysisError,
     DeviceUse,
+    DrumHit,
     NoMelodyError,
+    TranscriptionError,
 )
-from stemstudio_worker.schemas import NO_MELODY_TEXT
+from stemstudio_worker.schemas import MAX_DRUM_HITS, NO_MELODY_TEXT
 
 from .conftest import Api, ApiFactory
 from .contract import assert_conforms
@@ -217,6 +219,50 @@ def test_missing_drum_pieces_are_not_listed(started: Api, fakes: Fakes) -> None:
     assert set(fakes.drums.calls[0]) == {"kick", "hihat"}
 
 
+def test_hits_at_the_same_millisecond_keep_the_kit_order(started: Api, fakes: Fakes) -> None:
+    # The 008 transcriber orders simultaneous hits kick, snare, toms, hihat, cymbals; the job
+    # rounds to milliseconds and must keep that order (not the alphabetical one).
+    fakes.drums.hits = (DrumHit(0.4996, "cymbals", 0.8),
+                        *(DrumHit(0.5004, piece, 0.8) for piece in PIECES))  # fmt: skip
+
+    job = _done(started, _post(started, drums_body()))
+
+    hits = job["result"]["hits"]
+    assert [h["timeMs"] for h in hits] == [500] * 6
+    assert [h["piece"] for h in hits] == ["kick", "snare", "toms", "hihat", "cymbals", "cymbals"]
+
+
+def test_hit_times_and_strengths_are_clamped_to_the_contract(started: Api, fakes: Fakes) -> None:
+    fakes.drums.hits = (DrumHit(-0.002, "kick", -0.1), DrumHit(0.1, "snare", 0.4))
+
+    job = _done(started, _post(started, drums_body()))
+
+    assert job["result"]["hits"] == [{"timeMs": 0, "piece": "kick", "strength": 0.0},
+                                     {"timeMs": 100, "piece": "snare", "strength": 0.4}]  # fmt: skip
+
+
+def test_more_hits_than_the_contract_allows_keep_the_first_ones(
+    started: Api, fakes: Fakes
+) -> None:
+    fakes.drums.hits = tuple(DrumHit(i / 1000, "hihat", 0.5) for i in range(MAX_DRUM_HITS + 3))
+
+    job = _done(started, _post(started, drums_body(("hihat",))))
+
+    hits = job["result"]["hits"]
+    assert len(hits) == MAX_DRUM_HITS
+    assert hits[-1]["timeMs"] == MAX_DRUM_HITS - 1
+
+
+def test_a_drum_transcription_error_fails_the_job_with_its_text(
+    started: Api, fakes: Fakes
+) -> None:
+    fakes.drums.error = TranscriptionError("The drum stems could not be read.")
+
+    job = _done(started, _post(started, drums_body()))
+
+    assert (job["status"], job["error"]) == ("failed", "The drum stems could not be read.")
+
+
 def test_drum_hits_report_progress_while_running(started: Api, fakes: Fakes) -> None:
     fakes.drums.gate.clear()
     job_id = _post(started, drums_body())
@@ -355,13 +401,16 @@ def test_delete_with_a_malformed_id_is_400(started: Api) -> None:
     assert started.client.delete(f"{JOBS}/not-an-id").status_code == 400
 
 
-def test_deleting_a_running_job_stops_it(started: Api, fakes: Fakes) -> None:
-    fakes.chords.gate.clear()
-    job_id = _post(started, chords_body())
-    assert fakes.chords.entered.wait(WAIT)
+@pytest.mark.parametrize("kind", ["chords", "drums", "pitch"])
+def test_deleting_a_running_job_stops_it(started: Api, fakes: Fakes, kind: str) -> None:
+    gate: Any = getattr(fakes, kind)
+    bodies = {"chords": chords_body, "drums": drums_body, "pitch": pitch_body}
+    gate.gate.clear()
+    job_id = _post(started, bodies[kind]())
+    assert gate.entered.wait(WAIT)
 
     assert started.client.delete(f"{JOBS}/{job_id}").status_code == 204
-    fakes.chords.gate.set()
+    gate.gate.set()
 
     assert _service(started).join(WAIT)
     assert started.client.get(f"{JOBS}/{job_id}").status_code == 404
