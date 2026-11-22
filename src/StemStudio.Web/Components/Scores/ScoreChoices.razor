@@ -63,6 +63,27 @@
     </LevelGate>
 }
 
+@if (Form.ShowsTab)
+{
+    <ScoreTabFields Tab="Form.Tab!" />
+}
+
+@if (Form.ChordsAllowed)
+{
+    <LevelGate Feature="scores.chords">
+        <label class="ss-check">
+            <input type="checkbox" checked="@(Form.ChordsAvailable && Form.IncludeChords)" disabled="@(!Form.ChordsAvailable)"
+                   aria-describedby="@(Form.ChordsAvailable ? null : "score-include-chords-reason")" @onchange="OnIncludeChords"
+                   data-testid="score-include-chords" />
+            Include chords above the top staff
+        </label>
+        @if (!Form.ChordsAvailable)
+        {
+            <p id="score-include-chords-reason" class="ss-help ss-small">Chords are not ready for this track yet; they can be added once they are detected.</p>
+        }
+    </LevelGate>
+}
+
 <ScoreTempoFields Tempo="Form.Tempo" />
 
 <LevelGate Feature="score.range">
@@ -87,6 +108,8 @@
         Form.Quality = args.Value?.ToString() == "accurate" ? ScoreQualityDto.Accurate : ScoreQualityDto.Fast;
 
     private void OnSimplified(ChangeEventArgs args) => Form.Simplified = args.Value is true;
+
+    private void OnIncludeChords(ChangeEventArgs args) => Form.IncludeChords = args.Value is true;
 
     private void OnKey(ChangeEventArgs args) => Form.KeyOverride = args.Value?.ToString() ?? string.Empty;
 

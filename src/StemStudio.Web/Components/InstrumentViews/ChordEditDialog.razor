@@ -1,0 +1,41 @@
+@* Chord correction (016 US1, FR-015, Advanced; ui-test-ids chord-edit-*): root, quality of the chart's vocabulary and an
+   optional bass note, saved as a Harte label. Escape and Cancel close it. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-chord-edit" role="dialog" aria-modal="true" aria-labelledby="chord-edit-title" @onkeydown="OnKeyAsync" data-testid="chord-edit-dialog">
+        <h2 id="chord-edit-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Correct the chord at @ChordLabels.Time(Segment.StartMs)</h2>
+        <p class="ss-dialog-message">Detected: @Symbol</p>
+        <div class="ss-chord-edit-fields">
+            <label class="ss-field">
+                Root
+                <select class="ss-select" @bind="Root" data-testid="chord-edit-root">
+                    @PitchClassOptions("No chord (N.C.)")
+                </select>
+            </label>
+            <label class="ss-field">
+                Quality
+                <select class="ss-select" @bind="Quality" disabled="@NoChord" data-testid="chord-edit-quality">
+                    @foreach (var quality in ChordLabels.Qualities(Vocabulary))
+                    {
+                        <option value="@quality">@ChordLabels.QualityName(quality)</option>
+                    }
+                </select>
+            </label>
+            <label class="ss-field">
+                Bass
+                <select class="ss-select" @bind="Bass" disabled="@NoChord" data-testid="chord-edit-bass">
+                    @PitchClassOptions("Root (no slash)")
+                </select>
+            </label>
+        </div>
+        @if (Error is not null)
+        {
+            <p class="ss-error" role="alert" data-testid="chord-edit-error">@Error</p>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" Disabled="Busy" data-testid="chord-edit-cancel" />
+            <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Primary" Click="SaveAsync" IsBusy="Busy" BusyText="Saving..." data-testid="chord-edit-save" />
+        </div>
+    </div>
+</div>

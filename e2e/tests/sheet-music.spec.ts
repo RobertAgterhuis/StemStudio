@@ -95,9 +95,9 @@ test.describe('drums', { tag: ['@sheet-music', '@detail'] }, () => {
     await expect(scoreDialog.byId('score-drums-split-start')).toBeVisible();
   });
 
-  // The fake detail phase splits the drums into kick, snare, toms and rest (no hi-hat or
-  // cymbals), so the fake score has no x noteheads; those are covered by the percussion
-  // builder's unit tests (beat-analysis 008).
+  // The fake detail phase splits the drums into kick, snare, toms, hi-hat and rest (research
+  // R-11), so the fake score draws the hi-hat with x noteheads; cymbals are not in the fake
+  // split and stay covered by the percussion builder's unit tests (beat-analysis 008).
   test('after the split: percussion clef, two voices of unpitched notes (US4)', async ({ api, assetsApi, scoreApi, scoreDialog, trackPage }) => {
     test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 2 * scoreMs);
     const band = await ensureDetailCompleted(api);
@@ -108,7 +108,7 @@ test.describe('drums', { tag: ['@sheet-music', '@detail'] }, () => {
     expect(clefs(xml).map((c) => c.sign)).toContain('percussion');
     expect([...voices(xml)].sort()).toEqual([1, 2]);
     expect(unpitchedNotes(xml)).toBeGreaterThan(0);
-    expect(crossNoteheads(xml)).toBe(0);
+    expect(crossNoteheads(xml)).toBeGreaterThan(0);
   });
 });
 

@@ -11,6 +11,10 @@
         }
         <div><dt>Tempo</dt><dd data-testid="@($"asset-score-tempo-{Asset.Id}")">@ScoreText.Tempo(Facts)</dd></div>
     </dl>
+    @if (Facts.Tablature is { } tab)
+    {
+        <p class="ss-small" data-testid="@($"asset-score-tab-{Asset.Id}")">@TabFactsText.Of(tab)</p>
+    }
     <p class="ss-help ss-small" data-testid="@($"asset-score-limits-{Asset.Id}")">@ScoreText.Limit(Facts.Profile)</p>
     @if (Facts.Warnings.Count > 0)
     {

@@ -112,6 +112,18 @@ export class MixerPage {
     await setNumericValue(this.byId('transport-seek'), seconds);
   }
 
+  /**
+   * Applies preset `preset-<id>`. At Beginner the presets are a chip row; at Advanced/Expert `mixer-presets` is a menu
+   * button whose items render only while it is open (004 ui-test-ids), so the menu is opened first when needed.
+   */
+  async applyPreset(id: string): Promise<void> {
+    const item = this.byId(`preset-${id}`);
+    if (!(await item.isVisible())) {
+      await this.byId('mixer-presets').click();
+    }
+    await item.click();
+  }
+
   /** The karaoke banner host (feature 006; its controls are in `pages/karaoke-banner.ts`). */
   get karaokeBanner(): Locator {
     return this.byId('karaoke-banner');

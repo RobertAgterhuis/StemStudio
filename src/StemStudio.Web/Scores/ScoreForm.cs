@@ -58,7 +58,29 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
 
     /// <summary>Chooses a profile and resets "simplified rhythm" to its default.</summary>
     /// <param name="profile">The profile, or null for none.</param>
-    public void SetProfile(ScoreProfileDto? profile) => (Profile, Simplified) = (profile, profile == ScoreProfileDto.Vocals);
+    public void SetProfile(ScoreProfileDto? profile)
+    {
+        (Profile, Simplified) = (profile, profile == ScoreProfileDto.Vocals);
+        if (profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass)
+        {
+            Tab?.UseProfile(profile.Value);
+        }
+    }
+
+    /// <summary>Tablature options (016 US2), or null when the backend offers none for the source.</summary>
+    public TabChoice? Tab { get; } = NewTab(options, target);
+
+    /// <summary>True when the tablature options apply (guitar and bass profiles, FR-020).</summary>
+    public bool ShowsTab => Tab is not null && Profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass;
+
+    /// <summary>"Include chords" (016 FR-017, Advanced): the user's choice.</summary>
+    public bool IncludeChords { get; set; }
+
+    /// <summary>True for the profiles that take chord symbols above the top staff (vocals, guitar, keys, piano).</summary>
+    public bool ChordsAllowed => Profile is ScoreProfileDto.Vocals or ScoreProfileDto.Guitar or ScoreProfileDto.Keys or ScoreProfileDto.Piano;
+
+    /// <summary>True when the backend offers chords (ready chords and an allowed profile).</summary>
+    public bool ChordsAvailable => ChordsAllowed && Options.Chords?.Available == true;
 
     /// <summary>Checks the choices.</summary>
     /// <returns>A readable problem, or null.</returns>
@@ -75,7 +97,21 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         KeyOverride = HasKey && KeyOverride.Length > 0 ? KeyOverride : null,
         Tempo = Tempo.ToDto(),
         Range = Range.ToDto(),
+        IncludeChords = ChordsAvailable && IncludeChords,
+        Tablature = ShowsTab ? Tab!.ToDto() : null,
     };
+
+    private static TabChoice? NewTab(ScoreOptionsDto options, ScoreTarget target)
+    {
+        if (options.Tablature is not { Available: true } tab)
+        {
+            return null;
+        }
+
+        var choice = new TabChoice(tab, target.Capo);
+        choice.UseProfile(options.SuggestedProfile == ScoreProfileDto.Bass ? ScoreProfileDto.Bass : ScoreProfileDto.Guitar);
+        return choice;
+    }
 
     private int? EstimateOf(ScoreProfileDto? profile) =>
         Options.Estimates.FirstOrDefault(e => e.Profile == profile && (e.Quality is null || e.Quality == Quality))?.Seconds;
