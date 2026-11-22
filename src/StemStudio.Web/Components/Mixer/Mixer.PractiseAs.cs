@@ -19,6 +19,10 @@ public sealed partial class Mixer
     /// <summary>The written instrument of the orchestral view (concert until one is chosen).</summary>
     private WrittenInstrumentDto WrittenInstrument { get; set; } = WrittenInstrumentDto.Concert;
 
+    // The written key applies to the orchestral family with a transposing (non-concert) instrument (FR-074).
+    private WrittenInstrumentDto? PartInstrument =>
+        Family == InstrumentFamilyDto.Orchestral && WrittenInstrument != WrittenInstrumentDto.Concert ? WrittenInstrument : null;
+
     private string ViewLabel => OpenedView switch
     {
         InstrumentViewDto.DrumTrainer => "Drum trainer",

@@ -115,6 +115,8 @@ public static class FeatureCatalog
         new("parts.instrument", Beginner, null, "transposed-parts"),
         new("parts.clef", Advanced, null, "transposed-parts"),
         new("views.practise-as", Beginner, null, "instrument-views"),
+        new("key.view", Beginner, null, "song-key"),
+        new("key.details", Advanced, null, "song-key"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

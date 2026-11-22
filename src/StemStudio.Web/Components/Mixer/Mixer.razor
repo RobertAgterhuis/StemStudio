@@ -29,6 +29,8 @@ else
                 {
                     <span class="ss-muted" data-testid="mixer-album">@album</span>
                 }
+                <MixerKey TrackId="Id" TransposeSemitones="State.Practice.TransposeSemitones" Position="Position" Instrument="PartInstrument"
+                          ChordStatus="@(ChordAnalysis?.Status ?? AnalysisStatusDto.None)" />
                 @if (State.MixName is not null)
                 {
                     <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>

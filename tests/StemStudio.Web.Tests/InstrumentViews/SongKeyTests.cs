@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using NSubstitute;
 using StemStudio.Contracts.InstrumentViews;
+using StemStudio.Contracts.Scores;
 using StemStudio.Web.Components.InstrumentViews;
 using StemStudio.Web.Experience;
 using StemStudio.Web.InstrumentViews;
@@ -23,7 +24,7 @@ public sealed class SongKeyTests : PageTestContext
     private IRenderedComponent<CascadingValue<ExperienceContext>> TrackKeyAt(ExperienceLevel level, TrackKeySummaryDto? key) =>
         RenderAtLevel<TrackKey>(level, p => p.Add(c => c.Track, TestData.Track() with { Key = key }));
 
-    private void MixerParameters(ComponentParameterCollectionBuilder<MixerKey> p, int transpose = 0, double position = 1, WrittenInstrumentDto? instrument = null) => p
+    private static void MixerParameters(ComponentParameterCollectionBuilder<MixerKey> p, int transpose = 0, double position = 1, WrittenInstrumentDto? instrument = null) => p
         .Add(c => c.TrackId, Track)
         .Add(c => c.TransposeSemitones, transpose)
         .Add(c => c.Position, position)
