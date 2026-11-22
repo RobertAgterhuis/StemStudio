@@ -265,12 +265,17 @@ def test_a_capped_result_keeps_a_fair_share_of_every_piece_and_logs_it(
         job = _done(started, _post(started, drums_body(("kick", "hihat"))))
 
     hits = job["result"]["hits"]
-    kicks = [h for h in hits if h["piece"] == "kick"]
-    assert (len(kicks), len(hits) - len(kicks)) == (24_000, 16_000)
-    assert sum(h["strength"] == 0.9 for h in kicks) == 6_000
+    kicks = _of(hits, "kick")
+    assert (len(kicks), len(_of(hits, "hihat"))) == (24_000, 16_000)
+    assert [h["strength"] for h in kicks].count(0.9) == 6_000
     assert kicks[-1]["timeMs"] == 299_950
-    assert [h["timeMs"] for h in hits] == sorted(h["timeMs"] for h in hits)
-    assert any("50000" in r.getMessage() and "40000" in r.getMessage() for r in caplog.records)
+    times = [h["timeMs"] for h in hits]
+    assert times == sorted(times)
+    assert "Drum hits capped from 50000 to 40000" in caplog.text
+
+
+def _of(hits: list[dict[str, Any]], piece: str) -> list[dict[str, Any]]:
+    return [h for h in hits if h["piece"] == piece]
 
 
 def test_the_capped_shares_round_by_largest_remainder_then_kit_order(

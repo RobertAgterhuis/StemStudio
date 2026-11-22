@@ -199,9 +199,7 @@ def _capped(events: list[DrumHitEvent]) -> list[DrumHitEvent]:
         return events
     _LOG.warning("Drum hits capped from %d to %d (a share per piece, strongest first)",
                  len(events), MAX_DRUM_HITS)  # fmt: skip
-    by_piece: dict[DrumPiece, list[DrumHitEvent]] = {}
-    for event in events:
-        by_piece.setdefault(event.piece, []).append(event)
+    by_piece = _by_piece(events)
     shares = _shares({piece: len(hits) for piece, hits in by_piece.items()}, MAX_DRUM_HITS)
     kept = (
         event
@@ -209,6 +207,14 @@ def _capped(events: list[DrumHitEvent]) -> list[DrumHitEvent]:
         for event in heapq.nsmallest(shares[piece], hits, key=lambda e: -e.strength)
     )
     return sorted(kept, key=_kit_order)
+
+
+def _by_piece(events: list[DrumHitEvent]) -> dict[DrumPiece, list[DrumHitEvent]]:
+    """The hits of every piece, in their order."""
+    by_piece: dict[DrumPiece, list[DrumHitEvent]] = {}
+    for event in events:
+        by_piece.setdefault(event.piece, []).append(event)
+    return by_piece
 
 
 def _shares(counts: dict[DrumPiece, int], cap: int) -> dict[DrumPiece, int]:
