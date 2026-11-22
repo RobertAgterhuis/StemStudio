@@ -1,10 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import type { APIRequestContext } from '@playwright/test';
 import { ensureDetailCompleted } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs } from '../support/env';
 import { clefs, isMidi, staves } from '../support/musicxml';
 import { hasNoteOn, musicXmlOf, soundingPitch, staffTunings, tabNotes, tabStaffLines, tuningPitches } from '../support/instrument-scores';
-import { InstrumentViewsApi, required } from '../support/instrument-views';
+import { required, useInstrumentApi } from '../support/instrument-views';
 import { expect, test } from '../support/test';
 
 // Feature 016 US2 (T083; FR-018..FR-023, SC-002, SC-006, quickstart V5/V6): tablature for the guitar and bass families
@@ -24,17 +23,7 @@ const fiveStringBass = [23, 28, 33, 38, 43];
 const drumChannel = 10;
 const kickNote = 36;
 
-let context: APIRequestContext;
-
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 2 * scoreMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  await new InstrumentViewsApi(context).requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
+useInstrumentApi(fakeJobTimeoutMs + 2 * scoreMs);
 
 /** Expects a TAB staff whose frets sound the pitches of their notes. */
 function expectPlayableTab(xml: string, tuning: readonly number[]): void {

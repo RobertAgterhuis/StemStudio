@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import type { StemStudioApi, TrackDto } from './api';
+import { apiBaseUrl } from './env';
 import { okJson } from './http';
 
 /** Contract `AnalysisStatus`. */
@@ -227,4 +229,35 @@ export class InstrumentViewsApi {
     const status = (await this.request.get('/api/instruments/catalogue')).status();
     test.skip(status === 404 || status === 405, `instrument views not deployed on this stack (catalogue -> ${String(status)})`);
   }
+}
+
+/** Accessors of the per-test API context and instrument-views client registered by {@link useInstrumentApi}. */
+export interface InstrumentApiSuite {
+  readonly views: () => InstrumentViewsApi;
+  readonly context: () => APIRequestContext;
+}
+
+/**
+ * Registers the `beforeEach`/`afterEach` hooks of an instrument spec: test timeout, an API context, the client, and the
+ * skip while the stack has no 016 backend. Returns accessors valid inside a test.
+ */
+export function useInstrumentApi(timeoutMs: number): InstrumentApiSuite {
+  let context: APIRequestContext | undefined;
+  let views: InstrumentViewsApi | undefined;
+  test.beforeEach(async ({ playwright }) => {
+    test.setTimeout(timeoutMs);
+    context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    views = new InstrumentViewsApi(context);
+    await views.requireFeature();
+  });
+  test.afterEach(async () => {
+    await context?.dispose();
+  });
+  return { views: () => required(views, 'instrument views client'), context: () => required(context, 'API context') };
+}
+
+/** A completed track and its ready chord chart (the backend detects the chords after the separation). */
+export async function chordTrack(api: StemStudioApi, views: InstrumentViewsApi, file: string, timeoutMs: number): Promise<{ readonly track: TrackDto; readonly chart: ChordChartDto }> {
+  const track = await api.ensureFileCompleted(file, timeoutMs);
+  return { track, chart: await views.waitForChords(track.id, timeoutMs) };
 }

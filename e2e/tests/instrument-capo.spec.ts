@@ -1,10 +1,11 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { InstrumentViews } from '../pages/instrument-views';
 import { PracticePanel } from '../pages/practice-panel';
-import type { StemStudioApi, TrackDto } from '../support/api';
+import type { StemStudioApi } from '../support/api';
 import { rankCapos } from '../support/capo-rule';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
-import { InstrumentViewsApi, sharpSymbol, type ChordChartDto } from '../support/instrument-views';
+import { fakeJobTimeoutMs } from '../support/env';
+import { fixturePath } from '../support/fixtures';
+import { chordTrack, sharpSymbol, useInstrumentApi } from '../support/instrument-views';
 import { expect, test } from '../support/test';
 
 // Feature 016 US8 (T129; FR-072..FR-078, SC-006, SC-011, quickstart V13): capo mode for the guitar family. Data-model
@@ -16,23 +17,11 @@ const chordsMs = 60_000;
 const transpose = 3;
 const expectedCycle = ['C', 'G', 'Am', 'F'];
 
-let context: APIRequestContext;
-let views: InstrumentViewsApi;
+const suite = useInstrumentApi(fakeJobTimeoutMs + 2 * chordsMs);
 
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 2 * chordsMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  views = new InstrumentViewsApi(context);
-  await views.requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
-
-async function chordTrack(api: StemStudioApi): Promise<{ readonly track: TrackDto; readonly chart: ChordChartDto }> {
-  const track = await api.ensureCompleted(fixture, fakeJobTimeoutMs);
-  return { track, chart: await views.waitForChords(track.id, chordsMs) };
+/** The fixture track and its ready chord chart. */
+function trackWithChords(api: StemStudioApi): ReturnType<typeof chordTrack> {
+  return chordTrack(api, suite.views(), fixturePath(fixture), fakeJobTimeoutMs);
 }
 
 /** "Practise as Guitar", transpose +3, capo mode on, then the shortcut (capo 3). */
@@ -47,7 +36,7 @@ async function capoThree(page: Page, ui: InstrumentViews): Promise<void> {
 
 test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () => {
   test('the shortcut gives capo 3 and the lane shows the original shapes', async ({ api, mixer, page }) => {
-    const { track, chart } = await chordTrack(api);
+    const { track, chart } = await trackWithChords(api);
     const ui = new InstrumentViews(page);
     await mixer.goto(track.id);
     await mixer.waitForReady(['guitar']);
@@ -64,7 +53,7 @@ test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () =
   });
 
   test('the suggestion order follows the R-14 rule', async ({ api, mixer, page }) => {
-    const { track, chart } = await chordTrack(api);
+    const { track, chart } = await trackWithChords(api);
     const expected = rankCapos(chart, transpose).map((s) => s.capo);
     const ui = new InstrumentViews(page);
     await mixer.goto(track.id);
@@ -74,7 +63,7 @@ test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () =
     await new PracticePanel(page).setTranspose(transpose);
     await ui.enableCapoMode();
 
-    expect((await views.capo(track.id, transpose)).suggestions.map((s) => s.capo)).toEqual(expected);
+    expect((await suite.views().capo(track.id, transpose)).suggestions.map((s) => s.capo)).toEqual(expected);
     await expect(ui.capoSuggestions).toHaveCount(expected.length);
     for (const [n, capo] of expected.entries()) {
       await expect(ui.capoSuggestion(n)).toHaveAttribute('data-capo', String(capo));
@@ -82,14 +71,14 @@ test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () =
   });
 
   test('the chord sheet and the tablature dialog take the capo', async ({ api, mixer, trackPage, scoreDialog, page }) => {
-    const { track } = await chordTrack(api);
+    const { track } = await trackWithChords(api);
     const ui = new InstrumentViews(page);
     await mixer.goto(track.id);
     await mixer.waitForReady(['guitar']);
     await capoThree(page, ui);
 
     await trackPage.goto(track.id);
-    const sheet = await views.sheet(track.id, transpose, 3);
+    const sheet = await suite.views().sheet(track.id, transpose, 3);
     const symbols = sheet.rows.flatMap((r) => r.chords.map((c) => c.symbol));
     expect(symbols.length).toBeGreaterThan(0);
     expect(expectedCycle).toEqual(expect.arrayContaining(symbols.slice(0, 4)));
@@ -106,7 +95,7 @@ test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () =
 test.describe('no capo outside the guitar family (016 US8)', { tag: '@instrument' }, () => {
   for (const family of ['bass', 'keys'] as const) {
     test(`${family}: no capo mode`, async ({ api, mixer, page }) => {
-      const { track } = await chordTrack(api);
+      const { track } = await trackWithChords(api);
       const ui = new InstrumentViews(page);
       await mixer.goto(track.id);
       await mixer.waitForReady(['guitar']);

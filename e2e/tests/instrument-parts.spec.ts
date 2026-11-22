@@ -1,10 +1,9 @@
-import type { APIRequestContext } from '@playwright/test';
 import { ScorePanel } from '../pages/score-panel';
 import type { AssetsApi } from '../support/assets-api';
 import { ensureDetailCompleted, fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs } from '../support/env';
 import { chromaticTranspose, readyScoreId, type InstrumentScoreRequest, type ScorePartDto } from '../support/instrument-scores';
-import { InstrumentViewsApi, required } from '../support/instrument-views';
+import { required, useInstrumentApi } from '../support/instrument-views';
 import { clefs, fifths } from '../support/musicxml';
 import { PracticeFlowApi } from '../support/practice-flow';
 import type { ScoreApi } from '../support/score-api';
@@ -17,17 +16,7 @@ import { expect, test } from '../support/test';
 const scoreMs = 90_000;
 const viewMs = 30_000;
 
-let context: APIRequestContext;
-
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 4 * scoreMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  await new InstrumentViewsApi(context).requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
+const suite = useInstrumentApi(fakeJobTimeoutMs + 4 * scoreMs);
 
 /** The pitches of every note-on with an explicit status byte on any channel (same reading as `hasNoteOn`). */
 function noteOnPitches(bytes: Buffer): number[] {
@@ -86,7 +75,7 @@ test.describe('parts in the 014 score view (016 US5)', { tag: '@instrument' }, (
     const track = await ensureDetailCompleted(api);
     const source = { trackId: track.id, channel: 'other.brass' };
     const { concertId, partId } = await scorePair(scoreApi, assetsApi, { source, profile: 'brass' }, { instrument: 'alto-sax-eb', clef: 'auto' });
-    const flow = new PracticeFlowApi(context);
+    const flow = new PracticeFlowApi(suite.context());
     const view = await flow.waitForScoreView(partId, viewMs);
     await flow.waitForScoreView(concertId, viewMs);
     const bar = required(view.bars[2], 'bar 3 of the part');

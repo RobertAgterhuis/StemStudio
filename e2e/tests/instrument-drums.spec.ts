@@ -1,12 +1,11 @@
-import type { APIRequestContext } from '@playwright/test';
 import { InstrumentViews } from '../pages/instrument-views';
 import type { MixerPage } from '../pages/mixer-page';
 import type { TrackDto } from '../support/api';
 import { isOn } from '../support/controls';
 import { ensureDetailCompleted, fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs } from '../support/env';
 import { drumDetailKeys, expectSilentMeters, expectSomeMeterMoves, setAllExpanded } from '../support/instrument-mixer';
-import { InstrumentViewsApi, required, type DrumHitsDto } from '../support/instrument-views';
+import { required, type DrumHitsDto, useInstrumentApi } from '../support/instrument-views';
 import { PracticeFlowApi, barAt } from '../support/practice-flow';
 import { expect, test } from '../support/test';
 
@@ -20,19 +19,7 @@ const scoreMs = 90_000;
 const meterWindowMs = 1500;
 const hitToleranceMs = 30;
 
-let context: APIRequestContext;
-let views: InstrumentViewsApi;
-
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 2 * hitsMs + scoreMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  views = new InstrumentViewsApi(context);
-  await views.requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
+const suite = useInstrumentApi(fakeJobTimeoutMs + 2 * hitsMs + scoreMs);
 
 /** The first hit strictly after `ms` and every piece that sounds at that time. */
 function nextHitAfter(hits: DrumHitsDto, ms: number): { readonly ms: number; readonly pieces: string[] } {
@@ -58,7 +45,7 @@ async function openDrumTrainer(mixer: MixerPage, ui: InstrumentViews, track: Tra
 test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
   test('the hit lanes name the next fake hit at the beat times', async ({ api, mixer, page }) => {
     const track = await ensureDetailCompleted(api);
-    const hits = await views.waitForDrumHits(track.id, hitsMs);
+    const hits = await suite.views().waitForDrumHits(track.id, hitsMs);
     expect(hits.pieces).toEqual(expect.arrayContaining(['kick', 'snare', 'hihat']));
     const ui = new InstrumentViews(page);
     await openDrumTrainer(mixer, ui, track);
@@ -74,7 +61,7 @@ test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
 
   test('Drumless silences every drum meter, keeps the band and restores the mix', async ({ api, mixer, page }) => {
     const track = await ensureDetailCompleted(api);
-    await views.waitForDrumHits(track.id, hitsMs);
+    await suite.views().waitForDrumHits(track.id, hitsMs);
     const ui = new InstrumentViews(page);
     await mixer.goto(track.id);
     await mixer.waitForReady(fakeStems);
@@ -118,7 +105,7 @@ test.describe('drum score in the trainer (016 US3)', { tag: '@instrument' }, () 
     const track = await ensureDetailCompleted(api);
     const created = await scoreApi.create({ source: { trackId: track.id, channel: 'drums' }, profile: 'drums' });
     await assetsApi.waitForReady(created.id, scoreMs);
-    const view = await new PracticeFlowApi(context).waitForScoreView(created.id, scoreMs);
+    const view = await new PracticeFlowApi(suite.context()).waitForScoreView(created.id, scoreMs);
     const ui = new InstrumentViews(page);
     await openDrumTrainer(mixer, ui, track);
     await expect(ui.drumScore).toBeVisible();

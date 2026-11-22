@@ -1,12 +1,11 @@
-import type { APIRequestContext } from '@playwright/test';
 import { InstrumentViews } from '../pages/instrument-views';
 import type { MixerPage } from '../pages/mixer-page';
 import { PracticePanel } from '../pages/practice-panel';
 import type { StemStudioApi, TrackDto } from '../support/api';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs } from '../support/env';
 import { practiceFlowFixturePath } from '../support/fixtures';
 import { families } from '../support/instrument-family';
-import { InstrumentViewsApi, required, sharpSymbol, type ChordChartDto, type ChordSegmentDto } from '../support/instrument-views';
+import { chordTrack, required, sharpSymbol, type ChordChartDto, type ChordSegmentDto, useInstrumentApi } from '../support/instrument-views';
 import { expect, test } from '../support/test';
 
 // Feature 016 US7 (T122; FR-065..FR-071, SC-006, SC-010, quickstart V12): the song key for every family. Fake chords
@@ -16,28 +15,16 @@ import { expect, test } from '../support/test';
 const chordsMs = 60_000;
 const changeMs = 8_000;
 
-let context: APIRequestContext;
-let views: InstrumentViewsApi;
+const suite = useInstrumentApi(fakeJobTimeoutMs + 2 * chordsMs);
 
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 2 * chordsMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  views = new InstrumentViewsApi(context);
-  await views.requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
-
-async function keyTrack(api: StemStudioApi): Promise<{ readonly track: TrackDto; readonly chart: ChordChartDto }> {
-  const track = await api.ensureFileCompleted(practiceFlowFixturePath('practice-song.wav'), fakeJobTimeoutMs);
-  return { track, chart: await views.waitForChords(track.id, chordsMs) };
+/** The fixture track and its ready chord chart. */
+function keyTrack(api: StemStudioApi): ReturnType<typeof chordTrack> {
+  return chordTrack(api, suite.views(), practiceFlowFixturePath('practice-song.wav'), fakeJobTimeoutMs);
 }
 
 /** Start (ms) of the second key region (the fake change to D major). */
 async function changeStartMs(trackId: string): Promise<number> {
-  const regions = (await views.key(trackId)).regions;
+  const regions = (await suite.views().key(trackId)).regions;
   expect(regions).toHaveLength(2);
   const change = required(regions[1], 'second key region');
   expect(change.display).toContain('D major');

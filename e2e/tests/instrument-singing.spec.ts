@@ -1,8 +1,7 @@
-import type { APIRequestContext } from '@playwright/test';
 import { fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs } from '../support/env';
 import { referenceMs, referenceTrack, singThrough } from '../support/instrument-singing';
-import { InstrumentViewsApi } from '../support/instrument-views';
+import { useInstrumentApi } from '../support/instrument-views';
 import { takeReadyTimeoutMs } from '../support/recording';
 import { expect, test } from '../support/recording-test';
 
@@ -14,23 +13,11 @@ import { expect, test } from '../support/recording-test';
 // starts at Advanced, so the tolerance is 50 cents (data-model 3.4).
 const advancedToleranceCents = '50';
 
-let context: APIRequestContext;
-let views: InstrumentViewsApi;
-
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + 3 * referenceMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  views = new InstrumentViewsApi(context);
-  await views.requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
+const suite = useInstrumentApi(fakeJobTimeoutMs + 3 * referenceMs);
 
 test.describe('singing on pitch (016 US4)', { tag: ['@fake-mic', '@fake-mic-on-pitch'] }, () => {
   test('every line scores at least 90 an octave below the reference, and nothing is uploaded', async ({ api, lyricsApi, mixer, page }) => {
-    const track = await referenceTrack(api, lyricsApi, views);
+    const track = await referenceTrack(api, lyricsApi, suite.views());
 
     const pass = await singThrough(page, mixer, track);
 
@@ -41,7 +28,7 @@ test.describe('singing on pitch (016 US4)', { tag: ['@fake-mic', '@fake-mic-on-p
   });
 
   test('a recorded 015 take can be scored', async ({ api, lyricsApi, mixer, recording, page }) => {
-    const track = await referenceTrack(api, lyricsApi, views);
+    const track = await referenceTrack(api, lyricsApi, suite.views());
     await mixer.goto(track.id);
     await mixer.waitForReady(fakeStems.filter((s) => track.stems.some((t) => t.name === s)));
     await recording.openWithInput();
@@ -60,7 +47,7 @@ test.describe('singing on pitch (016 US4)', { tag: ['@fake-mic', '@fake-mic-on-p
 
 test.describe('singing a semitone off (016 US4)', { tag: ['@fake-mic', '@fake-mic-semitone'] }, () => {
   test('a semitone off scores at most 20 at 50 cents tolerance', async ({ api, lyricsApi, mixer, page }) => {
-    const track = await referenceTrack(api, lyricsApi, views);
+    const track = await referenceTrack(api, lyricsApi, suite.views());
 
     const pass = await singThrough(page, mixer, track);
 
@@ -73,7 +60,7 @@ test.describe('singing a semitone off (016 US4)', { tag: ['@fake-mic', '@fake-mi
 
 test.describe('singing silence (016 US4)', { tag: ['@fake-mic', '@fake-mic-silence'] }, () => {
   test('silence scores 0', async ({ api, lyricsApi, mixer, page }) => {
-    const track = await referenceTrack(api, lyricsApi, views);
+    const track = await referenceTrack(api, lyricsApi, suite.views());
 
     const pass = await singThrough(page, mixer, track);
 

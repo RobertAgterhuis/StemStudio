@@ -1,9 +1,9 @@
-import type { APIRequestContext } from '@playwright/test';
 import { InstrumentViews } from '../pages/instrument-views';
-import type { StemStudioApi, TrackDto } from '../support/api';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import type { StemStudioApi } from '../support/api';
+import { fakeJobTimeoutMs } from '../support/env';
+import { fixturePath } from '../support/fixtures';
 import { musicXmlOf } from '../support/instrument-scores';
-import { InstrumentViewsApi, required, sharpSymbol, type ChordChartDto, type ChordSegmentDto } from '../support/instrument-views';
+import { chordTrack, required, sharpSymbol, type ChordChartDto, type ChordSegmentDto, useInstrumentApi } from '../support/instrument-views';
 import { expect, test } from '../support/test';
 
 // Feature 016 US1 (T076; FR-010, FR-013..FR-017, SC-006): chords for the harmony family (keys, guitar, singers). Fake
@@ -15,28 +15,16 @@ const chordsMs = 60_000;
 const scoreMs = 90_000;
 const expectedCycle = ['C', 'G', 'Am', 'F'];
 
-let context: APIRequestContext;
-let views: InstrumentViewsApi;
-
-test.beforeEach(async ({ playwright }) => {
-  test.setTimeout(fakeJobTimeoutMs + chordsMs + scoreMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
-  views = new InstrumentViewsApi(context);
-  await views.requireFeature();
-});
-
-test.afterEach(async () => {
-  await context.dispose();
-});
+const suite = useInstrumentApi(fakeJobTimeoutMs + chordsMs + scoreMs);
 
 /** The first four chords after the leading "no chord" segment. */
 function firstChords(chart: ChordChartDto): ChordSegmentDto[] {
   return chart.segments.filter((s) => s.root !== null).slice(0, 4);
 }
 
-async function readyTrack(api: StemStudioApi): Promise<{ readonly track: TrackDto; readonly chart: ChordChartDto }> {
-  const track = await api.ensureCompleted(fixture, fakeJobTimeoutMs);
-  return { track, chart: await views.waitForChords(track.id, chordsMs) };
+/** The fixture track and its ready chord chart. */
+function readyTrack(api: StemStudioApi): ReturnType<typeof chordTrack> {
+  return chordTrack(api, suite.views(), fixturePath(fixture), fakeJobTimeoutMs);
 }
 
 test.describe('chords in the mixer (016 US1)', { tag: '@instrument' }, () => {
@@ -80,7 +68,7 @@ test.describe('chord sheet on the track page (016 US1)', { tag: '@instrument' },
 
     await expect(ui.chordSheet).toBeVisible();
     await expect(ui.sheetRow(0)).toBeVisible();
-    const sheet = await views.sheet(track.id);
+    const sheet = await suite.views().sheet(track.id);
     const first = sheet.rows.findIndex((r) => r.chords.length > 0);
     expect(first).toBeGreaterThanOrEqual(0);
     await expect(ui.sheetChord(first, 0)).toHaveText(required(sheet.rows[first]?.chords[0], 'first chord').symbol);
@@ -104,11 +92,11 @@ test.describe('chord sheet on the track page (016 US1)', { tag: '@instrument' },
 
       await page.reload();
       await expect(ui.chordSheet).toBeVisible();
-      const edited = required((await views.chords(track.id)).document, 'chart');
+      const edited = required((await suite.views().chords(track.id)).document, 'chart');
       expect(edited.segments[index]).toMatchObject({ label: 'D:min', edited: true });
       expect(edited.hasEdits).toBe(true);
     } finally {
-      await views.editSegment(track.id, index, original);
+      await suite.views().editSegment(track.id, index, original);
     }
   });
 
@@ -120,7 +108,7 @@ test.describe('chord sheet on the track page (016 US1)', { tag: '@instrument' },
     const href = required(await ui.byId('chord-sheet-download').getAttribute('href'), 'ChordPro link');
 
     expect(href).toContain(`/api/tracks/${track.id}/chords/chordpro`);
-    expect((await views.text(href)).startsWith('{title:')).toBe(true);
+    expect((await suite.views().text(href)).startsWith('{title:')).toBe(true);
   });
 
   test('a lead sheet with chords has <harmony> elements', async ({ api, scoreApi, assetsApi }) => {
