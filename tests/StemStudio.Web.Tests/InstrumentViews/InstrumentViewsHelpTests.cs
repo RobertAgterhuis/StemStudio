@@ -14,6 +14,9 @@ public sealed class InstrumentViewsHelpTests
     {
         { "chords", ["chords", "chord-sheet"] },
         { "chords-advanced", ["chords-vocabulary", "chord-edit"] },
+        { "tablature", ["score-tablature", "score-tab-tuning"] },
+        { "midi-download", ["midi-download"] },
+        { "drum-trainer", ["drum-trainer", "drum-lanes", "drumless"] },
     };
 
     [Theory]
@@ -39,5 +42,15 @@ public sealed class InstrumentViewsHelpTests
         Catalog.Topic("chords")!.Markdown.ShouldContain("80 %");
         Catalog.Topic("chords")!.Markdown.ShouldContain("Park et al. 2019, MIT licence");
         Catalog.Topic("chords-advanced")!.Levels.Select(l => l.ToString()).ShouldBe(["Advanced", "Expert"]);
+    }
+
+    [Fact]
+    public void DrumTrainerTopic_NamesTheSplitTheGuideAndTheLimits()
+    {
+        var body = Catalog.Topic("drum-trainer")!.Markdown;
+
+        body.ShouldContain("split", Case.Insensitive);
+        body.ShouldContain("guide", Case.Insensitive);
+        body.ShouldContain("Limits", Case.Sensitive);
     }
 }
