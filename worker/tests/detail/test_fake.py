@@ -45,14 +45,14 @@ def test_the_fake_table_matches_the_e2e_expectations(tmp_path: Path) -> None:
         "vocals": K.SPLIT, "drums": K.SPLIT, "bass": K.NOT_SUPPORTED,
         "guitar": K.NOTHING_FURTHER, "piano": K.NOT_RELIABLE, "other": K.SPLIT,
     }  # fmt: skip
-    assert names["drums"] == ["kick", "snare", "toms", "rest"]
+    assert names["drums"] == ["kick", "snare", "toms", "hihat", "rest"]
     assert names["vocals"] == ["lead", "backing", "rest"]
     assert names["other"] == ["strings", "brass", "rest"]
     assert {o.model for p, o in outcomes.items() if p != "bass"} == {"fake-detail"}
 
 
 def test_fake_scales_follow_the_tasks_table() -> None:
-    assert FAKE_SCALES["drums"] == {"kick": 0.5, "snare": 0.3, "toms": 0.2}
+    assert FAKE_SCALES["drums"] == {"kick": 0.5, "snare": 0.25, "toms": 0.15, "hihat": 0.1}
     assert FAKE_SCALES["vocals"] == {"lead": 0.7, "backing": 0.3}
     assert sum(FAKE_SCALES["piano"].values()) == pytest.approx(0.3)
     assert FAKE_SCALES["other"] == {"brass": 0.6, "strings": 0.4}
@@ -76,7 +76,7 @@ def test_every_model_call_waits_the_step_delay_in_chunks(tmp_path: Path) -> None
     fractions: list[float] = []
     model = FakeSource(2.0, sleeper).choose("drums").load("cuda")
     outputs = model.separate(noise(0.1, 0.2), lambda f, s: fractions.append(f))
-    assert sorted(outputs) == ["kick", "snare", "toms"]
+    assert sorted(outputs) == ["hihat", "kick", "snare", "toms"]
     assert sleeper.calls == [0.5] * CHUNKS
     assert fractions == [(i + 1) / CHUNKS for i in range(CHUNKS)]
 
@@ -87,7 +87,7 @@ def test_create_detail_adapters_in_fake_mode_needs_no_downloads(tmp_path: Path) 
     assert isinstance(adapters.models, FakeModelProvider)
     assert isinstance(adapters.models, DetailModelProvider)
     drums = adapters.models.get("mdx23c-drumsep-6s").separate(noise(0.1, 0.2), lambda f, s: None)
-    assert sorted(drums) == ["kick", "snare", "toms"]
+    assert sorted(drums) == ["hihat", "kick", "snare", "toms"]
     vocals = adapters.models.get("uvr-mdxnet-kara-2").separate(noise(0.1, 0.2), lambda f, s: None)
     assert sorted(vocals) == ["backing", "lead"]
     other = adapters.models.get("fake-detail").separate(noise(0.1, 0.2), lambda f, s: None)

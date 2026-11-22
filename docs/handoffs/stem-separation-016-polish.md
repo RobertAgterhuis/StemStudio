@@ -118,3 +118,30 @@ None from contracts or scope.
 ## Dependencies added
 
 None.
+
+## Mid-wave fix - the fake drum split delivers a hi-hat (research R-11)
+
+The mid-wave checkpoint on the real stack showed the fake drum hits with kick, snare and toms but no hi-hat: the
+fake detail split (`detail/fake.py`, `FAKE_SCALES["drums"]`) had no `hihat` output and `FakeDrumTranscriber` only
+plays the pieces it is given. Orchestrator decision: make the fake consistent with R-11.
+
+- Red: `worker/tests/api/test_fake_drum_split.py` (fake drum split -> WAVs -> `FakeDrumHitsTranscriber`: a `hihat`
+  stem exists; hi-hats on every eighth from 0.5 s, kick on 1 and 3, snare on 2 and 4).
+- Green: `FAKE_SCALES["drums"]` is now `kick 0.5, snare 0.25, toms 0.15, hihat 0.1` (still sums to 1.0, so the
+  residual and double-count checks behave as before). The real pipeline (MDX23C DrumSep folding) is unchanged.
+- **Cross-owner edit (test infrastructure, orchestrator-approved):** `worker/src/stemstudio_worker/detail/fake.py`
+  and its test `worker/tests/detail/test_fake.py` (stem list `kick, snare, toms, hihat, rest`; new scales).
+- Worker: 2989 passed, 3 skipped, 11 deselected; **100 % line, 100 % branch** (12,862 statements, 1,446 branches);
+  ruff check/format clean, mypy clean (221 files).
+
+### E2E specs that depend on the fake drum split (not edited; for the QA/E2E owner)
+
+- `e2e/support/detail.ts:32` - doc comment still says `kick 0.5x, snare 0.3x, toms 0.2x`.
+- `e2e/support/detail.ts:38` - `drums.stems` must become `['kick', 'snare', 'toms', 'hihat', 'rest']`; used by
+  `e2e/tests/detail.spec.ts:60` (exact `toEqual` of the outcome table), `e2e/tests/detail-mixer.spec.ts:10`,
+  `e2e/tests/detail-mixes.spec.ts:40` and `keptStems`/`expectFakeOutcomesShown` (`e2e/support/detail.ts:83,89`).
+- `e2e/tests/journey-levels.spec.ts:17,29` - hard-coded drum details `kick, snare, toms` (a subset; passes only if
+  `setExpanded` does not require the exact list - please check).
+- `e2e/tests/sheet-music.spec.ts:98-99,111` - comment "no hi-hat or cymbals" and `expect(crossNoteheads(xml)).toBe(0)`:
+  with a hi-hat the fake drum score gets x noteheads, so this assertion will fail and should become `> 0`.
+- Unaffected: `e2e/tests/lyrics-score-support.spec.ts:63` (inline MusicXML fixture), `e2e/support/api.ts:28`.
