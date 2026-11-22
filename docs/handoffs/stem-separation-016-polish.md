@@ -145,3 +145,24 @@ plays the pieces it is given. Orchestrator decision: make the fake consistent wi
 - `e2e/tests/sheet-music.spec.ts:98-99,111` - comment "no hi-hat or cymbals" and `expect(crossNoteheads(xml)).toBe(0)`:
   with a hi-hat the fake drum score gets x noteheads, so this assertion will fail and should become `> 0`.
 - Unaffected: `e2e/tests/lyrics-score-support.spec.ts:63` (inline MusicXML fixture), `e2e/support/api.ts:28`.
+
+## Review fixes (2026-11-22)
+
+Finding L5 of the independent review (orchestrator decision: fix all, test-first). Commits `9b58f9b9..2e81b93a` on
+`016-round-lane-l3`.
+
+- **L5** `jobs/instrument_analysis_service.py`: drum hits above `MAX_DRUM_HITS` (40,000) were cut in time order, silently
+  losing the end of a long song. `DrumHits` in worker-api 1.9.0 has no warnings/notes field (`kind`, `engine`, `pieces`,
+  `hits` only; `additionalProperties: false`), so within the contract every piece now keeps its share of the cap
+  (largest remainder, ties in kit order) with its strongest hits (ties: the earlier), the result stays in time order and
+  the cap is logged as a warning (`Drum hits capped from N to 40000 ...`). Results at or below the cap are unchanged.
+- Tests (`tests/api/test_instrument_analysis_routes.py`): 30,000 kick + 20,000 hi-hat hits -> 24,000 + 16,000, all strong
+  kicks kept, the last kick at 299.95 s kept, time order, warning logged; 20,001 + 20,001 + 1 -> 20,000 / 19,999 / 1
+  (largest remainder, then kit order); the existing single-piece case still keeps the first 40,000.
+- Request for the orchestrator (optional, contract change): a `warnings` field on `DrumHits` in a later worker-api minor
+  version would let the UI tell the user that hits were thinned.
+- Checks (`worker/`): `uv run pytest --cov --cov-branch` 2991 passed, 3 skipped, 11 deselected (integration), **100.00 %
+  line and branch** (12887 statements, 1452 branches; gate 90 %); `ruff check`, `ruff format --check`, `mypy` strict
+  clean (443 files); `run_all.py` on `jobs/` + `tests/api` PASS, 0 errors, no production SIG warning, jscpd ran
+  (4 pre-existing test clones). Security: no new input surface (hit counts come from our own transcriber); no new
+  dependency.
