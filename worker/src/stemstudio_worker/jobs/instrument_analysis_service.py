@@ -7,7 +7,8 @@ be read then fails the job when it runs. Kinds:
 
 * ``chords``: the ``ChordAnalyzer`` (mixdown -> recognizer -> post-processing -> key) over the
   resolved harmonic stems and the bass stem; the device of a BTC run is recorded.
-* ``drum-hits``: the 008 ``DrumTranscriber`` per given piece -> hits in time order (ms).
+* ``drum-hits``: the 008 ``DrumTranscriber`` per given piece -> hits in time order (ms);
+  hits in the same millisecond keep the kit order kick, snare, toms, hihat, cymbals.
 * ``vocal-pitch``: the vocal stem at 16 kHz -> the ``PitchAnalyzer`` (``NoMelodyError`` fails
   the job with ``NO_MELODY_TEXT``).
 
@@ -15,7 +16,7 @@ Stages follow the progress: ``preparing`` below 0.05 (``loading-model`` when the
 the request are not cached yet), ``analysing`` below 0.95, then ``finishing``.
 """
 
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, get_args
 
 from stemstudio_worker.jobs.instrument_analysis_chords import MIXED, scaled
 from stemstudio_worker.jobs.instrument_analysis_ports import ChordInputs, InstrumentAnalysisParts
@@ -46,6 +47,7 @@ from stemstudio_worker.schemas import (
     DrumHitEvent,
     DrumHits,
     DrumHitsJobRequest,
+    DrumPiece,
     InstrumentAnalysisHealth,
     InstrumentAnalysisJob,
     InstrumentAnalysisStage,
@@ -59,6 +61,8 @@ FINISHING: Final = 0.95
 
 _PITCH_LOADED: Final = 0.1
 _MODEL_IDS: Final = {"simple": "btc_majmin", "full": "btc_large_voca"}
+_KIT: Final[tuple[DrumPiece, ...]] = get_args(DrumPiece)
+"""Order of simultaneous hits (as the 008 ``DrumTranscriber``)."""
 
 
 class InstrumentAnalysisService(LaneJobService[StoredAnalysisJob]):
@@ -147,7 +151,9 @@ class InstrumentAnalysisService(LaneJobService[StoredAnalysisJob]):
         files = {piece: self._library.resolve(path)
                  for piece, path in request.drum_inputs.pieces().items()}  # fmt: skip
         hits = self.parts.drums.transcribe(files, None, scaled(report, MIXED, FINISHING))
-        events = sorted((_event(hit) for hit in hits), key=lambda e: (e.time_ms, e.piece))
+        events = sorted(
+            (_event(hit) for hit in hits), key=lambda e: (e.time_ms, _KIT.index(e.piece))
+        )
         result = DrumHits(engine=self.parts.drum_engine, pieces=list(files),
                           hits=events[:MAX_DRUM_HITS])  # fmt: skip
         return _completed(result)

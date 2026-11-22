@@ -237,13 +237,12 @@ def test_hit_times_and_strengths_are_clamped_to_the_contract(started: Api, fakes
 
     job = _done(started, _post(started, drums_body()))
 
-    assert job["result"]["hits"] == [{"timeMs": 0, "piece": "kick", "strength": 0.0},
-                                     {"timeMs": 100, "piece": "snare", "strength": 0.4}]  # fmt: skip
+    hits = job["result"]["hits"]
+    assert hits[0] == {"timeMs": 0, "piece": "kick", "strength": 0.0}
+    assert hits[1] == {"timeMs": 100, "piece": "snare", "strength": 0.4}
 
 
-def test_more_hits_than_the_contract_allows_keep_the_first_ones(
-    started: Api, fakes: Fakes
-) -> None:
+def test_more_hits_than_the_contract_allows_keep_the_first_ones(started: Api, fakes: Fakes) -> None:
     fakes.drums.hits = tuple(DrumHit(i / 1000, "hihat", 0.5) for i in range(MAX_DRUM_HITS + 3))
 
     job = _done(started, _post(started, drums_body(("hihat",))))
@@ -253,9 +252,7 @@ def test_more_hits_than_the_contract_allows_keep_the_first_ones(
     assert hits[-1]["timeMs"] == MAX_DRUM_HITS - 1
 
 
-def test_a_drum_transcription_error_fails_the_job_with_its_text(
-    started: Api, fakes: Fakes
-) -> None:
+def test_a_drum_transcription_error_fails_the_job_with_its_text(started: Api, fakes: Fakes) -> None:
     fakes.drums.error = TranscriptionError("The drum stems could not be read.")
 
     job = _done(started, _post(started, drums_body()))
