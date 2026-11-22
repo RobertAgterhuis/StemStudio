@@ -11,8 +11,9 @@ applies the same range fit to the notator's notes before the score is built, kee
 loudest chord notes.
 """
 
+import heapq
 import itertools
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Final
 
@@ -118,15 +119,26 @@ def _options(pitch: int, tuning: Tuning, capo: int) -> list[Position]:
     return [(s, f) for s, f in frets if 0 <= f <= TAB_MAX_FRET - capo]
 
 
-def _distinct(combo: tuple[Position, ...]) -> bool:
-    """True when every note of the combination is on its own string."""
-    return len({s for s, _ in combo}) == len(combo)
+def _combos(
+    options: Sequence[Sequence[Position]], used: frozenset[int] = frozenset()
+) -> Iterator[tuple[Position, ...]]:
+    """Every distinct-string combination, in ``itertools.product`` order (pruned per string).
+
+    A 6-note chord has at most 6! = 720 of them instead of up to 6^6 products (016 review L3).
+    """
+    if not options:
+        yield ()
+        return
+    for position in options[0]:
+        if position[0] not in used:
+            for rest in _combos(options[1:], used | {position[0]}):
+                yield (position, *rest)
 
 
 def _candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[_Candidate]:
     """The cheapest distinct-string assignments; wide ones only when nothing else exists."""
-    combos = filter(_distinct, itertools.product(*(_options(p, tuning, capo) for p in pitches)))
-    found = sorted(map(_cost, combos), key=lambda c: (c.cost, c.order))[:MAX_CANDIDATES]
+    combos = _combos([_options(p, tuning, capo) for p in pitches])
+    found = heapq.nsmallest(MAX_CANDIDATES, map(_cost, combos), key=lambda c: (c.cost, c.order))
     return [c for c in found if not c.wide] or found
 
 

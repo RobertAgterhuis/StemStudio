@@ -5,7 +5,7 @@ import time
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from dataclasses import replace
-from typing import get_args
+from typing import Any, get_args
 
 import pytest
 
@@ -514,10 +514,10 @@ DENSE_900_S = [list(DENSE_CHORDS[i % 3]) for i in range(1800)]
 """A 6-note chord on every beat of 900 s at 120 BPM (the longest score, data-model 4.5)."""
 
 
-def _brute_candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[object]:
+def _brute_candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[Any]:
     """The R-08 candidate list built the slow way: every product, filtered, fully sorted."""
     options = (tablature._options(p, tuning, capo) for p in pitches)
-    combos = filter(tablature._distinct, itertools.product(*options))
+    combos = (c for c in itertools.product(*options) if len({s for s, _ in c}) == len(c))
     found = sorted(map(tablature._cost, combos), key=lambda c: (c.cost, c.order))
     found = found[: tablature.MAX_CANDIDATES]
     return [c for c in found if not c.wide] or found
