@@ -55,3 +55,30 @@ None / none (no new packages) / none.
 ## Next owner
 
 Integration (T139+): CTO for the SC-007 Chromium trace; L5 for the CSS custom properties and `.chord-sounding` styling.
+
+## Security fixes (independent security review, 2 LOW findings)
+
+Test-first: red tests in `df1e9873` (+ lint fix of the test helper `226891a4`), fix in `3534018b`.
+
+1. **Start/stop race** (`src/singing/feedback.ts`). `start()` awaited the pitch worklet module load and then always
+   connected; a `stop()` / `dispose()` during that wait cancelled nothing, so the tracker was still attached to the mic,
+   a session was built on a possibly disposed host and `running` was reported. Fix: a start token. Every start bumps it;
+   `stop()` and `dispose()` bump it too (`cancelStart`) and set the state to `stopped` when it was `starting`. After the
+   await, `loaded(token)` returns false for a stale token, so `connect()` and the `running` notification are skipped. A
+   load failure after a cancel still rejects the start promise but leaves the state `stopped` (no `failed`).
+   Tests: deferred `addModule`; stop and dispose during the load -> no worklet node, no session, no input connection,
+   states `starting, stopped`; failed load after stop; a new start after a cancelled one runs once (stale load connects
+   nothing).
+2. **Unvalidated Blazor input** (`src/singing/validate.ts`, used by `startSingingFeedback`; `validateUnits` is also used
+   by `scoreTake`). New `validateLatencyMethod`: allow-list `loopback | manual | estimated` (types.ts `LatencyMethod`,
+   unchanged); null/absent keeps the `manual` default; anything else -> `Invalid singing request: latencyMethod`.
+   `validateUnits`: at most `MAX_UNITS = 20000` (`more than 20000 units`), each unit an object with
+   `Number.isInteger(index) && index >= 0` (`unit index invalid`) and finite `startMs`/`endMs` (`unit times not finite`),
+   then the existing order check. Tests: method `'x'` and `7`, 100,001 units, index -1 / 1.5 / null unit, NaN start,
+   Infinity end, string start.
+
+Checks after the fix: Vitest 77 files / 1423 tests green; coverage all files 99.81 % lines / 97.99 % branches
+(`feedback.ts` 99.09 / 98.03, the one open line is the pre-existing defensive guard in `halt()`; `validate.ts` 100 %);
+`eslint .` and `tsc --noEmit` clean; `npm run build` ok; `run_all.py` PASS (0 errors, 444 clones, jscpd ran), no
+unit-size/complexity warning on `feedback.ts` or `validate.ts` (`start` split into `start` + `loaded` to stay <= 15
+lines, `validateUnit` + `isIndex` to stay <= complexity 5). No contract or `types.ts` change, no new dependency.
