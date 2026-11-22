@@ -202,14 +202,15 @@ class Music21PartWriter:
 
 def _outside(score: m21_stream.Score, info: WrittenInstrumentInfo) -> int:
     """Attacked concert notes of a parsed score outside the instrument range (ties counted once)."""
-    attacked = (
-        p.midi
-        for element in score.recurse().notes
-        if not isinstance(element, m21_harmony.Harmony)
-        and (element.tie is None or element.tie.type == "start")
-        for p in element.pitches
-    )
+    attacked = (p.midi for e in score.recurse().notes if _attacked(e) for p in e.pitches)
     return pitches_out_of_range(attacked, info)
+
+
+def _attacked(element: Any) -> bool:
+    """A note or chord that starts here (no chord symbol, no tied continuation)."""
+    if isinstance(element, m21_harmony.Harmony):
+        return False
+    return element.tie is None or element.tie.type == "start"
 
 
 def _concert_key(score: m21_stream.Score) -> KeyInfo:

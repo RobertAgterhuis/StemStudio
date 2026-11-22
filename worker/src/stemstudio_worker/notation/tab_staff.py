@@ -78,7 +78,7 @@ def _loudness(note: ET.Element) -> float:
 
 
 def _events(part: ET.Element) -> list[list[ET.Element]]:
-    """Attacked notes grouped into chords in document order, each chord loudest first."""
+    """Attacked notes grouped into chords, in document order."""
     events: list[list[ET.Element]] = []
     for note in _pitched(part):
         if _is_tie_stop(note):
@@ -87,7 +87,11 @@ def _events(part: ET.Element) -> list[list[ET.Element]]:
             events[-1].append(note)
         else:
             events.append([note])
-    return [sorted(event, key=lambda n: -_loudness(n)) for event in events]
+    return events
+
+
+def _loudest_first(event: list[ET.Element]) -> list[ET.Element]:
+    return sorted(event, key=lambda n: -_loudness(n))
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,7 +107,7 @@ def _positions(
     part: ET.Element, tuning: Tuning, settings: TablatureSettings, fingerer: TabFingerer
 ) -> _Fingering:
     """Finger the attacked notes; positions map to each event's notes in order (loudest first)."""
-    events = _events(part)
+    events = list(map(_loudest_first, _events(part)))
     offset = _sounding_offset(part)
     sounding = [[_midi(n) + offset for n in e] for e in events]
     assignment = fingerer.assign(sounding, tuning, settings.capo)
@@ -157,15 +161,22 @@ def _chords(measure: ET.Element) -> list[list[ET.Element]]:
 
 def _drop_from(measure: ET.Element, chord: list[ET.Element], unfretted: set[int]) -> None:
     """Remove the unfretted notes; the first kept note starts the chord, none kept -> a rest."""
-    kept = [n for n in chord if id(n) not in unfretted]
-    if not kept:
-        _to_rest(chord[0])
-        kept = chord[:1]
+    kept = [n for n in chord if id(n) not in unfretted] or _rested(chord[0])
+    _remove_others(measure, chord, kept)
+    _remove_all(kept[0], ("chord",))
+
+
+def _rested(note: ET.Element) -> list[ET.Element]:
+    """``note`` turned into a rest, as the one note kept of its chord."""
+    _to_rest(note)
+    return [note]
+
+
+def _remove_others(measure: ET.Element, chord: list[ET.Element], kept: list[ET.Element]) -> None:
     keep = {id(n) for n in kept}
     for note in chord:
         if id(note) not in keep:
             measure.remove(note)
-    _remove_all(kept[0], ("chord",))
 
 
 def _remove_all(element: ET.Element, tags: tuple[str, ...]) -> None:

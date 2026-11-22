@@ -109,12 +109,18 @@ def _yin(audio: npt.NDArray[np.float32]) -> Voicing:
         hop_length=HOP,
         trough_threshold=YIN_THRESHOLD,
     )
+    voiced = _yin_voiced(audio)
+    count = min(len(f0), len(voiced))
+    return _median(np.asarray(f0[:count], dtype=np.float64)), voiced[:count]
+
+
+def _yin_voiced(audio: npt.NDArray[np.float32]) -> npt.NDArray[np.bool_]:
+    """The R-05 voicing rule per frame: RMS >= -45 dBFS and minimum difference <= 0.25."""
     rms = librosa.feature.rms(y=audio, frame_length=FRAME_LENGTH, hop_length=HOP)[0]
     difference = _min_difference(audio)
-    count = min(len(f0), len(rms), len(difference))
+    count = min(len(rms), len(difference))
     loud = librosa.amplitude_to_db(rms[:count], ref=1.0, amin=1e-10) >= YIN_MIN_DB
-    voiced = loud & (difference[:count] <= YIN_MAX_DIFFERENCE)
-    return _median(np.asarray(f0[:count], dtype=np.float64)), np.asarray(voiced, dtype=np.bool_)
+    return np.asarray(loud & (difference[:count] <= YIN_MAX_DIFFERENCE), dtype=np.bool_)
 
 
 def _min_difference(audio: npt.NDArray[np.float32]) -> Floats:
