@@ -84,4 +84,14 @@ public sealed class ScorePartTests
         Should.Throw<ScoreUnprocessableException>(() => ScoreRecipeRules.Resolve(
             Part("piano", ScoreProfile.Keys, new PartSettings(WrittenInstrument.Concert, ClefChoice.Alto)) with { Tablature = new TablatureSettings(TuningId.GuitarStandard, 0, TabLayout.NotationAndTab) }, Cpu))
             .Code.ShouldBe(ScoreUnprocessable.TablatureNotAllowed);
+
+    [Fact]
+    public void ValuesOutsideTheCatalogue_AreFieldErrors_BeforeAnyRuleReadsThem()
+    {
+        var request = Part("guitar", ScoreProfile.Guitar, new PartSettings((WrittenInstrument)99, (ClefChoice)42)) with { Tablature = new TablatureSettings((TuningId)99, 0, (TabLayout)7) };
+
+        var invalid = Should.Throw<DomainValidationException>(() => ScoreRecipeRules.Resolve(request, Cpu));
+
+        invalid.Errors.Select(error => error.Field).ShouldBe(["tablature.tuning", "tablature.layout", "part.instrument", "part.clef"]);
+    }
 }

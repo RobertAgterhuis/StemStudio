@@ -27,10 +27,21 @@ public sealed class TablatureScoreTests : ApiTestBase
 
     public static TheoryData<string, ScoreProfileDto, (bool Available, TuningIdDto? DefaultTuning, bool Capo, int Tunings)> OptionCases => new()
     {
-        { "guitar", ScoreProfileDto.Guitar, (true, TuningIdDto.GuitarStandard, true, 7) },
-        { "bass", ScoreProfileDto.Bass, (true, TuningIdDto.Bass4Standard, false, 5) },
-        { "vocals", ScoreProfileDto.Vocals, (false, null, false, 0) },
-        { "piano", ScoreProfileDto.Piano, (false, null, false, 0) },
+        { "guitar", ScoreProfileDto.Guitar, (true, TuningIdDto.GuitarStandard, true, 12) },
+        { "bass", ScoreProfileDto.Bass, (true, TuningIdDto.Bass4Standard, false, 12) },
+        { "vocals", ScoreProfileDto.Vocals, (false, null, false, 12) },
+        { "piano", ScoreProfileDto.Piano, (false, null, false, 12) },
+        { "drums", ScoreProfileDto.Drums, (false, null, false, 0) },
+    };
+
+    /// <summary>Security review S-M1: enum values outside the catalogue (integers or numeric strings) are field errors, never a 500.</summary>
+    public static TheoryData<string, string, string, string> UndefinedEnumCases => new()
+    {
+        { "tablature", "tuning", "99", "tablature.tuning" },
+        { "tablature", "tuning", "-1", "tablature.tuning" },
+        { "tablature", "layout", "99", "tablature.layout" },
+        { "part", "instrument", "99", "part.instrument" },
+        { "part", "clef", "\"42\"", "part.clef" },
     };
 
     private static ScoreTablatureDto Settings(TuningIdDto tuning, int capo = 0) => new() { Tuning = tuning, Capo = capo };
@@ -94,7 +105,7 @@ public sealed class TablatureScoreTests : ApiTestBase
 
     [Theory]
     [MemberData(nameof(OptionCases))]
-    public async Task Options_OfferTablatureOnlyForTheSuggestedGuitarOrBass(string channel, ScoreProfileDto suggested, (bool Available, TuningIdDto? DefaultTuning, bool Capo, int Tunings) expected)
+    public async Task Options_OfferTheTuningsOfEveryAllowedGuitarOrBassProfile_SuggestedFirst(string channel, ScoreProfileDto suggested, (bool Available, TuningIdDto? DefaultTuning, bool Capo, int Tunings) expected)
     {
         var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
 
@@ -105,6 +116,31 @@ public sealed class TablatureScoreTests : ApiTestBase
         options.SuggestedProfile.ShouldBe(suggested);
         var tablature = options.Tablature!;
         (tablature.Available, tablature.DefaultTuning, tablature.CapoAllowed, tablature.Tunings.Count).ShouldBe(expected);
+        if (expected.DefaultTuning is { } first)
+        {
+            tablature.Tunings[0].ShouldBe(first, "the suggested instrument's tunings come first");
+        }
+
+        tablature.Tunings.ShouldBeUnique();
+    }
+
+    [Theory]
+    [MemberData(nameof(UndefinedEnumCases))]
+    public async Task UndefinedCatalogueValues_AreFieldErrors_AndNothingIsSent(string group, string property, string value, string field)
+    {
+        var track = await Factory.SeedAsync(AssetTestData.NamedTrack());
+        var body = System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(Request(track.Id, "guitar"), ApiFactory.Json))!.AsObject();
+        body[group] = group == "tablature"
+            ? new System.Text.Json.Nodes.JsonObject { ["tuning"] = "guitar-standard", ["capo"] = 0, ["layout"] = "notation-and-tab" }
+            : new System.Text.Json.Nodes.JsonObject { ["instrument"] = "concert", ["clef"] = "auto" };
+        body[group]![property] = System.Text.Json.Nodes.JsonNode.Parse(value);
+
+        using var response = await Client.PostAsync(
+            new Uri(ApiRoutes.Scores, UriKind.Relative), new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.JsonAsync()).GetProperty("errors").TryGetProperty(field, out _).ShouldBeTrue();
+        Worker.TranscriptionCreates.ShouldBeEmpty();
     }
 
     [Fact]

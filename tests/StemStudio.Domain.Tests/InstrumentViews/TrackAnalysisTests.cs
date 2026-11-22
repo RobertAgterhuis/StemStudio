@@ -138,6 +138,23 @@ public sealed class TrackAnalysisTests
     }
 
     [Fact]
+    public void StaleWithAReason_OnlyFromReady_ABlankReasonFallsBackAndALongOneIsCut()
+    {
+        var analysis = Ready();
+
+        analysis.MarkStale("The stems are gone.", T0.AddMinutes(1)).ShouldBeTrue();
+        analysis.MarkStale("again", T0.AddMinutes(2)).ShouldBeFalse();
+        (analysis.Status, analysis.Reason, analysis.UpdatedAt).ShouldBe((AnalysisStatus.Stale, "The stems are gone.", T0.AddMinutes(1)));
+
+        var blank = Ready();
+        blank.MarkStale("  ", T0).ShouldBeTrue();
+        blank.Reason.ShouldBe(TrackAnalysis.StaleReason);
+        var longer = Ready();
+        longer.MarkStale(new string('x', 2000), T0).ShouldBeTrue();
+        longer.Reason!.Length.ShouldBe(TrackAnalysis.MaxReasonLength);
+    }
+
+    [Fact]
     public void ClearAndReset_GoBackToNone()
     {
         var analysis = Ready();

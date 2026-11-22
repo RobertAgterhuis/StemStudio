@@ -18,12 +18,12 @@ internal static class AnalysisTestData
     public static readonly DateTime T0 = SyncTestData.T0;
 
     /// <summary>A completed four-stem track (vocals, drums, bass, other) with an unreliable grid.</summary>
-    public static Track FourStem()
+    public static Track FourStem(double durationSeconds = 180)
     {
         var track = SyncTestData.UrlTrack();
         track.Complete(
             new TrackCompletion(
-                180,
+                durationSeconds,
                 "htdemucs",
                 StemCatalog.FourStem.Select(name => new Stem(name, 10)).ToList(),
                 new BeatGrid { Bpm = 100, Beats = [0.5, 1.1], Downbeats = [0.5], Confidence = 0.2, Reliable = false }),
@@ -91,10 +91,17 @@ internal static class AnalysisTestData
 
     /// <summary>Stores a queued analysis with the given worker job.</summary>
     public static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, Guid trackId, AnalysisKind kind, string jobId) =>
+        factory.SeedQueuedAsync((trackId, kind, jobId, T0));
+
+    /// <summary>Stores a queued chords analysis updated at the given time (the sync pass reads the oldest first).</summary>
+    public static Task<TrackAnalysis> SeedQueuedAtAsync(this ApiFactory factory, Guid trackId, string jobId, DateTime at) =>
+        factory.SeedQueuedAsync((trackId, AnalysisKind.Chords, jobId, at));
+
+    private static Task<TrackAnalysis> SeedQueuedAsync(this ApiFactory factory, (Guid TrackId, AnalysisKind Kind, string JobId, DateTime At) seed) =>
         factory.WithScopeAsync(async sp =>
         {
-            var analysis = TrackAnalysis.Create(trackId, kind, T0);
-            analysis.Queue(new AnalysisRun(jobId, TrackAnalysisService.DefaultOptions(kind), new string('0', 64), 10), T0);
+            var analysis = TrackAnalysis.Create(seed.TrackId, seed.Kind, seed.At);
+            analysis.Queue(new AnalysisRun(seed.JobId, TrackAnalysisService.DefaultOptions(seed.Kind), new string('0', 64), 10), seed.At);
             await sp.GetRequiredService<ITrackAnalysisRepository>().AddAsync(analysis, CancellationToken.None);
             return analysis;
         });

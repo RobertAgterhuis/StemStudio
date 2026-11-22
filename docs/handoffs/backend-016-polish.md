@@ -61,3 +61,41 @@ There is no free-text path into SQL, a file path or a header.
 ## Dependencies
 
 None added in the whole lane.
+
+## Review fixes (independent code review + security review, after `ad78d827`)
+
+Commits: `e25d34c0` (red tests, compile seams `IStemFingerprinter` and `WorkerClient.MaxAnalysisResponseBytes` only), `90d27fa4` (fixes), `a2f3bbb7` (test helpers within SIG limits). No EF model change, no migration, no new dependency.
+
+| Finding | Fix | Tests |
+|---|---|---|
+| M3 estimate of a never-run analysis | `TrackAnalysisService.GetAsync` adds the estimate a run would get (`AnalysisRunFactory.EstimateAsync`) for status `none` and for `unavailable` when the inputs exist; `EstimateSeconds` on the wire is nullable and unrestricted in 1.15.0, so no contract change | `AnalysisReviewFixTests.M3_*` (900 s melody: none + 37 s; unsplit drums: null; stored unavailable after the split returned: 10 s) |
+| M4 a refused job read starves the sync pass | a `WorkerRequestException` on the job read counts as a job the worker no longer serves -> `failed` with `JobLost` (data-model 7.2); the delete after the finish is best-effort (logged), like `CancelQuietlyAsync` | `M4_ARefusedJobRead_*`, `M4_ARefusedDeleteAfterTheFinish_*` |
+| L1 tunings for the suggested profile only | `tablature.tunings` lists the tunings of every allowed guitar/bass profile, the suggested instrument's first; `available`, `defaultTuning` and `capoAllowed` stay per suggested profile (their contract descriptions say so) | `TablatureScoreTests.Options_OfferTheTuningsOfEveryAllowedGuitarOrBassProfile_SuggestedFirst` (12 for guitar/bass/vocals/piano, 0 for drums) |
+| L3 drum hits stay ready when their inputs vanish | yes, it can happen: cleanup/backup scrub removes the detail files (`RemoveDetailFiles`), a redone split may keep no drum stems (`NotReliable`). `RefreshStalenessLockedAsync` now marks a ready analysis without a plan stale with "The stems this analysis was made from are gone. Split the drums first." (`TrackAnalysis.MarkStale`); with `AutoDrumHits` on, the auto rule then stores `unavailable` (data-model 7.2 "prerequisite missing") | `L3_*`, Domain `StaleWithAReason_*` |
+| L4 process-wide analysis lock | `AnalysisGate` locks per `(track, kind)` (one semaphore per key, kept for the process lifetime); check + insert + submit stay under one lock per analysis | `L4_AChordEditOnTrackB_IsNotBlockedByASlowStartOnTrackA` (slow fingerprinter fake), `L4_TwoStartsOfOneTrackAndKind_StillQueueOneJob` |
+| S-M1 integer enum values | `ScoreRecipeRules` checks tuning, layout, instrument and clef with `Enum.IsDefined` first (422 field errors `tablature.tuning`, `tablature.layout`, `part.instrument`, `part.clef`); `ScoreNotationWire.FromWire` accepts only the exact wire name (so `instrument=0/99/-1` is 422) | `TablatureScoreTests.UndefinedCatalogueValues_*`, `KeyEndpointsTests.OutOfRangeQueries_Are422`, Domain `ValuesOutsideTheCatalogue_*` |
+| S-L2 `Math.Abs(int.MinValue)` | range pattern | `transpose=-2147483648` -> 422 |
+| S-L3 results outside worker 1.9.0 | key regions `startMs >= 0`, `endMs > startMs`; range `1..12700` and `low <= high`; `hopMs` must be 10 and `voicedRatio` present | `AnalysisResultMapperHostileTests` (9 new cases) |
+| S-L4 2 GB response buffer | the `IWorkerAnalysisClient` HttpClient sets `MaxResponseContentBufferSize = 8 MiB`; the largest contract result (40,000 drum hits) is about 3 MB | `WorkerAnalysisClientSizeTests` (max result passes, 50 MB valid JSON -> `WorkerUnavailableException`) |
+
+Decisions and notes:
+- S-M1: `allowIntegerValues: false` is **not** applied. The converters are `[JsonConverter(typeof(JsonStringEnumConverter<T>))]` attributes in `StemStudio.Contracts` (frozen), and an options-level override would answer integers with 400 instead of the requested 422 field errors. `Enum.IsDefined` covers every path that reaches a catalogue lookup.
+- S-L4 residual: an oversized body is a `WorkerUnavailableException`, so the sync pass stops for that tick and retries the same job next tick (as for an unreachable worker). Only a worker that breaks its contract can cause this.
+- L3: the cleanup/backup scrub itself calls no completion hook, so a ready drum chart stays `ready` while its files are removed. It becomes stale at the next detail completion (above). Its stored document still renders.
+
+Contract questions for the orchestrator:
+1. data-model 7.1 says `EstimateSeconds` is "shown while queued/running"; with M3 the wire also carries it for `none`/`unavailable` (the stored column is unchanged). Please align the data-model text.
+2. `ScoreOptions.tablature` cannot express per-profile `available`/`capoAllowed`; the UI must derive the instrument from the tuning id prefix (`guitar-`/`bass-`) after a profile switch. A per-profile shape would need a contract revision.
+
+Tests and coverage (coverlet gate, Release, at `90d27fa4`; `a2f3bbb7` only reshapes test helpers, the InstrumentViews namespace re-run green):
+
+| Component | Tests | Line | Branch |
+|---|---|---|---|
+| StemStudio.Domain | 4221 passed | 99.16 % | 94.18 % |
+| StemStudio.Persistence | 179 passed | 99.48 % | 95.23 % |
+| StemStudio.Api | 3449 passed, 4 skipped (existing platform skips) | 98.55 % | 91.00 % |
+| StemStudio.Contracts | (via Api tests) | 100 % | 100 % |
+
+Quality: `dotnet build StemStudio.slnx -c Release` 0 warnings, 0 errors; `dotnet format StemStudio.slnx --verify-no-changes` clean; `run_all.py` PASS (0 errors, 469 clones, so jscpd ran), with no new warning in a changed unit.
+
+Security self-review: the diff touches worker data (result bounds, body size), request enums and query values. Each has hostile tests above. No new path from a request into SQL, a file path or a header.

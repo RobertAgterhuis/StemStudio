@@ -184,12 +184,21 @@ public sealed class TrackAnalysis
     /// <returns>True when the status became stale.</returns>
     public bool MarkStaleIfChanged(string fingerprint, DateTime nowUtc)
     {
-        if (Status != AnalysisStatus.Ready || string.Equals(fingerprint, SourceFingerprint, StringComparison.Ordinal))
+        return !string.Equals(fingerprint, SourceFingerprint, StringComparison.Ordinal) && MarkStale(StaleReason, nowUtc);
+    }
+
+    /// <summary>Marks a ready analysis stale with a reason (e.g. its input stems are gone); the document stays.</summary>
+    /// <param name="reason">Readable reason.</param>
+    /// <param name="nowUtc">Now.</param>
+    /// <returns>True when the status became stale.</returns>
+    public bool MarkStale(string reason, DateTime nowUtc)
+    {
+        if (Status != AnalysisStatus.Ready)
         {
             return false;
         }
 
-        Set(AnalysisStatus.Stale, StaleReason, Progress, nowUtc);
+        Set(AnalysisStatus.Stale, Text.TrimToLength(reason, MaxReasonLength) ?? StaleReason, Progress, nowUtc);
         return true;
     }
 

@@ -132,6 +132,10 @@ public sealed class KeyEndpointsTests : ApiTestBase
     [InlineData("transpose=-13", "transpose")]
     [InlineData("instrument=kazoo", "instrument")]
     [InlineData("instrument=HORN-F", "instrument")]
+    [InlineData("instrument=99", "instrument")]
+    [InlineData("instrument=-1", "instrument")]
+    [InlineData("instrument=0", "instrument")]
+    [InlineData("transpose=-2147483648", "transpose")]
     public async Task OutOfRangeQueries_Are422(string query, string field)
     {
         var track = await Factory.SeedAsync(GridTrack(reliable: true));

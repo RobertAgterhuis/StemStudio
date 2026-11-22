@@ -8,8 +8,9 @@ namespace StemStudio.Api.InstrumentViews;
 /// <summary>
 /// Polls the worker for queued and running analyses (data-model 7.2): progress and device, the completed document (checked
 /// against the contract limits), the worker's failure text, or "interrupted" when the worker no longer knows the job
-/// (restart). The worker is polled outside the lock; the state is applied under <see cref="AnalysisGate"/> only when the
-/// analysis still runs the same job (a delete or re-run in between wins). Finished worker jobs are deleted.
+/// (restart) or refuses the read (4xx). The worker is polled outside the lock; the state is applied under
+/// <see cref="AnalysisGate"/> only when the analysis still runs the same job (a delete or re-run in between wins). Finished
+/// worker jobs are deleted on a best-effort basis, so one broken job never stops the pass for the others (review M4).
 /// </summary>
 /// <param name="analyses">Analyses.</param>
 /// <param name="worker">The worker analysis lane.</param>
@@ -50,11 +51,38 @@ public sealed partial class AnalysisJobApplier(
     private async Task SyncAsync(TrackAnalysis analysis, CancellationToken cancellationToken)
     {
         var jobId = analysis.JobId!;
-        var job = await worker.GetAnalysisJobAsync(jobId, cancellationToken);
-        var finished = await gate.RunAsync(() => ApplyCurrentAsync(analysis, jobId, job, cancellationToken), cancellationToken);
+        var job = await ReadJobAsync(analysis, jobId, cancellationToken);
+        var finished = await gate.RunAsync(analysis.TrackId, analysis.Kind, () => ApplyCurrentAsync(analysis, jobId, job, cancellationToken), cancellationToken);
         if (finished && job is not null)
         {
+            await DeleteQuietlyAsync(analysis, jobId, cancellationToken);
+        }
+    }
+
+    /// <summary>The worker's job; a refused read (4xx) counts as a job the worker no longer serves (data-model 7.2: failed).</summary>
+    private async Task<WorkerAnalysisJob?> ReadJobAsync(TrackAnalysis analysis, string jobId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await worker.GetAnalysisJobAsync(jobId, cancellationToken);
+        }
+        catch (WorkerRequestException refused)
+        {
+            LogJobRefused(logger, analysis.TrackId, analysis.Kind, (int)refused.StatusCode);
+            return null;
+        }
+    }
+
+    /// <summary>Deletes a finished worker job; the worker forgets jobs after a restart, so any failure is only logged.</summary>
+    private async Task DeleteQuietlyAsync(TrackAnalysis analysis, string jobId, CancellationToken cancellationToken)
+    {
+        try
+        {
             await worker.DeleteAnalysisJobAsync(jobId, cancellationToken);
+        }
+        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        {
+            LogDeleteFailed(logger, analysis.TrackId, analysis.Kind, exception.Message);
         }
     }
 
@@ -109,6 +137,12 @@ public sealed partial class AnalysisJobApplier(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Analysis {Kind} of track {TrackId}: processing service unreachable, retrying on the next tick")]
     private static partial void LogWorkerUnavailable(ILogger logger, Guid trackId, AnalysisKind kind);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Analysis {Kind} of track {TrackId}: the processing service refused the job read ({Status}); the run is marked failed")]
+    private static partial void LogJobRefused(ILogger logger, Guid trackId, AnalysisKind kind, int status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Analysis {Kind} of track {TrackId}: the finished worker job could not be deleted ({Reason})")]
+    private static partial void LogDeleteFailed(ILogger logger, Guid trackId, AnalysisKind kind, string reason);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Analysis {Kind} of track {TrackId}: the result breaks the contract and was refused")]
     private static partial void LogInvalidResult(ILogger logger, Guid trackId, AnalysisKind kind);

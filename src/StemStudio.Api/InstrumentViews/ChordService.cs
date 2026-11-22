@@ -56,6 +56,8 @@ public sealed class ChordService(ITrackRepository tracks, ITrackAnalysisReposito
     {
         ArgumentNullException.ThrowIfNull(request);
         return gate.RunAsync(
+            trackId,
+            AnalysisKind.Chords,
             async () =>
             {
                 var (ready, problem) = await FindReadyAsync(trackId, cancellationToken);

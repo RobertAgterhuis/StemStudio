@@ -82,7 +82,13 @@ public static class AnalysisResultMapper
     }
 
     private static List<KeyRegion> Regions(IReadOnlyList<WorkerKeyRegion>? regions) => Bounded(regions ?? [], ContractLimits.MaxKeyRegions)
-        .Select(region => new KeyRegion(region.StartMs, region.EndMs, Pc(region.Tonic), Mode(region.Mode), Unit(region.Confidence))).ToList();
+        .Select(region => new KeyRegion(NonNegative(region.StartMs), After(region.StartMs, region.EndMs), Pc(region.Tonic), Mode(region.Mode), Unit(region.Confidence))).ToList();
+
+    private static int After(int start, int end)
+    {
+        Require(end > start);
+        return end;
+    }
 
     private static ChordSegment Segment(WorkerChordSegment segment)
     {
@@ -116,16 +122,22 @@ public static class AnalysisResultMapper
 
     private static VocalPitchDocument VocalPitch(WorkerAnalysisResult result)
     {
-        Require(PitchEngines.Contains(result.Engine) && result.HopMs is null or 10);
+        Require(PitchEngines.Contains(result.Engine) && result.HopMs == 10 && result.VoicedRatio is not null);
         return new VocalPitchDocument
         {
             Engine = result.Engine,
             Frames = Frames(result.Frames),
             Source = Source(result.Source),
-            VoicedRatio = Unit(result.VoicedRatio ?? 0),
-            Range = result.Range is { } range ? new PitchRange(range.LowCents, range.HighCents) : null,
+            VoicedRatio = Unit(result.VoicedRatio!.Value),
+            Range = result.Range is { } range ? Range(range) : null,
             Warnings = Warnings(result.Warnings),
         };
+    }
+
+    private static PitchRange Range(WorkerPitchRange range)
+    {
+        Require(range.LowCents is >= 1 and <= ContractLimits.MaxPitchCents && range.HighCents is >= 1 and <= ContractLimits.MaxPitchCents && range.LowCents <= range.HighCents);
+        return new PitchRange(range.LowCents, range.HighCents);
     }
 
     private static int[] Frames(IReadOnlyList<int>? frames)

@@ -101,6 +101,8 @@ public static class ScoreRecipeRules
     private static ScoreProfile Validate(ScoreRequest request, ScoreContext context)
     {
         var errors = new ValidationErrors();
+        CheckCatalogueValues(errors, request);
+        errors.ThrowIfAny();
         var profile = Allowed(errors, request, context);
         errors.Check(ScoreTablatureRules.CapoInRange(request.Tablature), "tablature.capo", ScoreTablatureRules.CapoRangeText);
         errors.Check(request.KeyOverride is null || KeyNames.IsKnown(request.KeyOverride), "keyOverride", "Must be one of the 30 key names, e.g. \"E minor\" or \"B- major\".");
@@ -109,6 +111,22 @@ public static class ScoreRecipeRules
         CheckRange(errors, request.Range, context.DurationSeconds);
         errors.ThrowIfAny();
         return profile!.Value;
+    }
+
+    /// <summary>Tablature and part values outside the catalogue (an integer on the wire, security review S-M1) are field errors.</summary>
+    private static void CheckCatalogueValues(ValidationErrors errors, ScoreRequest request)
+    {
+        if (request.Tablature is { } tablature)
+        {
+            errors.Check(Enum.IsDefined(tablature.Tuning), "tablature.tuning", "Must be a tuning of the catalogue, e.g. guitar-standard.");
+            errors.Check(Enum.IsDefined(tablature.Layout), "tablature.layout", "Must be notation-and-tab or tab-only.");
+        }
+
+        if (request.Part is { } part)
+        {
+            errors.Check(Enum.IsDefined(part.Instrument), "part.instrument", "Must be a written instrument of the catalogue, e.g. concert or alto-sax-eb.");
+            errors.Check(Enum.IsDefined(part.Clef), "part.clef", "Must be a clef of the catalogue, e.g. auto or treble.");
+        }
     }
 
     /// <summary>The chosen or suggested profile; an allowed one gets the typed instrument checks, any other a field error.</summary>

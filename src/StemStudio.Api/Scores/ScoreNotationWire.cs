@@ -24,13 +24,16 @@ public static class ScoreNotationWire
     /// <summary>Reads a wire name.</summary>
     /// <typeparam name="TDto">A contract enum with string names.</typeparam>
     /// <param name="text">The name.</param>
-    /// <returns>The value, or null for an unknown name.</returns>
+    /// <returns>The value, or null for an unknown name, a number ("0", "99") or a value outside the enum (security review S-M1).</returns>
     public static TDto? FromWire<TDto>(string? text)
         where TDto : struct, Enum
     {
         try
         {
-            return text is null ? null : JsonSerializer.Deserialize<TDto>(JsonSerializer.Serialize(text));
+            return text is not null && JsonSerializer.Deserialize<TDto>(JsonSerializer.Serialize(text)) is var value
+                && Enum.IsDefined(value) && string.Equals(Wire(value), text, StringComparison.Ordinal)
+                ? value
+                : null;
         }
         catch (JsonException)
         {

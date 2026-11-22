@@ -6,33 +6,43 @@ using StemStudio.Persistence.Repositories;
 namespace StemStudio.Api.InstrumentViews;
 
 /// <summary>
-/// One analysis start, delete or job application at a time: the check, the submission and the save run under this lock, so
-/// two requests never start two runs of one kind and track (LESSONS backend 023).
+/// One analysis start, delete or job application at a time per track and kind: the check, the submission and the save run
+/// under the lock of their <c>(track, kind)</c>, so two requests never start two runs of one kind and track (LESSONS backend
+/// 023), while a slow fingerprint or worker call on one track never blocks another track or kind (review L4). The locks are
+/// kept for the process lifetime: three small semaphores per track.
 /// </summary>
 public sealed class AnalysisGate : IDisposable
 {
-    /// <summary>The lock.</summary>
-    public SemaphoreSlim Lock { get; } = new(1, 1);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid TrackId, AnalysisKind Kind), SemaphoreSlim> _locks = new();
 
     /// <inheritdoc />
-    public void Dispose() => Lock.Dispose();
+    public void Dispose()
+    {
+        foreach (var gate in _locks.Values)
+        {
+            gate.Dispose();
+        }
+    }
 
-    /// <summary>Runs an action under the lock.</summary>
+    /// <summary>Runs an action under the lock of one track and kind.</summary>
     /// <typeparam name="T">Result type.</typeparam>
+    /// <param name="trackId">The track.</param>
+    /// <param name="kind">The kind.</param>
     /// <param name="action">The action.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The action's result.</returns>
-    public async Task<T> RunAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
+    public async Task<T> RunAsync<T>(Guid trackId, AnalysisKind kind, Func<Task<T>> action, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(action);
-        await Lock.WaitAsync(cancellationToken);
+        var gate = _locks.GetOrAdd((trackId, kind), static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
         try
         {
             return await action();
         }
         finally
         {
-            Lock.Release();
+            gate.Release();
         }
     }
 }
@@ -73,6 +83,9 @@ public enum StartOutcome
 /// <param name="Reason">The effective reason.</param>
 public sealed record AnalysisView(Track Track, AnalysisKind Kind, TrackAnalysis? Stored, AnalysisStatus Status, string? Reason)
 {
+    /// <summary>The estimate of a run not started yet (status none or unavailable with its inputs present), else null.</summary>
+    public int? ProposedEstimateSeconds { get; init; }
+
     /// <summary>The view of a stored analysis (or of none).</summary>
     /// <param name="track">The track.</param>
     /// <param name="kind">The kind.</param>
@@ -117,6 +130,9 @@ public sealed record StartResult(StartOutcome Outcome, AnalysisView? View);
 public sealed class TrackAnalysisService(
     ITrackRepository tracks, ITrackAnalysisRepository analyses, IWorkerAnalysisClient worker, AnalysisGate gate, AnalysisRunFactory runs, TimeProvider clock)
 {
+    /// <summary>Start of the stale reason when the inputs of a ready analysis are gone; the unavailable reason follows.</summary>
+    public const string InputsGone = "The stems this analysis was made from are gone.";
+
     /// <summary>Start of the failure text when the worker refuses the job (4xx); the worker's detail follows.</summary>
     public const string SubmitRejected = "The processing service could not start the analysis:";
 
@@ -127,8 +143,19 @@ public sealed class TrackAnalysisService(
     /// <param name="kind">Kind.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The view, or null when the track does not exist.</returns>
-    public async Task<AnalysisView?> GetAsync(Guid trackId, AnalysisKind kind, CancellationToken cancellationToken) =>
-        await tracks.FindAsync(trackId, cancellationToken) is { } track ? AnalysisView.Of(track, kind, await analyses.FindAsync(trackId, kind, cancellationToken)) : null;
+    public async Task<AnalysisView?> GetAsync(Guid trackId, AnalysisKind kind, CancellationToken cancellationToken)
+    {
+        if (await tracks.FindAsync(trackId, cancellationToken) is not { } track)
+        {
+            return null;
+        }
+
+        var stored = await analyses.FindAsync(trackId, kind, cancellationToken);
+        var view = AnalysisView.Of(track, kind, stored);
+        return view.Status is AnalysisStatus.None or AnalysisStatus.Unavailable
+            ? view with { ProposedEstimateSeconds = await runs.EstimateAsync(track, kind, stored?.Options ?? DefaultOptions(kind), cancellationToken) }
+            : view;
+    }
 
     /// <summary>Starts (or re-runs) an analysis on request.</summary>
     /// <param name="request">Track, kind, options and the overwrite confirmation.</param>
@@ -138,6 +165,8 @@ public sealed class TrackAnalysisService(
     {
         ArgumentNullException.ThrowIfNull(request);
         return gate.RunAsync(
+            request.TrackId,
+            request.Kind,
             async () => await tracks.FindAsync(request.TrackId, cancellationToken) is { } track
                 ? await StartLockedAsync(new StartRequest(track, request.Kind, request.Options, request.OverwriteEdits), cancellationToken)
                 : new StartResult(StartOutcome.TrackNotFound, null),
@@ -155,7 +184,7 @@ public sealed class TrackAnalysisService(
     public Task<bool> StartAutomaticallyAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return gate.RunAsync(() => StartAutomaticallyLockedAsync(track, kind, cancellationToken), cancellationToken);
+        return gate.RunAsync(track.Id, kind, () => StartAutomaticallyLockedAsync(track, kind, cancellationToken), cancellationToken);
     }
 
     private async Task<bool> StartAutomaticallyLockedAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
@@ -178,21 +207,27 @@ public sealed class TrackAnalysisService(
     public Task<bool> RefreshStalenessAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return gate.RunAsync(() => RefreshStalenessLockedAsync(track, kind, cancellationToken), cancellationToken);
+        return gate.RunAsync(track.Id, kind, () => RefreshStalenessLockedAsync(track, kind, cancellationToken), cancellationToken);
     }
 
     private async Task<bool> RefreshStalenessLockedAsync(Track track, AnalysisKind kind, CancellationToken cancellationToken)
     {
-        if (await analyses.FindAsync(track.Id, kind, cancellationToken) is not { Status: AnalysisStatus.Ready } stored
-            || AnalysisKindStrategies.Plan(kind, track, stored.Options, WorkerEngines.Defaults).Plan is not { } plan)
+        if (await analyses.FindAsync(track.Id, kind, cancellationToken) is not { Status: AnalysisStatus.Ready } stored)
         {
             return false;
         }
 
-        var stale = stored.MarkStaleIfChanged(await runs.FingerprintAsync(track.Id, plan, cancellationToken), Now);
+        var planned = AnalysisKindStrategies.Plan(kind, track, stored.Options, WorkerEngines.Defaults);
+        var stale = planned.Plan is { } plan
+            ? stored.MarkStaleIfChanged(await runs.FingerprintAsync(track.Id, plan, cancellationToken), Now)
+            : stored.MarkStale(InputsGoneReason(planned.Missing), Now);
         await analyses.SaveAsync(cancellationToken);
         return stale;
     }
+
+    /// <summary>The stale reason when the inputs disappeared (review L3: a redone detail split kept no drum stems).</summary>
+    private static string InputsGoneReason(MissingPrerequisite missing) =>
+        $"{InputsGone} {AnalysisKindStrategies.UnavailableReason(missing) ?? string.Empty}".TrimEnd();
 
     /// <summary>Deletes an analysis (cancels a running worker job); status becomes none.</summary>
     /// <param name="trackId">Track id.</param>
@@ -201,6 +236,8 @@ public sealed class TrackAnalysisService(
     /// <returns>False when the track does not exist.</returns>
     public Task<bool> DeleteAsync(Guid trackId, AnalysisKind kind, CancellationToken cancellationToken) =>
         gate.RunAsync(
+            trackId,
+            kind,
             async () =>
             {
                 if (await tracks.FindAsync(trackId, cancellationToken) is null)
