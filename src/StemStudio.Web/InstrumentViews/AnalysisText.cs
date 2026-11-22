@@ -42,6 +42,14 @@ public static class AnalysisText
     public static bool InProgress<T>(TrackAnalysisDto<T>? analysis)
         where T : class => analysis?.Status is AnalysisStatusDto.Queued or AnalysisStatusDto.Running;
 
+    /// <summary>True while the analysis is in progress and the track still exists (a 404 ends polling, review L5).</summary>
+    /// <typeparam name="T">The document type.</typeparam>
+    /// <param name="analysis">The analysis.</param>
+    /// <param name="gone">True after the backend answered 404 (track deleted).</param>
+    /// <returns>Whether to poll.</returns>
+    public static bool KeepPolling<T>(TrackAnalysisDto<T>? analysis, bool gone)
+        where T : class => !gone && InProgress(analysis);
+
     /// <summary>Progress 0..1 as a whole percentage.</summary>
     /// <param name="progress">The progress.</param>
     /// <returns>0..100.</returns>

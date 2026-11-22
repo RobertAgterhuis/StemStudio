@@ -22,6 +22,7 @@ public sealed partial class ChordPanel : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private PollLoop? _poll;
     private ChordChartData? _attached;
+    private bool _gone;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -106,7 +107,7 @@ public sealed partial class ChordPanel : IAsyncDisposable
     protected override Task OnAfterRenderAsync(bool firstRender) => SyncLaneAsync();
 
     private void StartPolling() =>
-        (_poll ??= new PollLoop(Timer)).Start(() => AnalysisText.InProgress(Analysis), PollAsync, () => Task.CompletedTask, _stop.Token);
+        (_poll ??= new PollLoop(Timer)).Start(() => AnalysisText.KeepPolling(Analysis, _gone), PollAsync, () => Task.CompletedTask, _stop.Token);
 
     private async Task PollAsync(CancellationToken ct)
     {
@@ -124,7 +125,7 @@ public sealed partial class ChordPanel : IAsyncDisposable
         }
         catch (ApiException ex) when (!(rethrowEditsExist && ex.Error.Code == "edits-exist"))
         {
-            Error = ex.Error.UserMessage;
+            (Error, _gone) = (ex.Error.UserMessage, _gone || ex.Error.IsNotFound);
         }
     }
 
