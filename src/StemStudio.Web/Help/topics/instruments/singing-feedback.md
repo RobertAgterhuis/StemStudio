@@ -2,11 +2,11 @@
 id: singing-feedback
 title: "Singing feedback"
 area: instruments
-summary: "Sing along with your microphone: a pitch view shows the melody and your voice, every lyric line gets a score."
+summary: "Use your microphone while the song plays: a pitch view shows the melody and your voice, every lyric line gets a score."
 feature: singing.feedback
 levels: [beginner, advanced, expert]
 anchors: ["singing", "pitch-view"]
-keywords: ["sing", "singing", "pitch", "microphone", "score", "karaoke", "in tune", "melody", "vocals"]
+keywords: ["singing", "pitch", "microphone", "score", "karaoke", "in tune", "melody", "vocals"]
 related: [karaoke, recording]
 reviewed: "016"
 ---

@@ -166,6 +166,7 @@ public sealed partial class HelpCoverageTests : PageTestContext
     [InlineData("karaoke", "karaoke")]
     [InlineData("sing along", "karaoke")]
     [InlineData("whisper", "lyrics-align")]
+    [InlineData("singing feedback", "singing-feedback")]
     [InlineData("lyrics offset", "karaoke-offset")]
     [InlineData("lrclib", "lyrics-sources")]
     [InlineData("align lyrics", "lyrics-align")]
