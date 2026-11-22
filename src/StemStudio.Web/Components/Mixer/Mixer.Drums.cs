@@ -26,7 +26,7 @@ public sealed partial class Mixer
     private IReadOnlyList<DrumPieceDto> DrumGuidePieces => Drumless.GuidePieces(State!);
 
     // One engine score follower: while the trainer is open its drum score takes the place of the mixer's score panel.
-    private bool MixerScoreShown => ShowScore && OpenedView != InstrumentViewDto.DrumTrainer;
+    private bool MixerScoreShown => ShowScore && OpenedView is not (InstrumentViewDto.DrumTrainer or InstrumentViewDto.Tablature or InstrumentViewDto.Part);
 
     private string DrumlessKey => ViewPreferences.DrumlessKey(Id);
 

@@ -60,24 +60,6 @@
     {
         <p class="ss-small ss-muted ss-drum-limits">@limits</p>
     }
-    <section class="ss-drum-score" aria-label="Drum notation" data-testid="drum-score">
-        @if (HasDrumScore)
-        {
-            @ScoreView
-        }
-        else if (Scores is not null)
-        {
-            <p class="ss-small ss-muted">No drum notation for this song yet.</p>
-            <RadzenButton Text="Generate drum notation" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Making"
-                          Click="StartGenerate" data-testid="drum-score-generate" />
-            @if (Making)
-            {
-                <span class="ss-small ss-muted" role="status">Making the drum notation: @MakingProgress %</span>
-            }
-            @if (ScoreError is not null)
-            {
-                <p class="ss-small ss-error" role="alert">@ScoreError</p>
-            }
-        }
-    </section>
+    <ChannelScoreView Track="Track" Channel="@StemStudio.Contracts.StemNames.Drums" Profiles="DrumProfiles" Noun="drum notation"
+                      GenerateText="Generate drum notation" RegionTestId="drum-score" GenerateTestId="drum-score-generate" ScoreView="ScoreView" />
 </div>

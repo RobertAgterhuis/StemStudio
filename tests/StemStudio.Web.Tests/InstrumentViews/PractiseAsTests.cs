@@ -11,7 +11,7 @@ namespace StemStudio.Web.Tests.InstrumentViews;
 /// <summary>"Practise as ..." (T113, FR-060, FR-062, spec US6): one entry point per family, minus-one mix and the family's view.</summary>
 public sealed class PractiseAsTests : MixerTestContext
 {
-    private static readonly string[] Families = ["vocals", "drums", "bass", "guitar", "keys", "orchestral"];
+    private static readonly string[] Families = ["vocals", "guitar", "bass", "keys", "drums", "orchestral"];
 
     public PractiseAsTests()
     {
@@ -49,7 +49,7 @@ public sealed class PractiseAsTests : MixerTestContext
         page.Find("[data-testid=practise-as]").GetAttribute("aria-expanded").ShouldBe("true");
         var items = page.FindAll("[role=menu] [role=menuitemradio]");
         items.Select(i => i.GetAttribute("data-testid")).ShouldBe(Families.Select(f => $"practise-as-{f}"));
-        items.Select(i => i.TextContent.Trim()).ShouldBe(["Vocals", "Drums", "Bass", "Guitar", "Keys", "Strings / brass / woodwinds"]);
+        items.Select(i => i.TextContent.Trim()).ShouldBe(["Vocals", "Guitar", "Bass", "Keys", "Drums", "Strings / brass / woodwinds"]);
         items.ShouldAllBe(i => i.GetAttribute("aria-checked") == "false");
     }
 
@@ -70,7 +70,7 @@ public sealed class PractiseAsTests : MixerTestContext
         page.Find("[data-testid=instrument-view]").GetAttribute("data-view").ShouldBe(view);
         page.Find("[data-testid=practise-as]").GetAttribute("data-family").ShouldBe(family);
         page.FindAll("[role=menu]").ShouldBeEmpty();
-        JSInterop.VerifyInvoke("localStorage.setItem").Arguments.ShouldBe(["stemstudio.views.family", $"\"{family}\""]);
+        JSInterop.Invocations["localStorage.setItem"].ShouldContain(i => i.Arguments.SequenceEqual(new object?[] { "stemstudio.views.family", $"\"{family}\"" }));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class PractiseAsTests : MixerTestContext
         Focused().ShouldBe("practise-as-vocals");
         var menu = page.Find("[role=menu]");
         await menu.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-        Focused().ShouldBe("practise-as-drums");
+        Focused().ShouldBe("practise-as-guitar");
         await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "End" });
         Focused().ShouldBe("practise-as-orchestral");
         await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
@@ -145,7 +145,7 @@ public sealed class PractiseAsTests : MixerTestContext
         var select = page.Find("[data-testid=instrument-view] [data-testid=score-part-instrument]");
         page.WaitForAssertion(() => page.FindAll("[data-testid=instrument-view] [data-testid=score-part-instrument] option").Count.ShouldBe(3));
         await select.ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "alto-sax-eb" });
-        JSInterop.VerifyInvoke("localStorage.setItem", 2).Arguments.ShouldBe(["stemstudio.views.instrument", "\"alto-sax-eb\""]);
+        JSInterop.Invocations["localStorage.setItem"][^1].Arguments.ShouldBe(["stemstudio.views.instrument", "\"alto-sax-eb\""]);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class PractiseAsTests : MixerTestContext
 
         await ChooseAsync(page, "keys");
 
-        page.WaitForAssertion(() => page.Find("[data-testid=instrument-view] [data-testid=chord-sheet]"));
+        page.WaitForAssertion(() => page.Find("[data-testid=instrument-view] [data-testid^=chord-sheet]"));
     }
 
     [Fact]

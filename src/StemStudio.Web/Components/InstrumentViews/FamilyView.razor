@@ -1,0 +1,13 @@
+@* The tab view (guitar, bass) and the part view (strings / brass / woodwinds) of "Practise as" (016 US6 AS1): the family's
+   sheet music in the 014 score view, or "Generate tab" / "Generate part". The part view also picks the written instrument
+   (`score-part-instrument`, orchestrator decision 2026-11-22), remembered in the browser. *@
+@using StemStudio.Web.Components.Scores
+
+<div class="ss-family-view">
+    @if (IsPart)
+    {
+        <ScorePartFields Part="Part" OnInstrumentChanged="RememberInstrumentAsync" />
+    }
+    <ChannelScoreView Track="Track" Channel="@Channel" Profiles="Profiles" Noun="@Noun" GenerateText="@GenerateText" Configure="Configure"
+                      ScoreView="ScoreView" />
+</div>

@@ -20,6 +20,10 @@ public sealed partial class ScorePartFields
     [Parameter, EditorRequired]
     public PartChoice Part { get; set; } = default!;
 
+    /// <summary>Raised after the instrument changed (the orchestral view remembers it).</summary>
+    [Parameter]
+    public EventCallback<WrittenInstrumentDto> OnInstrumentChanged { get; set; }
+
     /// <summary>True when the clef choice applies to the profile.</summary>
     [Parameter]
     public bool ShowsClef { get; set; }
@@ -46,11 +50,12 @@ public sealed partial class ScorePartFields
     private static string InstrumentLabel(WrittenInstrumentInfoDto instrument) =>
         instrument.Id == WrittenInstrumentDto.Concert ? ConcertLabel : instrument.Name;
 
-    private void SetInstrument(string? value)
+    private async Task SetInstrument(string? value)
     {
         foreach (var instrument in Instruments.Where(i => WireName.Of(i.Id) == value))
         {
             Part.Instrument = instrument.Id;
+            await OnInstrumentChanged.InvokeAsync(instrument.Id);
         }
     }
 

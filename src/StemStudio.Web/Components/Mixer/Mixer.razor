@@ -106,6 +106,11 @@ else
                 </LevelGate>
             </ItemExtra>
         </SectionLane>
+        @{
+            RenderFragment<ScoreProfileDto> familyScore = profile => @<ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position"
+                TransposeSemitones="State.Practice.TransposeSemitones" Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion"
+                OnSeek="SeekAsync" OnLoop="LoopBarsAsync" Profile="profile" />;
+        }
         <div class="ss-section-nav">
             <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(MixerScoreShown ? ButtonStyle.Primary : ButtonStyle.Light)"
                           aria-expanded="@(MixerScoreShown ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
@@ -114,27 +119,38 @@ else
                           data-help-id="practice-log-panel" />
             <RadzenButton Text="Drumless" Icon="volume_off" Size="ButtonSize.Small" ButtonStyle="@(DrumlessOn ? ButtonStyle.Primary : ButtonStyle.Light)"
                           aria-pressed="@(DrumlessOn ? "true" : "false")" Click="ToggleDrumlessAsync" data-testid="drumless" data-help-id="drumless" />
+            <PractiseAsMenu Family="Family" OnChoose="PractiseAsAsync" />
+            @if (OfferedFamily is { } offered)
+            {
+                <span class="ss-chip ss-practise-offer" data-testid="practise-as-offer">
+                    <span>@($"Practise as {InstrumentFamilies.Label(offered)} again?")</span>
+                    <button type="button" class="ss-text-button" @onclick="AcceptOfferAsync">@($"Practise as {InstrumentFamilies.Label(offered)}")</button>
+                </span>
+            }
         </div>
         <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
-        @if (OpenedView == InstrumentViewDto.DrumTrainer && _track is not null)
+        @if (OpenedView is { } openView && _track is not null)
         {
-            <section class="ss-instrument-view" aria-label="Drum trainer" data-testid="instrument-view" data-view="drum-trainer">
-                <DrumTrainer Track="_track" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" Position="Position" GuidePiece="GuidePiece"
-                             GuidePieces="DrumGuidePieces" OnGuide="SetGuideAsync">
-                    <ScoreView>
-                        <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
-                                    Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync"
-                                    Profile="ScoreProfileDto.Drums" />
-                    </ScoreView>
-                </DrumTrainer>
-            </section>
-        }
-        @if (OpenedView == InstrumentViewDto.Singing && _track is not null)
-        {
-            <section class="ss-instrument-view" aria-label="Singing feedback" data-testid="instrument-view" data-view="singing">
-                <SingingPanel Track="_track" Duration="State.Duration" Sections="State.SectionSet?.Sections" EngineReady="EngineReady"
-                              ReducedMotion="@(ReducedMotion == true)" Latency="Recording?.LatencyInUse" OnRunningChanged="OnSingingRunningAsync"
-                              OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" />
+            <section class="ss-instrument-view" aria-label="@ViewLabel" data-testid="instrument-view" data-view="@WireName.Of(openView)" data-help-id="practise-as">
+                @switch (openView)
+                {
+                    case InstrumentViewDto.DrumTrainer:
+                        <DrumTrainer Track="_track" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" Position="Position" GuidePiece="GuidePiece"
+                                     GuidePieces="DrumGuidePieces" OnGuide="SetGuideAsync" ScoreView="familyScore(ScoreProfileDto.Drums)" />
+                        break;
+                    case InstrumentViewDto.Singing:
+                        <SingingPanel Track="_track" Duration="State.Duration" Sections="State.SectionSet?.Sections" EngineReady="EngineReady"
+                                      ReducedMotion="@(ReducedMotion == true)" Latency="Recording?.LatencyInUse" OnRunningChanged="OnSingingRunningAsync"
+                                      OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" />
+                        break;
+                    case InstrumentViewDto.Chords:
+                        <ChordSheet TrackId="Id" />
+                        break;
+                    default:
+                        <FamilyView Family="@(Family ?? InstrumentFamilyDto.Guitar)" Track="_track" Channel="@FamilyChannel" ScoreView="familyScore(FamilyProfile)"
+                                    OnInstrument="OnWrittenInstrument" />
+                        break;
+                }
             </section>
         }
         @if (ShowPracticeLog)

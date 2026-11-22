@@ -125,7 +125,6 @@ public sealed partial class DrumTrainer : IAsyncDisposable
         await LoadAsync(() => Api.GetDrumHitsAsync(Track.Id, _stop.Token));
         await (Analysis?.Status == AnalysisStatusDto.None ? LoadAsync(() => Api.DetectDrumHitsAsync(Track.Id, _stop.Token)) : Task.CompletedTask);
         StartPolling();
-        await LoadScoresAsync();
     }
 
     /// <inheritdoc />

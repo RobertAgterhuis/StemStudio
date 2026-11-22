@@ -13,7 +13,8 @@ namespace StemStudio.Web.Scores;
 /// <param name="api">The API client.</param>
 /// <param name="timer">The polling timer.</param>
 /// <param name="failedText">The reason shown when the item failed without one of its own.</param>
-public sealed class ChannelScoreMaker(IStemStudioApiClient api, IPollingTimer timer, string failedText)
+/// <param name="configure">Adjusts the form; null sends no tablature (the MIDI action).</param>
+public sealed class ChannelScoreMaker(IStemStudioApiClient api, IPollingTimer timer, string failedText, Action<ScoreForm>? configure = null)
 {
     /// <summary>Render progress 0..100 of the item being made.</summary>
     public int Progress { get; private set; }
@@ -32,13 +33,17 @@ public sealed class ChannelScoreMaker(IStemStudioApiClient api, IPollingTimer ti
         (Progress, Error) = (0, null);
         var target = ScoreTarget.ForChannel(track, channel);
         var form = new ScoreForm(await api.GetScoreOptionsAsync(target.Source, ct), target);
+        (configure ?? NoTablature)(form);
+        Error = form.Validate();
+        return Error is null ? await WaitAsync(await api.CreateScoreAsync(form.Request(), ct), changed, ct) : null;
+    }
+
+    private static void NoTablature(ScoreForm form)
+    {
         if (form.Tab is { } tab)
         {
             tab.Layout = TabLayoutChoice.None;
         }
-
-        Error = form.Validate();
-        return Error is null ? await WaitAsync(await api.CreateScoreAsync(form.Request(), ct), changed, ct) : null;
     }
 
     private async Task<AssetDto?> WaitAsync(AssetDto item, Func<Task> changed, CancellationToken ct)
