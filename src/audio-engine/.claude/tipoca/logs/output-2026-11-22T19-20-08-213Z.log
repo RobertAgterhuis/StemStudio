@@ -1,0 +1,118 @@
+
+ RUN  v5.1.0 E:/PatricksSoundStudio/.claude/worktrees/r16-l1/src/audio-engine
+
+ ❯ tests/views/instrument-views-contract.test.ts (4 tests | 1 failed) 14ms
+   ❯ instrument views contract 2.6.0 (3)
+     × rejects the async 2.6.0 methods with the pending error 7ms
+ ❯ tests/singing/score-take.test.ts (11 tests | 3 failed) 276ms
+   ❯ scoreTake (FR-046) (10)
+     × scores every unit the take covers with the live core; the take starts at startSample 150ms
+     × applies no latency (015 takes are already compensated) 43ms
+     × averages the channels of a stereo take 26ms
+
+ Test Files  2 failed | 72 passed (74)
+      Tests  4 failed | 1382 passed (1386)
+   Start at  20:19:49
+   Duration  19.13s (environment 94%, transform 3%, tests 2%, import 1%)
+
+Environment  jsdom was created 74 times · 380.90s total, 94% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+npm notice run @stemstudio/audio-engine@0.1.0 test
+npm notice run vitest run
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > scores every unit the take covers with the live core; the take starts at startSample
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  [
+    {
+      "index": 1,
+      "pass": 1,
+-     "score": 100,
++     "score": 99,
+    },
+    {
+      "index": 2,
+      "pass": 1,
+      "score": 100,
+
+ ❯ tests/singing/score-take.test.ts:41:26
+     39|   it('scores every unit the take covers with the live core; the take s…
+     40|     const result = await scoreTake(REQUEST, deps(contextWith(tone(44_1…
+     41|     expect(result.units).toEqual([
+       |                          ^
+     42|       { index: 1, score: 100, pass: 1 },
+     43|       { index: 2, score: 100, pass: 1 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > applies no latency (015 takes are already compensated)
+AssertionError: expected [] to deeply equal [ { index: 1, score: 100, pass: 1 } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "index": 1,
+-     "pass": 1,
+-     "score": 100,
+-   },
+- ]
++ []
+
+ ❯ tests/singing/score-take.test.ts:58:26
+     56|     samples.set(tone(44_100, 0.5, [[440, 0.4]]), 22_050);
+     57|     const result = await scoreTake({ ...REQUEST, startSample: 22_050, …
+     58|     expect(result.units).toEqual([{ index: 1, score: 100, pass: 1 }]);
+       |                          ^
+     59|   });
+     60|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > averages the channels of a stereo take
+AssertionError: expected [ 99, 100 ] to deeply equal [ 100, 100 ]
+
+- Expected
++ Received
+
+  [
+-   100,
++   99,
+    100,
+  ]
+
+ ❯ tests/singing/score-take.test.ts:69:46
+     67|     });
+     68|     const result = await scoreTake(REQUEST, deps(ctx));
+     69|     expect(result.units.map((u) => u.score)).toEqual([100, 100]);
+       |                                              ^
+     70|   });
+     71|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/views/instrument-views-contract.test.ts > instrument views contract 2.6.0 > rejects the async 2.6.0 methods with the pending error
+AssertionError: expected [Function] to throw error including 'not implemented yet (contract 2.6.0)' but got 'Failed to load stem "take": Failed to…'
+
+Expected: "not implemented yet (contract 2.6.0)"
+Received: "Failed to load stem "take": Failed to parse URL from /t"
+
+ ❯ tests/views/instrument-views-contract.test.ts:35:109
+     33|     const subject = engine();
+     34|
+     35|     await expect(subject.scoreTake({ takeUrl: '/t', startSample: 0, re…
+       |                                                                                                             ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+

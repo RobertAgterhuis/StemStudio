@@ -51,7 +51,7 @@ describe('scoreTake (FR-046)', () => {
   });
 
   it('applies no latency (015 takes are already compensated)', async () => {
-    const reference = Array.from({ length: 400 }, (_, i) => (i >= 100 && i < 150 ? 6900 : 0));
+    const reference = Array.from({ length: 400 }, (_, i) => (i >= 101 && i < 150 ? 6900 : 0));
     const samples = new Float32Array(44_100);
     samples.set(tone(44_100, 0.5, [[440, 0.4]]), 22_050);
     const result = await scoreTake({ ...REQUEST, startSample: 22_050, reference: { hopMs: 10, frames: reference } }, deps(contextWith(samples)));

@@ -25,8 +25,8 @@ import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
+import { scoreTake } from './singing/take-score';
 import { InstrumentViews } from './views/instrument-views';
-import { pendingView } from './views/pending';
 import type {
   AudioEngine,
   BeatGrid,
@@ -527,8 +527,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.scoreTake} */
   public async scoreTake(request: TakeScoreRequest): Promise<TakeScoreResult> {
     this.alive();
-    await Promise.resolve();
-    return pendingView('scoreTake', request);
+    return scoreTake(request, { context: this.parts.context, fetch: this.fetchFn });
   }
 
   /** {@inheritDoc AudioEngine.dispose} */

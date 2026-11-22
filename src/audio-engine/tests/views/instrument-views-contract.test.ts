@@ -6,7 +6,6 @@ import {
   type DotNetCallbacks,
   type PitchContour,
 } from '../../src/index';
-import { PENDING_VIEWS_MESSAGE } from '../../src/views/pending';
 import { PITCH_PROCESSOR_NAME } from '../../src/pitch/worklet';
 import { FakeProcessorBase } from '../mocks/worklet-scope';
 import { MockAudioContext } from '../mocks/audio-context';
@@ -27,12 +26,6 @@ describe('instrument views contract 2.6.0', () => {
 
     expect(ENGINE_CONTRACT_VERSION).toBe('2.6.0');
     expect(callbacks).toHaveLength(2);
-  });
-
-  it('rejects the async 2.6.0 methods with the pending error', async () => {
-    const subject = engine();
-
-    await expect(subject.scoreTake({ takeUrl: '/t', startSample: 0, reference, units, toleranceCents: 50 })).rejects.toThrow(PENDING_VIEWS_MESSAGE);
   });
 
   it('refuses the 2.6.0 methods after dispose like every other method', async () => {

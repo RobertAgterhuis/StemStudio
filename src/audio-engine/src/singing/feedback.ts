@@ -8,6 +8,7 @@
  */
 import { PITCH_PROCESSOR_NAME } from '../pitch/worklet';
 import type { InputInfo, LatencyMethod, RoundTripLatency, SingingFeedbackRequest, SingingState, SingingSummary, SingingUnitScore } from '../types';
+import { MedianSmoother } from './median';
 import { validateContour, validateRoundTrip, validateTolerance, validateUnits } from './validate';
 
 /** Default URL of the pitch worklet module. */
@@ -20,8 +21,6 @@ const LATE_SECONDS = 0.05;
 const OVERRUN_HOPS = 50;
 /** Window of the overrun guard (s). */
 const OVERRUN_WINDOW_SECONDS = 5;
-/** Voiced frames in the median filter. */
-const MEDIAN_FRAMES = 5;
 /** Round trip without any input information (ms, research R-07). */
 const FALLBACK_ROUND_TRIP_MS = 30;
 /** Rate of the 015 latency samples (Hz). */
@@ -93,7 +92,7 @@ interface Running {
   readonly node: AudioWorkletNode;
   readonly session: SingingSession;
   readonly latency: RoundTripLatency;
-  readonly median: number[];
+  readonly median: MedianSmoother;
   readonly late: number[];
 }
 
@@ -119,12 +118,6 @@ function loadModule(context: AudioContext, url: string): Promise<void> {
 function isFrame(data: unknown): data is FrameMessage {
   const frame = data as Partial<FrameMessage> | null;
   return typeof frame?.t === 'number' && (frame.cents === null || typeof frame.cents === 'number');
-}
-
-function middle(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const half = sorted.length >> 1;
-  return sorted.length % 2 === 1 ? Number(sorted[half]) : (Number(sorted[half - 1]) + Number(sorted[half])) / 2;
 }
 
 /** Live singing feedback of one engine. */
@@ -183,7 +176,7 @@ export class SingingFeedback {
   /** A seek or stop of the transport: the running session discards its partial unit. */
   public reposition(): void {
     if (this.running !== null) {
-      this.running.median.length = 0;
+      this.running.median.reset();
       this.running.session.reposition();
     }
   }
@@ -244,7 +237,7 @@ export class SingingFeedback {
     this.session?.dispose();
     this.tolerance = spec.request.toleranceCents;
     this.session = this.deps.session(spec);
-    this.running = { node, session: this.session, latency: spec.latency, median: [], late: [] };
+    this.running = { node, session: this.session, latency: spec.latency, median: new MedianSmoother(), late: [] };
     node.port.onmessage = (event: MessageEvent): void => {
       this.receive(event.data);
     };
@@ -262,20 +255,8 @@ export class SingingFeedback {
     }
     if (this.deps.playing()) {
       const songMs = this.deps.positionAtMs(data.t - running.latency.ms / 1000);
-      running.session.frame(songMs, this.smooth(running, data.cents));
+      running.session.frame(songMs, running.median.next(data.cents));
     }
-  }
-
-  private smooth(running: Running, cents: number | null): number | null {
-    if (cents === null) {
-      running.median.length = 0;
-      return null;
-    }
-    running.median.push(cents);
-    if (running.median.length > MEDIAN_FRAMES) {
-      running.median.shift();
-    }
-    return middle(running.median);
   }
 
   /** Counts late hops; true when 50 of them fell within 5 s. */
