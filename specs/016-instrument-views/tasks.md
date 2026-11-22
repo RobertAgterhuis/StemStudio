@@ -281,8 +281,8 @@ text, the row wins.
 
 ## Phase 8: User Story 6 - "Practise as ..." for every family (P2)
 
-- [ ] T113 [P] [US6] [frontend] Failing bUnit tests: `practise-as` menu with every family, applying minus-one and opening `instrument-view` with the family's view, `practise-as-offer` from localStorage (offered, not applied), keyboard operation; help id `instrument-views` (FR-060, FR-062)
-- [ ] T114 [US6] [frontend] Implement `PractiseAsMenu` and the view host to pass T113
+- [x] T113 [P] [US6] [frontend] Failing bUnit tests: `practise-as` menu with every family, applying minus-one and opening `instrument-view` with the family's view, `practise-as-offer` from localStorage (offered, not applied), keyboard operation; help id `instrument-views` (FR-060, FR-062)
+- [x] T114 [US6] [frontend] Implement `PractiseAsMenu` and the view host to pass T113
 - [ ] T115 [US6] [qa] Author `e2e/tests/instrument-practise-as.spec.ts`: for **vocals, drums, bass, guitar, keys, orchestral**: muted channels per data-model 5.3 (expanded and collapsed), opened `data-view`; `play-along-drums` with expanded drums mutes the drum detail strips (DELTA 6) (SC-006, SC-009)
 
 **Checkpoint**: HO:us6.
