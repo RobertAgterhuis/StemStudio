@@ -32,6 +32,7 @@ from stemstudio_worker.ports import (
     AnalysisError,
     ChordFrames,
     PostProcessOptions,
+    TranscriptionError,
 )
 from stemstudio_worker.schemas import BeatGridTempo
 
@@ -96,13 +97,23 @@ def _optional(module: str) -> Any:
         return None
 
 
+def _store_or_skip(tmp_path_factory: pytest.TempPathFactory) -> ChordModelStore:
+    """The model store with both BTC weights present; skips when offline."""
+    store = ChordModelStore(_model_dir(tmp_path_factory))
+    for weights in (BTC_MAJMIN_WEIGHTS, BTC_LARGE_VOCA_WEIGHTS):
+        try:
+            path = store.ensure(weights)
+        except TranscriptionError as error:
+            pytest.skip(f"BTC weights {weights.model_id} are not available locally: {error}")
+        assert path.stat().st_size == weights.size_bytes
+    return store
+
+
 @pytest.mark.integration
 def test_real_btc_recognises_the_triad_set_and_records_its_speed(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    store = ChordModelStore(_model_dir(tmp_path_factory))
-    for weights in (BTC_MAJMIN_WEIGHTS, BTC_LARGE_VOCA_WEIGHTS):
-        assert store.ensure(weights).stat().st_size == weights.size_bytes
+    store = _store_or_skip(tmp_path_factory)
     recognizer = BtcRecognizer(
         BtcParts(store, FakeDeviceRunner("cpu"), TorchBtcRuntime(THREADS), _NoFallback())
     )
