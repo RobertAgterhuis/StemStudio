@@ -73,6 +73,15 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>True when the tablature options apply (guitar and bass profiles, FR-020).</summary>
     public bool ShowsTab => Tab is not null && Profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass;
 
+    /// <summary>Written instrument and clef (016 US5), or null when the backend offers no parts for the source.</summary>
+    public PartChoice? Part { get; } = NewPart(options.Parts);
+
+    /// <summary>True when the part options apply (every pitched profile, FR-051).</summary>
+    public bool ShowsPart => Part is not null && Profile is not (null or ScoreProfileDto.Drums);
+
+    /// <summary>True when the clef choice applies (not the grand-staff profiles).</summary>
+    public bool ShowsClef => ShowsPart && Part!.ClefFor(Profile);
+
     /// <summary>"Include chords" (016 FR-017, Advanced): the user's choice.</summary>
     public bool IncludeChords { get; set; }
 
@@ -94,12 +103,19 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         Profile = Profile,
         Quality = HasQuality ? Quality : null,
         Resolution = Simplified ? ScoreResolutionDto.Eighth : ScoreResolutionDto.Sixteenth,
-        KeyOverride = HasKey && KeyOverride.Length > 0 ? KeyOverride : null,
+        KeyOverride = KeyDto(),
         Tempo = Tempo.ToDto(),
         Range = Range.ToDto(),
         IncludeChords = ChordsAvailable && IncludeChords,
         Tablature = ShowsTab ? Tab!.ToDto() : null,
+        Part = PartDto(),
     };
+
+    private string? KeyDto() => HasKey && KeyOverride.Length > 0 ? KeyOverride : null;
+
+    private ScorePartDto? PartDto() => ShowsPart ? Part!.ToDto(ShowsClef) : null;
+
+    private static PartChoice? NewPart(ScorePartOptionsDto? parts) => parts is { Available: true } ? new PartChoice(parts) : null;
 
     private static TabChoice? NewTab(ScoreOptionsDto options, ScoreTarget target)
     {

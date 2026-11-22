@@ -11,6 +11,10 @@
         }
         <div><dt>Tempo</dt><dd data-testid="@($"asset-score-tempo-{Asset.Id}")">@ScoreText.Tempo(Facts)</dd></div>
     </dl>
+    @if (Facts.Part is { } part)
+    {
+        <p class="ss-small" data-testid="@($"asset-score-part-{Asset.Id}")">@PartFactsText.Of(part)</p>
+    }
     @if (Facts.Tablature is { } tab)
     {
         <p class="ss-small" data-testid="@($"asset-score-tab-{Asset.Id}")">@TabFactsText.Of(tab)</p>

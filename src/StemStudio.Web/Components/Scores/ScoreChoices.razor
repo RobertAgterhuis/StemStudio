@@ -68,6 +68,11 @@
     <ScoreTabFields Tab="Form.Tab!" />
 }
 
+@if (Form.ShowsPart)
+{
+    <ScorePartFields Part="Form.Part!" ShowsClef="Form.ShowsClef" />
+}
+
 @if (Form.ChordsAllowed)
 {
     <LevelGate Feature="scores.chords">

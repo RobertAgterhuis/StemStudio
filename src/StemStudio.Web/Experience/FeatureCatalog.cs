@@ -112,6 +112,8 @@ public static class FeatureCatalog
         new("singing.feedback", Beginner, null, "singing-feedback"),
         new("singing.tolerance", Advanced, null, "singing-tolerance-latency"),
         new("singing.raw", Expert, null, "singing-tolerance-latency"),
+        new("parts.instrument", Beginner, null, "transposed-parts"),
+        new("parts.clef", Advanced, null, "transposed-parts"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

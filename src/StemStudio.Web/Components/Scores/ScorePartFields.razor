@@ -1,0 +1,32 @@
+@* Written instrument and clef of the sheet music dialog (016 US5, FR-051, FR-052; ui-test-ids score-part-instrument,
+   score-part-clef at Advanced). Instrument names come from the instrument catalogue, concert pitch first. *@
+@using StemStudio.Contracts.InstrumentViews
+
+<fieldset class="ss-score-part">
+    <legend class="ss-label">Part for your instrument <HelpHint HelpId="score-part" /></legend>
+    <div class="ss-field">
+        <label class="ss-label" for="score-part-instrument">Instrument</label>
+        <select id="score-part-instrument" class="ss-select" @bind:get="WireName.Of(Part.Instrument)" @bind:set="SetInstrument"
+                data-testid="score-part-instrument" data-help-id="score-part">
+            @foreach (var instrument in Instruments)
+            {
+                <option value="@WireName.Of(instrument.Id)">@InstrumentLabel(instrument)</option>
+            }
+        </select>
+    </div>
+    @if (ShowsClef)
+    {
+        <LevelGate Feature="parts.clef">
+            <div class="ss-field">
+                <label class="ss-label" for="score-part-clef">Clef</label>
+                <select id="score-part-clef" class="ss-select" @bind:get="WireName.Of(Part.Clef)" @bind:set="SetClef"
+                        data-testid="score-part-clef" data-help-id="score-part-clef">
+                    @foreach (var clef in Clefs)
+                    {
+                        <option value="@WireName.Of(clef)">@PartFactsText.ClefLabel(WireName.Of(clef))</option>
+                    }
+                </select>
+            </div>
+        </LevelGate>
+    }
+</fieldset>
