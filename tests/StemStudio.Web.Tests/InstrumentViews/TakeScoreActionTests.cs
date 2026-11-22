@@ -44,14 +44,14 @@ public sealed class TakeScoreActionTests : PageTestContext
     }
 
     [Fact]
-    public async Task TheMixersTranspose_IsSentWithTheTake()
+    public async Task TheTakesRecordedTranspose_IsSent_NotTheMixersCurrentOne()
     {
         Views.ScoreTakeAsync(Arg.Any<TakeScoreRequest>()).Returns(new TakeScoreResult { UnitsScored = 1, Average = 60 });
         var action = RenderAction(transpose: 2);
 
         await action.Find($"[data-testid=take-score-{Take}]").ClickAsync(new());
 
-        await Views.Received(1).ScoreTakeAsync(Arg.Is<TakeScoreRequest>(r => r.TransposeSemitones == 2));
+        await Views.Received(1).ScoreTakeAsync(Arg.Is<TakeScoreRequest>(r => r.TransposeSemitones == 0));
     }
 
     [Fact]
