@@ -54,7 +54,7 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
         return options with
         {
             SuggestedProfile = Dto(suggested),
-            Tablature = Tablature(suggested),
+            Tablature = Tablature(suggested, allowed),
             Parts = Parts(suggested),
             AllowedProfiles = allowed.Select(profile => ScoreMapper.Map<ScoreProfileDto>(profile)).ToList(),
             Estimates = allowed.SelectMany(profile => Estimates(profile, source.DurationSeconds, environment)).ToList(),
@@ -71,16 +71,21 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             estimator.Seconds(duration, ProfileCatalog.Engine(profile, quality), environment)));
     }
 
-    /// <summary>Tablature options of the suggested profile: the instrument's tunings for guitar or bass, a capo for guitar only.</summary>
-    private static ScoreTablatureOptionsDto Tablature(ScoreProfile? suggested)
+    /// <summary>
+    /// Tablature options (review L1): <c>available</c>, the default tuning and the capo follow the suggested profile; the tunings
+    /// list holds those of every allowed guitar or bass profile, the suggested instrument's first, so the UI finds a tuning after
+    /// switching the profile (the instrument is the id prefix, <c>guitar-</c> or <c>bass-</c>).
+    /// </summary>
+    private static ScoreTablatureOptionsDto Tablature(ScoreProfile? suggested, IReadOnlyList<ScoreProfile> allowed)
     {
         var instrument = suggested is { } profile ? ScoreTablatureRules.InstrumentOf(profile) : null;
-        var tunings = InstrumentCatalogue.Tunings.Where(tuning => tuning.Instrument == instrument).Select(tuning => CatalogueMapper.ToDto(tuning.Id)).ToList();
+        var instruments = allowed.Select(ScoreTablatureRules.InstrumentOf).OfType<string>().Distinct(StringComparer.Ordinal).OrderBy(name => name != instrument).ToList();
+        var own = InstrumentCatalogue.Tunings.Where(tuning => tuning.Instrument == instrument).Select(tuning => CatalogueMapper.ToDto(tuning.Id)).ToList();
         return new ScoreTablatureOptionsDto
         {
-            Available = tunings.Count > 0,
-            DefaultTuning = tunings.Count > 0 ? tunings[0] : null,
-            Tunings = tunings,
+            Available = own.Count > 0,
+            DefaultTuning = own.Count > 0 ? own[0] : null,
+            Tunings = instruments.SelectMany(name => InstrumentCatalogue.Tunings.Where(tuning => tuning.Instrument == name)).Select(tuning => CatalogueMapper.ToDto(tuning.Id)).ToList(),
             CapoAllowed = instrument == InstrumentCatalogue.GuitarInstrument,
         };
     }

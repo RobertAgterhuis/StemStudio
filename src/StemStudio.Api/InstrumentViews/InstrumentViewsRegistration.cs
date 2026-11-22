@@ -18,7 +18,8 @@ public static class InstrumentViewsRegistration
         ArgumentNullException.ThrowIfNull(configuration);
         services.AddOptions<InstrumentViewsOptions>().Bind(configuration.GetSection(InstrumentViewsOptions.SectionName));
         services.AddServiceClient<IWorkerAnalysisClient, WorkerClient>(
-            configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
+                configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout))
+            .ConfigureHttpClient(client => client.MaxResponseContentBufferSize = WorkerClient.MaxAnalysisResponseBytes);
         return services.AddAnalysisServices().AddVocalPitchCompression();
     }
 

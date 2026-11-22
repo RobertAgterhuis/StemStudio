@@ -28,12 +28,12 @@ public sealed class AnalysisReviewFixTests : ApiTestBase
     [Fact]
     public async Task M3_ANeverRunMelodyOfALongTrack_ShowsItsEstimate_SoTheUiCanAskFirst()
     {
-        var track = await Factory.SeedAsync(FourStem(durationSeconds: 2400));
+        var track = await Factory.SeedAsync(FourStem(durationSeconds: 900));
 
         using var response = await Client.GetAsync(Url(ApiRoutes.VocalPitch(track.Id)), Ct);
 
         var dto = await response.BodyAsync<TrackAnalysisDto<VocalPitchDocumentDto>>();
-        (dto.Status, dto.EstimateSeconds).ShouldBe((AnalysisStatusDto.None, 89), "2400 s x 0.035 (pyin on the CPU) + 5 s");
+        (dto.Status, dto.EstimateSeconds).ShouldBe((AnalysisStatusDto.None, 37), "900 s (the longest track) x 0.035 (pyin on the CPU) + 5 s, rounded up");
         Factory.AnalysisWorker.Requests.ShouldBeEmpty();
     }
 
@@ -51,7 +51,7 @@ public sealed class AnalysisReviewFixTests : ApiTestBase
         {
             changed.RequestDetail(T0);
             changed.AssignDetailJob(SyncTestData.DetailJobId, T0);
-            changed.CompleteDetail([new ParentOutcome("drums", ParentOutcomeKind.Split, [new("kick", 8), new("rest", 8)])], T0);
+            changed.CompleteDetail([new ParentOutcome("drums", ParentOutcomeKind.Split, [new("kick", 8), new("snare", 8), new("rest", 8)])], T0);
         });
 
         using var split = await Client.GetAsync(Url(ApiRoutes.DrumHits(track.Id)), Ct);

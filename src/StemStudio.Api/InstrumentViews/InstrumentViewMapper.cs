@@ -123,7 +123,7 @@ public static class InstrumentViewMapper
             Progress = stored is null || view.Status == AnalysisStatus.Unavailable ? 0 : stored.Progress,
             Engine = EngineOf(stored),
             Device = TrackMapper.ToDto(stored?.Device),
-            EstimateSeconds = stored?.IsActive == true ? stored.EstimateSeconds : null,
+            EstimateSeconds = stored?.IsActive == true ? stored.EstimateSeconds : view.ProposedEstimateSeconds,
             UpdatedAt = TrackMapper.Utc(stored?.UpdatedAt ?? view.Track.UpdatedAt),
             Limits = limits,
             Document = Shown(view, document),

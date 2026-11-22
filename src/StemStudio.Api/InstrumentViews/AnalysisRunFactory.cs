@@ -53,6 +53,28 @@ public sealed class AnalysisRunFactory(IStemFingerprinter fingerprinter, Analysi
         return new PlannedRun(MissingPrerequisite.None, new PreparedRun(plan.Request, request.Options, await FingerprintAsync(request.Track.Id, plan, cancellationToken), estimate));
     }
 
+    /// <summary>
+    /// The estimate a run would get now, without submitting it (review M3: the UI asks before a slow never-run reference
+    /// melody); null when a prerequisite is missing.
+    /// </summary>
+    /// <param name="track">The track.</param>
+    /// <param name="kind">The kind.</param>
+    /// <param name="options">The run options.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>Seconds, or null.</returns>
+    public async Task<int?> EstimateAsync(Track track, AnalysisKind kind, AnalysisOptions options, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        if (AnalysisKindStrategies.Plan(kind, track, options, WorkerEngines.Defaults).Plan is null)
+        {
+            return null;
+        }
+
+        var snapshot = await estimator.SnapshotAsync(cancellationToken);
+        var plan = AnalysisKindStrategies.Plan(kind, track, options, snapshot.Engines).Plan!;
+        return estimator.Estimate(kind, plan, track.DurationSeconds ?? 0, snapshot);
+    }
+
     /// <summary>The fingerprint of a plan's inputs.</summary>
     /// <param name="trackId">The track.</param>
     /// <param name="plan">The plan.</param>

@@ -51,7 +51,7 @@ public static class KeyEndpoints
     private static IResult? QueryErrors(KeyQuery query, WrittenInstrumentDto? instrument)
     {
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        if (Math.Abs(query.Transpose) > MaxTranspose)
+        if (query.Transpose is < -MaxTranspose or > MaxTranspose)
         {
             errors["transpose"] = [$"Must be between -{MaxTranspose} and {MaxTranspose}."];
         }
