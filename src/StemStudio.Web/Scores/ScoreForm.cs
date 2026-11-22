@@ -16,11 +16,11 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>The options the form was made from.</summary>
     public ScoreOptionsDto Options { get; } = options;
 
-    /// <summary>The chosen profile; the suggestion at first.</summary>
-    public ScoreProfileDto? Profile { get; private set; } = options.SuggestedProfile;
+    /// <summary>The chosen profile; the suggestion at first, or the only allowed profile (a single drum piece, 016).</summary>
+    public ScoreProfileDto? Profile { get; private set; } = Initial(options);
 
     /// <summary>"Simplified rhythm" (eighth notes); on by default for vocals, the profile default of data-model 2.1.</summary>
-    public bool Simplified { get; set; } = options.SuggestedProfile == ScoreProfileDto.Vocals;
+    public bool Simplified { get; set; } = Initial(options) == ScoreProfileDto.Vocals;
 
     /// <summary>Piano quality; the worker's default (accurate on a GPU, fast on the CPU) at first.</summary>
     public ScoreQualityDto Quality { get; set; } = options.DefaultQuality;
@@ -114,6 +114,9 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     private string? KeyDto() => HasKey && KeyOverride.Length > 0 ? KeyOverride : null;
 
     private ScorePartDto? PartDto() => ShowsPart ? Part!.ToDto(ShowsClef) : null;
+
+    private static ScoreProfileDto? Initial(ScoreOptionsDto options) =>
+        options.SuggestedProfile ?? (options.AllowedProfiles.Count == 1 ? options.AllowedProfiles[0] : null);
 
     private static PartChoice? NewPart(ScorePartOptionsDto? parts) => parts is { Available: true } ? new PartChoice(parts) : null;
 
