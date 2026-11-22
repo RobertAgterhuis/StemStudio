@@ -19,6 +19,7 @@ public sealed class InstrumentViewsHelpTests
         { "drum-trainer", ["drum-trainer", "drum-lanes", "drumless"] },
         { "singing-feedback", ["singing", "pitch-view"] },
         { "singing-tolerance-latency", ["singing-tolerance", "singing-latency"] },
+        { "transposed-parts", ["score-part", "score-part-clef"] },
     };
 
     [Theory]
