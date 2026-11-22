@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Worker;
+using StemStudio.Contracts;
 using StemStudio.Domain;
 using StemStudio.Domain.Scores;
 using StemStudio.Domain.Tracks;
@@ -49,8 +50,26 @@ public static class ScoreProblems
     {
         ScoreConflictException => DrumsNotSplit(),
         DomainValidationException invalid => AssetProblems.Invalid(invalid.Errors),
+        ScoreUnprocessableException unprocessable => Unprocessable(unprocessable),
         _ => null,
     };
+
+    /// <summary>The typed 422 of a refused instrument setting (feature 016: <c>tablature-not-allowed</c> and the others).</summary>
+    /// <param name="exception">The exception.</param>
+    /// <returns>The result.</returns>
+    public static IResult Unprocessable(ScoreUnprocessableException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        var (type, title) = exception.Code switch
+        {
+            ScoreUnprocessable.TuningMismatch => (InstrumentViewProblemTypes.TuningMismatch, "Tuning mismatch"),
+            ScoreUnprocessable.CapoNotAllowed => (InstrumentViewProblemTypes.CapoNotAllowed, "Capo not allowed"),
+            ScoreUnprocessable.ClefNotAllowed => (InstrumentViewProblemTypes.ClefNotAllowed, "Clef not allowed"),
+            ScoreUnprocessable.PartNotAllowed => (InstrumentViewProblemTypes.PartNotAllowed, "Part not allowed"),
+            _ => (InstrumentViewProblemTypes.TablatureNotAllowed, "Tablature not allowed"),
+        };
+        return Typed(StatusCodes.Status422UnprocessableEntity, type, title, exception.Message);
+    }
 
     /// <summary>The answer when the worker refuses or cannot take a transcription: 503 when unreachable, else 409 <c>source-unavailable</c>.</summary>
     /// <param name="exception">The exception.</param>

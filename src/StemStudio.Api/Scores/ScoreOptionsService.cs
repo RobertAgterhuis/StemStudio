@@ -1,5 +1,7 @@
+using StemStudio.Api.InstrumentViews;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Scores;
+using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Scores;
 
 namespace StemStudio.Api.Scores;
@@ -48,9 +50,11 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
     private ScoreOptionsDto WithProfiles(ResolvedSource source, ScoreEnvironment environment, ScoreOptionsDto options)
     {
         var allowed = ProfileCatalog.Allowed(source.Channel);
+        var suggested = source.Channel is { } channel ? ProfileCatalog.Suggest(channel) : source.AssetSuggestion;
         return options with
         {
-            SuggestedProfile = source.Channel is { } channel ? Dto(ProfileCatalog.Suggest(channel)) : Dto(source.AssetSuggestion),
+            SuggestedProfile = Dto(suggested),
+            Tablature = Tablature(suggested),
             AllowedProfiles = allowed.Select(profile => ScoreMapper.Map<ScoreProfileDto>(profile)).ToList(),
             Estimates = allowed.SelectMany(profile => Estimates(profile, source.DurationSeconds, environment)).ToList(),
             Limits = allowed.Select(profile => new ProfileLimitDto(ScoreMapper.Map<ScoreProfileDto>(profile), ProfileCatalog.Limit(profile))).ToList(),
@@ -64,6 +68,20 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             ScoreMapper.Map<ScoreProfileDto>(profile),
             quality is { } value ? ScoreMapper.Map<ScoreQualityDto>(value) : null,
             estimator.Seconds(duration, ProfileCatalog.Engine(profile, quality), environment)));
+    }
+
+    /// <summary>Tablature options of the suggested profile: the instrument's tunings for guitar or bass, a capo for guitar only.</summary>
+    private static ScoreTablatureOptionsDto Tablature(ScoreProfile? suggested)
+    {
+        var instrument = suggested is { } profile ? ScoreTablatureRules.InstrumentOf(profile) : null;
+        var tunings = InstrumentCatalogue.Tunings.Where(tuning => tuning.Instrument == instrument).Select(tuning => CatalogueMapper.ToDto(tuning.Id)).ToList();
+        return new ScoreTablatureOptionsDto
+        {
+            Available = tunings.Count > 0,
+            DefaultTuning = tunings.Count > 0 ? tunings[0] : null,
+            Tunings = tunings,
+            CapoAllowed = instrument == InstrumentCatalogue.GuitarInstrument,
+        };
     }
 
     private static ScoreProfileDto? Dto(ScoreProfile? profile) => profile is { } value ? ScoreMapper.Map<ScoreProfileDto>(value) : null;

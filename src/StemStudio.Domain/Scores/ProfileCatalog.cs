@@ -28,6 +28,7 @@ public static class ProfileCatalog
         var parts = channel.Split('.');
         return (parts[0], parts.Length) switch
         {
+            (_, > 2) => null,
             ("vocals", _) => ScoreProfile.Vocals,
             ("bass", 1) => ScoreProfile.Bass,
             ("guitar", _) => ScoreProfile.Guitar,
@@ -38,17 +39,32 @@ public static class ProfileCatalog
         };
     }
 
-    /// <summary>The profiles a source offers: drums only for the drums channel, the pitched ones for a pitched channel or a library item.</summary>
+    /// <summary>The drum pieces that can be notated alone (feature 016: source <c>drums.&lt;piece&gt;</c>).</summary>
+    public static IReadOnlyList<string> DrumPieces { get; } = ["kick", "snare", "toms", "hihat", "cymbals"];
+
+    /// <summary>
+    /// The profiles a source offers: drums only for the drums channel or a single drum piece, the pitched ones for a pitched
+    /// channel or a library item.
+    /// </summary>
     /// <param name="channel">The channel id, or null for a library item.</param>
     /// <returns>The profiles.</returns>
     public static IReadOnlyList<ScoreProfile> Allowed(string? channel) => channel is null
         ? Pitched
         : Suggest(channel) switch
         {
+            null when DrumPiece(channel) is not null => [ScoreProfile.Drums],
             null => [],
             ScoreProfile.Drums => [ScoreProfile.Drums],
             _ => Pitched,
         };
+
+    /// <summary>The drum piece of a <c>drums.&lt;piece&gt;</c> channel, else null.</summary>
+    /// <param name="channel">The channel id, or null.</param>
+    /// <returns>E.g. <c>kick</c>, or null.</returns>
+    public static string? DrumPiece(string? channel) =>
+        channel is not null && channel.StartsWith("drums.", StringComparison.Ordinal) && DrumPieces.Contains(channel[6..], StringComparer.Ordinal)
+            ? channel[6..]
+            : null;
 
     /// <summary>The default resolution: 1/8 for vocals, else 1/16.</summary>
     /// <param name="profile">The profile.</param>

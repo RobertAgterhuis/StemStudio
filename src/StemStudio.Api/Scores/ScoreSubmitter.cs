@@ -60,7 +60,7 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
 
     /// <summary>Pitched profiles read one input, drums the kept drum pieces (data-model 4.4).</summary>
     private static WorkerTranscriptionJobRequest WithInputs(ScoreDraft draft, WorkerTranscriptionJobRequest request) => draft.Recipe.Profile == ScoreProfile.Drums
-        ? request with { DrumInputs = DrumInputs(draft.Source.DrumPieces) }
+        ? request with { DrumInputs = DrumInputs(draft.Source.DrumPieces), SinglePiece = ProfileCatalog.DrumPiece(draft.Recipe.Source.Channel) }
         : request with { Input = new WorkerTranscriptionInput(draft.Source.InputPath) };
 
     private static WorkerScoreTitles Titles(string name, ResolvedSource source, ScoreProfile profile) =>

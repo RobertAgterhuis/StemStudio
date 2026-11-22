@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http.HttpResults;
+using StemStudio.Api.Scores;
 using StemStudio.Api.Tests.Assets;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
@@ -8,6 +10,7 @@ using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Scores;
+using StemStudio.Domain.Scores;
 using static StemStudio.Api.Tests.Scores.ScoreTestData;
 
 namespace StemStudio.Api.Tests.Scores;
@@ -65,7 +68,7 @@ public sealed class TablatureScoreTests : ApiTestBase
         using var created = await Client.PostScoreAsync(Tab(track.Id, "guitar", null, TuningIdDto.GuitarDropD, 2));
         var asset = await created.BodyAsync<AssetDto>();
         var summary = new WorkerTablatureSummary { Tuning = "guitar-drop-d", Strings = 6, Capo = 2, Layout = "notation-and-tab", OctaveMoved = 1, NotesDropped = 0, WideStretches = 3 };
-        CompleteTranscriptions(Worker, Result(Summary(Domain.Scores.ScoreProfile.Guitar) with { Tablature = summary }));
+        CompleteTranscriptions(Worker, Result(Summary(ScoreProfile.Guitar) with { Tablature = summary }));
 
         await Factory.SyncAssetsAsync();
 
@@ -128,7 +131,7 @@ public sealed class TablatureScoreTests : ApiTestBase
         {
             using var created = await Client.PostScoreAsync(Request(track.Id, channel) with { Profile = channel == "bass" ? ScoreProfileDto.Bass : ScoreProfileDto.Drums });
             ids.Add((await created.BodyAsync<AssetDto>()).Id);
-            await Task.Delay(20, Ct);
+            Factory.Clock.Advance(TimeSpan.FromMinutes(1));
         }
 
         using var response = await Client.GetAsync(new Uri($"{ApiRoutes.Assets}?trackId={track.Id}&channel=bass", UriKind.Relative), Ct);
@@ -152,6 +155,19 @@ public sealed class TablatureScoreTests : ApiTestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.JsonAsync()).GetProperty("errors").TryGetProperty("channel", out _).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(ScoreUnprocessable.TablatureNotAllowed, "tablature-not-allowed")]
+    [InlineData(ScoreUnprocessable.TuningMismatch, "tuning-mismatch")]
+    [InlineData(ScoreUnprocessable.CapoNotAllowed, "capo-not-allowed")]
+    [InlineData(ScoreUnprocessable.ClefNotAllowed, "clef-not-allowed")]
+    [InlineData(ScoreUnprocessable.PartNotAllowed, "part-not-allowed")]
+    public void EveryUnprocessableCode_HasItsProblemType(ScoreUnprocessable code, string type)
+    {
+        var problem = ScoreProblems.For(new ScoreUnprocessableException(code, "detail")).ShouldBeOfType<ProblemHttpResult>();
+
+        (problem.StatusCode, problem.ProblemDetails.Type, problem.ProblemDetails.Detail).ShouldBe((422, type, "detail"));
     }
 
     [Fact]

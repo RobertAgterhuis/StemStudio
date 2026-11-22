@@ -84,10 +84,21 @@ public sealed class ScoreSourceResolver(ITrackRepository tracks, IAssetRepositor
         TrackArtist = track.Artist,
         DurationSeconds = track.DurationSeconds ?? 0,
         InputPath = channel.PathFor(track.Id),
-        DrumPieces = render.Split.TryGetValue("drums", out var pieces)
-            ? DrumPieceNames.Where(pieces.Contains).ToDictionary(piece => piece, piece => new RenderChannel("drums", piece).PathFor(track.Id))
-            : new Dictionary<string, string>(),
+        DrumPieces = DrumPiecesOf(track, render, channel),
     };
+
+    /// <summary>A single drum piece reads only its own stem; the whole drums channel reads every kept piece.</summary>
+    private static Dictionary<string, string> DrumPiecesOf(Track track, RenderSource render, RenderChannel channel)
+    {
+        if (ProfileCatalog.DrumPiece(channel.Id) is { } single)
+        {
+            return new Dictionary<string, string>(StringComparer.Ordinal) { [single] = channel.PathFor(track.Id) };
+        }
+
+        return render.Split.TryGetValue("drums", out var pieces)
+            ? DrumPieceNames.Where(pieces.Contains).ToDictionary(piece => piece, piece => new RenderChannel("drums", piece).PathFor(track.Id), StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+    }
 
     private async Task<(ResolvedSource?, IResult?)> FromAssetAsync(Guid assetId, CancellationToken cancellationToken)
     {

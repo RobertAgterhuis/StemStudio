@@ -263,6 +263,15 @@ public sealed class ScoreRecipeTests
     }
 
     [Fact]
+    public void ScoreUnprocessableException_CarriesTheCode()
+    {
+        new ScoreUnprocessableException(ScoreUnprocessable.CapoNotAllowed, "d").ShouldSatisfyAllConditions(e => e.Code.ShouldBe(ScoreUnprocessable.CapoNotAllowed), e => e.Message.ShouldBe("d"));
+        new ScoreUnprocessableException().Code.ShouldBe(ScoreUnprocessable.TablatureNotAllowed);
+        new ScoreUnprocessableException("x").Message.ShouldBe("x");
+        new ScoreUnprocessableException("x", new InvalidOperationException()).InnerException.ShouldNotBeNull();
+    }
+
+    [Fact]
     public void ScoreFacts_PassTheirRules()
     {
         Should.NotThrow(() => ScoreFactsRules.Validate(Facts()));

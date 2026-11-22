@@ -60,6 +60,7 @@ public static class ScoreRecipeRules
     /// <returns>The recipe.</returns>
     /// <exception cref="DomainValidationException">A value breaks a rule (422).</exception>
     /// <exception cref="ScoreConflictException">Drums before the drums are split (409).</exception>
+    /// <exception cref="ScoreUnprocessableException">Tablature that does not fit the profile (typed 422).</exception>
     public static ScoreRecipe Resolve(ScoreRequest request, ScoreContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -93,13 +94,21 @@ public static class ScoreRecipeRules
         Tempo = request.Tempo,
         Range = request.Range,
         IncludeChords = request.IncludeChords,
+        Tablature = request.Tablature,
     };
 
     private static ScoreProfile Validate(ScoreRequest request, ScoreContext context)
     {
         var errors = new ValidationErrors();
         var profile = request.Profile ?? (request.Source.Channel is { } channel ? ProfileCatalog.Suggest(channel) : context.SuggestedProfile);
-        errors.Check(profile is { } chosen && ProfileCatalog.Allowed(request.Source.Channel).Contains(chosen), "profile", "The profile is not available for this source.");
+        var allowed = profile is { } chosen && ProfileCatalog.Allowed(request.Source.Channel).Contains(chosen);
+        errors.Check(allowed, "profile", "The profile is not available for this source.");
+        if (allowed)
+        {
+            ScoreTablatureRules.Check(request.Tablature, profile!.Value);
+        }
+
+        errors.Check(ScoreTablatureRules.CapoInRange(request.Tablature), "tablature.capo", ScoreTablatureRules.CapoRangeText);
         errors.Check(request.KeyOverride is null || KeyNames.IsKnown(request.KeyOverride), "keyOverride", "Must be one of the 30 key names, e.g. \"E minor\" or \"B- major\".");
         errors.Check(!request.IncludeChords || profile is not { } withChords || ScoreNotation.ChordsAllowed(withChords), "includeChords", ScoreNotation.ChordsNotAllowed);
         CheckTempo(errors.Nested("tempo"), request.Tempo);
