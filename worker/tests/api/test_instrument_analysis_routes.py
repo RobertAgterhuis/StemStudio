@@ -7,6 +7,7 @@ reported while running; results are inline (``ChordChart``, ``DrumHits``, ``Voca
 validate against the contract. ``/health`` reports the configured engines and the lane.
 """
 
+import logging
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -250,6 +251,26 @@ def test_more_hits_than_the_contract_allows_keep_the_first_ones(started: Api, fa
     hits = job["result"]["hits"]
     assert len(hits) == MAX_DRUM_HITS
     assert hits[-1]["timeMs"] == MAX_DRUM_HITS - 1
+
+
+def test_a_capped_result_keeps_a_fair_share_of_every_piece_and_logs_it(
+    started: Api, fakes: Fakes, caplog: pytest.LogCaptureFixture
+) -> None:
+    """50,000 hits -> 40,000: each piece keeps 80 % (its strongest), the whole song stays."""
+    kick = (DrumHit(i / 100, "kick", 0.9 if i % 5 == 0 else 0.3) for i in range(30_000))
+    hihat = (DrumHit(i * 0.015, "hihat", 0.5) for i in range(20_000))
+    fakes.drums.hits = (*kick, *hihat)
+
+    with caplog.at_level(logging.WARNING):
+        job = _done(started, _post(started, drums_body(("kick", "hihat"))))
+
+    hits = job["result"]["hits"]
+    kicks = [h for h in hits if h["piece"] == "kick"]
+    assert (len(kicks), len(hits) - len(kicks)) == (24_000, 16_000)
+    assert sum(h["strength"] == 0.9 for h in kicks) == 6_000
+    assert kicks[-1]["timeMs"] == 299_950
+    assert [h["timeMs"] for h in hits] == sorted(h["timeMs"] for h in hits)
+    assert any("50000" in r.getMessage() and "40000" in r.getMessage() for r in caplog.records)
 
 
 def test_a_drum_transcription_error_fails_the_job_with_its_text(started: Api, fakes: Fakes) -> None:
