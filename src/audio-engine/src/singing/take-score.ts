@@ -88,14 +88,19 @@ export async function scoreTake(request: TakeScoreRequest, deps: TakeScoreDeps):
   if (buffer === undefined) {
     fail('take');
   }
+  const units = scoreUnits(request, reference, buffer);
+  return { ...summarise(units, request.toleranceCents), latencySource: 'estimated', units };
+}
+
+/** Scores every unit the decoded take overlaps; units without enough voiced frames are left out. */
+function scoreUnits(request: TakeScoreRequest, reference: Int16Array, buffer: AudioBuffer): SingingUnitScore[] {
   const startMs = (1000 * request.startSample) / SONG_RATE;
   const singer = singerOf(buffer, startMs);
-  const units: SingingUnitScore[] = covered(request.units, startMs, startMs + 1000 * buffer.duration)
+  return covered(request.units, startMs, startMs + 1000 * buffer.duration)
     .map((unit) => ({
       index: unit.index,
       score: scoreUnit({ reference, unit, toleranceCents: request.toleranceCents, transpose: 0 }, singer),
       pass: 1,
     }))
     .filter((unit) => unit.score !== null);
-  return { ...summarise(units, request.toleranceCents), latencySource: 'estimated', units };
 }

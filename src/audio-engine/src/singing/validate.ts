@@ -39,11 +39,16 @@ export function validateContour(reference: PitchContour): Int16Array {
   if (!isList(reference.frames)) {
     contour('frames missing');
   }
-  if (reference.frames.length > MAX_CONTOUR_FRAMES) {
+  return framesOf(reference.frames);
+}
+
+/** Checks the frame count and range of a contour that has a frame list. */
+function framesOf(frames: PitchContour['frames']): Int16Array {
+  if (frames.length > MAX_CONTOUR_FRAMES) {
     contour(`more than ${String(MAX_CONTOUR_FRAMES)} frames`);
   }
-  const values = Int16Array.from(reference.frames);
-  if (!Array.from(reference.frames).every((v) => v >= 0 && v <= MAX_CENTS)) {
+  const values = Int16Array.from(frames);
+  if (!Array.from(frames).every((v) => v >= 0 && v <= MAX_CENTS)) {
     contour(`values outside 0..${String(MAX_CENTS)}`);
   }
   return values;

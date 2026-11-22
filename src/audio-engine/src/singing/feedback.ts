@@ -102,6 +102,15 @@ interface FrameMessage {
   readonly cents: number | null;
 }
 
+/** Node options of the pitch tracker: one explicit mono input, no output. */
+const PITCH_NODE_OPTIONS: AudioWorkletNodeOptions = {
+  numberOfInputs: 1,
+  numberOfOutputs: 0,
+  channelCount: 1,
+  channelCountMode: 'explicit',
+  channelInterpretation: 'speakers',
+};
+
 const loadModule = onceLoader((cause) => `Pitch tracking could not start (${cause})`);
 
 function isFrame(data: unknown): data is FrameMessage {
@@ -215,13 +224,7 @@ export class SingingFeedback {
 
   private connect(spec: SessionSpec): void {
     const { context } = this.deps;
-    const node = this.deps.createNode(context, PITCH_PROCESSOR_NAME, {
-      numberOfInputs: 1,
-      numberOfOutputs: 0,
-      channelCount: 1,
-      channelCountMode: 'explicit',
-      channelInterpretation: 'speakers',
-    });
+    const node = this.deps.createNode(context, PITCH_PROCESSOR_NAME, { ...PITCH_NODE_OPTIONS });
     this.deps.input()?.node.connect(node);
     this.session?.dispose();
     this.tolerance = spec.request.toleranceCents;
