@@ -247,8 +247,8 @@ text, the row wins.
 
 - [ ] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
 - [ ] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
-- [ ] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
-- [ ] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
+- [x] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
+- [x] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
 - [ ] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
 - [ ] T098 [US4] [audio-engine] Implement `src/pitch/{yin,decimate}.ts` to pass T097
 - [ ] T099 [P] [US4] [audio-engine] Failing tests `tests/singing/feedback.test.ts` with a fake worklet and fake 015 input: `startSingingFeedback` loads the module once, connects the input, states, errors (no input, already running), overrun guard -> `failed` with the reason, `stopSingingFeedback` idempotent summary, `getRoundTripLatency` calibrated/estimated (FR-041, FR-045)
