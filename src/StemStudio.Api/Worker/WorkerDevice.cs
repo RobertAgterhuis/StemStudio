@@ -60,6 +60,9 @@ public sealed record WorkerHealth
 
     /// <summary>The configured section analyser (1.8.0); null for an older worker.</summary>
     public WorkerStructureHealth? Structure { get; init; }
+
+    /// <summary>Engines and model readiness of the instrument-analysis lane (worker 1.9.0, feature 016); null before 1.9.0.</summary>
+    public WorkerInstrumentAnalysisHealth? InstrumentAnalysis { get; init; }
 }
 
 /// <summary>Readiness of the transcription models (worker 1.6.0 <c>TranscriptionHealth</c>).</summary>

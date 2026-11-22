@@ -44,6 +44,15 @@ public sealed record ScoreFacts
 
     /// <summary>Where the model ran, or null.</summary>
     public JobDevice? Device { get; init; }
+
+    /// <summary>Tablature facts (feature 016), null without tablature.</summary>
+    public TablatureFacts? Tablature { get; init; }
+
+    /// <summary>Transposed part facts (feature 016), null for a concert score without a part.</summary>
+    public PartFacts? Part { get; init; }
+
+    /// <summary>Chord symbols were placed above the top staff (feature 016).</summary>
+    public bool ChordsIncluded { get; init; }
 }
 
 /// <summary>Limits of <see cref="ScoreFacts"/> (backend contract 1.7.0 <c>ScoreFacts</c>), checked on worker data.</summary>

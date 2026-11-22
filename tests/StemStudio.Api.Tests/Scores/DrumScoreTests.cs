@@ -72,7 +72,7 @@ public sealed class DrumScoreTests : ApiTestBase
     }
 
     [Theory]
-    [InlineData("drums.kick")]
+    [InlineData("vocals.lead")]
     [InlineData("bass")]
     public async Task OtherChannels_CannotUseTheDrumsProfile(string channel)
     {

@@ -1,5 +1,7 @@
+using StemStudio.Api.InstrumentViews;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Scores;
+using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Scores;
 
 namespace StemStudio.Api.Scores;
@@ -10,7 +12,8 @@ namespace StemStudio.Api.Scores;
 /// </summary>
 /// <param name="sources">Resolves the source.</param>
 /// <param name="estimator">Reads the worker's device and computes the estimates.</param>
-public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstimator estimator)
+/// <param name="chords">Ready chord charts (feature 016 <c>chords</c> option).</param>
+public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstimator estimator, ScoreChordSource chords)
 {
     /// <summary>The options of a source.</summary>
     /// <param name="trackId">Track (with <paramref name="channel"/>).</param>
@@ -26,7 +29,12 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             return problem;
         }
 
-        return TypedResults.Ok(Options(source!, await estimator.EnvironmentAsync(cancellationToken)));
+        var options = Options(source!, await estimator.EnvironmentAsync(cancellationToken));
+        var chordsReady = await chords.ChartAsync(source!.Track?.Id, cancellationToken) is not null;
+        return TypedResults.Ok(options with
+        {
+            Chords = new ScoreChordOptionsDto { Available = chordsReady && ProfileCatalog.Allowed(source.Channel, source.AssetSuggestion).Any(ScoreNotation.ChordsAllowed) },
+        });
     }
 
     private ScoreOptionsDto Options(ResolvedSource source, ScoreEnvironment environment) => WithProfiles(source, environment, new ScoreOptionsDto
@@ -41,10 +49,13 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
 
     private ScoreOptionsDto WithProfiles(ResolvedSource source, ScoreEnvironment environment, ScoreOptionsDto options)
     {
-        var allowed = ProfileCatalog.Allowed(source.Channel);
+        var allowed = ProfileCatalog.Allowed(source.Channel, source.AssetSuggestion);
+        var suggested = source.Channel is { } channel ? ProfileCatalog.Suggest(channel) : source.AssetSuggestion;
         return options with
         {
-            SuggestedProfile = source.Channel is { } channel ? Dto(ProfileCatalog.Suggest(channel)) : Dto(source.AssetSuggestion),
+            SuggestedProfile = Dto(suggested),
+            Tablature = Tablature(suggested),
+            Parts = Parts(suggested),
             AllowedProfiles = allowed.Select(profile => ScoreMapper.Map<ScoreProfileDto>(profile)).ToList(),
             Estimates = allowed.SelectMany(profile => Estimates(profile, source.DurationSeconds, environment)).ToList(),
             Limits = allowed.Select(profile => new ProfileLimitDto(ScoreMapper.Map<ScoreProfileDto>(profile), ProfileCatalog.Limit(profile))).ToList(),
@@ -58,6 +69,32 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
             ScoreMapper.Map<ScoreProfileDto>(profile),
             quality is { } value ? ScoreMapper.Map<ScoreQualityDto>(value) : null,
             estimator.Seconds(duration, ProfileCatalog.Engine(profile, quality), environment)));
+    }
+
+    /// <summary>Tablature options of the suggested profile: the instrument's tunings for guitar or bass, a capo for guitar only.</summary>
+    private static ScoreTablatureOptionsDto Tablature(ScoreProfile? suggested)
+    {
+        var instrument = suggested is { } profile ? ScoreTablatureRules.InstrumentOf(profile) : null;
+        var tunings = InstrumentCatalogue.Tunings.Where(tuning => tuning.Instrument == instrument).Select(tuning => CatalogueMapper.ToDto(tuning.Id)).ToList();
+        return new ScoreTablatureOptionsDto
+        {
+            Available = tunings.Count > 0,
+            DefaultTuning = tunings.Count > 0 ? tunings[0] : null,
+            Tunings = tunings,
+            CapoAllowed = instrument == InstrumentCatalogue.GuitarInstrument,
+        };
+    }
+
+    /// <summary>Part options of the suggested profile: a written instrument for every pitched profile, a clef outside the grand staff.</summary>
+    private static ScorePartOptionsDto Parts(ScoreProfile? suggested)
+    {
+        var available = suggested is { } profile && ScorePartRules.PartAllowed(profile);
+        return new ScorePartOptionsDto
+        {
+            Available = available,
+            DefaultInstrument = Contracts.InstrumentViews.WrittenInstrumentDto.Concert,
+            ClefAllowed = available && !ScorePartRules.IsGrandStaff(suggested!.Value),
+        };
     }
 
     private static ScoreProfileDto? Dto(ScoreProfile? profile) => profile is { } value ? ScoreMapper.Map<ScoreProfileDto>(value) : null;

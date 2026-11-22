@@ -149,20 +149,20 @@ text, the row wins.
 
 ### backend (tests first)
 
-- [ ] T039 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/InstrumentViews/TrackAnalysisTests.cs`: every transition of data-model 7.2, fingerprint over input stems, `stale` on change, auto rules 7.3, `edits-exist` guard (FR-002, FR-012)
-- [ ] T040 [backend] Implement `Domain/InstrumentViews/{TrackAnalysis,AnalysisRules}.cs` to pass T039
-- [ ] T041 [P] [backend] Failing tests `ChordSpellingTests.cs`, `HarteLabelTests.cs`, `KeyFormatterTests.cs`, `ChordSheetBuilderTests.cs`, `ChordProWriterTests.cs`: all cases of `chord-spelling-vectors.json` (spelling by region key, keys incl. transposed and written keys), Harte parse of the edit pattern, sheet anchoring (word, lead, instrumental rows, no lyrics), ChordPro directives (FR-013, FR-014, FR-016, FR-071..FR-074)
-- [ ] T042 [backend] Implement `HarteLabel`, `ChordSpeller`, `KeyFormatter`, `ChordSheetBuilder`, `ChordProWriter` to pass T041
-- [ ] T043 [P] [backend] Failing tests `CapoAdvisorTests.cs` (S12): `capo` and `capoFixtures` vectors; ranking with the 0.02 tie rule; `fewOpenShapes`; shortcut for transpose +1..+7 and -5..-1 (FR-076, FR-077, SC-011)
-- [ ] T044 [backend] Implement `CapoAdvisor` to pass T043
-- [ ] T045 [P] [backend] Failing tests `InstrumentCatalogueTests.cs`, `FamilyRuleTests.cs`: catalogue content = data-model 4.1-4.3/5.3 and the worker constants; family of every channel id incl. `rest` and unsplit `other` (FR-060)
-- [ ] T046 [backend] Implement `InstrumentCatalogue`, `FamilyRule` to pass T045
-- [ ] T047 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/TrackAnalysesPersistenceTests.cs`: unique `(TrackId, Kind)`, JSON documents round trip (90,000 frames), cascade delete with the track, `Score` JSON with tablature/part facts loads 008 items unchanged
-- [ ] T048 [backend] Implement configuration and migration `AddTrackAnalyses` to pass T047
-- [ ] T049 [P] [backend] Failing tests `Worker/WorkerInstrumentAnalysisClientTests.cs` with the worker examples: create per kind, get with each result type, delete, problems mapped, device parsed
-- [ ] T050 [backend] Implement `Worker/WorkerClient.InstrumentAnalysis.cs` to pass T049
-- [ ] T051 [P] [backend] Failing tests `InstrumentViews/TrackAnalysisServiceTests.cs`: inputs per kind (data-model 7.4), grid handling, estimates (7.7), job applier stores documents and statuses, auto starter on standard completion and drums split, worker 503/restart handling
-- [ ] T052 [backend] Implement `TrackAnalysisService`, `AnalysisKindStrategies`, `AnalysisJobApplier`, `AnalysisAutoStarter` to pass T051
+- [x] T039 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/InstrumentViews/TrackAnalysisTests.cs`: every transition of data-model 7.2, fingerprint over input stems, `stale` on change, auto rules 7.3, `edits-exist` guard (FR-002, FR-012)
+- [x] T040 [backend] Implement `Domain/InstrumentViews/{TrackAnalysis,AnalysisRules}.cs` to pass T039
+- [x] T041 [P] [backend] Failing tests `ChordSpellingTests.cs`, `HarteLabelTests.cs`, `KeyFormatterTests.cs`, `ChordSheetBuilderTests.cs`, `ChordProWriterTests.cs`: all cases of `chord-spelling-vectors.json` (spelling by region key, keys incl. transposed and written keys), Harte parse of the edit pattern, sheet anchoring (word, lead, instrumental rows, no lyrics), ChordPro directives (FR-013, FR-014, FR-016, FR-071..FR-074)
+- [x] T042 [backend] Implement `HarteLabel`, `ChordSpeller`, `KeyFormatter`, `ChordSheetBuilder`, `ChordProWriter` to pass T041
+- [x] T043 [P] [backend] Failing tests `CapoAdvisorTests.cs` (S12): `capo` and `capoFixtures` vectors; ranking with the 0.02 tie rule; `fewOpenShapes`; shortcut for transpose +1..+7 and -5..-1 (FR-076, FR-077, SC-011)
+- [x] T044 [backend] Implement `CapoAdvisor` to pass T043
+- [x] T045 [P] [backend] Failing tests `InstrumentCatalogueTests.cs`, `FamilyRuleTests.cs`: catalogue content = data-model 4.1-4.3/5.3 and the worker constants; family of every channel id incl. `rest` and unsplit `other` (FR-060)
+- [x] T046 [backend] Implement `InstrumentCatalogue`, `FamilyRule` to pass T045
+- [x] T047 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/TrackAnalysesPersistenceTests.cs`: unique `(TrackId, Kind)`, JSON documents round trip (90,000 frames), cascade delete with the track, `Score` JSON with tablature/part facts loads 008 items unchanged
+- [x] T048 [backend] Implement configuration and migration `AddTrackAnalyses` to pass T047
+- [x] T049 [P] [backend] Failing tests `Worker/WorkerInstrumentAnalysisClientTests.cs` with the worker examples: create per kind, get with each result type, delete, problems mapped, device parsed
+- [x] T050 [backend] Implement `Worker/WorkerClient.InstrumentAnalysis.cs` to pass T049
+- [x] T051 [P] [backend] Failing tests `InstrumentViews/TrackAnalysisServiceTests.cs`: inputs per kind (data-model 7.4), grid handling, estimates (7.7), job applier stores documents and statuses, auto starter on standard completion and drums split, worker 503/restart handling
+- [x] T052 [backend] Implement `TrackAnalysisService`, `AnalysisKindStrategies`, `AnalysisJobApplier`, `AnalysisAutoStarter` to pass T051
 
 ### audio-engine (tests first)
 
@@ -189,16 +189,16 @@ text, the row wins.
 - [ ] T061 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_instrument_analysis_routes.py` (chords): 202 on the `instrument-analysis` lane (not blocked by a running transcribe/render/separation), stages/progress, inline `ChordChart` with `key`/`keyRegions`, validation 422, `/health` `instrumentAnalysis` and lane; responses validate against worker 1.9.0 (FR-002, FR-010, FR-070)
 - [ ] T062 [US1] [stem-separation] Implement `jobs/instrument_analysis_service.py`, `api/instrument_analysis_routes.py`, composition and lane in `main.py` (mixdown -> recognizer -> post-processing -> key) to pass T061
 - [ ] T063 [US1] [stem-separation] Integration test `worker/tests/harmony/test_chords_integration.py` (`@pytest.mark.integration`, downloads BTC): synthetic chord set through real BTC + post-processing >= 85 % majmin time (SC-001) and key test set >= 90 % (SC-010); records time per audio second
-- [ ] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
-- [ ] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
+- [x] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
+- [x] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
 - [ ] T066 [P] [US1] [audio-engine] Failing tests `tests/chords/chord-lane.test.ts`: DOM items, states, window by bars, host attributes, validation errors, detach, reduced motion, frame budget (counted writes) (FR-013, SC-007)
 - [ ] T067 [US1] [audio-engine] Implement `src/chords/lane.ts` and the engine methods to pass T066
 - [ ] T068 [P] [US1] [audio-engine] Failing tests `tests/chords/karaoke-chords.test.ts`: `setKaraokeChords` anchoring (word, lead), states, kept across `attachKaraoke`, `setChordDisplay` re-spelling on capo and 012 transpose change (FR-013, FR-014)
 - [ ] T069 [US1] [audio-engine] Implement `src/chords/banner.ts`, `setChordDisplay` to pass T068
 - [ ] T070 [P] [US1] [frontend] Failing bUnit tests: `chord-lane` host + toggle, `chords-status`/`chords-detect`/`chords-limits`, `chords-vocabulary` (Advanced), `chords-engine` (Expert), `data-chords` on the banner, `chord-sheet` rows in the lyrics card, `chord-sheet-transpose`, `chord-edit-*` (Advanced), `chord-sheet-download`, overwrite confirm; help ids `chords`, `chords-advanced` (FR-012..FR-016, FR-061)
 - [ ] T071 [US1] [frontend] Implement `ChordLane`, `ChordSheet`, `ChordEditDialog`, wiring and help topics to pass T070
-- [ ] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
-- [ ] T073 [US1] [backend] Implement to pass T072
+- [x] T072 [P] [US1] [backend] Failing tests: `includeChords` -> worker `chords` + `preferFlats` (range-shifted), `409 chords-not-ready`, profile rules, `ScoreOptions.chords`, `ScoreFacts.chordsIncluded` (FR-017)
+- [x] T073 [US1] [backend] Implement to pass T072
 - [ ] T074 [P] [US1] [frontend] Failing bUnit tests: `score-include-chords` (Advanced) enabled only when available, with the reason otherwise (FR-017)
 - [ ] T075 [US1] [frontend] Implement to pass T074
 - [ ] T076 [US1] [qa] Author `e2e/tests/instrument-chords.spec.ts`: harmony family as **keys** and as **guitar**: chords ready automatically; `chord-lane` `data-current-symbol` changes on the fake bars (C, G, Am, F); banner `.karaoke-chord` above words; chord sheet rows; Advanced edit persists; ChordPro starts with `{title:`; lead sheet with chords has `<harmony>` (SC-006)
@@ -213,8 +213,8 @@ text, the row wins.
 
 - [ ] T077 [P] [US2] [stem-separation] Failing route tests: `tablature`, `part`, `chords`, `preferFlats`, `singlePiece` reach the notator settings; 422 combinations (DELTA 1); `ScoreSummary` extensions returned (FR-020, FR-023, FR-051)
 - [ ] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
-- [ ] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
-- [ ] T080 [US2] [backend] Implement to pass T079
+- [x] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
+- [x] T080 [US2] [backend] Implement to pass T079
 - [ ] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
 - [ ] T082 [US2] [frontend] Implement `ScoreDialog` tab options, `MidiAction`, help topics to pass T081
 - [ ] T083 [US2] [qa] Author `e2e/tests/instrument-tab.spec.ts`: **guitar** drop D notation + tab (MusicXML `TAB` clef, 6 `staff-tuning`, `<fret>` values sound the pitches); **bass** 5-string tab only (5 lines); MIDI action on `drums-kick` downloads `MThd` with channel 10 notes 36 (SC-002, SC-006)
@@ -229,8 +229,8 @@ text, the row wins.
 
 - [ ] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
 - [ ] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
-- [ ] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
-- [ ] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
+- [x] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
+- [x] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
 - [ ] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
 - [ ] T089 [US3] [audio-engine] Implement `src/drums/hit-lanes.ts` and the methods to pass T088
 - [ ] T090 [P] [US3] [frontend] Failing bUnit tests: `drumless` (family mute incl. expanded strips, metronome + one-bar count-in via 012, restore on second click), `drum-trainer`, `drum-lanes` host, `drum-hits-status`, `drum-hits-split-required`/`-start`, `drum-lane-label-<piece>` guide (Advanced), `drum-look-ahead` (Advanced), `drum-bar-text`, `drum-score` (014 view) / `drum-score-generate`; help id `drum-trainer` (FR-031..FR-034, FR-062)
@@ -247,8 +247,8 @@ text, the row wins.
 
 - [ ] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
 - [ ] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
-- [ ] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
-- [ ] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
+- [x] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
+- [x] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
 - [ ] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
 - [ ] T098 [US4] [audio-engine] Implement `src/pitch/{yin,decimate}.ts` to pass T097
 - [ ] T099 [P] [US4] [audio-engine] Failing tests `tests/singing/feedback.test.ts` with a fake worklet and fake 015 input: `startSingingFeedback` loads the module once, connects the input, states, errors (no input, already running), overrun guard -> `failed` with the reason, `stopSingingFeedback` idempotent summary, `getRoundTripLatency` calibrated/estimated (FR-041, FR-045)
@@ -269,8 +269,8 @@ text, the row wins.
 
 **Goal**: new profiles, written instrument and clef, same bars. **Independent test**: quickstart V11; E2E `instrument-parts.spec.ts`.
 
-- [ ] T108 [P] [US5] [backend] Failing tests: profiles `strings`/`brass`/`woodwinds` suggested for `<parent>.strings|brass|woodwinds`; `part` validation (`part-not-allowed`, `clef-not-allowed`), `ScoreOptions.parts`, `ScoreFacts.part`, recipe round trip (FR-050..FR-053)
-- [ ] T109 [US5] [backend] Implement to pass T108
+- [x] T108 [P] [US5] [backend] Failing tests: profiles `strings`/`brass`/`woodwinds` suggested for `<parent>.strings|brass|woodwinds`; `part` validation (`part-not-allowed`, `clef-not-allowed`), `ScoreOptions.parts`, `ScoreFacts.part`, recipe round trip (FR-050..FR-053)
+- [x] T109 [US5] [backend] Implement to pass T108
 - [ ] T110 [P] [US5] [frontend] Failing bUnit tests: `score-part-instrument` (all levels, `concert` first), `score-part-clef` (Advanced), `asset-score-part-<id>`, new profile names; help id `transposed-parts` (FR-051, FR-052, FR-061)
 - [ ] T111 [US5] [frontend] Implement to pass T110
 - [ ] T112 [US5] [qa] Author `e2e/tests/instrument-parts.spec.ts`: **brass** as alto sax E-flat (`<transpose><chromatic>-9`, `<fifths>3` for concert C), **woodwinds** as clarinet B-flat, **strings** as viola (alto clef `<sign>C</sign>`); MIDI at concert pitch; the 014 score view shows the same current bar for the part and the concert part at a fixed position (SC-005, SC-006)
@@ -293,8 +293,8 @@ text, the row wins.
 
 **Goal**: key next to the tempo, current region, transposed and written keys. **Independent test**: quickstart V12; E2E `instrument-key.spec.ts`.
 
-- [ ] T116 [P] [US7] [backend] Failing tests `KeyEndpointsTests.cs`: `Track.key` summary when chords are ready (null otherwise), `GET /api/tracks/{id}/key` with transpose and instrument (written key), regions with start bars from the grid, uncertainty; un-stage `getKey` (FR-070..FR-074)
-- [ ] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
+- [x] T116 [P] [US7] [backend] Failing tests `KeyEndpointsTests.cs`: `Track.key` summary when chords are ready (null otherwise), `GET /api/tracks/{id}/key` with transpose and instrument (written key), regions with start bars from the grid, uncertainty; un-stage `getKey` (FR-070..FR-074)
+- [x] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
 - [ ] T118 [P] [US7] [audio-engine] Failing tests `tests/chords/current-key.test.ts`: chord lane host `data-current-key` follows the region at the position and the 012 transpose; spelling uses the region key (D major sharps, D-flat major flats) (FR-071, FR-073)
 - [ ] T119 [US7] [audio-engine] Implement to pass T118
 - [ ] T120 [P] [US7] [frontend] Failing bUnit tests: `track-key` next to `track-bpm`, `mixer-key`, `mixer-key-current` (mirrors `data-current-key`), transposed display with the 012 transpose, `mixer-key-written` for the orchestral family with a chosen instrument, `mixer-key-confidence` and `track-key-regions` (Advanced); help id `song-key` (FR-071..FR-074, FR-061)
@@ -309,8 +309,8 @@ text, the row wins.
 
 **Goal**: capo badge, shapes, suggestions, original-shapes shortcut, tab prefill. **Independent test**: quickstart V13; E2E `instrument-capo.spec.ts`.
 
-- [ ] T123 [P] [US8] [backend] Failing tests `CapoEndpointsTests.cs`: `GET .../chords/capo-suggestions?transpose` (shortcut, ranking from `CapoAdvisor`, `409 chords-not-ready`), sheet/ChordPro with `capo` show shapes and `{capo: n}`; un-stage `getCapoSuggestions` (FR-075..FR-077)
-- [ ] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
+- [x] T123 [P] [US8] [backend] Failing tests `CapoEndpointsTests.cs`: `GET .../chords/capo-suggestions?transpose` (shortcut, ranking from `CapoAdvisor`, `409 chords-not-ready`), sheet/ChordPro with `capo` show shapes and `{capo: n}`; un-stage `getCapoSuggestions` (FR-075..FR-077)
+- [x] T124 [US8] [backend] Implement `CapoEndpoints` to pass T123
 - [ ] T125 [P] [US8] [audio-engine] Failing tests `tests/chords/capo-display.test.ts`: `setChordDisplay({capo, showSounding})` shapes in lane and banner, `.chord-sounding` children, host `data-capo`, capo range error (FR-075)
 - [ ] T126 [US8] [audio-engine] Implement to pass T125
 - [ ] T127 [P] [US8] [frontend] Failing bUnit tests: `capo-mode`, `capo-select`, `capo-badge`, `capo-suggestions`/`capo-suggestion-<n>` (one click applies), `capo-shortcut` after a transpose, `capo-show-sounding` (Advanced), stored per track in the browser, tablature dialog prefilled with the capo, **no capo controls for the bass and keys families**; help id `capo-mode` (FR-075..FR-078, US8 AS5)
@@ -326,7 +326,7 @@ text, the row wins.
 - [ ] T130 [P] [beat-analysis] Refactor to SIG limits, docstrings, HO:polish with coverage of `harmony/` (non-vendor parts it owns), `analysis/vocal_pitch.py`, `notation/` additions
 - [ ] T131 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `analysis_inputs/`, `engraving/tablature.py`
 - [ ] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
-- [ ] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
+- [x] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
 - [ ] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
 - [ ] T136 [P] [qa] axe checks on every new area (0 serious/critical), traceability matrix (US1-US8, FR-001..FR-078, per family), HO:polish (SC-008)

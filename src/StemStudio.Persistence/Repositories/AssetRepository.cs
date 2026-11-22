@@ -18,6 +18,9 @@ public sealed record AssetQuery
     /// <summary>Only this origin; null = every origin except <see cref="AssetOrigin.Recording"/> (feature 015: takes are hidden).</summary>
     public AssetOrigin? Origin { get; init; }
 
+    /// <summary>Only items whose score recipe source is this channel (feature 016; used with <see cref="TrackId"/>).</summary>
+    public string? Channel { get; init; }
+
     /// <summary>Case-insensitive "name contains".</summary>
     public string? NameContains { get; init; }
 
@@ -97,7 +100,7 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     public async Task<AssetPage> ListAsync(AssetQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var matching = Filter(AssetOrigins.Of(context, query.Origin).AsNoTracking(), query);
+        var matching = Filter(AssetOrigins.OfChannel(context, AssetOrigins.Of(context, query.Origin), query.Channel).AsNoTracking(), query);
         var items = await matching.OrderByDescending(asset => asset.CreatedAt).Skip(query.Offset).Take(query.Limit).ToListAsync(cancellationToken);
         var total = await matching.CountAsync(cancellationToken);
         var size = await matching.SumAsync(asset => asset.SizeBytes, cancellationToken);
@@ -170,6 +173,22 @@ internal static class AssetOrigins
 
         var ids = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.Origin') = {value.ToString()}");
         return context.Assets.Where(asset => ids.Contains(asset.Id));
+    }
+
+    /// <summary>Narrows to the items whose score recipe source is a channel (feature 016); the channel is a SQL parameter.</summary>
+    /// <param name="context">The context.</param>
+    /// <param name="assets">The query so far.</param>
+    /// <param name="channel">The channel id, or null for no filter.</param>
+    /// <returns>The composable query.</returns>
+    public static IQueryable<Asset> OfChannel(StemStudioDbContext context, IQueryable<Asset> assets, string? channel)
+    {
+        if (channel is null)
+        {
+            return assets;
+        }
+
+        var ids = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.ScoreRecipe.Source.Channel') = {channel}");
+        return assets.Where(asset => ids.Contains(asset.Id));
     }
 
     /// <summary>Every item that is not a recorded take.</summary>

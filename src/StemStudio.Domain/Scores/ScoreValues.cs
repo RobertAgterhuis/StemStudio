@@ -22,6 +22,15 @@ public enum ScoreProfile
 
     /// <summary>Percussion staff from the five drum detail stems.</summary>
     Drums,
+
+    /// <summary>Strings section line (feature 016).</summary>
+    Strings,
+
+    /// <summary>Brass section line (feature 016).</summary>
+    Brass,
+
+    /// <summary>Woodwinds section line (feature 016).</summary>
+    Woodwinds,
 }
 
 /// <summary>Piano transcription quality.</summary>
@@ -211,6 +220,15 @@ public sealed record ScoreRecipe
 
     /// <summary>Part of the source (at least 2 s).</summary>
     public ExportRange? Range { get; init; }
+
+    /// <summary>Tablature settings (feature 016), null without tablature.</summary>
+    public TablatureSettings? Tablature { get; init; }
+
+    /// <summary>Part settings (feature 016), null for concert pitch without a clef choice.</summary>
+    public PartSettings? Part { get; init; }
+
+    /// <summary>Place chord symbols above the top staff (feature 016).</summary>
+    public bool IncludeChords { get; init; }
 }
 
 /// <summary>The key of a score.</summary>
