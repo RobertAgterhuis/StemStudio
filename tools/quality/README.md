@@ -12,7 +12,8 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 | `secret_rules.py` | Claude key handling (011 follow-up claude-key): Data Protection namespace/entry points, `global using` and packages; `StemStudio.Api.Agent.Secrets` references; `record` declarations of `ClaudeApiKey`/`StoreClaudeKeyRequest`; log calls and `[LoggerMessage]` methods in `Api/Agent/Secrets/**` and `Agent/Backends/Claude*` | Data Protection outside `src/StemStudio.Api/Agent/Secrets/` (or any `global using` of it), the secrets namespace outside `StemStudio.Api`, a Data Protection package outside the API, a key value type declared as `record`, a log argument named `key`/`apiKey`, a `Reveal()` in a log argument, a `{Key}`/`{ApiKey}` placeholder | |
 | `library_care_rules.py` | Library care (feature 013): references to `StemStudio.Api.LibraryCare.*` from other API folders (fully, partially or namespace-relative qualified); bulk ZIP helpers in `src/**` | outside `Api/LibraryCare/` and `ApiComposition.cs` any `LibraryCare` name but `Gate`; a call of `ExtractToDirectory`, `ExtractToFile`, `CreateFromDirectory` (or `...Async`), a `using static` of `ZipFile`/`ZipFileExtensions` | |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
-| `sonar_args.py` | `sonar-project.properties` -> `/d:` args for `dotnet sonarscanner begin` | | |
+
+The project uses no SonarQube and no Sigrid (ADR-038): these checks are the maintainability gate.
 
 Report helpers (no CLI): `risk.py` (SIG risk profiles, house star estimate), `components.py`
 (per-component three-band distributions), `priorities.py` (top-10 refactor requests),
@@ -42,8 +43,7 @@ third-party MSST code in `worker/src/stemstudio_worker/detail/vendor/` (feature 
 Complexity Tracking, accepted by the CTO; it is covered by the marked integration test instead)
 and the vendored basic-pitch and piano-transcription code in
 `worker/src/stemstudio_worker/transcription/vendor/` (feature 008 plan.md, same rule; thin adapters
-in `transcription/` are measured). Both folders are also in `.jscpd.json` and in
-`sonar.exclusions`. Vendored files contribute no edges to the dependency graph; instead
+in `transcription/` are measured). Both folders are also in `.jscpd.json`. Vendored files contribute no edges to the dependency graph; instead
 `vendor_check.py` requires a `LICENSE` and a `NOTICE` file (origin, version, modifications) in
 every vendored package directory.
 
@@ -74,8 +74,7 @@ Practice tempo (feature 012):
   the downloaded upstream source `third_party/soundtouch/upstream/` (SoundTouch 2.4.1, LGPL-2.1)
   and the build output `third_party/soundtouch/build/` are excluded, as are the generated web
   outputs `wwwroot/js/time-stretch-processor.js(.map)`, `wwwroot/js/soundtouch/` and
-  `wwwroot/third-party/` (same list in `.jscpd.json`, which also scans `cpp`, and in
-  `sonar.exclusions`/`sonar.cpd.exclusions`). Component rows: `audio-engine/stretch`,
+  `wwwroot/third-party/` (same list in `.jscpd.json`, which also scans `cpp`). Component rows: `audio-engine/stretch`,
   `audio-engine/practice` (sub-rows of `audio-engine`) and `soundtouch shim`.
 
 Raw-colour guard (feature 004, FR-003): values are checked per declaration, so selectors (`#id`,
@@ -160,8 +159,7 @@ and its service code and tests belong to the `generative` agent (`ports`, `schem
 `__init__` stay with the architect). The SoulX-Singer adapters `engines/soulx_svc.py` and
 `engines/rmvpe.py` and `audio/{remix,normalise}.py` (feature 010) follow the same rule. It has no
 vendored code (SoulX-Singer is path-installed in
-the singer image, ADR-019), so nothing below `generator/` is excluded. Sonar analyses
-`generator/src` and `generator/tests` and reads `generator/coverage.xml`.
+the singer image, ADR-019), so nothing below `generator/` is excluded.
 
 Service separation (`PythonPackage.foreign`): no worker module imports `stemstudio_generator`
 and no generator module imports `stemstudio_worker` (`main.py` included); the services share only
@@ -206,7 +204,7 @@ which is why the UI folders may not name `HttpClient`. Folder rules read `*.cs` 
 (`@using`, `@inject`, `@code`; `@* *@` and `<!-- -->` comments, strings and comments are ignored).
 Measurement: `Library (022)` and `Lyric assist (023)` are report rows across the projects (also
 counted in the project rows); `Api/LyricAssist/Dictionaries/` (vendored Hunspell and CMUdict data)
-and `tests/fixtures/lyrics/assist/**` are excluded from SIG, jscpd and Sonar.
+and `tests/fixtures/lyrics/assist/**` are excluded from SIG and jscpd.
 
 ## Commands (repository root)
 

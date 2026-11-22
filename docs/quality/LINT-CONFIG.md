@@ -20,5 +20,4 @@ Maps every constitution quality rule to the tool and file that enforces it. Run 
 | TypeScript types | `tsc --noEmit` | `tsconfig.json` per package | yes |
 | TypeScript coverage >= 90% | Vitest (`@vitest/coverage-v8`) | `src/audio-engine/vitest.config.ts` | yes |
 | OpenAPI contracts valid | Redocly CLI | `specs/001-stemstudio-mvp/contracts/redocly.yaml` | yes |
-| SonarQube analysis | dotnet-sonarscanner | `sonar-project.properties`, CI job (runs only with `SONAR_TOKEN`) | only when configured |
 | OSI licences only | licence report (pip-licenses, nuget-license, license-checker) + manual review | CI artifact, `docs/THIRD-PARTY-LICENSES.md` | report only |

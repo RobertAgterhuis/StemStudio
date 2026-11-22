@@ -1,8 +1,8 @@
 # ADR-033: Instrument views: analyses, timeline views, tablature and transposed parts (feature 016)
 
-- **Status**: Accepted (architect, 016 Phase 0, 2026-11-18): T001 reconciled with the merged 012/014/015
-  surface (016 DELTA.md "Phase 0 outcome"); T006 decided D6 = native Verovio TAB (see D6). Proposed
-  2026-11-16.
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
+  Architect Phase 0 notes (2026-11-18): T001 reconciled with the merged 012/014/015
+  surface (016 DELTA.md "Phase 0 outcome"); T006 decided D6 = native Verovio TAB (see D6).
 - **Context documents**: `specs/016-instrument-views/{spec.md, plan.md, research.md R-08..R-12,
   data-model.md 4-7}`, ADR-016 (lanes, library), ADR-017 (notation/engraving), ADR-015 (banner),
   ADR-031, ADR-032, `docs/MoSCoW.md` (every instrument counts equally)

@@ -1,7 +1,6 @@
 # ADR-030: Amp and pedal simulation with Neural Amp Modeler in WebAssembly (feature 021, C10)
 
-- **Status**: Proposed (architect, 2026-11-16; Accepted with the 021 plan; S-03/S-04 fill the
-  Phase 0 outcome).
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Numbering**: feature-scoped, see ADR-025.
 - **Context documents**: `specs/021-partner-studio-bridge/{spec.md, research.md (R-06..R-11),
   data-model.md 3}`, ADR-005/ADR-010 (audio engine), ADR-009 (weights), the 015 (inputs, latency,

@@ -21,7 +21,6 @@ from repo_tree import write_file
 import components
 import dependency_check
 import sig_check
-import sonar_args
 from common import (
     REPO_ROOT,
     Severity,
@@ -238,7 +237,7 @@ def test_jscpd_scans_cpp_and_ignores_upstream() -> None:
     assert "**/third_party/soundtouch/build/**" in config["ignore"]
 
 
-# ------------------------------------------------------------------ components and Sonar
+# ------------------------------------------------------------------ components
 
 
 def test_practice_components_are_reported() -> None:
@@ -246,32 +245,3 @@ def test_practice_components_are_reported() -> None:
     assert names["audio-engine/stretch"] == ("src/audio-engine/src/stretch/",)
     assert names["audio-engine/practice"] == ("src/audio-engine/src/practice/",)
     assert names["soundtouch shim"] == ("third_party/soundtouch/shim/",)
-
-
-def _sonar() -> dict[str, str]:
-    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
-    return sonar_args.parse_properties(text)
-
-
-SONAR_EXCLUDED = (
-    "third_party/soundtouch/upstream/**",
-    "third_party/soundtouch/build/**",
-    "src/StemStudio.Web/wwwroot/js/time-stretch-processor.js",
-    "src/StemStudio.Web/wwwroot/js/time-stretch-processor.js.map",
-    "src/StemStudio.Web/wwwroot/js/soundtouch/**",
-    "src/StemStudio.Web/wwwroot/third-party/**",
-)
-
-
-@pytest.mark.parametrize("pattern", SONAR_EXCLUDED)
-def test_sonar_excludes_third_party_and_build_output(pattern: str) -> None:
-    props = _sonar()
-    assert pattern in props["sonar.exclusions"].split(",")
-    assert pattern in props["sonar.cpd.exclusions"].split(",")
-
-
-def test_sonar_keeps_the_shim_measured() -> None:
-    props = _sonar()
-    assert "third_party/soundtouch" in props["sonar.sources"].split(",")
-    excluded = props["sonar.exclusions"].split(",")
-    assert not any(p.startswith(("third_party/soundtouch/shim", "**/*.cpp")) for p in excluded)

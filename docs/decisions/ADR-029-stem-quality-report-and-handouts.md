@@ -1,7 +1,6 @@
 # ADR-029: Stem quality report, high-quality vocal pipeline and lesson handouts (feature 020)
 
-- **Status**: Proposed (architect, 020 planning, 2026-11-16); becomes Accepted at 020 Phase 0
-  with the G1/G2 results recorded under "Phase 0 outcome"
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
 - **Numbering**: features 012-020 are specified in parallel; to avoid collisions each takes the
   ADR number `ADR-0(21 + feature - 12)`, so 020 -> ADR-029. The CTO may renumber at merge.
 - **Context documents**: `specs/020-insights-handouts/{spec.md, research.md, data-model.md,

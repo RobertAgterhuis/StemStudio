@@ -1,10 +1,10 @@
 # ADR-032: Singing feedback: live pitch tracking and scoring (feature 016)
 
-- **Status**: Accepted (architect, 016 Phase 0, 2026-11-18): `librosa.pyin` needs about 10 s for 5 min
+- **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
+  Architect Phase 0 notes (2026-11-18): `librosa.pyin` needs about 10 s for 5 min
   (16 kHz, hop 160; `pyin` stays the default, `yin` 1.2 s); the R-05 YIN core takes 0.019 ms average and
   0.33 ms worst per 128-frame block at 48 kHz in Node 22 and 0.017 / 0.30 ms in Chromium 159 (budget 0.5 /
   2 ms). Latency source = the 015 `LatencyMethod` (the engine keeps no calibration; Blazor passes it).
-  Proposed 2026-11-16.
 - **Context documents**: `specs/016-instrument-views/{spec.md US4, research.md R-05..R-07,
   data-model.md 3}`, ADR-005 (engine), ADR-015 (karaoke clock), the 015 recording/latency ADR
   (written in parallel), constitution V (sample-accurate timing, no timers for audible timing)

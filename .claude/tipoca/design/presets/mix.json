@@ -1,0 +1,19 @@
+{
+  "$description": "Default design mix (decision D-014): which preset Tipoca uses per surface when a project has no .claude/design/override.md. Presets live next to this file; each has default.md and tokens.json.",
+  "$status": "SYNCED",
+  "$syncedAt": "2026-11-17",
+  "surfaces": {
+    "app": "enterprise",
+    "pdf": "enterprise",
+    "site": "cinematic",
+    "visuals": "cinematic"
+  },
+  "fallback": "foundry",
+  "notes": {
+    "app": "Application UI: dashboards, consoles, forms, tables (Direction A, Enterprise Precision).",
+    "pdf": "Printed and PDF documents such as reports; print sizes are in the preset's typography.print.",
+    "site": "Project website built by the pages template (Direction B, Cinematic Foundry).",
+    "visuals": "Diagrams, social cards, slides and other marketing visuals (Direction B).",
+    "fallback": "Any surface not listed; also the default snapshot in templates/design/."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "enabledPlugins": {
+    "tipoca@tipoca": true
+  },
+  "extraKnownMarketplaces": {
+    "tipoca": {
+      "source": {
+        "source": "github",
+        "repo": "RobertAgterhuis/tipoca"
+      }
+    }
+  }
+}
