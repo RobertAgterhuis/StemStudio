@@ -68,6 +68,7 @@ test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
     await setAllExpanded(mixer, track, true);
     const drums = drumDetailKeys(track);
 
+    const metronomeBefore = await isOn(mixer.byId('metronome-toggle'));
     await ui.drumless.click();
     await expect(ui.drumless).toHaveAttribute('aria-pressed', 'true');
     await expect(ui.drumTrainer).toBeVisible();
@@ -81,7 +82,7 @@ test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
     for (const key of drums) {
       await expect.poll(() => isOn(mixer.mute(key)), { message: `mute-${key}` }).toBe(false);
     }
-    await expect.poll(() => isOn(mixer.byId('metronome-toggle'))).toBe(false);
+    await expect.poll(() => isOn(mixer.byId('metronome-toggle'))).toBe(metronomeBefore);
   });
 
   test('Advanced: a guide piece is the only audible drum channel', async ({ api, mixer, page }) => {
