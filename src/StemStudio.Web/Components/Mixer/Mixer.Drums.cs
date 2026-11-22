@@ -14,6 +14,7 @@ public sealed partial class Mixer
 {
     private DrumlessSnapshot? _drumless;
     private bool _guideExpanded;
+    private bool _drumBusy;
 
     [Inject]
     private ViewPreferences ViewPreferences { get; set; } = default!;
@@ -45,7 +46,29 @@ public sealed partial class Mixer
         await (_drumless is null ? ViewPreferences.RemoveAsync(DrumlessKey) : Task.CompletedTask);
     }
 
-    private Task ToggleDrumlessAsync() => DrumlessOn ? RestoreDrumsAsync() : ApplyDrumlessAsync();
+    private Task ToggleDrumlessAsync() => OneDrumChangeAsync(() => DrumlessOn ? RestoreDrumsAsync() : ApplyDrumlessAsync());
+
+    private Task SetGuideAsync(DrumPieceDto? piece) => OneDrumChangeAsync(() => ApplyGuideAsync(piece));
+
+    // One Drumless or guide change at a time (review L2): a click while the engine is still receiving the previous change
+    // is ignored, so the engine never ends half-muted against the state.
+    private async Task OneDrumChangeAsync(Func<Task> change)
+    {
+        if (_drumBusy)
+        {
+            return;
+        }
+
+        _drumBusy = true;
+        try
+        {
+            await change();
+        }
+        finally
+        {
+            _drumBusy = false;
+        }
+    }
 
     private async Task ApplyDrumlessAsync()
     {
@@ -66,7 +89,7 @@ public sealed partial class Mixer
 
     // A guide piece is a detail channel: the drums group is expanded while a guide is active, so the piece is on the
     // audible level (FR-033), and collapsed again when the guide is cleared or Drumless ends.
-    private async Task SetGuideAsync(DrumPieceDto? piece)
+    private async Task ApplyGuideAsync(DrumPieceDto? piece)
     {
         await (DrumlessOn ? Task.CompletedTask : ApplyDrumlessAsync());
         GuidePiece = piece;
