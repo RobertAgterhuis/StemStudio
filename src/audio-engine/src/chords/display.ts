@@ -123,14 +123,10 @@ export class SpelledChart {
       return;
     }
     const sounding = this.soundingSymbol(index);
-    if (shows(element, shape, sounding)) {
-      return;
+    if (!shows(element, shape, sounding)) {
+      element.replaceChildren(shape, soundingChild(element.ownerDocument, sounding));
+      writer.structural();
     }
-    const span = element.ownerDocument.createElement('span');
-    span.className = SOUNDING_CLASS;
-    span.textContent = sounding;
-    element.replaceChildren(shape, span);
-    writer.structural();
   }
 
   /** Display version the symbols were spelled for. */
@@ -168,4 +164,11 @@ function shows(element: HTMLElement, shape: string, sounding: string): boolean {
   const child = element.lastElementChild;
   const childShows = child?.className === SOUNDING_CLASS && child.textContent === sounding;
   return childShows && element.firstChild?.textContent === shape;
+}
+
+function soundingChild(doc: Document, sounding: string): HTMLElement {
+  const span = doc.createElement('span');
+  span.className = SOUNDING_CLASS;
+  span.textContent = sounding;
+  return span;
 }
