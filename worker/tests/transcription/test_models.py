@@ -118,7 +118,12 @@ def test_ready_hashes_an_unchanged_file_once(
     store.ensure(WEIGHTS)
     hashed: list[Path] = []
     digest = models._file_digest
-    monkeypatch.setattr(models, "_file_digest", lambda path: hashed.append(path) or digest(path))
+
+    def counting(path: Path) -> str | None:
+        hashed.append(path)
+        return digest(path)
+
+    monkeypatch.setattr(models, "_file_digest", counting)
 
     assert store.ready(WEIGHTS) and store.ready(WEIGHTS)
 
@@ -135,6 +140,14 @@ def test_ready_hashes_again_after_the_file_changed(tmp_path: Path) -> None:
     assert not store.ready(WEIGHTS)
     assert store.ensure(WEIGHTS).read_bytes() == DATA
     assert store.ready(WEIGHTS)
+
+
+def test_an_unreadable_cache_entry_is_not_ready(tmp_path: Path) -> None:
+    store = ModelStore(tmp_path, Opener())
+    store.path(WEIGHTS).mkdir(parents=True)  # exists, but cannot be read as a file
+
+    assert not store.ready(WEIGHTS)
+    assert not store.ready(WEIGHTS)
 
 
 def test_the_default_opener_uses_urllib_with_a_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
