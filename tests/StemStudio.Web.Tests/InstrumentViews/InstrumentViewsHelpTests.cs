@@ -22,6 +22,7 @@ public sealed class InstrumentViewsHelpTests
         { "transposed-parts", ["score-part", "score-part-clef"] },
         { "instrument-views", ["practise-as"] },
         { "song-key", ["song-key"] },
+        { "capo-mode", ["capo-mode"] },
     };
 
     [Theory]
