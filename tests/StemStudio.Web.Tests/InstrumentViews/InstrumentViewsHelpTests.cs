@@ -17,6 +17,8 @@ public sealed class InstrumentViewsHelpTests
         { "tablature", ["score-tablature", "score-tab-tuning"] },
         { "midi-download", ["midi-download"] },
         { "drum-trainer", ["drum-trainer", "drum-lanes", "drumless"] },
+        { "singing-feedback", ["singing", "pitch-view"] },
+        { "singing-tolerance-latency", ["singing-tolerance", "singing-latency"] },
     };
 
     [Theory]
@@ -51,6 +53,16 @@ public sealed class InstrumentViewsHelpTests
 
         body.ShouldContain("split", Case.Insensitive);
         body.ShouldContain("guide", Case.Insensitive);
+        body.ShouldContain("Limits", Case.Sensitive);
+    }
+
+    [Fact]
+    public void SingingTopic_SaysTheAudioStaysInTheBrowser()
+    {
+        var body = Catalog.Topic("singing-feedback")!.Markdown;
+
+        body.ShouldContain("headphones", Case.Insensitive);
+        body.ShouldContain("stays in your browser", Case.Insensitive);
         body.ShouldContain("Limits", Case.Sensitive);
     }
 }
