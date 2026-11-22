@@ -42,7 +42,7 @@ from stemstudio_worker.schemas import (
 WAIT = 5.0
 TRACK = "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a"
 HARMONIC = ("bass", "guitar", "piano", "other")
-PIECES = ("kick", "snare", "toms", "hihat", "cymbals")
+PIECES: tuple[DrumPiece, ...] = ("kick", "snare", "toms", "hihat", "cymbals")
 
 
 def stem(name: str) -> str:
@@ -179,17 +179,18 @@ class FakePitch(Gate):
     def __init__(self) -> None:
         super().__init__()
         self.calls: list[tuple[MonoAudio, VocalSource]] = []
+        self.engine_name: PitchEngine = "pyin"
 
     @property
     def engine(self) -> PitchEngine:
-        return "pyin"
+        return self.engine_name
 
     def analyze(
         self, audio: MonoAudio, source: VocalSource, progress: AnalysisProgress
     ) -> VocalPitch:
         self.calls.append((audio, source))
         self.hold(progress)
-        return VocalPitch(frames=[0, 6900, 6950], source=source, engine="pyin",
+        return VocalPitch(frames=[0, 6900, 6950], source=source, engine=self.engine_name,
                           voiced_ratio=2 / 3,
                           range=PitchRange(low_cents=6900, high_cents=6950))  # fmt: skip
 
@@ -215,6 +216,6 @@ class Fakes:
         self.mixer = FakeMixer()
 
     def parts(self) -> InstrumentAnalysisParts:
-        return InstrumentAnalysisParts(chords=self.chords, drums=self.drums,  # type: ignore[arg-type]
+        return InstrumentAnalysisParts(chords=self.chords, drums=self.drums,
                                        drum_engine="drum-onsets", pitch=self.pitch,
                                        mixer=self.mixer)  # fmt: skip

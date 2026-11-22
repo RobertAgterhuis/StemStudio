@@ -7,7 +7,7 @@ reported while running; results are inline (``ChordChart``, ``DrumHits``, ``Voca
 validate against the contract. ``/health`` reports the configured engines and the lane.
 """
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
@@ -298,6 +298,34 @@ def test_a_silent_vocal_stem_fails_with_the_fixed_text(started: Api, fakes: Fake
     assert (job["status"], job["error"]) == ("failed", NO_MELODY_TEXT)
 
 
+def test_a_vocal_stem_removed_before_the_job_runs_fails_it_readably(
+    started: Api, fakes: Fakes
+) -> None:
+    fakes.pitch.gate.clear()
+    first = _post(started, pitch_body())
+    assert fakes.pitch.entered.wait(WAIT)
+    second = _post(started, pitch_body(input=stem("vocals"), source="vocals"))
+    root = started.settings.render.library_dir
+    assert root is not None
+    (root / stem("vocals")).unlink()
+    fakes.pitch.gate.set()
+
+    job = _done(started, second)
+
+    assert (job["status"], job["error"]) == ("failed", f"Input not found: {stem('vocals')}")
+    assert len(fakes.pitch.calls) == 1
+    assert _done(started, first)["status"] == "completed"
+
+
+def test_the_pitch_engine_of_the_analyzer_is_recorded(started: Api, fakes: Fakes) -> None:
+    fakes.pitch.engine_name = "yin"
+
+    job = _done(started, _post(started, pitch_body()))
+
+    assert job["result"]["engine"] == "yin"
+    assert started.client.get("/health").json()["instrumentAnalysis"]["pitchEngine"] == "yin"
+
+
 def test_vocal_pitch_reports_progress_while_running(started: Api, fakes: Fakes) -> None:
     fakes.pitch.gate.clear()
     job_id = _post(started, pitch_body())
@@ -401,7 +429,11 @@ def test_delete_with_a_malformed_id_is_400(started: Api) -> None:
 @pytest.mark.parametrize("kind", ["chords", "drums", "pitch"])
 def test_deleting_a_running_job_stops_it(started: Api, fakes: Fakes, kind: str) -> None:
     gate: Any = getattr(fakes, kind)
-    bodies = {"chords": chords_body, "drums": drums_body, "pitch": pitch_body}
+    bodies: dict[str, Callable[[], dict[str, Any]]] = {
+        "chords": chords_body,
+        "drums": drums_body,
+        "pitch": pitch_body,
+    }
     gate.gate.clear()
     job_id = _post(started, bodies[kind]())
     assert gate.entered.wait(WAIT)
