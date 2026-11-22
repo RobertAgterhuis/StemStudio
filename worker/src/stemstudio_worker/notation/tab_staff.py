@@ -3,7 +3,9 @@
 A post-processor over our own music21 MusicXML (no user XML): the notes of the one-staff part
 are read in document order, chords grouped (``<chord/>``), and fingered by the
 :class:`~stemstudio_worker.ports.TabFingerer`; tied continuations keep the string and fret of
-their start. ``tab-only`` turns the staff into a TAB staff; ``notation-and-tab`` keeps it as
+their start. Frets are found from the sounding pitch: a transposed part (``<transpose>``, written
+-> sounding) is moved back to concert pitch first, so every TAB note sounds the notated pitch
+(FR-021) while the notation staff stays written. ``tab-only`` turns the staff into a TAB staff; ``notation-and-tab`` keeps it as
 staff 1 and adds a copy as staff 2 (``<backup>`` + notes with ``<staff>2</staff>``). The TAB
 staff gets ``<staff-lines>``, one ``<staff-tuning>`` per line and ``<capo>``; a capo is also
 written as a "Capo n" direction above bar 1 because Verovio does not print ``<capo>``.
@@ -47,6 +49,15 @@ def _midi(note: ET.Element) -> int:
     return 12 * (octave + 1) + _STEPS[step] + round(float(note.findtext("pitch/alter", "0")))
 
 
+def _sounding_offset(part: ET.Element) -> int:
+    """Semitones from written to sounding pitch (``<transpose>`` of bar 1; 0 at concert pitch)."""
+    transpose = part.find("measure/attributes/transpose")
+    if transpose is None:
+        return 0
+    chromatic = int(transpose.findtext("chromatic", "0"))
+    return chromatic + 12 * int(transpose.findtext("octave-change", "0"))
+
+
 def _is_tie_stop(note: ET.Element) -> bool:
     types = {t.get("type") for t in note.findall("tie")}
     return "stop" in types and "start" not in types
@@ -74,7 +85,9 @@ def _positions(
 ) -> tuple[dict[int, tuple[int, int]], int]:
     """``(string, fret)`` per note element (by ``id``), ties included, and the stretch count."""
     events = _events(part)
-    assignment = fingerer.assign([[_midi(n) for n in e] for e in events], tuning, settings.capo)
+    offset = _sounding_offset(part)
+    sounding = [[_midi(n) + offset for n in e] for e in events]
+    assignment = fingerer.assign(sounding, tuning, settings.capo)
     found: dict[int, tuple[int, int]] = {}
     for event, positions in zip(events, assignment.positions, strict=True):
         for note, position in zip(event, positions, strict=False):
