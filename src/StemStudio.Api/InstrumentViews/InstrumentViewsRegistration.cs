@@ -38,5 +38,5 @@ public static class InstrumentViewsRegistration
     /// <summary>Maps the 016 endpoints (tag <c>instrument-views</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapInstrumentViewEndpoints(this IEndpointRouteBuilder app) => app.MapChordEndpoints().MapDrumHitEndpoints().MapVocalPitchEndpoints().MapCatalogueEndpoint();
+    public static IEndpointRouteBuilder MapInstrumentViewEndpoints(this IEndpointRouteBuilder app) => app.MapChordEndpoints().MapDrumHitEndpoints().MapVocalPitchEndpoints().MapKeyEndpoints().MapCatalogueEndpoint();
 }

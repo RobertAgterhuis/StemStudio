@@ -293,8 +293,8 @@ text, the row wins.
 
 **Goal**: key next to the tempo, current region, transposed and written keys. **Independent test**: quickstart V12; E2E `instrument-key.spec.ts`.
 
-- [ ] T116 [P] [US7] [backend] Failing tests `KeyEndpointsTests.cs`: `Track.key` summary when chords are ready (null otherwise), `GET /api/tracks/{id}/key` with transpose and instrument (written key), regions with start bars from the grid, uncertainty; un-stage `getKey` (FR-070..FR-074)
-- [ ] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
+- [x] T116 [P] [US7] [backend] Failing tests `KeyEndpointsTests.cs`: `Track.key` summary when chords are ready (null otherwise), `GET /api/tracks/{id}/key` with transpose and instrument (written key), regions with start bars from the grid, uncertainty; un-stage `getKey` (FR-070..FR-074)
+- [x] T117 [US7] [backend] Implement `KeyEndpoints` and the `Track.key` projection to pass T116
 - [ ] T118 [P] [US7] [audio-engine] Failing tests `tests/chords/current-key.test.ts`: chord lane host `data-current-key` follows the region at the position and the 012 transpose; spelling uses the region key (D major sharps, D-flat major flats) (FR-071, FR-073)
 - [ ] T119 [US7] [audio-engine] Implement to pass T118
 - [ ] T120 [P] [US7] [frontend] Failing bUnit tests: `track-key` next to `track-bpm`, `mixer-key`, `mixer-key-current` (mirrors `data-current-key`), transposed display with the 012 transpose, `mixer-key-written` for the orchestral family with a chosen instrument, `mixer-key-confidence` and `track-key-regions` (Advanced); help id `song-key` (FR-071..FR-074, FR-061)
