@@ -62,20 +62,26 @@ public sealed class TabChoice(ScoreTablatureOptionsDto options, int capo)
     /// <summary>The chosen tuning; the backend's default at first.</summary>
     public TuningIdDto Tuning { get; set; } = options.DefaultTuning ?? (options.Tunings.Count > 0 ? options.Tunings[0] : default);
 
+    /// <summary>True when the backend offers a tuning of the current profile; without one no tablature is offered or sent.</summary>
+    public bool HasTuning => Fits(Tuning, _profile);
+
     /// <summary>True when a capo may be set (guitar profile and the backend allows it).</summary>
     public bool CapoAllowed => options.CapoAllowed && _profile == ScoreProfileDto.Guitar;
 
     /// <summary>The capo 0..12 (ignored unless <see cref="CapoAllowed"/>).</summary>
     public int Capo { get; set; } = Math.Clamp(capo, 0, ContractLimits.CapoMax);
 
-    /// <summary>Follows the dialog's profile: keeps the tuning when it belongs to the profile, else takes its first one.</summary>
+    /// <summary>
+    /// Follows the dialog's profile: keeps the tuning when it belongs to the profile, else takes its first one; when the
+    /// profile has none the tuning stays and <see cref="HasTuning"/> is false.
+    /// </summary>
     /// <param name="profile">The chosen profile (guitar or bass).</param>
     public void UseProfile(ScoreProfileDto profile)
     {
         _profile = profile;
         if (!Fits(Tuning, profile))
         {
-            Tuning = options.Tunings.FirstOrDefault(t => Fits(t, profile));
+            Tuning = options.Tunings.Where(t => Fits(t, profile)).DefaultIfEmpty(Tuning).First();
         }
     }
 

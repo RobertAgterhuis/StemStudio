@@ -70,8 +70,8 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>Tablature options (016 US2), or null when the backend offers none for the source.</summary>
     public TabChoice? Tab { get; } = NewTab(options, target);
 
-    /// <summary>True when the tablature options apply (guitar and bass profiles, FR-020).</summary>
-    public bool ShowsTab => Tab is not null && Profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass;
+    /// <summary>True when the tablature options apply (guitar and bass profiles with a tuning of the profile, FR-020).</summary>
+    public bool ShowsTab => Tab is { HasTuning: true } && Profile is ScoreProfileDto.Guitar or ScoreProfileDto.Bass;
 
     /// <summary>Written instrument and clef (016 US5), or null when the backend offers no parts for the source.</summary>
     public PartChoice? Part { get; } = NewPart(options.Parts);
@@ -128,7 +128,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         }
 
         var choice = new TabChoice(tab, target.Capo);
-        choice.UseProfile(options.SuggestedProfile == ScoreProfileDto.Bass ? ScoreProfileDto.Bass : ScoreProfileDto.Guitar);
+        choice.UseProfile(Initial(options) == ScoreProfileDto.Bass ? ScoreProfileDto.Bass : ScoreProfileDto.Guitar);
         return choice;
     }
 
