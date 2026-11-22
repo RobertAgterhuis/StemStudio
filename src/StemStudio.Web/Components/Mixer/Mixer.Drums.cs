@@ -54,19 +54,17 @@ public sealed partial class Mixer
     // is ignored, so the engine never ends half-muted against the state.
     private async Task OneDrumChangeAsync(Func<Task> change)
     {
-        if (_drumBusy)
+        if (!_drumBusy)
         {
-            return;
-        }
-
-        _drumBusy = true;
-        try
-        {
-            await change();
-        }
-        finally
-        {
-            _drumBusy = false;
+            _drumBusy = true;
+            try
+            {
+                await change();
+            }
+            finally
+            {
+                _drumBusy = false;
+            }
         }
     }
 
