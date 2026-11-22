@@ -2,7 +2,9 @@
 
 Weights live in ``STEMSTUDIO_MODEL_DIR/transcription/<model_id>/<file>``; a download goes to a
 ``.part`` file that is renamed only after its SHA-256 matched the pinned value, so a broken or
-tampered file is never used.
+tampered file is never used. A download is aborted as soon as it exceeds the pinned size, and the
+digest of a verified file is cached by size and modification time (``ready`` is asked by
+``/health`` and every job).
 """
 
 import hashlib
@@ -36,13 +38,18 @@ def https_open(url: str) -> AbstractContextManager[IO[bytes]]:
 
 
 class _HashingWriter:
-    """File-like sink that hashes what is written."""
+    """File-like sink that hashes what is written and refuses more than ``limit`` bytes."""
 
-    def __init__(self, sink: IO[bytes]) -> None:
+    def __init__(self, sink: IO[bytes], limit: int) -> None:
         self.digest = hashlib.sha256()
         self._sink = sink
+        self._left = limit
 
     def write(self, block: bytes) -> int:
+        self._left -= len(block)
+        if self._left < 0:
+            msg = "the download is larger than the pinned size"
+            raise OSError(msg)
         self.digest.update(block)
         return self._sink.write(block)
 
@@ -62,6 +69,7 @@ class ModelStore:
         """Keep weights below ``model_dir/transcription``; fetch with ``opener``."""
         self._root = model_dir / "transcription"
         self._opener = opener
+        self._verified: dict[Path, tuple[int, int, str]] = {}
 
     def path(self, weights: WeightsFile) -> Path:
         """Where ``weights`` live once downloaded."""
@@ -69,7 +77,21 @@ class ModelStore:
 
     def ready(self, weights: WeightsFile) -> bool:
         """Whether a verified copy is in the cache (``Health.transcription.models``)."""
-        return _file_digest(self.path(weights)) == weights.sha256
+        return self._digest(self.path(weights)) == weights.sha256
+
+    def _digest(self, path: Path) -> str | None:
+        """The SHA-256 of ``path``, cached while its size and modification time stay the same."""
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        cached = self._verified.get(path)
+        if cached is not None and cached[:2] == (stat.st_size, stat.st_mtime_ns):
+            return cached[2]
+        digest = _file_digest(path)
+        if digest is not None:
+            self._verified[path] = (stat.st_size, stat.st_mtime_ns, digest)
+        return digest
 
     def ensure(self, weights: WeightsFile) -> Path:
         """The verified file of ``weights``.
@@ -80,20 +102,21 @@ class ModelStore:
         target = self.path(weights)
         if self.ready(weights):
             return target
-        target.parent.mkdir(parents=True, exist_ok=True)
         partial = target.with_suffix(target.suffix + ".part")
         try:
-            digest = self._fetch(weights.url, partial)
+            digest = self._fetch(weights, partial)
         except OSError as exc:
             digest = repr(exc)
         if digest != weights.sha256:
             partial.unlink(missing_ok=True)
             raise TranscriptionError(MODEL_DOWNLOAD_TEXT)
         partial.replace(target)
+        self._verified.pop(target, None)
         return target
 
-    def _fetch(self, url: str, partial: Path) -> str:
-        with self._opener(url) as source, partial.open("wb") as sink:
-            writer = _HashingWriter(sink)
+    def _fetch(self, weights: WeightsFile, partial: Path) -> str:
+        partial.parent.mkdir(parents=True, exist_ok=True)
+        with self._opener(weights.url) as source, partial.open("wb") as sink:
+            writer = _HashingWriter(sink, weights.size_bytes)
             shutil.copyfileobj(source, writer, _BLOCK)
         return writer.digest.hexdigest()

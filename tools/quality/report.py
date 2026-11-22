@@ -41,6 +41,7 @@ def render(data: ReportInput) -> str:
         _vendor(data.findings),
         _secrets(data.findings),
         _library_care(data.findings),
+        _instrument(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -152,6 +153,16 @@ def _library_care(findings: Sequence[Finding]) -> str:
         "Library care",
         "only Api.LibraryCare.Gate outside Api/LibraryCare, no bulk ZIP helpers "
         "(`library_care_rules.py`).",
+    )
+
+
+def _instrument(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings,
+        "instrument",
+        "Instrument views",
+        "no weights_only=False in the worker, no DOM/Web Audio globals in the engine pitch code "
+        "(`instrument_rules.py`).",
     )
 
 

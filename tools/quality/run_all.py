@@ -2,7 +2,8 @@
 
 Checks: SIG unit metrics, duplication, dependency direction, raw colours, the licence records
 of vendored code, the Claude key handling rules (``secret_rules.py``, 011 follow-up claude-key)
-and the library care rules (``library_care_rules.py``, 013: LibraryCare layering, banned ZIP APIs).
+the library care rules (``library_care_rules.py``, 013: LibraryCare layering, banned ZIP APIs)
+and the instrument view rules (``instrument_rules.py``, 016: safe checkpoint loading, pitch scope).
 
 Usage::
 
@@ -21,6 +22,7 @@ from pathlib import Path
 import css_tokens_check
 import dependency_check
 import duplication
+import instrument_rules
 import library_care_rules
 import secret_rules
 import sig_check
@@ -49,6 +51,7 @@ class GateResult:
     vendor_findings: list[Finding] = field(default_factory=list)
     secret_findings: list[Finding] = field(default_factory=list)
     library_care_findings: list[Finding] = field(default_factory=list)
+    instrument_findings: list[Finding] = field(default_factory=list)
 
     @property
     def findings(self) -> list[Finding]:
@@ -61,6 +64,7 @@ class GateResult:
             *self.vendor_findings,
             *self.secret_findings,
             *self.library_care_findings,
+            *self.instrument_findings,
         ]
 
     @property
@@ -86,6 +90,7 @@ def run(root: Path, paths: Sequence[Path], dup_run: DuplicationRun = duplication
         vendor_findings=vendor_check.run(root),
         secret_findings=secret_rules.run(root),
         library_care_findings=library_care_rules.run(root),
+        instrument_findings=instrument_rules.run(root),
     )
 
 

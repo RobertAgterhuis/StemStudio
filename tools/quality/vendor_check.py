@@ -1,4 +1,4 @@
-"""Licence records of vendored third-party code (features 002 and 008).
+"""Licence records of vendored third-party code (features 002, 008 and 016).
 
 The vendor folders are excluded from the unit metrics, duplication and the dependency graph
 (``common.EXCLUDED_PATHS``), so this check makes sure each vendored package still carries
@@ -22,6 +22,7 @@ from common import EXCLUDED_DIRS, Finding, Severity, build_parser, relative, rep
 VENDOR_ROOTS = (
     "worker/src/stemstudio_worker/detail/vendor",
     "worker/src/stemstudio_worker/transcription/vendor",
+    "worker/src/stemstudio_worker/harmony/vendor",
 )
 """Repository-relative folders whose sub-directories are vendored packages."""
 

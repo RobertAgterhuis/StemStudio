@@ -103,10 +103,10 @@ text, the row wins.
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T009 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `harmony.{postprocess,labels,chroma_hmm,key}` import only `ports`, `schemas`, numpy, librosa; `harmony.btc` may import torch and `harmony/vendor`; `notation` imports neither `harmony` nor `transcription`; no `weights_only=False` anywhere in `worker/src`; `harmony/vendor/**` excluded from SIG but has LICENSE; engine: `src/pitch/**` imports no DOM/Web Audio globals, nothing imports `engine.ts` except `index.ts`
-- [ ] T010 [quality-gate] Implement the rules in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T011 [P] [devops] Write the checks first and show them fail: `scripts/check-web-assets.{ps1,sh}` (the web image serves `/js/audio-engine-pitch-worklet.js` with `text/javascript`, built by `vite.pitch.config.ts`); CI job outline for the Playwright fake-mic projects
-- [ ] T012 [devops] Web image and engine build emit/serve the worklet file; `docker-compose.yml` passes `STEMSTUDIO_CHORD_ENGINE`, `STEMSTUDIO_PITCH_ENGINE`, `STEMSTUDIO_ANALYSIS_THREADS` (empty = the worker default 4); CI `CONTRACTS_DIR` -> `specs/016-instrument-views/contracts` with the 015 steps kept under a new `RECORDING_CONTRACTS` variable (they name `recording-api.openapi.yaml` and `merge_recording_delta.py`), plus 016 steps: Redocly lint of the four 016 documents, `merge_full.py --check`, `generate_chord_spelling_vectors.py --check` and `pytest specs/016-instrument-views/contracts`; Playwright fake-mic projects (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>`) in CI; wire T011 to pass
+- [x] T009 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `harmony.{postprocess,labels,chroma_hmm,key}` import only `ports`, `schemas`, numpy, librosa; `harmony.btc` may import torch and `harmony/vendor`; `notation` imports neither `harmony` nor `transcription`; no `weights_only=False` anywhere in `worker/src`; `harmony/vendor/**` excluded from SIG but has LICENSE; engine: `src/pitch/**` imports no DOM/Web Audio globals, nothing imports `engine.ts` except `index.ts`
+- [x] T010 [quality-gate] Implement the rules in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
+- [x] T011 [P] [devops] Write the checks first and show them fail: `scripts/check-web-assets.{ps1,sh}` (the web image serves `/js/audio-engine-pitch-worklet.js` with `text/javascript`, built by `vite.pitch.config.ts`); CI job outline for the Playwright fake-mic projects
+- [x] T012 [devops] Web image and engine build emit/serve the worklet file; `docker-compose.yml` passes `STEMSTUDIO_CHORD_ENGINE`, `STEMSTUDIO_PITCH_ENGINE`, `STEMSTUDIO_ANALYSIS_THREADS` (empty = the worker default 4); CI `CONTRACTS_DIR` -> `specs/016-instrument-views/contracts` with the 015 steps kept under a new `RECORDING_CONTRACTS` variable (they name `recording-api.openapi.yaml` and `merge_recording_delta.py`), plus 016 steps: Redocly lint of the four 016 documents, `merge_full.py --check`, `generate_chord_spelling_vectors.py --check` and `pytest specs/016-instrument-views/contracts`; Playwright fake-mic projects (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>`) in CI; wire T011 to pass
 - [ ] T013 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: per-family traceability (harmony, guitar, bass, drums, vocals, strings, brass, woodwinds -> specs), fake analyses, fake-mic fixtures, integration tests with real models (SC-001, SC-006, SC-010)
 - [ ] T014 [qa] `tests/fixtures/generate_instrument_fixtures.py` + its test: `sing-on-pitch.wav` (fake melody one octave lower, two harmonics), `sing-semitone-off.wav` (+100 cents), `silence.wav`, deterministic (fixed seed, SHA-256 manifest `instrument-manifest.json`) (SC-004, SC-006)
 
@@ -133,12 +133,12 @@ text, the row wins.
 
 ### stem-separation (tests first)
 
-- [ ] T029 [P] [stem-separation] Failing tests `worker/tests/harmony/test_btc.py` with a fake torch module: CQT 144 bins/24 per octave/hop 2048 at 22,050 Hz; `(x - mean)/std`; zero-padding to 108-frame instances; checkpoint per vocabulary via the model manager (pinned URL/SHA-256); `torch.load` called with `weights_only=True` and the allow-listed globals only; runs through the injected `DeviceRunner` with `BTC_GPU_NEED`; fallback to chroma-hmm with `fallback-engine` when weights are unavailable; progress (FR-010)
-- [ ] T030 [stem-separation] Vendor the BTC subset into `harmony/vendor/btc/` (MIT LICENSE, commit header, no mir_eval/pretty_midi/pandas/pyrubberband) and implement `harmony/{__init__,btc}.py` to pass T029
-- [ ] T031 [P] [stem-separation] Failing tests `worker/tests/test_views_fake.py`: fake chords (R-11 incl. the key change at bar 9 and `keyRegions`), fake reference melody on the fake lyric lines, fake drum hits = the 008 fake pattern plus crashes; deterministic
-- [ ] T032 [stem-separation] Implement `views_fake.py` and the factories (real/fake by settings) to pass T031
-- [ ] T033 [P] [stem-separation] Failing tests `worker/tests/jobs/test_instrument_analysis_store.py`: jobs persisted as `instrument-analysis-jobs/<id>.json`; restart -> failed "interrupted by restart"; delete; 24 h sweep (fake clock)
-- [ ] T034 [stem-separation] Implement `jobs/instrument_analysis_store.py` to pass T033
+- [x] T029 [P] [stem-separation] Failing tests `worker/tests/harmony/test_btc.py` with a fake torch module: CQT 144 bins/24 per octave/hop 2048 at 22,050 Hz; `(x - mean)/std`; zero-padding to 108-frame instances; checkpoint per vocabulary via the model manager (pinned URL/SHA-256); `torch.load` called with `weights_only=True` and the allow-listed globals only; runs through the injected `DeviceRunner` with `BTC_GPU_NEED`; fallback to chroma-hmm with `fallback-engine` when weights are unavailable; progress (FR-010)
+- [x] T030 [stem-separation] Vendor the BTC subset into `harmony/vendor/btc/` (MIT LICENSE, commit header, no mir_eval/pretty_midi/pandas/pyrubberband) and implement `harmony/{__init__,btc}.py` to pass T029
+- [x] T031 [P] [stem-separation] Failing tests `worker/tests/test_views_fake.py`: fake chords (R-11 incl. the key change at bar 9 and `keyRegions`), fake reference melody on the fake lyric lines, fake drum hits = the 008 fake pattern plus crashes; deterministic
+- [x] T032 [stem-separation] Implement `views_fake.py` and the factories (real/fake by settings) to pass T031
+- [x] T033 [P] [stem-separation] Failing tests `worker/tests/jobs/test_instrument_analysis_store.py`: jobs persisted as `instrument-analysis-jobs/<id>.json`; restart -> failed "interrupted by restart"; delete; 24 h sweep (fake clock)
+- [x] T034 [stem-separation] Implement `jobs/instrument_analysis_store.py` to pass T033
 
 ### audio-ingest (tests first)
 
@@ -186,9 +186,9 @@ text, the row wins.
 
 **Goal**: chords detected automatically, lane + banner + sheet, vocabulary, edits, ChordPro, chords in lead sheets. **Independent test**: quickstart V2-V4; E2E `instrument-chords.spec.ts`.
 
-- [ ] T061 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_instrument_analysis_routes.py` (chords): 202 on the `instrument-analysis` lane (not blocked by a running transcribe/render/separation), stages/progress, inline `ChordChart` with `key`/`keyRegions`, validation 422, `/health` `instrumentAnalysis` and lane; responses validate against worker 1.9.0 (FR-002, FR-010, FR-070)
-- [ ] T062 [US1] [stem-separation] Implement `jobs/instrument_analysis_service.py`, `api/instrument_analysis_routes.py`, composition and lane in `main.py` (mixdown -> recognizer -> post-processing -> key) to pass T061
-- [ ] T063 [US1] [stem-separation] Integration test `worker/tests/harmony/test_chords_integration.py` (`@pytest.mark.integration`, downloads BTC): synthetic chord set through real BTC + post-processing >= 85 % majmin time (SC-001) and key test set >= 90 % (SC-010); records time per audio second
+- [x] T061 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_instrument_analysis_routes.py` (chords): 202 on the `instrument-analysis` lane (not blocked by a running transcribe/render/separation), stages/progress, inline `ChordChart` with `key`/`keyRegions`, validation 422, `/health` `instrumentAnalysis` and lane; responses validate against worker 1.9.0 (FR-002, FR-010, FR-070)
+- [x] T062 [US1] [stem-separation] Implement `jobs/instrument_analysis_service.py`, `api/instrument_analysis_routes.py`, composition and lane in `main.py` (mixdown -> recognizer -> post-processing -> key) to pass T061
+- [x] T063 [US1] [stem-separation] Integration test `worker/tests/harmony/test_chords_integration.py` (`@pytest.mark.integration`, downloads BTC): synthetic chord set through real BTC + post-processing >= 85 % majmin time (SC-001) and key test set >= 90 % (SC-010); records time per audio second
 - [x] T064 [P] [US1] [backend] Failing tests `Api.Tests/InstrumentViews/ChordEndpointsTests.cs`: auto start after the standard job, GET/POST/DELETE, `edits-exist`/`overwriteEdits`, segment edit (pattern, `edited`), sheet and ChordPro with transpose/capo, stale after re-separation, `Track.instrumentViews.chords`; un-stage the chords operations (FR-010..FR-016)
 - [x] T065 [US1] [backend] Implement `ChordEndpoints` to pass T064
 - [ ] T066 [P] [US1] [audio-engine] Failing tests `tests/chords/chord-lane.test.ts`: DOM items, states, window by bars, host attributes, validation errors, detach, reduced motion, frame budget (counted writes) (FR-013, SC-007)
@@ -211,8 +211,8 @@ text, the row wins.
 
 **Goal**: tab next to notation with tunings and capo; one-click MIDI per channel. **Independent test**: quickstart V5-V6; E2E `instrument-tab.spec.ts`.
 
-- [ ] T077 [P] [US2] [stem-separation] Failing route tests: `tablature`, `part`, `chords`, `preferFlats`, `singlePiece` reach the notator settings; 422 combinations (DELTA 1); `ScoreSummary` extensions returned (FR-020, FR-023, FR-051)
-- [ ] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
+- [x] T077 [P] [US2] [stem-separation] Failing route tests: `tablature`, `part`, `chords`, `preferFlats`, `singlePiece` reach the notator settings; 422 combinations (DELTA 1); `ScoreSummary` extensions returned (FR-020, FR-023, FR-051)
+- [x] T078 [US2] [stem-separation] Implement the transcription request/response extensions to pass T077
 - [x] T079 [P] [US2] [backend] Failing tests: `tablature` validation (`tablature-not-allowed`, `tuning-mismatch`, `capo-not-allowed`), `ScoreOptions.tablature` per profile, facts; `listAssets` `channel` filter newest first; source `drums.<piece>` with profile `drums` -> one-piece `drumInputs` + `singlePiece` (FR-020..FR-023)
 - [x] T080 [US2] [backend] Implement to pass T079
 - [ ] T081 [P] [US2] [frontend] Failing bUnit tests: `score-tab-layout`/`score-tab-tuning` (Beginner: standard + drop D) and `score-tab-capo` (Advanced) for guitar and bass; `asset-score-tab-<id>`; `midi-<key>` on every channel row and strip menu (reuse ready item -> download; none -> create, `midi-progress-<key>`, then download; `midi-error-<key>`); help ids `tablature`, `midi-download` (FR-020, FR-023, FR-061)
@@ -227,8 +227,8 @@ text, the row wins.
 
 **Goal**: hit lanes, Drumless, guide piece, drum score with follow. **Independent test**: quickstart V7-V8; E2E `instrument-drums.spec.ts`.
 
-- [ ] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
-- [ ] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
+- [x] T084 [P] [US3] [stem-separation] Failing route tests (drum-hits): runs the 008 `DrumTranscriber` (fake) per piece with progress, `DrumHits` result, missing pieces listed in `pieces` (FR-030)
+- [x] T085 [US3] [stem-separation] Implement the drum-hits kind to pass T084
 - [x] T086 [P] [US3] [backend] Failing tests `DrumHitEndpointsTests.cs`: auto start after the drums split, `unavailable` "Split the drums first.", `409 drums-not-split`, stale after a new split, GET/POST/DELETE; un-stage (FR-030)
 - [x] T087 [US3] [backend] Implement `DrumHitEndpoints` to pass T086
 - [ ] T088 [P] [US3] [audio-engine] Failing tests `tests/drums/hit-lanes.test.ts`: lane order, look-ahead window, strength heights, host attributes (`data-next-hit-*`, `data-visible-hits`), options change, reduced-motion paging, validation, counted primitives (FR-031, SC-003, SC-007)
@@ -245,8 +245,8 @@ text, the row wins.
 
 **Goal**: reference melody, live pitch line, per-line scores, summary, take scoring. **Independent test**: quickstart V9-V10; E2E `instrument-singing.spec.ts`.
 
-- [ ] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
-- [ ] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
+- [x] T093 [P] [US4] [stem-separation] Failing route tests (vocal-pitch): `PitchAnalyzer` (fake) result, `NoMelodyError` -> failed with the fixed text, progress (FR-040)
+- [x] T094 [US4] [stem-separation] Implement the vocal-pitch kind to pass T093
 - [x] T095 [P] [US4] [backend] Failing tests `VocalPitchEndpointsTests.cs`: source `vocals.lead` when split with a kept lead stem else `vocals`, `409 no-vocals`/`track-not-ready`, estimate, never automatic, response compression for large documents; un-stage (FR-040)
 - [x] T096 [US4] [backend] Implement `VocalPitchEndpoints` to pass T095
 - [ ] T097 [P] [US4] [audio-engine] Failing tests `tests/pitch/yin.test.ts`, `decimate.test.ts`: sines/harmonics 80-1000 Hz median error <= 20 cents, voiced detection >= 95 %, noise/silence unvoiced, 44.1/48/96 kHz inputs; `yin.bench.test.ts` reports ms per block (SC-004)
@@ -325,14 +325,14 @@ text, the row wins.
 
 - [ ] T130 [P] [beat-analysis] Refactor to SIG limits, docstrings, HO:polish with coverage of `harmony/` (non-vendor parts it owns), `analysis/vocal_pitch.py`, `notation/` additions
 - [ ] T131 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `analysis_inputs/`, `engraving/tablature.py`
-- [ ] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
+- [x] T132 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `harmony/btc.py`, `views_fake.py`, `jobs/`, `api/` (vendor excluded); vendored-source record with commit id
 - [x] T133 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T134 [P] [audio-engine] Refactor, TSDoc, frame-budget benchmark of all views together (<= 4 ms, counted), HO:polish with coverage
 - [ ] T135 [P] [frontend] Accessibility: keyboard paths for every view, text alternatives (chord sheet, `drum-bar-text`, announcer), reduced motion, focus order; help texts final with limits and the BTC credit; HO:polish (FR-061, FR-062, FR-064)
 - [ ] T136 [P] [qa] axe checks on every new area (0 serious/critical), traceability matrix (US1-US8, FR-001..FR-078, per family), HO:polish (SC-008)
-- [ ] T137 [P] [devops] Validate compose/CI incl. fake-mic projects; image size delta (BTC weights are in the cache, not the image) recorded; HO:polish
-- [ ] T144 [devops] (added in Phase 0, LESSONS 014/015) Split the CI E2E job before the eight `instrument-*` specs land: the default suite and the feature passes (recording, practice-flow, agent, lyric, restart, gpu, instrument, fake-mic) run as parallel jobs, each under 90 minutes; acceptance: the workflow validates, each job names its projects/`--grep`, and their union equals today's set plus the 016 projects
-- [ ] T138 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [x] T137 [P] [devops] Validate compose/CI incl. fake-mic projects; image size delta (BTC weights are in the cache, not the image) recorded; HO:polish
+- [x] T144 [devops] (added in Phase 0, LESSONS 014/015) Split the CI E2E job before the eight `instrument-*` specs land: the default suite and the feature passes (recording, practice-flow, agent, lyric, restart, gpu, instrument, fake-mic) run as parallel jobs, each under 90 minutes; acceptance: the workflow validates, each job names its projects/`--grep`, and their union equals today's set plus the 016 projects
+- [x] T138 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---
 

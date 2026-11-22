@@ -205,6 +205,9 @@ class Pipeline:
             resolution=rules.resolution(request.profile, request.resolution),
             key_override=request.key_override, titles=request.titles,
             duration_seconds=_duration(first, request.range),
+            tablature=request.tablature, part=request.part,
+            chords=tuple(request.chords or ()), prefer_flats=bool(request.prefer_flats),
+            single_piece=request.single_piece,
         )  # fmt: skip
 
     def _transcribe(
@@ -239,7 +242,8 @@ class Pipeline:
             key=document.key, bpm=document.bpm, time_signature=document.time_signature,
             bars=document.bars, notes=document.notes, pages=pages,
             resolution=self._notation.resolution, warnings=warnings,
-            attribution=done.attribution,
+            attribution=done.attribution, tablature=document.tablature, part=document.part,
+            chords_included=document.chords_included,
         )  # fmt: skip
 
     def _job_warnings(self, done: _Transcribed, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
@@ -252,9 +256,14 @@ class Pipeline:
             )
             if applies
         ]
-        if self._request.profile == "drums":
-            found += [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
-        return found
+        return found + self._missing_piece_warnings(inputs)
+
+    def _missing_piece_warnings(self, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
+        """``missing-drum-piece`` per absent piece of ``drums`` (none with ``singlePiece``)."""
+        if self._request.profile != "drums" or self._request.single_piece is not None:
+            return []
+        warn = self._parts.rules.warning
+        return [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
 
     def _on_detail_stem(self) -> bool:
         """A pitched profile transcribes a detail stem (other instruments may bleed in)."""

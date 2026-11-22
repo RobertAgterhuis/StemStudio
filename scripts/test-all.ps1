@@ -51,6 +51,8 @@ $Redocly = '@redocly/cli@2.78.0'
 # Round 014+015: the newest full backend document is 015's 1.14.0 (= 014's 1.13.0 + the recording
 # delta); the worker document is 014's 1.8.0. Render vectors 1.1.0 (007's + the take cases) are 015's.
 $Contracts = 'specs/015-play-along-recording/contracts'
+# Feature 016: backend 1.15.0, worker 1.9.0, both deltas, merge_full.py and the chord spelling vectors 1.0.0.
+$InstrumentContracts = 'specs/016-instrument-views/contracts'
 $RenderVectors = 'specs/015-play-along-recording/contracts/generate_render_vectors.py'
 $PracticeFlowContracts = 'specs/014-practice-flow/contracts'  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
@@ -146,6 +148,11 @@ $Steps = @(
     @{ Name = 'contracts merge check (015 full 1.14.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$Contracts/merge_recording_delta.py", '--check') }
     @{ Name = 'contracts output schema (023 check_output_schema.py)'; Dir = '.'; Cmd = $JsonSchemaPython + @("$LyricAssistContracts/check_output_schema.py") }
     @{ Name = 'contracts merge tests (023 test_merge_full.py)'; Dir = '.'; Cmd = $PytestPython + @($LyricAssistContracts) }
+    @{ Name = 'contracts lint (016-instrument-views)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$InstrumentContracts/redocly.yaml", "$InstrumentContracts/backend-api.openapi.yaml", "$InstrumentContracts/worker-api.openapi.yaml", "$InstrumentContracts/backend-api.delta.openapi.yaml", "$InstrumentContracts/worker-api.delta.openapi.yaml") }
+    @{ Name = 'contracts merge check (016 full 1.15.0 / 1.9.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$InstrumentContracts/merge_full.py", '--check') }
+    @{ Name = 'chord spelling vectors check (016)'; Dir = '.'; Cmd = @('uv', 'run', '--no-project', 'python', '-I', "$InstrumentContracts/generate_chord_spelling_vectors.py", '--check') }
+    @{ Name = 'chord spelling vector tests (016)'; Dir = '.'; Cmd = $PytestPython + @($InstrumentContracts) }
+    @{ Name = 'split E2E jobs check (016 T144)'; Dir = '.'; Cmd = $PytestPython + @('-c', 'scripts/pyproject.toml', '-q', 'scripts/tests/test_ci_e2e_split.py') }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }

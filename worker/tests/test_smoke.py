@@ -64,7 +64,8 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "font": {"leipzig": False},
         },
         "structure": {"analyzer": "stems-novelty", "version": "1.0.0"},
-        # 1.9.0 (016): skeleton defaults until the lane wires the configured engines (T062).
+        # 1.9.0 (016): the configured engines (InstrumentAnalysisSettings defaults btc / pyin; the
+        # fake engines come from load_settings with the fake separator, data-model 1).
         "instrumentAnalysis": {
             "models": {"btc-majmin": "not-downloaded", "btc-large-voca": "not-downloaded"},
             "chordEngine": "btc",

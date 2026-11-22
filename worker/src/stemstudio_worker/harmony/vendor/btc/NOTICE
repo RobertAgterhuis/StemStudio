@@ -1,0 +1,23 @@
+BTC (Bi-directional Transformer for Chord recognition), vendored subset
+
+Origin:   https://github.com/jayg996/BTC-ISMIR19
+Commit:   2682317be668032e6e4b269ded36adaa2ad57df0 (2020-05-23)
+Authors:  Jonggwon Park, Kyoyun Choi, Sungwook Jeon, Dongheon Kim, Jonghun Park
+          ("A Bi-directional Transformer for Musical Chord Recognition", ISMIR 2019)
+Licence:  MIT (see LICENSE)
+
+Files:
+  btc_model.py           <- btc_model.py
+  transformer_modules.py <- utils/transformer_modules.py
+  labels.py              <- utils/mir_eval_modules.py (idx2chord, root_list, quality_list,
+                            idx2voca_chord only)
+
+Modifications for StemStudio (feature 016, ADR-031):
+  - package-relative imports; no utils.hparams / yaml; no use_cuda global; no __main__ demo;
+  - transformer_modules.py: __future__ imports removed, np.float -> np.float64 (NumPy >= 1.24);
+  - labels.py: no librosa, mir_eval or torch import (training and evaluation code not vendored).
+Not vendored: test.py, train*.py, audio_dataset.py, utils/{preprocess,logger,tf_logger,
+pytorch_utils,chords,hparams}.py (mir_eval, pretty_midi, pandas and the GPL pyrubberband are
+never imported). The weights (btc_model.pt, btc_model_large_voca.pt, MIT) are downloaded at first
+use with SHA-256 verification (ports.BTC_*_WEIGHTS) and loaded with torch.load(weights_only=True)
+and the ports.BTC_SAFE_GLOBALS allow-list.
