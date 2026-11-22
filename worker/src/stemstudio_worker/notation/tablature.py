@@ -1,17 +1,19 @@
 """Strings and frets for guitar and bass tablature (data-model 4.5, research R-08).
 
-:class:`ViterbiTabFingerer` fits every event into the tuning (octave moves, chord notes beyond
-the string count dropped), lists the string/fret candidates of each event (chords: distinct
-strings, the 64 cheapest), and picks the path with the lowest cost: hand-position change (mean
-fretted fret; open strings are free) + 0.1 x hand position + 0.3 x stretch + 0.05 x frets
-above 12 + 2 for a chord
-span over 4 frets (rejected when another candidate exists). Ties prefer lower frets, then
-lower-pitched strings. :func:`fit_notes` applies the same range fit to the notator's notes
-before the score is built, keeping the loudest chord notes.
+:class:`ViterbiTabFingerer` fits every event (pitches loudest first) into the tuning (octave
+moves; the last chord notes, the quietest, are dropped beyond the string count or while the
+chord cannot be played on distinct strings), lists the string/fret candidates of each event
+(chords: distinct strings, the 64 cheapest), and picks the path with the lowest cost:
+hand-position change (mean fretted fret; open strings are free) + 0.1 x hand position + 0.3 x
+stretch + 0.05 x frets above 12 + 2 for a chord span over 4 frets (rejected when another
+candidate exists). Ties prefer lower frets, then lower-pitched strings. :func:`fit_notes`
+applies the same range fit to the notator's notes before the score is built, keeping the
+loudest chord notes.
 """
 
+import heapq
 import itertools
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Final
 
@@ -117,20 +119,31 @@ def _options(pitch: int, tuning: Tuning, capo: int) -> list[Position]:
     return [(s, f) for s, f in frets if 0 <= f <= TAB_MAX_FRET - capo]
 
 
-def _distinct(combo: tuple[Position, ...]) -> bool:
-    """True when every note of the combination is on its own string."""
-    return len({s for s, _ in combo}) == len(combo)
+def _combos(
+    options: Sequence[Sequence[Position]], used: frozenset[int] = frozenset()
+) -> Iterator[tuple[Position, ...]]:
+    """Every distinct-string combination, in ``itertools.product`` order (pruned per string).
+
+    A 6-note chord has at most 6! = 720 of them instead of up to 6^6 products (016 review L3).
+    """
+    if not options:
+        yield ()
+        return
+    for position in options[0]:
+        if position[0] not in used:
+            for rest in _combos(options[1:], used | {position[0]}):
+                yield (position, *rest)
 
 
 def _candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[_Candidate]:
     """The cheapest distinct-string assignments; wide ones only when nothing else exists."""
-    combos = filter(_distinct, itertools.product(*(_options(p, tuning, capo) for p in pitches)))
-    found = sorted(map(_cost, combos), key=lambda c: (c.cost, c.order))[:MAX_CANDIDATES]
+    combos = _combos([_options(p, tuning, capo) for p in pitches])
+    found = heapq.nsmallest(MAX_CANDIDATES, map(_cost, combos), key=lambda c: (c.cost, c.order))
     return [c for c in found if not c.wide] or found
 
 
 def _playable(pitches: list[int], tuning: Tuning, capo: int) -> tuple[list[_Candidate], int]:
-    """Candidates of the event, dropping trailing pitches until it can be played."""
+    """Candidates of the event, dropping its last (quietest) pitches until it can be played."""
     dropped = 0
     while pitches:
         found = _candidates(pitches, tuning, capo)

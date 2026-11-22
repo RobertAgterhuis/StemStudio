@@ -1,10 +1,16 @@
 """The TAB staff of a guitar or bass score (data-model 4.5 step 5, ADR-033 D6).
 
 A post-processor over our own music21 MusicXML (no user XML): the notes of the one-staff part
-are read in document order, chords grouped (``<chord/>``), and fingered by the
-:class:`~stemstudio_worker.ports.TabFingerer`; tied continuations keep the string and fret of
-their start. ``tab-only`` turns the staff into a TAB staff; ``notation-and-tab`` keeps it as
-staff 1 and adds a copy as staff 2 (``<backup>`` + notes with ``<staff>2</staff>``). The TAB
+are read in document order, chords grouped (``<chord/>``) and ordered loudest first (the
+``dynamics`` attribute; equal loudness keeps document order, and music21 writes a chord low to
+high with one loudness), and fingered by the :class:`~stemstudio_worker.ports.TabFingerer`; tied
+continuations keep the string and fret of their start. A note the fingerer leaves out (the last
+of an unplayable chord: the quietest, else the highest) leaves the TAB staff and is counted: a
+chord hands its start to the next note, a lone tied continuation becomes a rest. Frets are found
+from the sounding pitch: a transposed part (``<transpose>``, written -> sounding) is moved back
+to concert pitch first, so every TAB note sounds the notated pitch (FR-021) while the notation
+staff stays written. ``tab-only`` turns the staff into a TAB staff; ``notation-and-tab`` keeps it
+as staff 1 and adds a copy as staff 2 (``<backup>`` + notes with ``<staff>2</staff>``). The TAB
 staff gets ``<staff-lines>``, one ``<staff-tuning>`` per line and ``<capo>``; a capo is also
 written as a "Capo n" direction above bar 1 because Verovio does not print ``<capo>``.
 """
@@ -32,19 +38,30 @@ _BEFORE_STAFF: Final = frozenset(
 )  # fmt: skip
 _TAB_VOICE_OFFSET: Final = 4
 _DROPPED_IN_TAB: Final = ("stem", "beam", "accidental", "lyric")
+_NOT_IN_REST: Final = ("pitch", "tie", "notations", "accidental", "stem", "beam", "notehead")
 
 
 @dataclass(frozen=True, slots=True)
 class TabResult:
-    """The MusicXML with its TAB staff and the stretch count of the chosen fingering."""
+    """The MusicXML with its TAB staff, the stretch count and the notes left off the TAB staff."""
 
     musicxml: bytes
     wide_stretches: int
+    notes_dropped: int = 0
 
 
 def _midi(note: ET.Element) -> int:
     step, octave = note.findtext("pitch/step", "C"), int(note.findtext("pitch/octave", "4"))
     return 12 * (octave + 1) + _STEPS[step] + round(float(note.findtext("pitch/alter", "0")))
+
+
+def _sounding_offset(part: ET.Element) -> int:
+    """Semitones from written to sounding pitch (``<transpose>`` of bar 1; 0 at concert pitch)."""
+    transpose = part.find("measure/attributes/transpose")
+    if transpose is None:
+        return 0
+    chromatic = int(transpose.findtext("chromatic", "0"))
+    return chromatic + 12 * int(transpose.findtext("octave-change", "0"))
 
 
 def _is_tie_stop(note: ET.Element) -> bool:
@@ -54,6 +71,10 @@ def _is_tie_stop(note: ET.Element) -> bool:
 
 def _pitched(part: ET.Element) -> Iterator[ET.Element]:
     return (n for n in part.iter("note") if n.find("pitch") is not None)
+
+
+def _loudness(note: ET.Element) -> float:
+    return float(note.get("dynamics", "0"))
 
 
 def _events(part: ET.Element) -> list[list[ET.Element]]:
@@ -69,28 +90,46 @@ def _events(part: ET.Element) -> list[list[ET.Element]]:
     return events
 
 
+def _loudest_first(event: list[ET.Element]) -> list[ET.Element]:
+    return sorted(event, key=lambda n: -_loudness(n))
+
+
+@dataclass(frozen=True, slots=True)
+class _Fingering:
+    """``(string, fret)`` per note element (by ``id``, ties included) and what it took."""
+
+    found: dict[int, tuple[int, int]]
+    wide_stretches: int
+    notes_dropped: int
+
+
 def _positions(
     part: ET.Element, tuning: Tuning, settings: TablatureSettings, fingerer: TabFingerer
-) -> tuple[dict[int, tuple[int, int]], int]:
-    """``(string, fret)`` per note element (by ``id``), ties included, and the stretch count."""
-    events = _events(part)
-    assignment = fingerer.assign([[_midi(n) for n in e] for e in events], tuning, settings.capo)
+) -> _Fingering:
+    """Finger the attacked notes; positions map to each event's notes in order (loudest first)."""
+    events = list(map(_loudest_first, _events(part)))
+    offset = _sounding_offset(part)
+    sounding = [[_midi(n) + offset for n in e] for e in events]
+    assignment = fingerer.assign(sounding, tuning, settings.capo)
     found: dict[int, tuple[int, int]] = {}
+    dropped = 0
     for event, positions in zip(events, assignment.positions, strict=True):
+        dropped += max(0, len(event) - len(positions))
         for note, position in zip(event, positions, strict=False):
             found[id(note)] = position
     _carry_ties(part, found)
-    return found, assignment.wide_stretches
+    return _Fingering(found, assignment.wide_stretches, dropped)
 
 
 def _carry_ties(part: ET.Element, found: dict[int, tuple[int, int]]) -> None:
-    """Give every tied continuation the string and fret of the note it continues."""
-    last: dict[int, tuple[int, int]] = {}
+    """Give every tied continuation the string and fret of the note it continues (if fingered)."""
+    last: dict[int, tuple[int, int] | None] = {}
     for note in _pitched(part):
-        if _is_tie_stop(note) and _midi(note) in last:
-            found[id(note)] = last[_midi(note)]
-        if id(note) in found:
-            last[_midi(note)] = found[id(note)]
+        pitch = _midi(note)
+        if not _is_tie_stop(note):
+            last[pitch] = found.get(id(note))
+        elif (position := last.get(pitch)) is not None:
+            found[id(note)] = position
 
 
 def _technical(note: ET.Element, position: tuple[int, int]) -> None:
@@ -100,6 +139,57 @@ def _technical(note: ET.Element, position: tuple[int, int]) -> None:
     technical = ET.SubElement(notations, "technical")
     ET.SubElement(technical, "string").text = str(position[0])
     ET.SubElement(technical, "fret").text = str(position[1])
+
+
+def _drop_unfretted(part: ET.Element, unfretted: set[int]) -> None:
+    """Take the TAB notes without a fret (by ``id``) off the staff."""
+    for measure in part.iter("measure"):
+        for chord in _chords(measure):
+            _drop_from(measure, chord, unfretted)
+
+
+def _chords(measure: ET.Element) -> list[list[ET.Element]]:
+    """The notes of ``measure`` grouped into chords (a note and its ``<chord/>`` followers)."""
+    chords: list[list[ET.Element]] = []
+    for note in measure.findall("note"):
+        if note.find("chord") is not None and chords:
+            chords[-1].append(note)
+        else:
+            chords.append([note])
+    return chords
+
+
+def _drop_from(measure: ET.Element, chord: list[ET.Element], unfretted: set[int]) -> None:
+    """Remove the unfretted notes; the first kept note starts the chord, none kept -> a rest."""
+    kept = [n for n in chord if id(n) not in unfretted] or _rested(chord[0])
+    _remove_others(measure, chord, kept)
+    _remove_all(kept[0], ("chord",))
+
+
+def _rested(note: ET.Element) -> list[ET.Element]:
+    """``note`` turned into a rest, as the one note kept of its chord."""
+    _to_rest(note)
+    return [note]
+
+
+def _remove_others(measure: ET.Element, chord: list[ET.Element], kept: list[ET.Element]) -> None:
+    keep = {id(n) for n in kept}
+    for note in chord:
+        if id(note) not in keep:
+            measure.remove(note)
+
+
+def _remove_all(element: ET.Element, tags: tuple[str, ...]) -> None:
+    """Remove every child of ``element`` with one of ``tags``."""
+    for child in [c for c in element if c.tag in tags]:
+        element.remove(child)
+
+
+def _to_rest(note: ET.Element) -> None:
+    """Turn a pitched note into a rest of the same duration."""
+    index = next(i for i, child in enumerate(note) if child.tag == "pitch")
+    _remove_all(note, _NOT_IN_REST)
+    note.insert(index, ET.Element("rest"))
 
 
 def _staff_details(tuning: Tuning, capo: int, number: str | None) -> ET.Element:
@@ -246,12 +336,14 @@ def add_tab_staff(musicxml: bytes, settings: TablatureSettings, fingerer: TabFin
     if part is None:
         return TabResult(musicxml, 0)
     tuning = TUNINGS[settings.tuning]
-    positions, wide = _positions(part, tuning, settings, fingerer)
+    fingering = _positions(part, tuning, settings, fingerer)
     targets = _targets(part, settings)
-    for key, position in positions.items():
+    for key, position in fingering.found.items():
         _technical(targets[key], position)
+    _drop_unfretted(part, {id(t) for k, t in targets.items() if k not in fingering.found})
     _attributes(part, tuning, settings)
-    return TabResult(ET.tostring(root, encoding="utf-8", xml_declaration=True), wide)
+    xml = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    return TabResult(xml, fingering.wide_stretches, fingering.notes_dropped)
 
 
 def tablature_document(
@@ -259,10 +351,11 @@ def tablature_document(
 ) -> ScoreDocument:
     """``document`` with the TAB staff, ``tablature`` summary and the tab warnings."""
     result = add_tab_staff(document.musicxml, settings, fingerer)
-    summary = _summary(settings, fit, result.wide_stretches)
+    dropped = fit.notes_dropped + result.notes_dropped
+    summary = _summary(settings, replace(fit, notes_dropped=dropped), result.wide_stretches)
     counts: tuple[tuple[ScoreWarningCode, int], ...] = (
         ("tab-octave-moved", fit.octave_moved),
-        ("tab-notes-dropped", fit.notes_dropped),
+        ("tab-notes-dropped", dropped),
         ("tab-wide-stretch", result.wide_stretches),
     )
     extra = tuple(score_warning(code, n=n) for code, n in counts if n)

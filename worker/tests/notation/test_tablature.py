@@ -1,17 +1,22 @@
 """Tablature: strings, frets and the TAB staff in MusicXML (016 T023, data-model 4.5, SC-002)."""
 
+import itertools
+import time
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
-from typing import get_args
+from dataclasses import replace
+from typing import Any, get_args
 
 import pytest
 
+from stemstudio_worker.notation import tablature
 from stemstudio_worker.notation.notator import MusicNotator
 from stemstudio_worker.notation.tab_staff import TabResult, add_tab_staff
 from stemstudio_worker.notation.tablature import ViterbiTabFingerer
 from stemstudio_worker.ports import TUNINGS, NotationSettings, NoteEvent, TabAssignment, Tuning
 from stemstudio_worker.schemas import (
     BeatGridTempo,
+    PartSettings,
     ScoreProfile,
     ScoreTitles,
     TablatureSettings,
@@ -404,11 +409,12 @@ class _FirstNoteOnly:
         )
 
 
-def test_a_chord_note_the_fingerer_left_out_gets_no_technical_mark() -> None:
+def test_a_chord_note_the_fingerer_left_out_leaves_the_tab_staff() -> None:
     chord = _pitch("E", 3) + _pitch("B", 3).replace("<note>", "<note><chord/>")
     settings = TablatureSettings(tuning="guitar-standard", layout="tab-only")
-    root = _parse(add_tab_staff(_crafted(chord), settings, _FirstNoteOnly()).musicxml)
-    assert [n.find("notations") is None for n in root.iter("note")] == [False, True]
+    result = add_tab_staff(_crafted(chord), settings, _FirstNoteOnly())
+    assert [_fret_of(n) for n in _parse(result.musicxml).iter("note")] == [(6, 12)]
+    assert result.notes_dropped == 1
 
 
 def test_a_part_without_measures_is_written_back_without_tab_attributes() -> None:
@@ -416,3 +422,129 @@ def test_a_part_without_measures_is_written_back_without_tab_attributes() -> Non
     settings = TablatureSettings(tuning="guitar-standard")
     result = add_tab_staff(document, settings, ViterbiTabFingerer())
     assert _parse(result.musicxml).find(".//staff-details") is None
+
+
+# ------------------------------------------------------------------- review fixes (016 polish)
+
+
+def _fret_of(element: ET.Element) -> tuple[int, int]:
+    return (
+        int(element.findtext("notations/technical/string", "0")),
+        int(element.findtext("notations/technical/fret", "-1")),
+    )
+
+
+@pytest.mark.parametrize("layout", get_args(TabLayout))
+def test_a_transposing_part_fingers_the_tab_from_the_sounding_pitch(layout: TabLayout) -> None:
+    """FR-021: a double bass part is written an octave up, its TAB still plays the sounding E1."""
+    tab = TablatureSettings(tuning="bass-4-standard", layout=layout)
+    settings = replace(_settings("bass", tab), part=PartSettings(instrument="double-bass"))
+    root = ET.fromstring(MusicNotator().notate(_riff([28, 33]), settings).musicxml)  # noqa: S314
+    tab_notes = _tab_notes(root, "2" if layout == "notation-and-tab" else None)
+    assert [_midi_of(n) for n in tab_notes] == [40, 45]
+    assert [_fret_of(n) for n in tab_notes] == [(4, 0), (3, 0)]
+
+
+def _loud(xml: str, dynamics: int) -> str:
+    """The note with a ``dynamics`` attribute (music21 writes the velocity there)."""
+    return xml.replace("<note>", f'<note dynamics="{dynamics}">', 1)
+
+
+def _in_chord(xml: str) -> str:
+    return xml.replace("<pitch>", "<chord/><pitch>", 1)
+
+
+def _lasting(xml: str, duration: int, tie: str | None = None) -> str:
+    marks = f'<tie type="{tie}"/>' if tie else ""
+    return xml.replace("<duration>2</duration>", f"<duration>{duration}</duration>{marks}")
+
+
+@pytest.mark.parametrize("layout", get_args(TabLayout))
+def test_an_unplayable_chord_drops_a_note_from_the_tab_staff(layout: TabLayout) -> None:
+    """E2 + F2 both need the low E string: F2 leaves the TAB staff and is counted.
+
+    The score gives a chord one loudness (``dynamics``), so the tie rule decides: the note last in
+    document order (music21 writes chords low to high) is dropped.
+    """
+    chord = [note(0.0, QUARTER_SECONDS, 40, 0.3), note(0.0, QUARTER_SECONDS, 41, 0.9)]
+    notes = [*chord, note(QUARTER_SECONDS, 2 * QUARTER_SECONDS, 45)]
+    tab = TablatureSettings(tuning="guitar-standard", layout=layout)
+    document = MusicNotator().notate(notes, _settings("guitar", tab))
+    root = ET.fromstring(document.musicxml)  # noqa: S314 - our own notator output
+    tab_notes = _tab_notes(root, "2" if layout == "notation-and-tab" else None)
+    assert [_midi_of(n) for n in tab_notes] == [40, 45]
+    assert all(n.find("chord") is None for n in tab_notes)
+    assert [_fret_of(n) for n in tab_notes] == [(6, 0), (5, 0)]
+    if layout == "notation-and-tab":
+        assert sorted(_midi_of(n) for n in _tab_notes(root, "1")) == [40, 41, 45]
+    assert document.tablature is not None
+    assert document.tablature.notes_dropped == 1
+    assert "tab-notes-dropped" in [w.code for w in document.warnings]
+
+
+def test_a_dropped_chord_lead_hands_the_chord_start_to_the_next_note() -> None:
+    chord = _loud(_pitch("E", 3), 50) + _loud(_in_chord(_pitch("B", 3)), 100)
+    settings = TablatureSettings(tuning="guitar-standard", layout="tab-only")
+    root = _parse(add_tab_staff(_crafted(chord), settings, _FirstNoteOnly()).musicxml)
+    notes = list(root.iter("note"))
+    assert [(_midi_of(n), n.find("chord") is None) for n in notes] == [(59, True)]
+    assert _fret_of(notes[0]) == (6, 19)
+
+
+def test_the_tied_continuation_of_a_dropped_note_becomes_a_tab_rest() -> None:
+    lead = _loud(_lasting(_pitch("E", 3), 1), 100)
+    member = _loud(_in_chord(_lasting(_pitch("B", 3), 1, "start")), 10)
+    stop = _lasting(_pitch("B", 3), 3, "stop")
+    settings = TablatureSettings(tuning="guitar-standard", layout="tab-only")
+    result = add_tab_staff(_crafted(lead + member + stop), settings, _FirstNoteOnly())
+    notes = _parse(result.musicxml)[0][0].findall("note")
+    assert [n.find("pitch") is None for n in notes] == [False, True]
+    rest = notes[1]
+    assert rest.find("rest") is not None
+    assert (rest.findtext("duration"), rest.find("tie"), rest.find("notations")) == (
+        "3",
+        None,
+        None,
+    )
+    assert result.notes_dropped == 1
+
+
+DENSE_CHORDS = ([52, 55, 59, 60, 62, 64], [57, 59, 60, 62, 64, 55], [50, 53, 57, 60, 62, 59])
+DENSE_900_S = [list(DENSE_CHORDS[i % 3]) for i in range(1800)]
+"""A 6-note chord on every beat of 900 s at 120 BPM (the longest score, data-model 4.5)."""
+BENCH_BUDGET_S = 10.0
+
+
+def _brute_candidates(pitches: Sequence[int], tuning: Tuning, capo: int) -> list[Any]:
+    """The R-08 candidate list built the slow way: every product, filtered, fully sorted."""
+    options = (tablature._options(p, tuning, capo) for p in pitches)
+    combos = (c for c in itertools.product(*options) if len({s for s, _ in c}) == len(c))
+    found = sorted(map(tablature._cost, combos), key=lambda c: (c.cost, c.order))
+    found = found[: tablature.MAX_CANDIDATES]
+    return [c for c in found if not c.wide] or found
+
+
+def test_pruned_candidates_give_the_same_fingering_as_the_full_product(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases = [(events, STANDARD) for events, _ in GOLDEN[:3]] + [
+        (GOLDEN[3][0], TUNINGS["bass-4-standard"]),
+        (DENSE_900_S[:30], STANDARD),
+        ([[88, 88, 88], [40, 41], [64, 64, 64, 64]], STANDARD),
+    ]
+    fast = [_assign(events, tuning) for events, tuning in cases]
+    monkeypatch.setattr(tablature, "_candidates", _brute_candidates)
+    assert fast == [_assign(events, tuning) for events, tuning in cases]
+
+
+def test_a_dense_900_second_chord_sequence_is_fingered_within_budget() -> None:
+    """Report-only bench with a loose budget (coverage tracing roughly triples the time).
+
+    Measured without coverage: 3.4 s with the full product per chord, 0.8 s pruned per string.
+    """
+    started = time.perf_counter()
+    result = _assign(DENSE_900_S)
+    seconds = time.perf_counter() - started
+    print(f"tab fingering of {len(DENSE_900_S)} six-note chords: {seconds:.2f} s")  # noqa: T201
+    assert len(result.positions) == len(DENSE_900_S)
+    assert seconds < BENCH_BUDGET_S

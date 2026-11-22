@@ -12,7 +12,7 @@ written from the concert score. ``concert`` with ``auto`` changes nothing (008 o
 import copy
 import re
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any, Final, cast
 
@@ -104,9 +104,14 @@ def plan_part(part: PartSettings, profile: Profile, concert: KeyInfo, name: str)
 
 def out_of_range(notes: Sequence[PlacedNote], info: WrittenInstrumentInfo) -> int:
     """Notes outside the instrument's usual sounding range (``part-out-of-range``)."""
+    return pitches_out_of_range((n.pitch for n in notes), info)
+
+
+def pitches_out_of_range(pitches: Iterable[int], info: WrittenInstrumentInfo) -> int:
+    """Sounding MIDI pitches outside the instrument's usual range (0 without a range)."""
     if info.low_midi is None or info.high_midi is None:
         return 0
-    return sum(not info.low_midi <= n.pitch <= info.high_midi for n in notes)
+    return sum(not info.low_midi <= p <= info.high_midi for p in pitches)
 
 
 def summary(plan: PartPlan, outside: int) -> PartSummary:
@@ -192,7 +197,20 @@ class Music21PartWriter:
         plan = plan_part(part, constants, _concert_key(score), constants.name.capitalize())
         written = written_score(score, plan, len(constants.clefs) > 1)
         xml = with_transpose(musicxml_bytes(written), plan.info)
-        return PartResult(musicxml=xml, summary=summary(plan, 0))
+        return PartResult(musicxml=xml, summary=summary(plan, _outside(score, plan.info)))
+
+
+def _outside(score: m21_stream.Score, info: WrittenInstrumentInfo) -> int:
+    """Attacked concert notes of a parsed score outside the instrument range (ties counted once)."""
+    attacked = (p.midi for e in score.recurse().notes if _attacked(e) for p in e.pitches)
+    return pitches_out_of_range(attacked, info)
+
+
+def _attacked(element: Any) -> bool:
+    """A note or chord that starts here (no chord symbol, no tied continuation)."""
+    if isinstance(element, m21_harmony.Harmony):
+        return False
+    return element.tie is None or element.tie.type == "start"
 
 
 def _concert_key(score: m21_stream.Score) -> KeyInfo:
