@@ -277,15 +277,8 @@ public sealed class HandoutEndpointsTests : ApiTestBase
         var first = await (await Client.PostHandoutAsync(Bass(song.Id) with { Include = [IngredientCodeDto.Facts], Paper = PaperDto.Letter })).BodyAsync<AssetDto>();
         var recipe = first.Provenance.HandoutRecipe!;
 
-        using var again = await Client.PostHandoutAsync(new CreateHandoutRequest
-        {
-            Source = HandoutSourceDto.Song(recipe.TrackId!.Value),
-            Family = recipe.Family,
-            Include = recipe.Include,
-            NotationAssetIds = recipe.NotationAssetIds,
-            Transposition = recipe.Transposition,
-            Paper = recipe.Paper,
-        });
+        using var again = await Client.PostHandoutAsync(
+            Bass(recipe.TrackId!.Value) with { Family = recipe.Family, Include = recipe.Include, NotationAssetIds = recipe.NotationAssetIds, Transposition = recipe.Transposition, Paper = recipe.Paper });
         var second = await again.BodyAsync<AssetDto>();
         Factory.InsightsWorker.SetHandout(Factory.InsightsWorker.HandoutJobs.Keys.Min(StringComparer.Ordinal)!, WorkerRenderJobState.Failed, 0, "boom");
         await Factory.SyncAssetsAsync();

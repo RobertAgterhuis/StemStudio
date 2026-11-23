@@ -145,8 +145,12 @@ def test_the_insights_script_selects_the_020_specs_on_chromium() -> None:
 
 
 def test_no_e2e_script_or_project_selects_firefox() -> None:
-    """Owner decision 2026-11-23: Firefox is not part of the E2E suite (no project, script or CI browser)."""
-    assert not [name for name, script in _scripts().items() if "firefox" in name.lower() or "firefox" in script.lower()]
+    """Owner decision 2026-11-23: no Firefox project, script or CI browser in the E2E suite."""
+    assert not [
+        name
+        for name, script in _scripts().items()
+        if "firefox" in name.lower() or "firefox" in script.lower()
+    ]
     assert "Desktop Firefox" not in PLAYWRIGHT.read_text(encoding="utf-8")
 
 

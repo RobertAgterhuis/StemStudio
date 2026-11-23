@@ -36,9 +36,16 @@ internal static class HandoutTestData
         await factory.SeedReadyAsync(trackId, AnalysisTestData.Chart(), new string('f', 64));
     }
 
-    /// <summary>A ready score item of a track (its PDF of <paramref name="sizeBytes"/> bytes).</summary>
-    public static Asset Score(Guid trackId, (string Channel, ScoreProfile Profile) source, int minute, Func<ScoreFacts, ScoreFacts>? change = null, long sizeBytes = 100)
+    /// <summary>A ready score item of a track (a 100-byte PDF).</summary>
+    public static Asset Score(Guid trackId, (string Channel, ScoreProfile Profile) source, int minute, Func<ScoreFacts, ScoreFacts>? change = null) =>
+        BuildScore(new ScoreSeed(trackId, source, minute, change, 100));
+
+    /// <summary>A ready bass score item whose PDF has <paramref name="sizeBytes"/> bytes (the handout job size limit).</summary>
+    public static Asset LargeBassScore(Guid trackId, long sizeBytes) => BuildScore(new ScoreSeed(trackId, ("bass", ScoreProfile.Bass), 1, null, sizeBytes));
+
+    private static Asset BuildScore(ScoreSeed seed)
     {
+        var (trackId, source, minute, change, sizeBytes) = seed;
         var provenance = new Provenance
         {
             Origin = AssetOrigin.Transcription,
@@ -99,4 +106,6 @@ internal static class HandoutTestData
 
     /// <summary>The only analysis-free chart used by the songs: C major, N then C then G.</summary>
     public static ChordChart Chart => AnalysisTestData.Chart();
+
+    private sealed record ScoreSeed(Guid TrackId, (string Channel, ScoreProfile Profile) Source, int Minute, Func<ScoreFacts, ScoreFacts>? Change, long SizeBytes);
 }

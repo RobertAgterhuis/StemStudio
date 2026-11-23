@@ -6,7 +6,6 @@ using StemStudio.Api.Tests.Worker;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Handouts;
-using StemStudio.Domain.Scores;
 
 namespace StemStudio.Api.Tests.Handouts;
 
@@ -105,7 +104,7 @@ public sealed class HandoutJobLimitsTests : ApiTestBase
     public async Task CreateHandout_OverTheNotationLimit_Answers422_AndSubmitsNothing()
     {
         var song = await Factory.SeedSongAsync();
-        await Factory.SeedAssetsAsync(HandoutTestData.Score(song.Id, ("bass", ScoreProfile.Bass), 1, sizeBytes: ContractLimits.MaxHandoutNotationBytes + 1));
+        await Factory.SeedAssetsAsync(HandoutTestData.LargeBassScore(song.Id, ContractLimits.MaxHandoutNotationBytes + 1));
 
         using var response = await Client.PostHandoutAsync(new CreateHandoutRequest { Source = HandoutSourceDto.Song(song.Id), Family = HandoutFamilyDto.Bass });
 
