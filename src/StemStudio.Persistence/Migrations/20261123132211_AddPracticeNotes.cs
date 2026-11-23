@@ -5,7 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace StemStudio.Persistence.Migrations
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Feature 020 (data-model 5.2, 5.4): the <c>PracticeNotes</c> table (cascade with the track) and the nullable
+    /// <c>Assets.Handout</c> column. Additive only: existing rows keep their data (null = not a handout).
+    /// </summary>
     public partial class AddPracticeNotes : Migration
     {
         /// <inheritdoc />
@@ -44,9 +47,9 @@ namespace StemStudio.Persistence.Migrations
             migrationBuilder.DropTable(
                 name: "PracticeNotes");
 
-            migrationBuilder.DropColumn(
-                name: "Handout",
-                table: "Assets");
+            // A native column drop (SQLite 3.35+) instead of EF's table rebuild: the rebuild would lose the folder index that
+            // AddLibraryFolders created outside the model.
+            migrationBuilder.Sql("ALTER TABLE \"Assets\" DROP COLUMN \"Handout\";");
         }
     }
 }

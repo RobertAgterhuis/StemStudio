@@ -4,7 +4,10 @@
 
 namespace StemStudio.Persistence.Migrations
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Feature 020 (data-model 5.1): the nullable <c>Tracks.QualityReport</c> JSON column. Additive only: existing tracks keep
+    /// their data (null = never made).
+    /// </summary>
     public partial class AddQualityReport : Migration
     {
         /// <inheritdoc />

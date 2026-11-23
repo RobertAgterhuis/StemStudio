@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Handouts;
 using StemStudio.Domain.Insights;
@@ -39,6 +41,38 @@ public sealed class InsightsPersistenceTests
             (legacy.Title, legacy.QualityReport).ShouldBe(("Song", (QualityReport?)null));
             (await db.ScalarAsync("SELECT COUNT(*) FROM PracticeNotes")).ShouldBe("0");
             (await db.ScalarAsync("SELECT COUNT(*) FROM Assets WHERE Handout IS NOT NULL")).ShouldBe("0");
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Migrations_GoDownToPre020AndUpAgain_KeepingTheTracksAndTheFolderIndex()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"stemstudio-020-down-{Guid.NewGuid():N}.db");
+        try
+        {
+            var connectionString = $"Data Source={path};Pooling=False";
+            await using (var db = await SqliteTestDatabase.CreateAsync(connectionString))
+            {
+                var track = TestData.CompletedTrack();
+                Measure(track, "v1", [Stem("vocals", QualityRating.Good)]);
+                await db.SeedAsync(track);
+            }
+
+            await MigrateToAsync(connectionString, LastMigrationBefore020);
+            await using var down = await OpenAsync(connectionString);
+            (await ScalarAsync(down, "SELECT COUNT(*) FROM sqlite_master WHERE name = 'PracticeNotes'")).ShouldBe("0");
+            (await ScalarAsync(down, "SELECT COUNT(*) FROM pragma_table_info('Tracks') WHERE name = 'QualityReport'")).ShouldBe("0");
+            (await ScalarAsync(down, "SELECT COUNT(*) FROM sqlite_master WHERE name = 'IX_Assets_Folder'")).ShouldBe("1");
+            (await ScalarAsync(down, "SELECT COUNT(*) FROM Tracks")).ShouldBe("1");
+
+            await using var up = await SqliteTestDatabase.CreateAsync(connectionString);
+            await using var read = up.NewContext();
+            (await new TrackRepository(read).ListAsync(Ct)).Single().QualityReport.ShouldBeNull();
         }
         finally
         {
@@ -152,6 +186,26 @@ public sealed class InsightsPersistenceTests
         loaded.Files.Single().FileName.ShouldBe("handout.pdf");
         (await repository.FindAsync(audio.Id, Ct))!.Handout.ShouldBeNull();
         (await db.ScalarAsync($"SELECT json_extract(Provenance, '$.HandoutRecipe.Family') FROM Assets WHERE Kind = 'Handout'")).ShouldBe("Bass");
+    }
+
+    private static async Task MigrateToAsync(string connectionString, string migration)
+    {
+        await using var context = new StemStudioDbContext(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(connectionString).Options);
+        await context.GetService<IMigrator>().MigrateAsync(migration, Ct);
+    }
+
+    private static async Task<SqliteConnection> OpenAsync(string connectionString)
+    {
+        var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(Ct);
+        return connection;
+    }
+
+    private static async Task<string?> ScalarAsync(SqliteConnection connection, string sql)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return (await command.ExecuteScalarAsync(Ct))?.ToString();
     }
 
     private static void Measure(Track track, string stemsVersion, IReadOnlyList<StemQuality> stems)
