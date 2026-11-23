@@ -116,6 +116,13 @@ public sealed class FeatureCatalogTests
         { "key.details", [A, E], "song-key" },
         { "capo.mode", [B, A, E], "capo-mode" },
         { "capo.sounding", [A, E], "capo-mode" },
+        { "quality.report", [B, A, E], "stem-quality" },
+        { "quality.details", [A, E], "stem-quality-measures" },
+        { "quality.indices", [E], "stem-quality-reliability" },
+        { "handout.one-click", [B, A, E], "handouts" },
+        { "handout.customise", [A, E], "handout-families" },
+        { "handout.transposition", [A, E], "handout-transposition" },
+        { "practice-notes.edit", [B, A, E], "practice-notes" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -179,7 +186,8 @@ public sealed class FeatureCatalogTests
                 "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
                 "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions", "shortcuts.settings", "sections.edit", "sections.detect-again", "sections.confidence", "setlists.notes", "setlists.pdf-options", "practice.log-sections", "practice.log-tempo", "practice.sessions",
                 "recording.input-mode", "recording.monitoring-volume", "recording.manual-latency", "recording.loop", "recording.take-pan", "recording.export-options", "recording.latency-samples", "recording.timing-adjust", "recording.diagnostics",
-                "chords.full", "chords.edit", "chords.export", "chords.engine", "scores.chords", "tab.tunings", "drums.guide", "singing.tolerance", "singing.raw", "parts.clef", "key.details", "capo.sounding"], ignoreOrder: true);
+                "chords.full", "chords.edit", "chords.export", "chords.engine", "scores.chords", "tab.tunings", "drums.guide", "singing.tolerance", "singing.raw", "parts.clef", "key.details", "capo.sounding",
+                "quality.details", "quality.indices", "handout.customise", "handout.transposition"], ignoreOrder: true);
     }
 
     [Fact]
