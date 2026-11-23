@@ -1978,6 +1978,16 @@ def notation_unreadable_text(title: str) -> str:
     return f"A notation file could not be read: {title}"
 
 
+def notation_omitted_text(title: str) -> str:
+    """Warning text of a notation item left out by the per-job render budget."""
+    raise NotImplementedError
+
+
+def artwork_omitted_text(song_title: str) -> str:
+    """Warning text of a cover picture left out (not a JPEG or over 40 megapixels)."""
+    raise NotImplementedError
+
+
 class QualityAnalysisError(WorkerError):
     """A quality job failed; the message is shown to the user."""
 

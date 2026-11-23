@@ -19,7 +19,9 @@ from stemstudio_worker.ports import (
     NotationUnreadableError,
     RenderedHandout,
     WorkerError,
+    artwork_omitted_text,
     is_handout_input_path,
+    notation_omitted_text,
     notation_unreadable_text,
 )
 from stemstudio_worker.schemas import (
@@ -240,4 +242,11 @@ def test_handout_errors_and_texts() -> None:
     assert HANDOUT_FAILED_TEXT == "The handout could not be written"
     assert notation_unreadable_text("Bass - tablature") == (
         "A notation file could not be read: Bass - tablature"
+    )
+    assert notation_omitted_text("Bass - tablature") == (
+        "A notation file was left out because the handout reached its size limit: Bass - tablature"
+    )
+    assert artwork_omitted_text("Blue Bossa") == (
+        "The cover picture was left out because it is not a JPEG or is larger than 40 megapixels:"
+        " Blue Bossa"
     )

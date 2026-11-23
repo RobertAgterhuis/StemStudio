@@ -30,9 +30,11 @@ from stemstudio_worker.ports import (
     HandoutRenderer,
     HandoutRenderError,
     NotationUnreadableError,
+    artwork_omitted_text,
+    notation_omitted_text,
     notation_unreadable_text,
 )
-from stemstudio_worker.schemas import HandoutJobRequest, HandoutResult
+from stemstudio_worker.schemas import HandoutJobRequest, HandoutResult, HandoutWarning
 
 from .documents import ARTWORK, SCORE, TAB, full_song, library_files, request
 from .support import FakeLayout, needs_weasyprint
@@ -283,19 +285,56 @@ def test_frames_over_the_job_cap_become_notes(files: dict[str, Path]) -> None:
     result = renderer.render(request(notation=_items(TAB, SCORE, TAB)), files, lambda _f: None)
 
     assert [(w.code, w.text) for w in result.warnings] == [
-        ("notation-unreadable", notation_unreadable_text("Part 2"))
+        ("notation-omitted", notation_omitted_text("Part 2"))
     ]
     assert layout.html[0].count('id="frame-') == 3
+    assert notation_omitted_text("Part 2") in layout.html[0]
     assert result.pages == 4
 
 
 def test_notation_files_over_the_job_byte_budget_become_notes(files: dict[str, Path]) -> None:
     budget = files[TAB].stat().st_size + 10
-    renderer = WeasyHandoutRenderer(layout=FakeLayout(), limits=RenderLimits(notation_bytes=budget))
+
+    layout = FakeLayout()
+    renderer = WeasyHandoutRenderer(layout=layout, limits=RenderLimits(notation_bytes=budget))
 
     result = renderer.render(request(notation=_items(TAB, SCORE, TAB)), files, lambda _f: None)
 
-    assert [w.text for w in result.warnings] == [notation_unreadable_text("Part 1")]
+    assert [(w.code, w.text) for w in result.warnings] == [
+        ("notation-omitted", notation_omitted_text("Part 1"))
+    ]
+    assert notation_omitted_text("Part 1") in layout.html[0]
+
+
+def test_an_unreadable_file_and_an_omitted_one_keep_their_own_codes(
+    files: dict[str, Path],
+) -> None:
+    class UnreadableTab:
+        def page_sizes(self, path: Path) -> tuple[tuple[float, float], ...]:
+            if path == files[TAB]:
+                raise NotationUnreadableError(path.name)
+            return ((595.28, 841.89),) * 3
+
+    renderer = WeasyHandoutRenderer(UnreadableTab(), FakeLayout(), RenderLimits(frames=4))
+
+    result = renderer.render(request(notation=_items(TAB, SCORE, SCORE)), files, lambda _f: None)
+
+    assert [(w.code, w.text) for w in result.warnings] == [
+        ("notation-unreadable", notation_unreadable_text("Part 0")),
+        ("notation-omitted", notation_omitted_text("Part 2")),
+    ]
+
+
+def test_an_omitted_warning_with_a_long_title_is_cut_to_300_characters(
+    files: dict[str, Path],
+) -> None:
+    title = "T" * 300
+    items = [{"title": title, "kind": "score", "pdfPath": TAB}]
+    renderer = WeasyHandoutRenderer(layout=FakeLayout(), limits=RenderLimits(frames=0))
+
+    result = renderer.render(request(notation=items), files, lambda _f: None)
+
+    assert [w.text for w in result.warnings] == [notation_omitted_text(title)[:300]]
 
 
 class _Clock:
@@ -381,7 +420,39 @@ def test_artwork_over_the_pixel_limit_or_unreadable_is_left_out(
     result = WeasyHandoutRenderer(layout=layout).render(request(), files, lambda _f: None)
 
     assert files[ARTWORK].as_uri() not in layout.html[0]
-    assert result.warnings == ()
+    title = request().document.songs[0].title
+    assert result.warnings == (
+        HandoutWarning(code="artwork-omitted", text=artwork_omitted_text(title)),
+    )
+
+
+def test_artwork_left_out_twice_warns_once_and_a_long_title_is_cut(
+    files: dict[str, Path],
+) -> None:
+    files[ARTWORK].write_bytes(b"not a jpeg")
+    long = request(title="A" * 300)
+    songs = [long.document.songs[0]] * 2
+    twice = HandoutJobRequest.model_construct(
+        document=long.document.model_copy(update={"songs": songs}), paper="a4"
+    )
+
+    result = WeasyHandoutRenderer(layout=FakeLayout()).render(twice, files, lambda _f: None)
+
+    assert [w.text for w in result.warnings] == [artwork_omitted_text("A" * 300)[:300]]
+
+
+def test_artwork_without_a_file_or_a_path_gives_no_warning(
+    files: dict[str, Path],
+) -> None:
+    artwork = files.pop(ARTWORK)
+    layout = FakeLayout()
+
+    result = WeasyHandoutRenderer(layout=layout).render(request(), files, lambda _f: None)
+    elsewhere = request(artworkPath=None)
+    other = WeasyHandoutRenderer(layout=layout).render(elsewhere, files, lambda _f: None)
+
+    assert artwork.as_uri() not in layout.html[0]
+    assert result.warnings == other.warnings == ()
 
 
 def test_artwork_at_the_pixel_limit_is_used(files: dict[str, Path]) -> None:
