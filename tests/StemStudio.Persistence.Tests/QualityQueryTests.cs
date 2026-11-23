@@ -38,6 +38,45 @@ public sealed class QualityQueryTests
         (await tracks.IsQualityActiveStoredAsync(Guid.NewGuid(), Ct)).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task ListQualityActive_LoadsOnlyTheActiveTracks()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var (queued, failed, none) = (TestData.CompletedTrack("aaaaaaaaaaa"), TestData.CompletedTrack("bbbbbbbbbbb"), TestData.CompletedTrack("ccccccccccc"));
+        Queue(queued);
+        Queue(failed);
+        failed.FailQuality("broken", T0.AddMinutes(11));
+        await db.SeedAsync(queued, failed, none);
+
+        await using var context = db.NewContext();
+        var active = await new TrackRepository(context).ListQualityActiveAsync(Ct);
+
+        active.Select(track => track.Id).ShouldBe([queued.Id]);
+        context.ChangeTracker.Entries<Track>().Count().ShouldBe(1, "the status is filtered in SQL, not after loading every report");
+    }
+
+    [Theory]
+    [InlineData("{not json")]
+    [InlineData("{\"Status\":\"Queued\",\"Stems\":5}")]
+    [InlineData("[]")]
+    public async Task ACorruptStoredReport_ReadsAsNoReport_AndBreaksNoQuery(string corrupt)
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var (queued, broken) = (TestData.CompletedTrack("aaaaaaaaaaa"), TestData.CompletedTrack("bbbbbbbbbbb"));
+        Queue(queued);
+        Queue(broken);
+        await db.SeedAsync(queued, broken);
+        await db.ScalarAsync($"UPDATE Tracks SET QualityReport = '{corrupt.Replace("'", "''", StringComparison.Ordinal)}' WHERE SourceKey = 'youtube:bbbbbbbbbbb'");
+
+        await using var context = db.NewContext();
+        var tracks = new TrackRepository(context);
+
+        (await tracks.ListQualityActiveAsync(Ct)).Select(track => track.Id).ShouldBe([queued.Id]);
+        (await tracks.FindAsync(broken.Id, Ct))!.QualityReport.ShouldBeNull();
+        (await tracks.ListAsync(Ct)).Count.ShouldBe(2);
+        (await tracks.IsQualityActiveStoredAsync(broken.Id, Ct)).ShouldBeFalse();
+    }
+
     private static void Queue(Track track)
     {
         track.RequestQuality("v1", T0.AddMinutes(10));

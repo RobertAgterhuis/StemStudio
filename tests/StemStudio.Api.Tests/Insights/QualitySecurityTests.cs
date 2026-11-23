@@ -6,7 +6,9 @@ using StemStudio.Api.Insights;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Domain.Insights;
+using StemStudio.Contracts.Insights;
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Tests.Insights;
@@ -42,6 +44,24 @@ public sealed class QualitySecurityTests : ApiTestBase
         Factory.InsightsWorker.QualityRequests.Count.ShouldBe(1);
         (await Factory.FindTrackAsync(track.Id))!.QualityReport!.WorkerJobId.ShouldBe(Factory.InsightsWorker.OnlyJob());
         stale.QualityReport.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ACorruptStoredReport_BreaksNeitherTheSyncNorTheReads()
+    {
+        var (active, broken) = (await Factory.SeedAsync(SyncTestData.CompletedTrack()), await Factory.SeedAsync(SyncTestData.CompletedTrack("bbbbbbbbbbb")));
+        (await Client.RequestQualityAsync(active.Id)).Dispose();
+        (await Client.RequestQualityAsync(broken.Id)).Dispose();
+        await Factory.WithScopeAsync(sp => sp.GetRequiredService<StemStudioDbContext>().Database.ExecuteSqlAsync($"UPDATE Tracks SET QualityReport = '{{broken' WHERE SourceKey = 'youtube:bbbbbbbbbbb'", CancellationToken.None));
+        Factory.InsightsWorker.CompleteQuality(Factory.InsightsWorker.QualityJobs.Keys.Order(StringComparer.Ordinal).First(), QualityTestData.SixGood());
+
+        await Factory.SyncQualityAsync();
+        using var list = await Client.GetAsync(new Uri("/api/tracks", UriKind.Relative), Ct);
+        var report = await Client.GetQualityAsync(broken.Id);
+
+        (await Factory.FindTrackAsync(active.Id))!.QualityReport!.Status.ShouldBe(QualityReportStatus.Ready);
+        list.StatusCode.ShouldBe(HttpStatusCode.OK);
+        report.Status.ShouldBe(QualityReportStatusDto.None);
     }
 
     [Fact]
