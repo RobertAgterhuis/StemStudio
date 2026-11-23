@@ -23,7 +23,7 @@ from stemstudio_worker.handouts.renderer import (
     RenderLimits,
     WeasyHandoutRenderer,
 )
-from stemstudio_worker.handouts.resources import ARCHIVO_FONT, AllowList
+from stemstudio_worker.handouts.resources import ARCHIVO_FONT, MAX_ARTWORK_PIXELS, AllowList
 from stemstudio_worker.ports import (
     HANDOUT_FAILED_TEXT,
     HandoutCancelledError,
@@ -359,3 +359,36 @@ def test_a_song_title_of_300_characters_gives_a_valid_result(files: dict[str, Pa
     assert max(len(title) for title in result.outline) == 200
     HandoutResult(size_bytes=len(result.pdf), sha256="0" * 64, pages=result.pages,
                   outline=list(result.outline), warnings=list(result.warnings))  # fmt: skip
+
+
+def _forged_size(path: Path, width: int, height: int) -> None:
+    """Rewrite the frame header (SOF0) of a JPEG to claim ``width`` x ``height`` pixels."""
+    data = bytearray(path.read_bytes())
+    sof = data.index(b"\xff\xc0") + 5
+    data[sof : sof + 4] = height.to_bytes(2, "big") + width.to_bytes(2, "big")
+    path.write_bytes(bytes(data))
+
+
+@pytest.mark.parametrize("damage", [lambda p: _forged_size(p, 8000, 6000),
+                                    lambda p: _forged_size(p, 65000, 65000),
+                                    lambda p: p.write_bytes(b"not a jpeg")])  # fmt: skip
+def test_artwork_over_the_pixel_limit_or_unreadable_is_left_out(
+    files: dict[str, Path], damage: Any
+) -> None:
+    damage(files[ARTWORK])
+    layout = FakeLayout()
+
+    result = WeasyHandoutRenderer(layout=layout).render(request(), files, lambda _f: None)
+
+    assert files[ARTWORK].as_uri() not in layout.html[0]
+    assert result.warnings == ()
+
+
+def test_artwork_at_the_pixel_limit_is_used(files: dict[str, Path]) -> None:
+    _forged_size(files[ARTWORK], 8000, 5000)
+    layout = FakeLayout()
+
+    WeasyHandoutRenderer(layout=layout).render(request(), files, lambda _f: None)
+
+    assert files[ARTWORK].as_uri() in layout.html[0]
+    assert MAX_ARTWORK_PIXELS == 40_000_000

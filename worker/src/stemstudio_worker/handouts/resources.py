@@ -31,6 +31,9 @@ TOKENS_CSS: Final = ASSETS_DIR / "tokens.css"
 MAX_RESOURCE_BYTES: Final = 16 * 1024 * 1024
 """Largest file the layout may read (a cover is far smaller)."""
 
+MAX_ARTWORK_PIXELS: Final = 40_000_000
+"""Largest artwork in pixels (stub)."""
+
 CONTENT_TYPES: Final[Mapping[str, str]] = {
     ".woff2": "font/woff2",
     ".jpg": "image/jpeg",
