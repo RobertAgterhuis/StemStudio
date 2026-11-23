@@ -4,6 +4,7 @@ pypdf runs everywhere; the tests through the whole renderer need WeasyPrint (Lin
 """
 
 import io
+import time
 from pathlib import Path
 
 import pypdf
@@ -45,6 +46,9 @@ from .documents import (
     token_pdf,
 )
 from .support import FakeLayout, needs_weasyprint
+
+BOMB_SECONDS = 3.0
+"""Time budget of a hostile notation PDF (it was 373 s for 10 pages of 1.8 M tokens)."""
 
 
 def test_the_reader_is_a_notation_reader_with_page_sizes(tmp_path: Path) -> None:
@@ -319,3 +323,30 @@ def test_a_file_replaced_by_one_over_the_limit_before_the_merge_fails_the_render
 
     with pytest.raises(HandoutRenderError):
         merge_frames(_blank(1), [Frame(0, (50, 50, 400, 600), source, 0)], lambda _done: None)
+
+
+def test_a_page_over_the_handout_parse_budget_is_unreadable_quickly(tmp_path: Path) -> None:
+    path = token_pdf(tmp_path / "bomb.pdf", 3, 1_500_000)
+    start = time.perf_counter()
+
+    with pytest.raises(NotationUnreadableError):
+        PypdfNotationReader().page_sizes(path)
+
+    assert time.perf_counter() - start < BOMB_SECONDS
+
+
+def test_a_notation_pdf_of_heavy_pages_renders_quickly_with_a_warning(tmp_path: Path) -> None:
+    files = library_files(tmp_path / "library")
+    token_pdf(files[TAB], 2, 1_500_000)
+    start = time.perf_counter()
+
+    result = WeasyHandoutRenderer(layout=FakeLayout()).render(request(), files, lambda _f: None)
+
+    assert time.perf_counter() - start < BOMB_SECONDS
+    assert [w.code for w in result.warnings] == ["notation-unreadable"]
+
+
+def test_a_dense_engraved_page_is_within_the_parse_budget(tmp_path: Path) -> None:
+    path = token_pdf(tmp_path / "dense.pdf", 2, 72_000 * 2)
+
+    assert len(PypdfNotationReader().page_sizes(path)) == 2
