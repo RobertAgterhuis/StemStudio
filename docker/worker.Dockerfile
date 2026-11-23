@@ -77,7 +77,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Verovio's SVG text glyphs use font-family "Leipzig"; Cairo renders them only when fontconfig
 # knows the font. worker/scripts/install_music_font.py converts the WOFF2 embedded in the pinned
 # verovio wheel to Leipzig.ttf (OFL-1.1). fontTools[woff] (MIT, with brotli) is installed into
-# /opt/fonttools of this stage only and never reaches the runtime image.
+# /opt/fonttools of this stage only; the runtime venv has the same locked fonttools (WeasyPrint's
+# dependency and a direct worker dependency since 020), so nothing of /opt/fonttools is copied.
 # fontTools stamps head.modified with the current time unless SOURCE_DATE_EPOCH is set; the value
 # below is the wheel font's own head.modified (Mac epoch 3869993456), so the output is reproducible
 # and keeps the upstream timestamp: verovio 6.4.0 -> 119,416 B, SHA-256 1dcb5a73...81f5.
@@ -103,14 +104,16 @@ ARG WORKER_DEVICE=cpu
 # Handouts (feature 020, FR-012): WeasyPrint (pinned in worker/uv.lock) loads Pango and PangoFT2 at
 # run time through cffi. libpango-1.0-0 and libpangoft2-1.0-0 (LGPL-2.1+; HarfBuzz and fontconfig
 # come with them) are already pulled in by ffmpeg's dependencies (Pango 1.56.3, P0-4) but are
-# listed explicitly so the PDF engine never depends on that. Handout fonts: the DejaVu fonts above
+# listed explicitly so the PDF engine never depends on that. libharfbuzz-subset0 (MIT, HarfBuzz) is
+# the subsetter WeasyPrint uses for embedded fonts; without it WeasyPrint falls back to fontTools,
+# so it is listed explicitly too. Handout fonts: the DejaVu fonts above
 # and the Archivo copy inside the worker package; fc-cache refreshes every font folder.
 # scripts/check-worker-pdf.* checks the result (SC-005, both variants).
 COPY --from=deno /deno /usr/local/bin/deno
 COPY --from=font /opt/fonts/Leipzig.ttf /usr/local/share/fonts/verovio/Leipzig.ttf
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg libsndfile1 libcairo2 fontconfig fonts-dejavu-core \
-      libpango-1.0-0 libpangoft2-1.0-0 \
+      libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 \
  && rm -rf /var/lib/apt/lists/* \
  && fc-cache -f \
  && groupadd --gid 10001 stemstudio \
