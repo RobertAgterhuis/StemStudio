@@ -1,0 +1,87 @@
+{#- One song of a handout: header band, form, chord chart, lyrics, notation frames, notes. -#}
+{% macro song(s, first) -%}
+<section class="song{{ ' first' if first }}" id="{{ s.anchor }}">
+<div class="band">
+{%- if s.artwork %}
+<img class="artwork" src="{{ s.artwork }}" alt="Cover of {{ s.title }}">
+{%- endif %}
+<div>
+<h1 data-running="{{ s.running }}">{{ s.title }}</h1>
+{%- if s.artist %}
+<p class="byline">{{ s.artist }}</p>
+{%- endif %}
+<p class="family">{{ s.family }} handout</p>
+{%- if s.facts %}
+<p class="facts">
+{%- for label, value in s.facts %}
+<span class="fact"><span class="label">{{ label }}</span> <b>{{ value }}</b></span>
+{%- endfor %}
+</p>
+{%- endif %}
+</div>
+</div>
+{%- if s.entry_notes %}
+<h2>Setlist notes</h2>
+<p class="text">{{ s.entry_notes }}</p>
+{%- endif %}
+{%- if s.form %}
+<h2>Form</h2>
+<table class="form">
+<thead><tr><th>Section</th><th>Bars</th><th>Count</th><th>Time</th>{% if s.show_tempo %}<th>Practice tempo</th>{% endif %}</tr></thead>
+<tbody>
+{%- for row in s.form %}
+<tr><td>{{ row.name }}</td><td>{{ row.bars }}</td><td>{{ row.count }}</td><td>{{ row.time }}</td>{% if s.show_tempo %}<td>{{ row.tempo }}</td>{% endif %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+{%- endif %}
+{%- if s.chord_chart %}
+<h2>Chord chart</h2>
+<table class="bars">
+<tbody>
+{%- for row in s.chord_chart %}
+<tr><th>{{ row.name }}</th>{% for cell in row.cells %}<td class="bar">{{ cell }}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+{%- endif %}
+{%- if s.lyrics %}
+<h2>{{ s.lyrics_heading }}</h2>
+<div class="lyrics">
+{%- for row in s.lyrics %}
+{%- if row.segments %}
+<div class="row">{% for seg in row.segments %}<span class="seg"><span class="chord">{{ seg.chord }}</span><span class="lyric">{{ seg.text or "\u00a0" }}</span></span>{% endfor %}</div>
+{%- else %}
+<p class="row">{{ row.text }}</p>
+{%- endif %}
+{%- endfor %}
+</div>
+{%- endif %}
+{%- if s.legend %}
+<p class="legend">Chords: <b>{{ s.legend }}</b></p>
+{%- endif %}
+{%- if s.practice_notes %}
+<h2>Practice notes</h2>
+<p class="text">{{ s.practice_notes }}</p>
+{%- endif %}
+{%- for block in s.notation %}
+{%- if block.note %}
+<section class="frame-page">
+<h2>{{ block.heading }}</h2>
+<p class="note">{{ block.note }}</p>
+</section>
+{%- else %}
+{%- for frame in block.frames %}
+<section class="frame-page">
+{%- if loop.first %}
+<h2>{{ block.heading }}</h2>
+{%- else %}
+<h3>{{ block.title }} (page {{ loop.index }} of {{ loop.length }})</h3>
+{%- endif %}
+<div class="frame" id="{{ frame }}"></div>
+</section>
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+</section>
+{%- endmacro %}

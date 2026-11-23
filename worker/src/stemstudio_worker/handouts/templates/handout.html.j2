@@ -1,0 +1,39 @@
+{#- Lesson handout (feature 020, data-model 6.4-6.6). Autoescaped: every value is text. -#}
+{%- import "song.html.j2" as song_parts -%}
+{%- import "setlist.html.j2" as setlist_parts -%}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ view.title }}</title>
+<meta name="description" content="{{ view.family_label }} handout">
+<meta name="generator" content="StemStudio {{ view.app_version }}">
+{#- The packaged style sheets and the page style of markup.py, never user text. -#}
+{% autoescape false -%}
+<style>{{ tokens }}</style>
+<style>{{ css }}</style>
+<style>{{ page_css }}</style>
+{%- endautoescape %}
+</head>
+<body>
+{%- if view.setlist %}
+{{ setlist_parts.cover(view) }}
+{%- endif %}
+{%- for song in view.songs %}
+{{ song_parts.song(song, first=(loop.first and not view.setlist)) }}
+{%- endfor %}
+<section class="about">
+<h1 data-running="{{ view.title }} - {{ view.family_label }}">About this handout</h1>
+<p>{{ view.notice }}</p>
+{%- if view.attributions %}
+<h3>Sources</h3>
+<ul>
+{%- for line in view.attributions %}
+<li>{{ line }}</li>
+{%- endfor %}
+</ul>
+{%- endif %}
+<p class="muted">Made with StemStudio {{ view.app_version }} on {{ view.generated_on }}.</p>
+</section>
+</body>
+</html>
