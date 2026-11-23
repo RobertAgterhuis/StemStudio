@@ -3,10 +3,11 @@
 A notation PDF is untrusted input: it is read with size and page limits and parsed under the
 stricter pypdf limits of ``PARSE_LIMITS``; an encrypted, damaged, oddly sized or too heavy file
 is "unreadable" (its pages become a note and a ``notation-unreadable`` warning, the job still
-completes), and only page content is merged. Annotations (links, JavaScript actions, form
-fields) are dropped and the source document's catalogue (open actions, embedded files, document
-JavaScript) is never copied. Each page is scaled to fit its frame, centred, never cropped; a page
-that is not the handout's paper size gives a ``notation-scaled`` warning.
+completes), and only page content is merged: the page's resources keep only drawing keys
+(``pdf_resources``), annotations (links, JavaScript actions, form fields) are dropped and the
+source document's catalogue (open actions, embedded files, document JavaScript) is never
+copied. Each page is scaled to fit its frame, centred, never cropped; a page that is not the
+handout's paper size gives a ``notation-scaled`` warning.
 """
 
 from collections.abc import Callable, Mapping, Sequence
@@ -26,6 +27,7 @@ from pypdf import (
 from pypdf.errors import PyPdfError
 from pypdf.generic import NameObject
 
+from stemstudio_worker.handouts.pdf_resources import clean_resources
 from stemstudio_worker.ports import HANDOUT_FAILED_TEXT, HandoutRenderError, NotationUnreadableError
 
 MAX_NOTATION_BYTES: Final = 64 * 1024 * 1024
@@ -92,6 +94,7 @@ def _checked_sizes(path: Path, reader: PdfReader) -> tuple[tuple[float, float], 
     sizes: list[tuple[float, float]] = []
     try:
         for page in reader.pages:
+            clean_resources(page)
             contents = page.get_contents()
             if contents is not None:
                 _ = contents.operations  # parse now: a merge never meets a parser limit
@@ -189,6 +192,7 @@ def _by_source(frames: Sequence[Frame]) -> dict[Path, list[Frame]]:
 
 def _merge(target: PageObject, source: PageObject, box: tuple[float, float, float, float]) -> None:
     """Merge the content of ``source`` (without annotations or actions) into ``box``."""
+    clean_resources(source)
     for key in _DROPPED_KEYS:
         if key in source:
             del source[NameObject(key)]
