@@ -354,12 +354,16 @@ instrument detail stems, so a detail channel belongs to the family of its **deta
 Applying a
 minus-one mix mutes every channel of the family whether its group is expanded or not (mute flags
 of hidden channels are kept, 002 rule, so the result holds after expand/collapse), unmutes and
-unsolos every other channel, keeps volumes and pans.
+unsolos every other channel, keeps volumes and pans. Because a collapsed group plays its parent,
+the parent of a group whose detail channels **all** belong to the family is muted too (a `rest`
+detail counts for its parent's family), e.g. a split `other` with only strings/brass/woodwinds and
+`rest` for orchestral (integration decision 2, 2026-11-23).
 
 "Drumless" = minus-one `drums` + metronome on + count-in one bar (012) + open the drum trainer;
 second click restores the stored previous mute/solo flags of the drum family and the previous
-metronome/count-in settings. "Guide piece" (Advanced) = solo off for all, unmute only
-`drums.<piece>`.
+metronome/count-in settings. "Guide piece" (Advanced) = solo off for all, expand the drums group, release the parent `drums`
+group mute, mute every drum detail except `drums.<piece>`; other families keep their flags (the
+piece is audible whether the group was collapsed or expanded; integration decision 3, 2026-11-23).
 
 ## 6. Journey levels (004)
 

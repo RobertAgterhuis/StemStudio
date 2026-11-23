@@ -138,7 +138,8 @@ public sealed class MixerDrumlessTests : MixerTestContext
         await page.Find("[data-testid=drum-lane-label-snare]").ClickAsync(new MouseEventArgs());
 
         page.Find("[data-testid=drumless]").GetAttribute("aria-pressed").ShouldBe("true");
-        page.Find("[data-testid=mute-drums]").GetAttribute("aria-pressed").ShouldBe("true");
+        // Decision 3 (2026-11-23): the guide releases the drums group mute; the other pieces are muted instead.
+        page.Find("[data-testid=mute-drums]").GetAttribute("aria-pressed").ShouldBe("false");
         page.Find("[data-testid=drum-lane-label-snare]").GetAttribute("aria-pressed").ShouldBe("true");
     }
 

@@ -85,11 +85,19 @@ public static class InstrumentFamilies
         return detail == DetailNames.Rest ? FamilyOfChannel(channel[..dot]) : ByDetail.TryGetValue(detail, out var byName) ? byName : null;
     }
 
-    /// <summary>True when the channel belongs to the family on this track (applies the split rule of <c>other</c>).</summary>
+    /// <summary>
+    /// True when the channel belongs to the family on this track: by its name (the split <c>other</c> excepted), or as the
+    /// parent of a group whose details all belong to the family (a collapsed group plays its parent; a <c>rest</c> detail
+    /// counts for its parent's family; decision 2 of 2026-11-23, data-model 5.3).
+    /// </summary>
     /// <param name="state">The mixer.</param>
     /// <param name="channel">The channel.</param>
     /// <param name="family">The family.</param>
     /// <returns>Whether the channel is one of the family's channels.</returns>
     public static bool Contains(MixerState state, ChannelState channel, InstrumentFamilyDto family) =>
-        FamilyOfChannel(channel.Stem) == family && !(channel.Stem == StemNames.Other && state.GroupOf(StemNames.Other) is not null);
+        (FamilyOfChannel(channel.Stem) == family && !(channel.Stem == StemNames.Other && state.GroupOf(StemNames.Other) is not null))
+        || ParentOfFamilyGroup(state, channel.Stem, family);
+
+    private static bool ParentOfFamilyGroup(MixerState state, string stem, InstrumentFamilyDto family) =>
+        state.GroupOf(stem) is { Stems.Count: > 0 } group && group.Stems.All(s => FamilyOfChannel(s.Channel.Stem) == family);
 }

@@ -1,3 +1,4 @@
+using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Mixer;
@@ -56,8 +57,9 @@ public static class FamilyMixService
     }
 
     /// <summary>
-    /// The guide piece (FR-033, Advanced): the drumless mix (every drum channel muted, solo off) with only
-    /// <c>drums.&lt;piece&gt;</c> unmuted, so a second piece replaces the first. Nothing changes when the track has no such
+    /// The guide piece (FR-033, Advanced; decision 3 of 2026-11-23): solo off for every channel, the <c>drums</c> group mute
+    /// released and every drum detail muted except <c>drums.&lt;piece&gt;</c>, so the piece sounds once the group is expanded
+    /// and a second piece replaces the first; other families keep their flags. Nothing changes when the track has no such
     /// detail channel.
     /// </summary>
     /// <param name="state">The mixer.</param>
@@ -71,8 +73,13 @@ public static class FamilyMixService
             return [];
         }
 
-        MinusOne(state, InstrumentFamilyDto.Drums);
-        Set(state, state.AllChannels.First(c => c.Stem == id), mute: false, solo: false);
+        foreach (var channel in state.AllChannels)
+        {
+            var drumDetail = channel.Stem.StartsWith(StemNames.Drums + ".", StringComparison.Ordinal);
+            var mute = channel.Stem == StemNames.Drums ? false : drumDetail ? channel.Stem != id : channel.Mute;
+            Set(state, channel, mute, solo: false);
+        }
+
         return Settle(state, state.AllChannels);
     }
 

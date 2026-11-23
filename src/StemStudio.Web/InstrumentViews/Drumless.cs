@@ -1,3 +1,4 @@
+using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Mixer;
@@ -61,11 +62,17 @@ public static class Drumless
             ? channels
             : FamilyMixService.MinusOne(state, InstrumentFamilyDto.Drums);
 
-    /// <summary>True when every channel of the drum family is muted.</summary>
+    /// <summary>True when every channel of the drum family is muted, or only the drums parent and one guide piece sound.</summary>
     /// <param name="state">The mixer.</param>
     /// <returns>Whether Drumless is in effect.</returns>
-    public static bool IsApplied(MixerState state) =>
-        state.AllChannels.Where(c => InstrumentFamilies.Contains(state, c, InstrumentFamilyDto.Drums)).All(c => c.Mute);
+    public static bool IsApplied(MixerState state)
+    {
+        var drums = state.AllChannels.Where(c => InstrumentFamilies.Contains(state, c, InstrumentFamilyDto.Drums)).ToList();
+        var open = drums.Where(c => !c.Mute).Select(c => c.Stem).ToList();
+
+        // A guide piece (decision 3) leaves the drums parent and one piece unmuted; Drumless is still in effect.
+        return open.Count == 0 || (open.Count == 2 && open.Contains(StemNames.Drums) && open.Exists(s => s.StartsWith(StemNames.Drums + ".", StringComparison.Ordinal)));
+    }
 
     /// <summary>The pieces that have a drum detail channel on this track (possible guide pieces).</summary>
     /// <param name="state">The mixer.</param>
