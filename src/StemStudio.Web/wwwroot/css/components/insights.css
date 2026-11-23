@@ -56,7 +56,9 @@
   gap: var(--ss-space-1);
   padding-inline: var(--ss-space-2);
   border: 1px solid currentColor;
-  border-radius: var(--ss-radius-pill);
+  /* Not the pill radius: a long word ("Probably not in this song") wraps in a narrow strip and a pill turns round. */
+  border-radius: var(--ss-radius-control);
+  max-inline-size: 100%;
   color: var(--ss-color-ink);
 }
 
