@@ -1,5 +1,6 @@
 @* The song key next to the tempo on the track page (016 US7, FR-071; ui-test-ids track-key, track-key-regions at Advanced).
-   Empty with data-status while the chords are not ready. *@
+   Empty with data-status while the chords are not ready. The text of track-key is the key display only; the region list
+   is a sibling description, so it does not change that text. *@
 @using StemStudio.Web.InstrumentViews
 
 @if (Track.Key is { } key)
@@ -7,18 +8,20 @@
     <dd data-testid="track-key" data-tonic="@key.Tonic" data-mode="@KeyText.ModeName(key.Mode)" data-uncertain="@KeyText.Uncertain(key.Confidence)"
         data-help-id="song-key">
         @KeyLine(key)
-        <LevelGate Feature="key.details">
-            @if (Regions.Count > 0)
-            {
+    </dd>
+    <LevelGate Feature="key.details">
+        @if (Regions.Count > 0)
+        {
+            <dd class="ss-key-regions-host">
                 <ul class="ss-key-regions" aria-label="Key changes" data-testid="track-key-regions">
                     @for (var i = 0; i < Regions.Count; i++)
                     {
                         <li data-testid="@($"track-key-region-{i}")">@KeyText.Region(Regions[i])</li>
                     }
                 </ul>
-            }
-        </LevelGate>
-    </dd>
+            </dd>
+        }
+    </LevelGate>
 }
 else
 {
