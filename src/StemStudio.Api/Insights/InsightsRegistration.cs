@@ -2,6 +2,7 @@ using StemStudio.Api.Handouts;
 using StemStudio.Api.Handouts.Sources;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
+using StemStudio.Contracts;
 
 namespace StemStudio.Api.Insights;
 
@@ -18,7 +19,11 @@ public static class InsightsRegistration
     public static IServiceCollection AddInsights(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        services.AddOptions<InsightsOptions>().Bind(configuration.GetSection(InsightsOptions.SectionName));
+        services.AddOptions<InsightsOptions>().Bind(configuration.GetSection(InsightsOptions.SectionName))
+            .Validate(
+                options => options.MaxSetlistHandoutSongs is >= 1 and <= ContractLimits.MaxSetlistHandoutSongs,
+                $"StemStudio:MaxSetlistHandoutSongs must be between 1 and {ContractLimits.MaxSetlistHandoutSongs} (the worker contract's limit).")
+            .ValidateOnStart();
         services.AddServiceClient<IWorkerInsightsClient, WorkerClient>(
             configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
         return services.AddQuality().AddHandoutSources().AddHandouts();
