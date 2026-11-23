@@ -76,7 +76,9 @@ test.describe('key changes and transposition (016 US7)', { tag: '@instrument' },
     await mixer.seek(Math.max(0, startMs - 1500) / 1000);
     await mixer.play();
 
-    await expect(ui.mixerKeyCurrent).toHaveText('D major', { timeout: changeMs });
+    // The visible text is "Now: D major" (help topic song-key); the region index says which region it is.
+    await expect(ui.mixerKeyCurrent).toHaveText('Now: D major', { timeout: changeMs });
+    await expect(ui.mixerKeyCurrent).toHaveAttribute('data-region-index', '1');
   });
 
   test('transpose +2 names the resulting and the original key, and the D region spells with sharps', async ({ api, mixer, page }) => {

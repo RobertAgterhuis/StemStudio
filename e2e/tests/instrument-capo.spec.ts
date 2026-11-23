@@ -83,6 +83,9 @@ test.describe('capo mode for the guitar (016 US8)', { tag: '@instrument' }, () =
     expect(symbols.length).toBeGreaterThan(0);
     expect(expectedCycle).toEqual(expect.arrayContaining(symbols.slice(0, 4)));
     await expect(ui.capoBadge).toHaveText('Capo 3');
+    // The track page has its own display transpose (chord-sheet-transpose, 0 by default); the capo comes from capo mode.
+    await page.getByTestId('chord-sheet-transpose').fill(String(transpose));
+    await page.getByTestId('chord-sheet-transpose').press('Tab');
     const first = sheet.rows.findIndex((r) => r.chords.length > 0);
     await expect(ui.sheetChord(first, 0)).toHaveText(symbols[0] ?? '');
 

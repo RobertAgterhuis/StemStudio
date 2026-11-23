@@ -113,7 +113,8 @@ test.describe('drum score in the trainer (016 US3)', { tag: '@instrument' }, () 
 
     for (const bar of view.bars.slice(1, 4)) {
       await mixer.seek(bar.startSeconds + 0.2);
-      await expect(ui.drumScore).toHaveAttribute('data-bar-number', String(required(barAt(view, bar.startSeconds + 0.2), 'bar').number));
+      // The engine writes the follower attributes on the 014 score view host inside the drum-score region.
+      await expect(ui.drumScore.getByTestId('score-view')).toHaveAttribute('data-bar-number', String(required(barAt(view, bar.startSeconds + 0.2), 'bar').number));
     }
   });
 });

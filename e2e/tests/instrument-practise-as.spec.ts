@@ -21,7 +21,10 @@ test.describe('Practise as ... (016 US6)', { tag: '@instrument' }, () => {
       await ui.practiseAsFamily(family);
 
       await expect(ui.view).toHaveAttribute('data-view', familyView[family]);
+      // The menu closes after a choice (WAI-ARIA menu button); reopen it to read the checked item, then close it.
+      await ui.practiseAs.click();
       await expect(ui.byId(`practise-as-${family}`)).toHaveAttribute('aria-checked', 'true');
+      await page.keyboard.press('Escape');
       await expectFamilyMuted(mixer, track, family);
     });
   }
