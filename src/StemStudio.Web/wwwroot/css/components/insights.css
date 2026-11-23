@@ -165,3 +165,11 @@
   box-sizing: border-box;
   font: inherit;
 }
+
+.ss-setlist-handout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
