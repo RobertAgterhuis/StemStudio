@@ -36,7 +36,7 @@ public sealed partial class QualityService(
     public const string NotSixStems = "The quality report needs the six-stem separation (vocals, drums, bass, guitar, piano and other).";
 
     /// <summary>The report error when the worker refuses a quality job (its reason is logged, never echoed).</summary>
-    public const string WorkerRefused = "The processing service refused the quality check; try again.";
+    public const string WorkerRefused = "The processing service could not make the quality report of this track.";
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 

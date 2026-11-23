@@ -22,7 +22,7 @@ public static class QualityReasonTexts
             QualityReason.Bleed when stem.Bleed.Level == QualityLevel.High => $"Much of {source} is in this stem.",
             QualityReason.Bleed => $"Some sound of {source} is in this stem.",
             QualityReason.BleedTogether => $"May be bleed of {source}, or the two instruments playing together.",
-            QualityReason.Artefacts => "The stem has separation artefacts (a watery or choppy sound).",
+            QualityReason.Artefacts => "The stem has separation artefacts (short dropouts in the sound).",
             QualityReason.BleedAndArtefacts => $"Bleed of {source} and separation artefacts.",
             QualityReason.NotPresent => "This instrument is probably not in this song; what you hear is spill from other instruments.",
             _ => "Too little audio to rate.",

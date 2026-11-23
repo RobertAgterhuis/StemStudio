@@ -281,7 +281,7 @@ the worse dimension (`high` -> `poor`, `medium` -> `fair`, `low` -> `good`, both
 | `clean` | "Little bleed and few artefacts." |
 | `bleed` | "Some sound of {source} is in this stem." (medium) / "Much of {source} is in this stem." (high) |
 | `bleed-together` | "May be bleed of {source}, or the two instruments playing together." |
-| `artefacts` | "The stem has separation artefacts (a watery or choppy sound)." |
+| `artefacts` | "The stem has separation artefacts (short dropouts in the sound)." |
 | `bleed-and-artefacts` | "Bleed of {source} and separation artefacts." |
 | `not-present` | "This instrument is probably not in this song; what you hear is spill from other instruments." |
 | `too-short` | "Too little audio to rate." |

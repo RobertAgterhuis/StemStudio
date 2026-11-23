@@ -206,7 +206,7 @@ public static class InsightsProblems
     /// <summary>503 <c>worker-unavailable</c> (nothing was stored).</summary>
     /// <returns>The problem.</returns>
     public static IResult WorkerUnavailable() => TypedResults.Problem(
-        "The processing worker is not reachable. Try again in a moment.",
+        "The processing service is not reachable. Try again in a moment.",
         statusCode: StatusCodes.Status503ServiceUnavailable,
         title: "Worker unavailable",
         type: PracticeFlowProblemTypes.BaseUri + "worker-unavailable");
