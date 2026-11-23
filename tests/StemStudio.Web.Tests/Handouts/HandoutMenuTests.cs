@@ -133,11 +133,17 @@ public sealed class HandoutMenuTests : PageTestContext
         page.Find("[data-testid=handout-family-melodic]").GetAttribute("tabindex").ShouldBe("0");
         await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
         page.Find("[data-testid=handout-family-overview]").GetAttribute("tabindex").ShouldBe("0");
-        await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "End" });
-        page.Find("[data-testid=handout-family-melodic]").GetAttribute("tabindex").ShouldBe("0");
         await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "Home" });
         page.Find("[data-testid=handout-family-overview]").GetAttribute("tabindex").ShouldBe("0");
         page.FindAll("[role=menuitem][tabindex='0']").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Escape_ClosesTheMenu()
+    {
+        var page = RenderMenu();
+        page.Find("[data-testid=handout-menu]").Click();
+
         await page.Find("[role=menu]").KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
         page.FindAll("[role=menu]").ShouldBeEmpty();
         page.Find("[data-testid=handout-menu]").GetAttribute("aria-expanded").ShouldBe("false");

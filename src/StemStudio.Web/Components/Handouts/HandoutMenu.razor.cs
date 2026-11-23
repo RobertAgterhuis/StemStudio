@@ -16,9 +16,8 @@ namespace StemStudio.Web.Components.Handouts;
 public sealed partial class HandoutMenu
 {
     private readonly ElementReference[] _items = new ElementReference[HandoutText.Families.Count + 1];
+    private readonly MenuButtonState _menu = new();
     private ElementReference _button;
-    private int _focus;
-    private bool _focusPending;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -52,7 +51,7 @@ public sealed partial class HandoutMenu
 
     private bool CanCustomise => (Experience ?? ExperienceContext.Default).IsVisible("handout.customise");
 
-    private bool Open { get; set; }
+    private bool Open => _menu.Open;
 
     private bool Busy { get; set; }
 
@@ -69,10 +68,9 @@ public sealed partial class HandoutMenu
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_focusPending)
+        if (_menu.TakeFocusPending())
         {
-            _focusPending = false;
-            await FocusOnce.TryAsync(Open ? _items[_focus] : _button);
+            await FocusOnce.TryAsync(Open ? _items[_menu.Focus] : _button);
         }
     }
 
@@ -80,46 +78,15 @@ public sealed partial class HandoutMenu
 
     private static string EntryText(HandoutFamilyDto? family) => family is { } f ? HandoutText.Family(f) : "Customise...";
 
-    private void Toggle()
-    {
-        if (Open)
-        {
-            Close();
-            return;
-        }
+    private void Toggle() => _menu.Toggle();
 
-        OpenAt(0);
-    }
+    private void ButtonKey(KeyboardEventArgs args) => _menu.ButtonKey(args.Key, Entries.Count);
 
-    private void ButtonKey(KeyboardEventArgs args)
-    {
-        if (!Open && args.Key is "ArrowDown" or "ArrowUp")
-        {
-            OpenAt(args.Key == "ArrowUp" ? Entries.Count - 1 : 0);
-        }
-    }
-
-    private void MenuKey(KeyboardEventArgs args)
-    {
-        if (args.Key is "Escape" or "Tab")
-        {
-            (Open, _focusPending) = (false, args.Key == "Escape");
-            return;
-        }
-
-        if (MenuKeys.Move(args.Key, _focus, Entries.Count) is { } next)
-        {
-            (_focus, _focusPending) = (next, true);
-        }
-    }
-
-    private void OpenAt(int index) => (Open, _focus, _focusPending) = (true, index, true);
-
-    private void Close() => (Open, _focusPending) = (false, true);
+    private void MenuKey(KeyboardEventArgs args) => _menu.MenuKey(args.Key, Entries.Count);
 
     private Task ChooseAsync(HandoutFamilyDto? family)
     {
-        Close();
+        _menu.Close();
         if (family is not { } chosen)
         {
             Customising = true;
@@ -132,20 +99,11 @@ public sealed partial class HandoutMenu
     private async Task CreateAsync(HandoutFamilyDto family)
     {
         (Busy, Error, Saved, Missing) = (true, null, null, []);
-        try
-        {
-            var asset = await Api.CreateHandoutAsync(new CreateHandoutRequest { Source = Source, Family = family });
-            Saved = new HandoutCreated(asset, family);
-            Missing = await MissingAsync(family);
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-        }
-        finally
-        {
-            Busy = false;
-        }
+        var (asset, error) = await ApiCall.TryAsync(() => Api.CreateHandoutAsync(new CreateHandoutRequest { Source = Source, Family = family }));
+        Error = error;
+        Saved = asset is null ? null : new HandoutCreated(asset, family);
+        Missing = asset is null ? [] : await MissingAsync(family);
+        Busy = false;
     }
 
     // The default parts that are not there yet (FR-010); a failing options read only hides the list.

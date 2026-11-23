@@ -75,7 +75,7 @@ public static class HandoutText
     /// <param name="seconds">The estimate.</param>
     /// <returns>The text.</returns>
     public static string Estimate(int seconds) => seconds < 90
-        ? string.Create(CultureInfo.InvariantCulture, $"Takes about {Math.Max(1, seconds)} {(seconds == 1 ? "second" : "seconds")}.")
+        ? string.Create(CultureInfo.InvariantCulture, $"Takes about {Math.Max(1, seconds)} {(seconds <= 1 ? "second" : "seconds")}.")
         : string.Create(CultureInfo.InvariantCulture, $"Takes about {(int)Math.Round(seconds / 60.0)} minutes.");
 
     /// <summary>The default ingredients that are missing or only partly there ("Practice notes: No notes yet").</summary>

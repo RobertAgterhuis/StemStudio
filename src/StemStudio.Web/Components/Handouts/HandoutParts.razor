@@ -12,13 +12,13 @@
             <label class="ss-check">
                 <input type="checkbox" checked="@(available && Choices.Includes(ingredient.Code))" disabled="@(!available)"
                        data-status="@WireName.Of(ingredient.Status)" @onchange="e => Choices.SetIngredient(ingredient.Code, e.Value is true)"
-                       data-wip-testid="@($"handout-ingredient-{code}")" />
+                       data-testid="@($"handout-ingredient-{code}")" />
                 @HandoutText.Ingredient(ingredient.Code)<span class="ss-small ss-muted"> - @ingredient.Text</span>
             </label>
             @if (OnAction is { } follow && ingredient.Action is { } action)
             {
                 <button type="button" class="ss-text-button" @onclick="() => follow.InvokeAsync(action)"
-                        data-wip-testid="@($"handout-ingredient-action-{code}")">@HandoutText.Action(action)</button>
+                        data-testid="@($"handout-ingredient-action-{code}")">@HandoutText.Action(action)</button>
             }
         </div>
     }
@@ -32,7 +32,7 @@
         {
             <label class="ss-check">
                 <input type="checkbox" checked="@Choices.Selects(item.AssetId)" @onchange="e => Choices.SetNotation(item.AssetId, e.Value is true)"
-                       data-wip-testid="@($"handout-notation-{item.AssetId}")" />
+                       data-testid="@($"handout-notation-{item.AssetId}")" />
                 @item.Title<span class="ss-small ss-muted"> - @item.SongTitle</span>
             </label>
         }

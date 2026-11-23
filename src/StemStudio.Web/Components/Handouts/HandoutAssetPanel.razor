@@ -2,18 +2,18 @@
    warnings (Advanced+), the PDF preview and download, and "Make again" (posts the recipe). *@
 
 @using StemStudio.Contracts.Assets
-<div class="ss-handout-item" data-wip-testid="@($"asset-handout-{Asset.Id}")" data-family="@FamilyValue">
+<div class="ss-handout-item" data-testid="@($"asset-handout-{Asset.Id}")" data-family="@FamilyValue">
     @if (Facts is { } facts)
     {
         <p class="ss-small">@HandoutText.Summary(facts)</p>
         @if (HandoutText.Omitted(facts) is { } omitted)
         {
-            <p class="ss-small" data-wip-testid="@($"asset-handout-omitted-{Asset.Id}")">@omitted</p>
+            <p class="ss-small" data-testid="@($"asset-handout-omitted-{Asset.Id}")">@omitted</p>
         }
         @if (facts.Warnings.Count > 0)
         {
             <LevelGate Feature="handout.customise">
-                <ul class="ss-small ss-score-warnings" aria-label="@($"Warnings of {Asset.Name}")" data-wip-testid="@($"asset-handout-warnings-{Asset.Id}")">
+                <ul class="ss-small ss-score-warnings" aria-label="@($"Warnings of {Asset.Name}")" data-testid="@($"asset-handout-warnings-{Asset.Id}")">
                     @foreach (var warning in facts.Warnings)
                     {
                         <li>@warning.Text</li>
@@ -30,12 +30,12 @@
         @if (Ready)
         {
             <a class="ss-row-action" href="@FileUrl(ApiRoutes.AssetFilePdf, false)" download aria-label="@($"Download PDF of {Asset.Name}")"
-               data-wip-testid="@($"asset-download-pdf-{Asset.Id}")">Download PDF</a>
+               data-testid="@($"asset-download-pdf-{Asset.Id}")">Download PDF</a>
         }
         @if (CanMakeAgain)
         {
             <RadzenButton Text="Make again" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Make again: {Asset.Name}")"
-                          Click="() => OnMakeAgain.InvokeAsync(Asset)" data-wip-testid="@($"asset-handout-again-{Asset.Id}")" />
+                          Click="() => OnMakeAgain.InvokeAsync(Asset)" data-testid="@($"asset-handout-again-{Asset.Id}")" />
         }
     </div>
 </div>

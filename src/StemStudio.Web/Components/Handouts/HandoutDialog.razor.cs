@@ -86,19 +86,9 @@ public sealed partial class HandoutDialog
     private async Task SubmitAsync()
     {
         Busy = true;
-        try
-        {
-            var asset = await Api.CreateHandoutAsync(Choices.Request(Source, Chosen));
-            await OnCreated.InvokeAsync(new HandoutCreated(asset, Chosen));
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-        }
-        finally
-        {
-            Busy = false;
-        }
+        var (asset, error) = await ApiCall.TryAsync(() => Api.CreateHandoutAsync(Choices.Request(Source, Chosen)));
+        (Busy, Error) = (false, error ?? Error);
+        await (asset is null ? Task.CompletedTask : OnCreated.InvokeAsync(new HandoutCreated(asset, Chosen)));
     }
 
     private async Task FollowAsync(IngredientActionDto action)

@@ -1,7 +1,7 @@
 @* Practice notes (020 US3, FR-015; ui-test-ids practice-notes-*): one note per family, up to 4,000 characters with a
    counter; the save result is announced in a polite live region. *@
 
-<section class="ss-panel ss-practice-notes" aria-labelledby="practice-notes-heading" data-wip-testid="practice-notes" data-help-id="practice-notes">
+<section class="ss-panel ss-practice-notes" aria-labelledby="practice-notes-heading" data-testid="practice-notes" data-help-id="practice-notes">
     <div class="ss-label-row">
         <h2 class="ss-heading" id="practice-notes-heading">Practice notes</h2>
         <HelpHint HelpId="practice-notes" />
@@ -9,7 +9,7 @@
     <div class="ss-handout-fields">
         <label class="ss-label" for="practice-notes-family">Family</label>
         <select id="practice-notes-family" class="ss-select" value="@HandoutText.Wire(Family)" @onchange="OnFamily"
-                data-wip-testid="practice-notes-family">
+                data-testid="practice-notes-family">
             @foreach (var family in HandoutText.Families)
             {
                 <option value="@HandoutText.Wire(family)">@HandoutText.Family(family)</option>
@@ -19,10 +19,10 @@
     <label class="ss-label" for="practice-notes-text">Note</label>
     <textarea id="practice-notes-text" class="rz-textarea ss-practice-notes-text" rows="5" maxlength="@ContractLimits.MaxPracticeNoteLength"
               aria-describedby="practice-notes-count" @bind:get="Text" @bind:set="SetText" @bind:event="oninput" @ref="_text"
-              data-wip-testid="practice-notes-text"></textarea>
-    <p class="ss-small ss-muted" id="practice-notes-count" data-wip-testid="practice-notes-count">@Counter</p>
+              data-testid="practice-notes-text"></textarea>
+    <p class="ss-small ss-muted" id="practice-notes-count" data-testid="practice-notes-count">@Counter</p>
     <div class="ss-row">
-        <RadzenButton Text="Save note" Icon="save" ButtonStyle="ButtonStyle.Light" Click="SaveAsync" Disabled="Saving" data-wip-testid="practice-notes-save" />
-        <span class="ss-small" role="status" aria-live="polite" data-wip-testid="practice-notes-saved">@Status</span>
+        <RadzenButton Text="Save note" Icon="save" ButtonStyle="ButtonStyle.Light" Click="SaveAsync" Disabled="Saving" data-testid="practice-notes-save" />
+        <span class="ss-small" role="status" aria-live="polite" data-testid="practice-notes-saved">@Status</span>
     </div>
 </section>

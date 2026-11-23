@@ -20,6 +20,10 @@ public sealed class AssetFilter
     /// <summary>Only items of this kind.</summary>
     public AssetKindDto? Kind { get; set; }
 
+    /// <summary>Filters on a kind, or clears the kind filter when it is already that kind (the 020 "Handouts" chip).</summary>
+    /// <param name="kind">The kind.</param>
+    public void ToggleKind(AssetKindDto kind) => Kind = Kind == kind ? null : kind;
+
     /// <summary>Case-insensitive "name contains".</summary>
     public string Search { get; set; } = string.Empty;
 

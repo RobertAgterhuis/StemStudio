@@ -233,6 +233,20 @@ public sealed class QualityPanelTests : PageTestContext
     }
 
     [Fact]
+    public void DetailPhaseChange_ReloadsTheTips_WithoutANewAnalysis()
+    {
+        var after = InsightsData.ReadyReport() with { Stems = [InsightsData.ReadyReport().Stems[1]] };
+        Reports(InsightsData.ReadyReport(), after);
+        var panel = RenderPanel(TestData.WithDetail(TestData.Phase(DetailPhaseStatusDto.Running)));
+        panel.Find("[data-testid=quality-tip-other-try-detail-separation]").ShouldNotBeNull();
+
+        panel.Render(p => p.Add(c => c.Track, TestData.DetailTrack()));
+
+        panel.FindAll("[data-testid=quality-tip-other-try-detail-separation]").ShouldBeEmpty();
+        panel.Find("[data-testid=quality-tip-piano-not-in-song]").ShouldNotBeNull();
+    }
+
+    [Fact]
     public void Accessibility_RegionIsLabelled_ControlsAreNamed_TipsArePlainLists()
     {
         Reports(InsightsData.ReadyReport());

@@ -18,19 +18,18 @@ public sealed partial class TrackDetail
     private Task OnIngredientAsync(IngredientRequest request)
     {
         var target = IngredientLinks.Target(Id, request.Action, request.Family);
-        if (target.ScoreStem is { } stem)
-        {
-            OpenScore(stem);
-        }
-        else if (target.Url is { } url)
-        {
-            Navigation.NavigateTo(url);
-        }
-        else
+        if (target.Notes)
         {
             return _notes!.FocusAsync(request.Family);
         }
 
+        if (target.ScoreStem is { } stem)
+        {
+            OpenScore(stem);
+            return Task.CompletedTask;
+        }
+
+        Navigation.NavigateTo(target.Url!);
         return Task.CompletedTask;
     }
 }

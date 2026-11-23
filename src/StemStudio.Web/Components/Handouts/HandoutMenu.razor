@@ -6,7 +6,7 @@
 <div class="ss-menu ss-handout-menu">
     <button type="button" class="rz-button rz-button-md rz-light" aria-haspopup="menu" aria-expanded="@(Open ? "true" : "false")"
             aria-controls="@(Open ? MenuId : null)" @ref="_button" @onclick="Toggle" @onkeydown="ButtonKey" disabled="@Busy"
-            data-wip-testid="@($"{Prefix}-menu")" data-help-id="@HelpId">
+            data-testid="@($"{Prefix}-menu")" data-help-id="@HelpId">
         <span class="rzi" aria-hidden="true">picture_as_pdf</span>@Title
     </button>
     @if (Open)
@@ -17,8 +17,8 @@
                 var index = i;
                 var family = Entries[index];
                 <li role="none">
-                    <button type="button" role="menuitem" class="ss-menu-item" tabindex="@(index == _focus ? 0 : -1)" @ref="_items[index]"
-                            @onclick="() => ChooseAsync(family)" data-wip-testid="@EntryId(family)">@EntryText(family)</button>
+                    <button type="button" role="menuitem" class="ss-menu-item" tabindex="@(index == _menu.Focus ? 0 : -1)" @ref="_items[index]"
+                            @onclick="() => ChooseAsync(family)" data-testid="@EntryId(family)">@EntryText(family)</button>
                 </li>
             }
         </ul>
@@ -27,20 +27,20 @@
 
 @if (Error is not null)
 {
-    <div class="ss-error" role="alert" data-wip-testid="handout-error">@Error</div>
+    <div class="ss-error" role="alert" data-testid="handout-error">@Error</div>
 }
 
 @if (Saved is { } saved)
 {
-    <div class="ss-handout-saved" role="status" data-wip-testid="handout-saved">
+    <div class="ss-handout-saved" role="status" data-testid="handout-saved">
         <p>@saved.Asset.Name is being made and saved to the library.</p>
-        <a href="@StemStudio.Web.Library.LibraryLinks.Item(saved.Asset.Id, saved.Asset.Placement)" data-wip-testid="handout-saved-open">Open in library</a>
+        <a href="@StemStudio.Web.Library.LibraryLinks.Item(saved.Asset.Id, saved.Asset.Placement)" data-testid="handout-saved-open">Open in library</a>
     </div>
 }
 
 @if (Missing.Count > 0)
 {
-    <div class="ss-handout-missing" data-wip-testid="handout-missing">
+    <div class="ss-handout-missing" data-testid="handout-missing">
         <p class="ss-small" id="@($"{Prefix}-missing-label")">Not included:</p>
         <ul class="ss-small" aria-labelledby="@($"{Prefix}-missing-label")">
             @foreach (var line in Missing)

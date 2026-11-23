@@ -70,19 +70,16 @@ public sealed partial class PracticeNotesEditor
     {
         var family = Family;
         Saving = true;
-        try
+        var (stored, error) = await ApiCall.TryAsync(async () => new Saved(await Api.SetPracticeNoteAsync(TrackId, family, Text)));
+        Saving = false;
+        if (stored is { Note: var note })
         {
-            var stored = await Api.SetPracticeNoteAsync(TrackId, family, Text);
-            _drafts[family] = stored?.Text ?? string.Empty;
-            Status = $"{(stored is null ? "Removed" : "Saved")} the note for {HandoutText.Family(family)}.";
+            _drafts[family] = note?.Text ?? string.Empty;
         }
-        catch (ApiException ex)
-        {
-            Status = ex.Error.UserMessage;
-        }
-        finally
-        {
-            Saving = false;
-        }
+
+        Status = error ?? $"{(stored!.Note is null ? "Removed" : "Saved")} the note for {HandoutText.Family(family)}.";
     }
+
+    // Wraps the nullable result (204 = removed) so that a failed call and a removal differ.
+    private sealed record Saved(PracticeNoteDto? Note);
 }

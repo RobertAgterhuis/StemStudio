@@ -14,6 +14,8 @@ namespace StemStudio.Web.Components.Insights;
 /// </summary>
 public sealed partial class QualityPanel
 {
+    private DetailPhaseStatusDto? _detail;
+
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
 
@@ -63,12 +65,21 @@ public sealed partial class QualityPanel
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
-        // The page's track poll sees an automatic report start (Track.quality) before this card does.
-        if (Report is not null && !Active && Track.Quality is { } badge && QualityLayout.IsActive(badge.Status))
+        // The page's track poll sees an automatic report start (Track.quality) before this card does; the tips are
+        // built from the track state, so they change when the detail phase changes, even without a new analysis.
+        if (TrackChanged() && Report is not null && !Active)
         {
             await LoadAsync(ct => Api.GetQualityReportAsync(Track.Id, ct), Stopping);
             StartPolling();
         }
+    }
+
+    // True when the track shows a report start or a new detail phase status since the last parameters.
+    private bool TrackChanged()
+    {
+        var detailChanged = _detail is { } seen && seen != Track.Detail.Status;
+        _detail = Track.Detail.Status;
+        return detailChanged || (Track.Quality is { } badge && QualityLayout.IsActive(badge.Status));
     }
 
     /// <inheritdoc />
