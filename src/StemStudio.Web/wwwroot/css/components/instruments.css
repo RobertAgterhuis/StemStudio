@@ -191,3 +191,13 @@
   min-width: var(--ss-target-min);
 }
 
+
+/* Engine canvas hosts (drum hit lanes, pitch view): a definite height, so the canvas (a block filling the host)
+   never sizes its own host (016 integration: an auto-height host grew a few pixels on every resize). */
+.ss-drum-lanes {
+  height: 10rem;
+}
+
+.ss-pitch-view {
+  height: 10rem;
+}

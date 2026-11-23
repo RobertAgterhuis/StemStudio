@@ -110,6 +110,11 @@ export class CanvasSurface {
   ) {
     this.canvas = host.ownerDocument.createElement('canvas');
     this.canvas.setAttribute('aria-hidden', 'true');
+    // A block filling the host: an inline canvas adds a baseline gap, and its pixel size would feed back into an
+    // auto-height host on every resize (the host must get its height from CSS).
+    this.canvas.style.display = 'block';
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
     host.replaceChildren(this.canvas);
     this.ctx = this.canvas.getContext('2d');
     this.painter = new Painter(this.ctx);
