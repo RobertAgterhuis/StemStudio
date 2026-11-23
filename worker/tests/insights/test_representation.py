@@ -49,6 +49,23 @@ def test_shape_and_frame_count_follow_the_hop(tmp_path: Path) -> None:
     assert abs(spec.frames - expected) <= 5
     assert spec.seconds == pytest.approx(spec.frames * rep.FRAME_SECONDS)
     assert spec.frame_db.shape == (spec.frames,)
+    assert spec.block_db.shape == (spec.frames,)
+
+
+def test_block_level_resolves_a_50_ms_hole() -> None:
+    tone = _sine(500.0, 2.0)
+    tone[SR : SR + SR // 20] = 0.0  # 50 ms hole: shorter than the 93 ms window
+    spec = rep.spectrogram_of(tone, SR)
+    assert spec.block_db.min() < -50.0
+    assert spec.frame_db.min() > -20.0  # the 93 ms frames never fall into it
+
+
+def test_in_memory_spectrogram_equals_the_file_read(tmp_path: Path) -> None:
+    tone = song(seconds=3.0)["piano"]
+    from_file = rep.read_spectrogram(write_stem(tmp_path / "p.flac", tone))
+    in_memory = rep.spectrogram_of(tone, SR)
+    assert in_memory.frames == from_file.frames
+    np.testing.assert_allclose(in_memory.power, from_file.power, rtol=1e-3, atol=1e-8)
 
 
 def test_resamples_to_22050_hz(tmp_path: Path) -> None:

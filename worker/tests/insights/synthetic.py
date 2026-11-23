@@ -83,7 +83,7 @@ def vocals(rng: np.random.Generator, seconds: float) -> Signal:
     return _normalise(out)
 
 
-def _kick(seconds: float = 0.4) -> Signal:
+def _kick(seconds: float = 1.2) -> Signal:
     t = _time(seconds)
     freq = 50 + 70 * np.exp(-t / 0.03)
     return np.sin(2 * np.pi * np.cumsum(freq) / SR) * np.exp(-t / 0.12)
@@ -104,11 +104,11 @@ def drums(rng: np.random.Generator, seconds: float) -> Signal:
         if index % 2 == 0:
             _place(out, start, _kick())
         else:
-            snare = 0.5 * _noise_burst(rng, 0.25, 0.06, high=False)
-            snare += 0.6 * _partials(190.0, 0.25, Tone(2, 0.08))
+            snare = 0.5 * _noise_burst(rng, 0.6, 0.06, high=False)
+            snare += 0.6 * _partials(190.0, 0.6, Tone(2, 0.08))
             _place(out, start, snare)
     for start in np.arange(0.0, seconds, BEAT / 2):
-        _place(out, start, 0.25 * _noise_burst(rng, 0.1, 0.025, high=True))
+        _place(out, start, 0.25 * _noise_burst(rng, 0.25, 0.025, high=True))
     return _normalise(out)
 
 

@@ -62,10 +62,13 @@ class Spectrogram:
         power: ``P(t, b)``, shape ``(frames, BANDS)``, float32.
         frame_db: Broadband level of every frame in dBFS (mean square of the frame), floored at
             ``SILENCE_DB``.
+        block_db: Level of the first ``HOP`` samples of every frame (consecutive 23 ms blocks
+            without overlap), the fine envelope the dropout measure uses.
     """
 
     power: FloatArray
     frame_db: FloatArray
+    block_db: FloatArray
 
     @property
     def frames(self) -> int:
@@ -125,6 +128,11 @@ def mel_filterbank() -> FloatArray:
 _FILTERS: Final = mel_filterbank().T.copy()
 
 
+def _level_db(frames: FloatArray) -> FloatArray:
+    mean_square = np.mean(np.square(frames, dtype=np.float32), axis=1)
+    return (10.0 * np.log10(mean_square + np.float32(_EPS))).astype(np.float32)
+
+
 class _MelStream:
     """Turns consecutive mono blocks at 22,050 Hz into mel frames without keeping the audio."""
 
@@ -133,6 +141,7 @@ class _MelStream:
         self._seen = 0
         self._power: list[FloatArray] = []
         self._db: list[FloatArray] = []
+        self._block: list[FloatArray] = []
 
     def push(self, samples: FloatArray) -> None:
         buffer = np.concatenate([self._tail, samples]) if len(self._tail) else samples
@@ -147,16 +156,18 @@ class _MelStream:
         spectrum = np.fft.rfft(frames * _WINDOW, axis=1)
         bins = (spectrum.real**2 + spectrum.imag**2).astype(np.float32) * np.float32(_SCALE)
         self._power.append(bins @ _FILTERS)
-        mean_square = np.mean(np.square(frames, dtype=np.float32), axis=1)
-        self._db.append((10.0 * np.log10(mean_square + np.float32(_EPS))).astype(np.float32))
+        self._db.append(_level_db(frames))
+        self._block.append(_level_db(frames[:, :HOP]))
 
     def finish(self) -> Spectrogram:
         covered = N_FFT - HOP if self._power else 0
         if self._seen and len(self._tail) > covered:
             self.push(np.zeros(N_FFT - len(self._tail), dtype=np.float32))
         if not self._power:
-            return Spectrogram(np.zeros((0, BANDS), np.float32), np.zeros(0, np.float32))
-        return Spectrogram(np.concatenate(self._power), np.concatenate(self._db))
+            return Spectrogram(np.zeros((0, BANDS), np.float32), _EMPTY, _EMPTY)
+        return Spectrogram(
+            np.concatenate(self._power), np.concatenate(self._db), np.concatenate(self._block)
+        )
 
 
 class _Reader:
@@ -182,6 +193,19 @@ class _Reader:
             mono = np.asarray(self._resampler.resample_chunk(mono, last=self.done), np.float32)
         self.mel.push(mono)
         return mono
+
+
+def _resampled(mono: FloatArray, rate: int) -> FloatArray:
+    if rate == QUALITY_SAMPLE_RATE:
+        return mono
+    return np.asarray(soxr.resample(mono, rate, QUALITY_SAMPLE_RATE), dtype=np.float32)
+
+
+def spectrogram_of(mono: npt.ArrayLike, rate: int) -> Spectrogram:
+    """Mel spectrogram of mono samples held in memory (tests and calibration)."""
+    stream = _MelStream()
+    stream.push(_resampled(np.ascontiguousarray(mono, dtype=np.float32), rate))
+    return stream.finish()
 
 
 @contextmanager
