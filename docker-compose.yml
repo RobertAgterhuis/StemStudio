@@ -12,6 +12,13 @@
 #                                           and (until feature 018) overwrite or delete the stored
 #                                           Claude key (threat T7). Open it only on a network you
 #                                           trust and close it again afterwards.
+#   STEMSTUDIO_API_ALLOWED_HOSTS=...        api host allow-list (refactor 003, StemStudio__AllowedHosts),
+#                                           semicolon-separated; empty = localhost;127.0.0.1;[::1];api.
+#                                           With the ports opened, a device that calls the api by a
+#                                           LAN name or address gets 400 until that name is added:
+#                                           localhost;127.0.0.1;[::1];api;192.168.1.10
+#   Writes to the api without an Origin header are accepted only from loopback or the web
+#   service (refactor 003); a script on the host sends Origin: http://localhost:8080.
 #   Check: scripts/check-loopback-ports.{sh,ps1}
 #
 # GPU option (feature 003): the override builds stemstudio/worker:local-gpu (CUDA torch +
@@ -193,6 +200,8 @@ services:
       - StemStudio__DataDir=/data
       - StemStudio__WorkerBaseUrl=http://worker:8000
       - StemStudio__WebOrigin=http://localhost:8080
+      # Refactor 003: host allow-list of the api (400 for any other Host); empty = localhost;127.0.0.1;[::1];api.
+      - StemStudio__AllowedHosts=${STEMSTUDIO_API_ALLOWED_HOSTS:-}
       # Feature 011 (AI composer agent): Ollama on the host, initial backend, E2E fake script.
       - StemStudio__Agent__Ollama__BaseUrl=${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}
       - StemStudio__Agent__Backend=${STEMSTUDIO_AGENT_BACKEND:-ollama}
