@@ -9,7 +9,13 @@
 # when soundtouch.wasm has been built, the engine's Node WASM suite (test:wasm). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
-# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e] [--agent-e2e] [--recording-e2e]
+# Usage: scripts/test-all.sh [--continue-on-error] [--affected [--from <ref>]] [--gpu-e2e] [--agent-e2e] [--recording-e2e]
+#   --affected  run only the step groups a change needs (refactor proposal 001): scripts/affected_select.py
+#              maps the files changed since <ref> (default: the merge-base with main), uncommitted and untracked
+#              files included, through scripts/affected/components.json and narrows the .NET projects with
+#              dotnet-affected; it prints which groups and projects run or are skipped and why. An unmapped file,
+#              an always-build file (.claude/tipoca/affected/always-build.txt), a missing base or a tool error
+#              runs everything. For lane checkpoints only: integration and pre-merge runs stay FULL (no flag).
 #   --gpu-e2e  also start a fake stack as compose project stemstudio-e2e twice, with a fake GPU
 #              (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and run the
 #              Playwright @gpu specs each time (feature 003); needs ports 8080/8081 free and the Playwright
@@ -29,15 +35,21 @@ GPU_E2E=0
 AGENT_E2E=0
 RECORDING_E2E=0
 E2E_PROJECT=stemstudio-e2e
-for arg in "$@"; do
-  case "$arg" in
+AFFECTED=0
+AFFECTED_FROM=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --continue-on-error) CONTINUE=1 ;;
     --gpu-e2e) GPU_E2E=1 ;;
     --agent-e2e) AGENT_E2E=1 ;;
     --recording-e2e) RECORDING_E2E=1 ;;
-    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+    --affected) AFFECTED=1 ;;
+    --from) [[ $# -ge 2 ]] || { echo "--from needs a ref" >&2; exit 2; }; AFFECTED_FROM=(--from "$2"); shift ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
+  shift
 done
+if [[ ${#AFFECTED_FROM[@]} -gt 0 && $AFFECTED -eq 0 ]]; then echo "--from needs --affected" >&2; exit 2; fi
 REDOCLY=@redocly/cli@2.78.0
 # Round 014+015: the newest full backend document is 015's 1.14.0 (= 014's 1.13.0 + the recording
 # delta); the worker document is 014's 1.8.0. Render vectors 1.1.0 (007's + the take cases) are 015's.
@@ -67,18 +79,49 @@ PYTEST=pytest==9.2.0
 # SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
 SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
 SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/tests)
+KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/affected_select.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
+# Affected selection (--affected): FULL_RUN=0 and SELECTED lists the groups that run; every step belongs to the
+# group named by the last `group` line above it (an empty group always runs: the opt-in E2E passes).
+FULL_RUN=1
+SELECTED=""
+CURRENT_GROUP=""
+DOTNET_TARGET=StemStudio.slnx
+group() { CURRENT_GROUP="$1"; }
+selected() { [[ $FULL_RUN -eq 1 || -z "$1" || " $SELECTED " == *" $1 "* ]]; }
+
+# affected_line <kind> <key> <verb> <rest>: applies and prints one line of `affected_select.py --format lines`.
+affected_line() {
+  case "$1" in
+    mode) [[ $2 == affected ]] && FULL_RUN=0; echo "mode: $2" ;;
+    group) [[ $3 == run ]] && SELECTED+=" $2"; printf '  %-5s %-24s %s\n' "$3" "$2" "$4" ;;
+    dotnet) if [[ $2 == target ]]; then DOTNET_TARGET="$3${4:+ $4}"; echo "  .NET build input: $DOTNET_TARGET"; else echo "  .NET project: $3"; fi ;;
+    *) echo "$1: $2 $3 $4" ;;
+  esac
+}
+
+# Runs the selector; exits 0 when nothing changed, keeps FULL_RUN=1 when it fails.
+affected_select() {
+  local out code kind key verb rest
+  echo -e "\n=== affected selection ==="
+  out="$(cd "$REPO_ROOT" && uv run --no-project python -I scripts/affected_select.py --format lines "${AFFECTED_FROM[@]}")"
+  code=$?
+  if [[ $code -eq 166 ]]; then echo "Nothing changed since the base: no step runs."; exit 0; fi
+  if [[ $code -ne 0 ]]; then echo "affected_select.py failed (exit $code): running everything"; return; fi
+  while read -r kind key verb rest; do affected_line "$kind" "$key" "$verb" "$rest"; done <<< "$out"
+}
+[[ $AFFECTED -eq 1 ]] && affected_select
 
 # step <name> <working-dir> <command...>; a missing working directory fails the step.
 step() {
   local name="$1" dir="$2"
   shift 2
   if [[ $FAILED -eq 1 && $CONTINUE -eq 0 ]]; then return; fi
+  if ! selected "$CURRENT_GROUP"; then SUMMARY+=("skipped  $name (affected: $CURRENT_GROUP not selected)"); return; fi
   echo -e "\n=== $name ==="
   if (cd "$REPO_ROOT/$dir" && "$@"); then SUMMARY+=("passed   $name"); else SUMMARY+=("FAILED   $name"); FAILED=1; fi
 }
@@ -99,29 +142,37 @@ key_volume_all() {
     scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml
 }
 
+group dotnet
 step "dotnet tool restore" . dotnet tool restore
-step "dotnet build" . dotnet build StemStudio.slnx -c Release
-step "dotnet format" . dotnet format StemStudio.slnx --verify-no-changes
-step "dotnet test + coverage gate" . dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
+step "dotnet build" . dotnet build "$DOTNET_TARGET" -c Release
+step "dotnet format" . dotnet format "$DOTNET_TARGET" --verify-no-changes
+step "dotnet test + coverage gate" . dotnet test "$DOTNET_TARGET" -c Release --no-build -p:CollectCoverage=true
+group dotnet-agent-floor
 step "agent coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_COVERAGE"
+group dotnet-agent-eval-floor
 step "agent-eval coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_EVAL_COVERAGE"
 # Timing asserts skip under coverlet: the performance budgets (022 SC-004) run uninstrumented (as in CI).
+group dotnet-perf
 step "performance budgets, uninstrumented (Category=Perf)" . dotnet test tests/StemStudio.Api.Tests -c Release --no-build --filter Category=Perf -p:RunSettingsFilePath=
+group worker
 step "worker uv sync" worker uv sync --frozen
 step "worker ruff check" worker uv run --frozen ruff check .
 step "worker ruff format" worker uv run --frozen ruff format --check .
 step "worker mypy" worker uv run --frozen mypy src tests
 step "worker pytest + coverage" worker uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
+group generator
 step "generator uv sync" generator uv sync --frozen
 step "generator ruff check" generator uv run --frozen ruff check .
 step "generator ruff format" generator uv run --frozen ruff format --check .
 step "generator mypy" generator uv run --frozen mypy src tests
 step "generator pytest + coverage" generator uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
+group audio-engine
 step "engine npm ci" src/audio-engine npm ci --no-audit --no-fund
 step "engine lint" src/audio-engine npm run lint
 step "engine typecheck" src/audio-engine npm run typecheck
 step "engine test:coverage" src/audio-engine npm run test:coverage
 step "engine build" src/audio-engine npm run build
+group soundtouch
 if [[ -f "$REPO_ROOT/$SOUNDTOUCH_WASM" ]]; then
   step "engine test:wasm (012, real soundtouch.wasm)" src/audio-engine npm run test:wasm
 else
@@ -129,11 +180,13 @@ else
 engine test:wasm skipped: $SOUNDTOUCH_WASM not built (scripts/build-soundtouch.sh)"
 fi
 step "soundtouch emsdk pin (012)" . scripts/build-soundtouch.sh --check-pins
+group web-interop
 step "web-interop npm ci" src/web-interop npm ci --no-audit --no-fund
 step "web-interop lint" src/web-interop npm run lint
 step "web-interop typecheck" src/web-interop npm run typecheck
 step "web-interop test:coverage" src/web-interop npm run test:coverage
 step "web-interop build" src/web-interop npm run build
+group contracts
 step "contracts lint (015-play-along-recording)" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/backend-api.openapi.yaml" "$CONTRACTS/recording-api.openapi.yaml"
 step "contracts lint (014-practice-flow)" . npx --yes "$REDOCLY" lint --config "$PRACTICE_FLOW_CONTRACTS/redocly.yaml" \
@@ -169,24 +222,34 @@ step "contracts lint (016-instrument-views)" . npx --yes "$REDOCLY" lint --confi
 step "contracts merge check (016 full 1.15.0 / 1.9.0)" . uv run --no-project --with "$PYYAML" python -I "$INSTRUMENT_CONTRACTS/merge_full.py" --check
 step "chord spelling vectors check (016)" . uv run --no-project python -I "$INSTRUMENT_CONTRACTS/generate_chord_spelling_vectors.py" --check
 step "chord spelling vector tests (016)" . uv run --no-project --with "$PYTEST" python -m pytest "$INSTRUMENT_CONTRACTS"
+group scripts-tests
 step "split E2E jobs check (016 T144)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest -c scripts/pyproject.toml -q scripts/tests/test_ci_e2e_split.py
+group secret-scan
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
+group contracts
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
+group quality-tools
 step "quality ruff check" tools/quality uvq ruff check .
 step "quality ruff format" tools/quality uvq ruff format --check .
 step "quality mypy" tools/quality uvq mypy
 step "quality pytest + coverage" tools/quality uvq pytest --cov --cov-branch --cov-report=term
+group scripts-tests
 step "key volume checks ruff check" . uvk ruff check --config "$SCRIPTS_CFG" "${KEY_CHECKS[@]}"
 step "key volume checks ruff format" . uvk ruff format --config "$SCRIPTS_CFG" --check "${KEY_CHECKS[@]}"
 step "key volume checks mypy" . uvk mypy --config-file "$SCRIPTS_CFG" "${KEY_CHECKS[@]}"
 step "key volume checks pytest + coverage" . uvk pytest -c "$SCRIPTS_CFG" --cov --cov-branch --cov-config="$SCRIPTS_CFG" --cov-report=term scripts/tests
+group compose
 step "key volume check (compose config, all combinations)" . key_volume_all
+group quality-gate
 step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
+group docs-manuals
 step "docs manuals up to date" . node tools/docs/check.mjs
+group site
 step "site npm ci (tools/docs markdown-it)" tools/docs npm ci --no-audit --no-fund
 step "site unit tests" . node --test tools/site/test/site.test.mjs
 step "site build + check" . node tools/site/check.mjs
+group fixtures
 step "fixtures ruff check" . uvw ruff check tests/fixtures
 step "fixtures ruff format" . uvw ruff format --check tests/fixtures
 step "fixtures mypy" . uvw mypy --config-file "$FX" --exclude '^tests/fixtures/backup/' tests/fixtures
@@ -196,10 +259,13 @@ step "backup fixtures ruff format (013)" . uvw ruff format --config "$BACKUP_FX"
 step "backup fixtures mypy (013)" . uvw mypy --config-file "$BACKUP_FX" tests/fixtures/backup
 step "backup fixtures pytest + coverage (013)" . uvw pytest -c "$BACKUP_FX" --cov --cov-branch --cov-config="$BACKUP_FX" --cov-report=term tests/fixtures/backup/tests
 step "fixtures generate" . uvw python tests/fixtures/generate_fixtures.py
+group e2e-lint
 step "e2e npm ci" e2e npm ci --no-audit --no-fund
 step "e2e lint" e2e npm run lint
 step "e2e typecheck" e2e npm run typecheck
 step "e2e list" e2e npx playwright test --list
+# The opt-in E2E passes below run whenever their flag is given (no group).
+CURRENT_GROUP=""
 if [[ $GPU_E2E -eq 1 ]]; then
   # Two passes; the mode goes to compose (worker env) and to Playwright (STEMSTUDIO_FAKE_DEVICE).
   for mode in gpu gpu-oom; do
@@ -233,4 +299,5 @@ fi
 
 echo -e "\n=== summary ==="
 printf '%s\n' "${SUMMARY[@]}"
+if [[ $FULL_RUN -eq 0 ]]; then echo "Affected run (lane checkpoint): integration and pre-merge runs stay full."; fi
 exit "$FAILED"
