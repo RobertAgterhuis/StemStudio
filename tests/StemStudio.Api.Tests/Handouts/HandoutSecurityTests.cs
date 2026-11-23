@@ -56,11 +56,13 @@ public sealed class HandoutSecurityTests : ApiTestBase
         var song = await Factory.SeedSongAsync();
 
         using var response = await PostRawAsync($$"""{"source":{"trackId":"{{song.Id}}"},"family":"melodic","transposition":"b-flat","paper":"letter","include":["facts","notation"]}""");
+        using var nulls = await PostRawAsync($$"""{"source":{"trackId":"{{song.Id}}"},"family":"bass","transposition":null,"paper":null,"include":null}""");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var body = await response.Content.ReadAsStringAsync(Ct);
         body.ShouldContain("\"transposition\":\"b-flat\"");
         body.ShouldContain("\"paper\":\"letter\"");
+        nulls.StatusCode.ShouldBe(HttpStatusCode.Accepted);
     }
 
     private Task<HttpResponseMessage> PostRawAsync(string json) =>

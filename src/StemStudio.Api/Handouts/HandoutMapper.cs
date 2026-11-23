@@ -7,15 +7,18 @@ namespace StemStudio.Api.Handouts;
 /// <summary>Maps handout values between the contract (backend 1.19.0) and the domain; enum members share their names.</summary>
 public static class HandoutMapper
 {
-    /// <summary>A contract enum to its domain twin (same member names).</summary>
+    /// <summary>A contract enum to its domain twin (same member names); an undefined value is never converted.</summary>
     /// <typeparam name="TTo">Target enum.</typeparam>
     /// <param name="value">The value.</param>
     /// <returns>The converted value.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a defined member.</exception>
     public static TTo Convert<TTo>(Enum value)
         where TTo : struct, Enum
     {
         ArgumentNullException.ThrowIfNull(value);
-        return Enum.Parse<TTo>(value.ToString());
+        return Enum.GetName(value.GetType(), value) is { } name
+            ? Enum.Parse<TTo>(name)
+            : throw new ArgumentOutOfRangeException(nameof(value), value, "Not a defined member.");
     }
 
     /// <summary>The recipe of a request (defaults applied: paper a4).</summary>

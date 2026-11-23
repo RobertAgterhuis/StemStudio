@@ -311,7 +311,11 @@ public static class ApiComposition
         services.AddProblemDetails(problem => problem.CustomizeProblemDetails = ProblemDetailsCustomizer.Customize);
         services.AddExceptionHandler(handler => handler.StatusCodeSelector = ProblemDetailsCustomizer.StatusCodeFor);
         services.Configure<RouteHandlerOptions>(routes => routes.ThrowOnBadRequest = false);
-        services.Configure<JsonOptions>(json => json.SerializerOptions.PropertyNameCaseInsensitive = true);
+        services.Configure<JsonOptions>(json =>
+        {
+            json.SerializerOptions.PropertyNameCaseInsensitive = true;
+            Handouts.HandoutJson.AddTo(json.SerializerOptions);
+        });
         services.AddOpenApi();
         services.AddCors(cors => cors.AddPolicy(CorsPolicy, policy => policy
             .WithOrigins(options.WebOrigin)

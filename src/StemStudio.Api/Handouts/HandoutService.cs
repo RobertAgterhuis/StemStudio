@@ -136,12 +136,11 @@ public static class HandoutRequests
             errors["source"] = ["Give exactly one of trackId and setlistId."];
         }
 
-        if (request.Transposition is not null && request.Family != HandoutFamilyDto.Melodic)
+        if (AddEnumErrors(errors, request))
         {
-            errors["transposition"] = ["A transposition is only offered for the melodic family."];
+            AddCombinationErrors(errors, request);
         }
 
-        AddIncludeErrors(errors, request);
         if (request.NotationAssetIds is { Count: > MaxNotationIds })
         {
             errors["notationAssetIds"] = [$"Choose at most {MaxNotationIds} notation items."];
@@ -149,6 +148,43 @@ public static class HandoutRequests
 
         AddNameErrors(errors, request.Name);
         return errors.Count == 0 ? null : HandoutProblems.Fields(errors);
+    }
+
+    /// <summary>Refuses values the contract does not define (numbers, unknown names); true when every enum value is defined.</summary>
+    private static bool AddEnumErrors(Dictionary<string, string[]> errors, CreateHandoutRequest request)
+    {
+        var before = errors.Count;
+        if (!Enum.IsDefined(request.Family))
+        {
+            errors["family"] = ["Must be one of overview, vocals, guitar, bass, keys, drums, melodic."];
+        }
+
+        if (request.Include is { } include && !include.All(code => Enum.IsDefined(code)))
+        {
+            errors["include"] = ["Use the ingredient codes of the contract (facts, form-chart, chords-over-lyrics, lyrics, chord-chart, notation, practice-notes, practice-progress, setlist-notes)."];
+        }
+
+        if (request.Transposition is { } transposition && !Enum.IsDefined(transposition))
+        {
+            errors["transposition"] = ["Must be one of c, b-flat, e-flat, f."];
+        }
+
+        if (request.Paper is { } paper && !Enum.IsDefined(paper))
+        {
+            errors["paper"] = ["Must be a4 or letter."];
+        }
+
+        return errors.Count == before;
+    }
+
+    private static void AddCombinationErrors(Dictionary<string, string[]> errors, CreateHandoutRequest request)
+    {
+        if (request.Transposition is not null && request.Family != HandoutFamilyDto.Melodic)
+        {
+            errors["transposition"] = ["A transposition is only offered for the melodic family."];
+        }
+
+        AddIncludeErrors(errors, request);
     }
 
     private static void AddIncludeErrors(Dictionary<string, string[]> errors, CreateHandoutRequest request)
