@@ -591,3 +591,20 @@ def test_ci_gates_name_known_groups() -> None:
     gates = set(CI_GATE.findall(ci))
     assert {"dotnet", "worker", "generator", "contracts", "licences"} <= gates
     assert gates <= set(cmap.groups)
+
+
+@pytest.mark.parametrize(
+    ("path", "groups"),
+    [
+        ("src/StemStudio.Web/wwwroot/css/tokens.css", {"worker", "quality-gate", "dotnet"}),
+        ("src/StemStudio.Web/wwwroot/fonts/archivo/Archivo.woff2", {"worker", "quality-gate"}),
+        ("worker/scripts/sync_handout_style.py", {"worker", "quality-gate", "cpu-image"}),
+        ("worker/src/stemstudio_worker/handouts/assets/tokens.css", {"worker", "cpu-image"}),
+        ("specs/020-insights-handouts/contracts/merge_full.py", {"contracts"}),
+        ("scripts/check-worker-pdf.sh", {"cpu-image", "scripts-tests"}),
+    ],
+)
+def test_the_020_inputs_select_their_checks(path: str, groups: set[str]) -> None:
+    """Feature 020: the handout style sources, the 020 contracts and the PDF image check."""
+    selected = sel.select_groups([path], sel.load_map(MAP_PATH), ())
+    assert groups <= set(selected.groups)

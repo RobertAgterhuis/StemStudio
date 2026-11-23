@@ -73,6 +73,11 @@
       "groups": ["docs-manuals", "site"]
     },
     {
+      "name": "App tokens and Archivo font are copied into the worker's handout assets (020 sync_handout_style.py --check in the worker step and the quality gate)",
+      "paths": ["src/StemStudio.Web/wwwroot/css/tokens.css", "src/StemStudio.Web/wwwroot/fonts/archivo/**"],
+      "groups": ["worker", "quality-gate"]
+    },
+    {
       "name": "Spec contracts: OpenAPI documents, deltas, vectors, schemas, test ids",
       "paths": ["specs/**/contracts/**"],
       "groups": ["contracts", "dotnet", "worker", "generator", "audio-engine", "e2e-lint", "fixtures"],
@@ -223,7 +228,7 @@
     },
     {
       "name": "Image guards",
-      "paths": ["scripts/check-cpu-image.*", "scripts/cpu_image_guard.py", "scripts/check-worker-fonts.*"],
+      "paths": ["scripts/check-cpu-image.*", "scripts/cpu_image_guard.py", "scripts/check-worker-fonts.*", "scripts/check-worker-pdf.*"],
       "groups": ["cpu-image", "generator-image"]
     },
     {

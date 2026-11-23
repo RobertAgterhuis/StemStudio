@@ -36,7 +36,9 @@ if ($Build) {
 }
 Write-Host "Checking $Image for WeasyPrint, Pango >= $PangoMin and DejaVu Sans ..."
 $failed = 0
-$probe = "import weasyprint`nfrom weasyprint.text.ffi import ffi, pango`nprint(weasyprint.__version__, ffi.string(pango.pango_version_string()).decode())"
+# pango_version() is the version of the loaded library as major * 10000 + minor * 100 + micro.
+$probe = 'import weasyprint' + "`n" + 'from weasyprint.text.ffi import pango' + "`n" + 'v = pango.pango_version()' + "`n" +
+    'print(weasyprint.__version__, f"{v // 10000}.{v // 100 % 100}.{v % 100}")'
 $versions = & docker run --rm --network none --entrypoint python $Image -I -c $probe 2>$null
 if ($LASTEXITCODE -eq 0 -and $versions) {
     $weasy, $pango = ([string] $versions).Trim() -split ' '

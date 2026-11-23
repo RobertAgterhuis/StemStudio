@@ -30,9 +30,11 @@ if [[ $BUILD -eq 1 ]]; then
 fi
 echo "Checking $IMAGE for WeasyPrint, Pango >= $PANGO_MIN and DejaVu Sans ..."
 FAILED=0
+# pango_version() is the version of the loaded library as major * 10000 + minor * 100 + micro.
 PROBE='import weasyprint
-from weasyprint.text.ffi import ffi, pango
-print(weasyprint.__version__, ffi.string(pango.pango_version_string()).decode())'
+from weasyprint.text.ffi import pango
+v = pango.pango_version()
+print(weasyprint.__version__, f"{v // 10000}.{v // 100 % 100}.{v % 100}")'
 if VERSIONS="$(docker run --rm --network none --entrypoint python "$IMAGE" -I -c "$PROBE" 2>/dev/null)"; then
   VERSIONS="${VERSIONS//$'\r'/}"
   WEASY="${VERSIONS%% *}"

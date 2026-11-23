@@ -3,7 +3,7 @@
 # models' runtimes (onnxruntime CPU, rotary-embedding-torch), lyrics alignment (006: stable-ts,
 # openai-whisper, torchaudio) and sheet music (008: music21, verovio, cairosvg + libcairo2, pypdf,
 # the Leipzig music font as a system font) and setlist PDFs (014: reportlab, the DejaVu fonts of
-# fonts-dejavu-core). No model weights are baked in: they download at first
+# fonts-dejavu-core) and handouts (020: weasyprint with Pango/PangoFT2). No model weights are baked in: they download at first
 # use into /models (STEMSTUDIO_MODEL_DIR, HF_HOME, TORCH_HOME; a volume), e.g. Whisper turbo into
 # /models/whisper (1.6 GB) and the piano/basic-pitch weights (008) below /models.
 # Build context: repository root.  docker build -f docker/worker.Dockerfile .
@@ -100,12 +100,19 @@ ARG WORKER_DEVICE=cpu
 # fontconfig makes the Leipzig font visible to Cairo (scripts/check-worker-fonts.* checks fc-list);
 # fonts-dejavu-core (Bitstream Vera / public-domain licence) provides DejaVu Sans and DejaVu Sans
 # Bold in /usr/share/fonts/truetype/dejavu for the setlist PDFs (feature 014, both variants).
+# Handouts (feature 020, FR-012): WeasyPrint (pinned in worker/uv.lock) loads Pango and PangoFT2 at
+# run time through cffi. libpango-1.0-0 and libpangoft2-1.0-0 (LGPL-2.1+; HarfBuzz and fontconfig
+# come with them) are already pulled in by ffmpeg's dependencies (Pango 1.56.3, P0-4) but are
+# listed explicitly so the PDF engine never depends on that. Handout fonts: the DejaVu fonts above
+# and the Archivo copy inside the worker package; fc-cache refreshes every font folder.
+# scripts/check-worker-pdf.* checks the result (SC-005, both variants).
 COPY --from=deno /deno /usr/local/bin/deno
 COPY --from=font /opt/fonts/Leipzig.ttf /usr/local/share/fonts/verovio/Leipzig.ttf
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg libsndfile1 libcairo2 fontconfig fonts-dejavu-core \
+      libpango-1.0-0 libpangoft2-1.0-0 \
  && rm -rf /var/lib/apt/lists/* \
- && fc-cache -f /usr/local/share/fonts \
+ && fc-cache -f \
  && groupadd --gid 10001 stemstudio \
  && useradd --uid 10001 --gid stemstudio --no-log-init --create-home --home-dir /home/stemstudio stemstudio \
  && mkdir -p /data /models/hf /models/torch /models/whisper /gpu-lease \

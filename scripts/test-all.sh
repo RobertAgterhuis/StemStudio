@@ -56,6 +56,9 @@ REDOCLY=@redocly/cli@2.78.0
 CONTRACTS=specs/015-play-along-recording/contracts
 # Feature 016: backend 1.15.0, worker 1.9.0, both deltas, merge_full.py and the chord spelling vectors 1.0.0.
 INSTRUMENT_CONTRACTS=specs/016-instrument-views/contracts
+# Feature 020: backend 1.19.0 (= 1.15.0 + the insights and handouts delta), worker 1.11.0 (= 1.9.0 + the delta),
+# both deltas and merge_full.py. The 016 checks above stay pinned to 016 (only 016 holds the chord vectors).
+INSIGHTS_CONTRACTS=specs/020-insights-handouts/contracts
 RENDER_VECTORS=specs/015-play-along-recording/contracts/generate_render_vectors.py
 PRACTICE_FLOW_CONTRACTS=specs/014-practice-flow/contracts  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
@@ -170,6 +173,7 @@ step "worker uv sync" worker uv sync --frozen
 step "worker ruff check" worker uv run --frozen ruff check .
 step "worker ruff format" worker uv run --frozen ruff format --check .
 step "worker mypy" worker uv run --frozen mypy src tests
+step "worker handout style drift (020 sync_handout_style.py --check)" worker uv run --frozen python scripts/sync_handout_style.py --check
 step "worker pytest + coverage" worker uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
 group generator
 step "generator uv sync" generator uv sync --frozen
@@ -233,6 +237,8 @@ step "contracts lint (016-instrument-views)" . npx --yes "$REDOCLY" lint --confi
 step "contracts merge check (016 full 1.15.0 / 1.9.0)" . uv run --no-project --with "$PYYAML" python -I "$INSTRUMENT_CONTRACTS/merge_full.py" --check
 step "chord spelling vectors check (016)" . uv run --no-project python -I "$INSTRUMENT_CONTRACTS/generate_chord_spelling_vectors.py" --check
 step "chord spelling vector tests (016)" . uv run --no-project --with "$PYTEST" python -m pytest "$INSTRUMENT_CONTRACTS"
+step "contracts lint (020-insights-handouts)" . npx --yes "$REDOCLY" lint --config "$INSIGHTS_CONTRACTS/redocly.yaml" "$INSIGHTS_CONTRACTS/backend-api.openapi.yaml" "$INSIGHTS_CONTRACTS/worker-api.openapi.yaml" "$INSIGHTS_CONTRACTS/backend-api.delta.openapi.yaml" "$INSIGHTS_CONTRACTS/worker-api.delta.openapi.yaml"
+step "contracts merge check (020 full 1.19.0 / 1.11.0)" . uv run --no-project --with "$PYYAML" python -I "$INSIGHTS_CONTRACTS/merge_full.py" --check
 group scripts-tests
 step "split E2E jobs check (016 T144)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest -c scripts/pyproject.toml -q scripts/tests/test_ci_e2e_split.py
 group secret-scan
