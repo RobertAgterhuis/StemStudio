@@ -192,8 +192,8 @@ in the execution plan.
 - [ ] T082 [US4] [backend] Implement setlist assembly and the setlist source path of the endpoints
 - [ ] T083 [P] [US4] [audio-ingest] Failing tests setlist layout: cover, running order, contents with page numbers, each song on a new page, one bookmark per song, 20-song render within the budget (SC-004)
 - [ ] T084 [US4] [audio-ingest] Implement the setlist templates
-- [ ] T085 [P] [US4] [frontend] Failing tests `setlist-handout-menu` and customise entry on the setlist page
-- [ ] T086 [US4] [frontend] Implement them
+- [x] T085 [P] [US4] [frontend] Failing tests `setlist-handout-menu` and customise entry on the setlist page
+- [x] T086 [US4] [frontend] Implement them
 - [ ] T087 [US4] [qa] E2E `e2e/tests/setlist-handout.spec.ts` (three-song fixture setlist, running order and bookmarks via facts/outline). **Done when** as T048
 
 **Checkpoint**: HO:us4 per owner.
