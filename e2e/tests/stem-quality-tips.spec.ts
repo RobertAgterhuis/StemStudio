@@ -52,8 +52,9 @@ test.describe('tips before a detail split (020 US2)', { tag: '@insights' }, () =
     }
   });
 
-  test('other -> "Split further" starts the detail separation and the report is remade (US2-1)', async ({ api, page }) => {
-    const track = await ensureCancelledPhase(api, 'quality-split-further');
+  test('other -> "Split further" starts the detail separation and the report is remade (US2-1)', async ({ api, page }, testInfo) => {
+    // One copy per browser: the split completes the copy's detail phase, so a shared copy is split for the next project.
+    const track = await ensureCancelledPhase(api, `quality-split-further-${testInfo.project.name}`);
     const insights = suite.insights();
     const before = await insights.ensureQuality(track.id);
     const tip = stemOf(before, 'other').tips.find((t) => t.code === 'try-detail-separation');

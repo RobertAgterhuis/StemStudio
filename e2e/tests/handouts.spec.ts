@@ -2,11 +2,12 @@ import { HandoutMenu } from '../pages/handout-menu';
 import { ensureCancelledPhase } from '../support/detail';
 import { apiContextOptions } from '../support/env';
 import { expectHandoutPages, handoutIds, handoutPdf, newHandoutId, pdfWords } from '../support/handout-flow';
-import { familyManifest, seedFixtureSong, seedTimeoutMs, type SeededSong } from '../support/handout-seed';
+import { familyManifest, seedFixtureSong, seedTimeoutMs, type FamilyPlan, type SeededSong } from '../support/handout-seed';
 import { handoutFamilies, handoutTimeoutMs, InsightsApi, type HandoutFamily } from '../support/insights-api';
 import { useInsightsApi } from '../support/insights-suite';
 import { StemStudioApi } from '../support/api';
 import { PracticeFlowApi } from '../support/practice-flow';
+import { LibraryApi } from '../support/library-api';
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/test';
 
@@ -36,6 +37,30 @@ test.beforeAll(async ({ playwright }) => {
   await seeded;
 });
 
+/**
+ * The defaults a one-click handout prints (data-model 6.1/6.2). One click makes the C handout; a family whose fixture
+ * notation is a transposed part only (melodic: the B-flat clarinet part) has no C notation, so it lists notation as
+ * not available instead (6.1: a C handout takes a concert item, never a B-flat part).
+ */
+function oneClickIncluded(familyPlan: FamilyPlan): string[] {
+  return familyPlan.expectedIncluded.filter((code) => !(isTransposed(familyPlan) && code === 'notation'));
+}
+
+/** What such a family lists as left out: notation, not available (empty for every other family). */
+function oneClickOmitted(familyPlan: FamilyPlan): { code: string; reason: string }[] {
+  return isTransposed(familyPlan) && familyPlan.expectedIncluded.includes('notation') ? [{ code: 'notation', reason: 'not-available' }] : [];
+}
+
+/** The included and omitted parts of a one-click handout (data-model 6.2 defaults). */
+function expectOneClickParts(facts: { readonly included: readonly string[]; readonly omitted: readonly unknown[] } | null | undefined, familyPlan: FamilyPlan): void {
+  expect(sorted(facts?.included ?? []), 'data-model 6.2 defaults').toEqual(sorted(oneClickIncluded(familyPlan)));
+  expect(facts?.omitted ?? []).toEqual(expect.arrayContaining(oneClickOmitted(familyPlan)));
+}
+
+function isTransposed(familyPlan: FamilyPlan): boolean {
+  return familyPlan.transposition !== null && familyPlan.transposition !== 'c';
+}
+
 /** Sorted copy for set-like comparisons (the API keeps its own order). */
 function sorted(values: readonly string[]): string[] {
   return [...values].sort();
@@ -58,7 +83,7 @@ test.describe('one-click lesson handout per family (020 US3, SC-006)', { tag: '@
 
       expect(item.kind).toBe('handout');
       expect(item.handout?.kind).toBe('song');
-      expect(sorted(item.handout?.included ?? []), 'data-model 6.2 defaults').toEqual(sorted(familyPlan.expectedIncluded));
+      expectOneClickParts(item.handout, familyPlan);
       expect(item.name).toContain(familyPlan.label);
       const pdf = await handoutPdf(assetsApi, item);
       expectHandoutPages(pdf, item);
@@ -141,7 +166,9 @@ test.describe('missing ingredients (020 US3-3, FR-010)', { tag: '@insights' }, (
     expect(item.handout?.omitted).toContainEqual({ code: 'notation', reason: 'not-available' });
     expect(item.handout?.included).not.toContain('notation');
     expectHandoutPages(await handoutPdf(assetsApi, item), item);
-    await page.goto('/library?view=all');
+    // Beginners browse the library by folder ("All items" is Advanced+, 022): open the item's song folder.
+    const placement = await new LibraryApi(suite.context()).waitForPlacement(item.id);
+    await page.goto(`/library/${placement.song.folderId}`);
     await expect(page.getByTestId(`asset-handout-omitted-${item.id}`)).toContainText(/Not included/iu);
   });
 });
