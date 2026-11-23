@@ -1,12 +1,16 @@
-# Lint configuration for the feature 020 contract deltas (OpenAPI 3.1, standalone).
-# Run from the repo root: npx @redocly/cli@2.78.0 lint --config specs/020-insights-handouts/contracts/redocly.yaml \
-#   specs/020-insights-handouts/contracts/worker-api.delta.openapi.yaml specs/020-insights-handouts/contracts/backend-api.delta.openapi.yaml
+# Lint configuration for the feature 020 contracts (OpenAPI 3.1): the full worker-api 1.11.0 and
+# backend-api 1.19.0 (built by merge_full.py) and the standalone deltas. Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/020-insights-handouts/contracts/redocly.yaml \
+#     specs/020-insights-handouts/contracts/backend-api.openapi.yaml specs/020-insights-handouts/contracts/worker-api.openapi.yaml \
+#     specs/020-insights-handouts/contracts/backend-api.delta.openapi.yaml specs/020-insights-handouts/contracts/worker-api.delta.openapi.yaml
+# Phase 0 result (2026-11-23): valid, 33 warnings = full backend 18 (as 016's 1.15.0), full worker 7 (016's 5 + the two
+# idempotent DELETEs), backend delta 2 and worker delta 6 (unused merge-only schemas, three idempotent DELETEs).
 extends:
   - recommended
 rules:
-  # Same rule set as 008. The idempotent DELETEs answer only 204, so they have no 4XX case.
+  # Same rule set as 008/016. The idempotent DELETEs answer only 204, so they have no 4XX case.
   operation-4xx-response: warn
   no-server-example.com: off
-  # Schemas that are merged into existing base schemas (Health.insights, Health.lanes.insights,
-  # Health.separationPipelines, Track.quality, Track.stemSet) have no path in a delta: 5 known warnings.
+  # Schemas that are merged into existing base schemas (Health.insights, Health.lanes.insights, Track.quality,
+  # Asset.handout) and the deferred G2 schemas have no path in a delta.
   no-unused-components: warn

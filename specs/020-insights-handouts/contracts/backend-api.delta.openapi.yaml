@@ -1,18 +1,21 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - insights and handouts delta (feature 020)
-  version: 1.19.0-delta.1
+  version: 1.19.0-delta.2
   summary: Additive delta of the backend API for stem quality reports, lesson handouts, practice notes and the gated high-quality vocal re-separation.
   description: |
     * **Standalone, additive delta.** Contains only what feature 020 adds. Merged unchanged into
-      the full `specs/020-insights-handouts/contracts/backend-api.openapi.yaml` **1.19.0** in 020
-      Phase 0, on top of 019's 1.18.0. No existing operation, schema or behaviour changes.
+      the full `specs/020-insights-handouts/contracts/backend-api.openapi.yaml` **1.19.0** by
+      `merge_full.py` (020 Phase 0, 2026-11-23) on top of the newest full document on `main`, 016's
+      1.15.0 (017-019 are not built yet; 020 needs nothing from them; the label stays 1.19.0 by the
+      ROADMAP allocation rule). No existing operation, schema or behaviour changes.
     * Additions to existing schemas (applied at the merge, all additive):
       `AssetKind` += `handout`; `AssetOrigin` += `handout`; `Asset.handout`
-      (`HandoutFacts | null`, required, null for other kinds); `Provenance.handoutRecipe`
-      (`HandoutRecipe | null`, required, null for other kinds); `listAssets` accepts
-      `kind=handout`; `Track.quality` (`QualityBadge | null`, required); and, only if gate G2
-      passes, `Track.stemSet` (`StemSet`) and `Track.reseparation` (`ReseparationPhase | null`).
+      (`HandoutFacts | null`); `Provenance.handoutRecipe` (`HandoutRecipe | null`); `Track.quality`
+      (`QualityBadge | null`). The three properties are optional like every backend addition since
+      1.13.0: absent = null (other kinds; never made). `listAssets` accepts `kind=handout`.
+      G2 (deferred, not merged): `Track.stemSet` (`StemSet`), `Track.reseparation`
+      (`ReseparationPhase | null`), `TipCode` `rerun-high-quality`, `TipActionKind` `reseparate`.
       `getAssetFile` serves the handout `pdf` with the 1.7.0 rule (attachment by default,
       `inline=true` for the preview).
     * Schemas repeated from the base (`ChannelId`, `StemName`, `ParentStemName`, `Asset`,
@@ -20,8 +23,11 @@ info:
       validity; the base definitions win at the merge.
     * Conventions: JSON camelCase, enum values lower-case kebab-case, UTC ISO 8601, RFC 9457
       problem details with `type` = `https://stemstudio.local/problems/<code>`.
-    * Paths tagged `reseparation` exist only if gate G2 passes (research.md R-06).
-    * Changelog: 1.19.0-delta.1 (additive, feature 020 planning). See ADR-029 and DELTA.md.
+    * **G2 pending** (Phase 0, 2026-11-23: MUSDB18-HQ not available). The paths tagged
+      `reseparation`, the schemas `SeparationPipeline`, `StemSet`, `ReseparationStatus`,
+      `ReseparationPhase`, `ReseparationOptions`, `StartReseparationRequest` and the response
+      `ReseparationConflict` are kept as the design record and are **not merged** into 1.19.0.
+    * Changelog: 1.19.0-delta.2 (Phase 0: base 016 1.15.0, G2 deferred, optional additions, no `track-missing`); 1.19.0-delta.1 (additive, feature 020 planning). See ADR-029 and DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -324,11 +330,12 @@ components:
       enum: [good, fair, poor, not-present, unknown]
     TipCode:
       type: string
-      description: data-model 5.3. `rerun-high-quality` exists only if G2 passes. There is no GPU re-run tip (FR-006).
-      enum: [not-in-song, use-detail-stem, rerun-high-quality, try-detail-separation, listen-to-rest, hard-to-isolate, clean]
+      description: data-model 5.3. There is no GPU re-run tip (FR-006). `rerun-high-quality` is added only when G2 passes (deferred).
+      enum: [not-in-song, use-detail-stem, try-detail-separation, listen-to-rest, hard-to-isolate, clean]
     TipActionKind:
       type: string
-      enum: [mute, open-detail, reseparate, split-detail]
+      description: '`reseparate` is added only when G2 passes (deferred).'
+      enum: [mute, open-detail, split-detail]
     TipAction:
       type: object
       additionalProperties: false
@@ -661,7 +668,8 @@ components:
       properties:
         code:
           type: string
-          enum: [missing-glyphs, notation-scaled, notation-unreadable, track-missing]
+          description: The worker's warnings (worker `HandoutWarningCode`).
+          enum: [missing-glyphs, notation-scaled, notation-unreadable]
         text:
           type: string
           maxLength: 300
@@ -942,7 +950,7 @@ components:
             status: 409
             detail: A quality report for this track is already being made.
     HandoutConflict:
-      description: '`track-not-ready`, `setlist-empty` (no available songs), `too-many-songs` (more than 50) or `insufficient-disk-space`.'
+      description: '`track-not-ready` (song handouts only: the track is not completed; a setlist song that is not completed is included with the ingredients it has), `setlist-empty` (the setlist has no entries), `too-many-songs` (more than 50 entries) or `insufficient-disk-space`.'
       content:
         application/problem+json:
           schema:

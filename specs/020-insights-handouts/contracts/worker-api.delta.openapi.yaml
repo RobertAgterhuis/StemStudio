@@ -1,19 +1,23 @@
 openapi: 3.1.0
 info:
   title: StemStudio Worker API - insights and handouts delta (feature 020)
-  version: 1.11.0-delta.1
+  version: 1.11.0-delta.2
   summary: Additive delta of the worker API for stem quality reports, lesson handouts and the gated high-quality vocal re-separation.
   description: |
     * **Standalone, additive delta.** Contains only what feature 020 adds. It is merged unchanged
-      into the full `specs/020-insights-handouts/contracts/worker-api.openapi.yaml` **1.11.0** in
-      020 Phase 0, on top of 019's 1.10.0. No existing operation, schema or behaviour changes.
-      Schemas repeated here from the base (`ChannelId`, `StemName`, `ParentStemName`,
-      `RenderJobStatus`, `JobDevice`, `ProblemDetails`) are copies for standalone validity; at the
-      merge the base definitions win and the copies are dropped.
-    * Library paths follow the allow-list of `createRenderJob` (1.4.0) extended by
-      `assets/<uuid>/<name>.pdf` and `tracks/<uuid>/artwork/(auto|user)/cover.jpg`
-      (data-model 2.2). Invalid -> `400 invalid-input-path`; missing -> `404 input-not-found`,
-      both checked when the job is created.
+      into the full `specs/020-insights-handouts/contracts/worker-api.openapi.yaml` **1.11.0** by
+      `merge_full.py` (020 Phase 0, 2026-11-23) on top of the newest full document on `main`, 016's
+      1.9.0 (017-019 are not built yet; 020 needs nothing from them, DELTA.md "Phase 0 outcome").
+      No existing operation, schema or behaviour changes. Schemas repeated here from the base
+      (`LibraryPath`, `StemName`, `ParentStemName`, `RenderJobStatus`, `JobDevice`, `LaneHealth`,
+      `ProblemDetails` and the responses `NotFound`, `InvalidInputPath`, `InputNotFound`,
+      `ValidationFailed`) are copies for standalone validity; at the merge the base definitions win
+      and the copies are dropped. `ChannelId` and `JobHexId` are new to the worker document.
+    * Library paths (data-model 2.2): quality jobs accept only the stem and detail stem patterns of
+      `createRenderJob` (1.4.0); handout jobs accept only `assets/<uuid>/[a-z][a-z0-9-]{0,31}.pdf`
+      (notation) and `tracks/<uuid>/artwork/(auto|user)/cover.jpg` (artwork). The general
+      allow-list of render and transcription jobs is unchanged. Invalid -> `400
+      invalid-input-path`; missing -> `404 input-not-found`, both checked when the job is created.
     * Quality and handout jobs run in the new **`insights`** lane (one at a time, FIFO, threads
       capped by `STEMSTUDIO_INSIGHTS_THREADS`); they never wait behind a separation, a render or
       a transcription. Jobs are kept for 24 hours after they end; after a restart `queued` and
@@ -21,11 +25,13 @@ info:
       (idempotent `204`).
     * The handout renderer never uses the network and reads only the files named in the request
       (ADR-029 D7).
-    * Paths tagged `reseparation` exist **only if Phase 0 gate G2 passes** (research.md R-06);
-      otherwise they and `Health.separationPipelines` are removed before the merge.
-    * Health additions (merged into `Health`): `lanes.insights` (`LaneHealth`), `insights`
-      (`InsightsHealth`), `separationPipelines` (G2).
-    * Changelog: 1.11.0-delta.1 (additive, feature 020 planning) - quality jobs, handout jobs,
+    * **G2 pending** (Phase 0, 2026-11-23: MUSDB18-HQ not available, research.md "Phase 0
+      measurements"). The paths tagged `reseparation`, `SeparationPipelinesHealth` and the
+      `Reseparation*`/`SeparationPipeline` schemas are kept here as the design record but are
+      **not merged** into 1.11.0; they need a later contract minor once G2 passes.
+    * Health additions (merged into `Health`, required): `lanes.insights` (`LaneHealth`),
+      `insights` (`InsightsHealth`); `separationPipelines` (G2, deferred).
+    * Changelog: 1.11.0-delta.2 (Phase 0: base 016 1.9.0, G2 deferred, per-job allow-lists, setlist entries without `available`); 1.11.0-delta.1 (additive, feature 020 planning) - quality jobs, handout jobs,
       re-separation jobs (gated), health additions. See ADR-029 and DELTA.md.
   license:
     name: MIT
@@ -112,7 +118,7 @@ paths:
       description: |
         The document is complete: the worker performs no lookups. Notice texts must equal the
         fixed texts of data-model 6.6 (else `422`). Each `notation[].pdfPath` and `artworkPath`
-        is checked against the allow-list. Stages and progress: `layout` 0-0.6, `notation`
+        is checked against the handout allow-list. Stages and progress: `layout` 0-0.6, `notation`
         0.6-0.9, `writing` 0.9-1.0. An unreadable notation file does not fail the job: its pages
         are replaced by a note and a `notation-unreadable` warning is returned.
       requestBody:
@@ -304,7 +310,7 @@ components:
       example: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/vocals.flac
     ChannelId:
       type: string
-      description: Copy of the base schema (standard stem or `<parent>.<detail>`).
+      description: A standard stem or a detail stem `<parent>.<detail>` (`drums.kick`, `drums.rest`); same pattern as the backend `ChannelId`.
       pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
     StemName:
       type: string
@@ -590,7 +596,8 @@ components:
     SetlistEntryBlock:
       type: object
       additionalProperties: false
-      required: [position, title, artist, key, tempoBpm, durationSeconds, notes, available]
+      required: [position, title, artist, key, tempoBpm, durationSeconds, notes]
+      description: One setlist entry. Entries whose track was deleted are already gone from the 014 setlist, so every entry has a song.
       properties:
         position:
           type: integer
@@ -615,9 +622,6 @@ components:
         notes:
           type: [string, 'null']
           maxLength: 4000
-        available:
-          type: boolean
-          description: False when the entry's track no longer exists (no song section).
     SetlistBlock:
       type: object
       additionalProperties: false
@@ -719,6 +723,7 @@ components:
         text:
           type: string
           maxLength: 500
+          description: Lyric text; empty for an instrumental chord row (016 chord sheet rows).
         section:
           type: [integer, 'null']
           minimum: 0
@@ -740,6 +745,11 @@ components:
             $ref: '#/components/schemas/LyricLine'
         chordPlacement:
           type: string
+          description: |
+            How the API placed the chords (the 016 chord sheet rule, `ChordSheetBuilder`): `word` = word-synced
+            lyrics, chords at the word they start in; `line` = line-synced lyrics, chords at the word nearest
+            their share of the line; `none` = no chords placed (no chords, no synced lyrics, or the family
+            excludes them).
           enum: [word, line, none]
         source:
           type: string
