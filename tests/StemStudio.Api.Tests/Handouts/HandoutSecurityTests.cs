@@ -110,7 +110,7 @@ public sealed class HandoutSecurityTests : ApiTestBase
 
         names.Distinct(StringComparer.Ordinal).Count().ShouldBe(HandoutService.MaxActivePerSource);
         await ContractAssert.MatchesAsync(refused[0], "createHandout");
-        (await refused[0].JsonAsync()).GetProperty("type").GetString().ShouldBe("https://stemstudio.local/problems/jobs-active");
+        (await refused[0].JsonAsync()).GetProperty("type").GetString().ShouldBe("https://stemstudio.local/problems/handouts-active");
         Factory.InsightsWorker.HandoutJobs.Count.ShouldBe(HandoutService.MaxActivePerSource + 1);
         foreach (var response in responses)
         {
@@ -183,7 +183,7 @@ public sealed class HandoutSecurityTests : ApiTestBase
     }
 
     [Fact]
-    public async Task SetlistOptions_ReadAtMostTheSongLimit()
+    public async Task SetlistOptions_OverTheSongLimit_Answer409TooManySongs()
     {
         var max = ContractLimits.MaxSetlistHandoutSongs;
         var entries = new List<SetlistEntryInputDto>();
@@ -198,9 +198,11 @@ public sealed class HandoutSecurityTests : ApiTestBase
 
         using var response = await Client.GetAsync(new Uri(ApiRoutes.HandoutOptions(HandoutSourceDto.Setlist(setlist.Id), HandoutFamilyDto.Overview), UriKind.Relative), Ct);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         await ContractAssert.MatchesAsync(response, "getHandoutOptions");
-        (await response.BodyAsync<HandoutOptionsDto>()).Songs.ShouldBe(max);
+        var problem = await response.JsonAsync();
+        problem.GetProperty("type").GetString().ShouldBe("https://stemstudio.local/problems/too-many-songs");
+        problem.GetProperty("detail").GetString().ShouldBe($"A setlist handout can hold up to {max} songs.");
     }
 
     private static Task<List<Asset>> HandoutsAsync(ApiFactory factory) => factory.WithScopeAsync(async sp =>

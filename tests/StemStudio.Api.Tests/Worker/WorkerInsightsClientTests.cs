@@ -171,7 +171,7 @@ public sealed class WorkerInsightsClientTests
 
         (result.FileName, result.ContentType, result.SizeBytes, result.Pages, result.Warnings.Count).ShouldBe(("handout.pdf", "application/pdf", 184211L, 5, 0));
         result.Sha256.ShouldBe("9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e");
-        result.Outline.ShouldBe(["Example Song", "Form", "Chord chart", "Notation - Bass - tablature", "Notation - Bass - score", "Practice notes", "About this handout"]);
+        result.Outline.ShouldBe(["Example Song", "Form", "Chord chart", "Practice notes", "Notation - Bass - tablature", "Notation - Bass - score", "About this handout"]);
         handler.Requests.Single().Uri.AbsolutePath.ShouldBe($"/v1/handout-jobs/{HandoutJobId}");
     }
 
@@ -186,7 +186,10 @@ public sealed class WorkerInsightsClientTests
         var runningJob = (await running.GetHandoutJobAsync(HandoutJobId, Ct))!;
         var failedJob = (await failed.GetHandoutJobAsync(HandoutJobId, Ct))!;
 
-        warnings.Select(warning => warning.Code).ShouldBe([HandoutWarningCode.NotationScaled, HandoutWarningCode.NotationUnreadable, HandoutWarningCode.MissingGlyphs]);
+        warnings.Select(warning => warning.Code).ShouldBe([
+            HandoutWarningCode.NotationScaled, HandoutWarningCode.NotationUnreadable, HandoutWarningCode.MissingGlyphs, HandoutWarningCode.NotationOmitted,
+            HandoutWarningCode.ArtworkOmitted,
+        ]);
         warnings[1].Text.ShouldBe("A notation file could not be read: Bass - tablature");
         (runningJob.Status, runningJob.Stage, runningJob.Progress).ShouldBe((WorkerRenderJobState.Running, "notation", 0.7));
         (failedJob.Status, failedJob.Error).ShouldBe((WorkerRenderJobState.Failed, "The handout could not be written"));

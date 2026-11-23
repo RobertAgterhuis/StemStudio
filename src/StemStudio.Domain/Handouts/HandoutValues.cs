@@ -116,6 +116,12 @@ public enum HandoutWarningCode
 
     /// <summary>A notation file could not be read.</summary>
     NotationUnreadable,
+
+    /// <summary>A notation file was left out by the renderer's frame or size limit.</summary>
+    NotationOmitted,
+
+    /// <summary>The artwork was left out (not a JPEG, or larger than 40 megapixels).</summary>
+    ArtworkOmitted,
 }
 
 /// <summary>Kind of a notation item in a handout.</summary>

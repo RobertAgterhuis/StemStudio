@@ -36,8 +36,8 @@ internal static class HandoutTestData
         await factory.SeedReadyAsync(trackId, AnalysisTestData.Chart(), new string('f', 64));
     }
 
-    /// <summary>A ready score item of a track.</summary>
-    public static Asset Score(Guid trackId, (string Channel, ScoreProfile Profile) source, int minute, Func<ScoreFacts, ScoreFacts>? change = null)
+    /// <summary>A ready score item of a track (its PDF of <paramref name="sizeBytes"/> bytes).</summary>
+    public static Asset Score(Guid trackId, (string Channel, ScoreProfile Profile) source, int minute, Func<ScoreFacts, ScoreFacts>? change = null, long sizeBytes = 100)
     {
         var provenance = new Provenance
         {
@@ -61,7 +61,7 @@ internal static class HandoutTestData
             Pages = 1,
             Resolution = ScoreResolution.Sixteenth,
         };
-        asset.CompleteScore([new AssetFile("pdf", "score.pdf", "application/pdf", 100, new string('a', 64))], change?.Invoke(facts) ?? facts, T0.AddMinutes(minute));
+        asset.CompleteScore([new AssetFile("pdf", "score.pdf", "application/pdf", sizeBytes, new string('a', 64))], change?.Invoke(facts) ?? facts, T0.AddMinutes(minute));
         return asset;
     }
 

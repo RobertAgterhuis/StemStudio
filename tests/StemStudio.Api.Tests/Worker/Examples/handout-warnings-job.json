@@ -14,7 +14,9 @@
     "warnings": [
       { "code": "notation-scaled", "text": "Bass - score was scaled from A4 to Letter." },
       { "code": "notation-unreadable", "text": "A notation file could not be read: Bass - tablature" },
-      { "code": "missing-glyphs", "text": "Some characters could not be printed." }
+      { "code": "missing-glyphs", "text": "Some characters could not be printed." },
+      { "code": "notation-omitted", "text": "A notation file was left out because the handout reached its size limit: Bass - score" },
+      { "code": "artwork-omitted", "text": "The cover picture was left out because it is not a JPEG or is larger than 40 megapixels: Example Song" }
     ]
   },
   "createdAt": "2026-11-16T10:05:00Z",

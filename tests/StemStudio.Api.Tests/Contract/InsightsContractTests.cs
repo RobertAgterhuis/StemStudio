@@ -53,7 +53,7 @@ public sealed class InsightsContractTests
 
         info["version"]!.GetValue<string>().ShouldBe("1.19.0");
         Strings(info["x-stemstudio-contains"]!).TakeLast(2).ShouldBe(["1.15.0", "1.19.0"]);
-        Backend020Delta.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.19.0-delta.2");
+        Backend020Delta.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.19.0-delta.3");
     }
 
     [Theory]
@@ -71,6 +71,17 @@ public sealed class InsightsContractTests
         added.ShouldBe(Operations, ignoreOrder: true);
         Backend020Delta.Operations.Select(OperationOf).ShouldBe([.. Operations, .. DeferredOperations], ignoreOrder: true);
         OpenApiContract.Backend.Operations.ShouldNotContain(op => op.Path.Contains("reseparation", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void InsightsOperations_CarryNoWriteGate()
+    {
+        // Database edits, job starts and new assets only (013 data-model 5.2 "Allowed"); maintenance (503) is the middleware's.
+        var added = OpenApiContract.Backend.Operations.Where(op => Operations.Contains(OperationOf(op))).ToList();
+
+        added.Count.ShouldBe(Operations.Length);
+        added.ShouldAllBe(op => op.Operation["x-stemstudio-write-gate"] == null);
+        Backend020Delta.Operations.ShouldAllBe(op => op.Operation["x-stemstudio-write-gate"] == null);
     }
 
     [Fact]

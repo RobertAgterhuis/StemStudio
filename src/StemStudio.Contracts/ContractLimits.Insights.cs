@@ -9,6 +9,21 @@ public static partial class ContractLimits
     /// <summary>Most songs in a setlist handout (FR-009).</summary>
     public const int MaxSetlistHandoutSongs = 50;
 
+    /// <summary>Largest body of a worker handout job (worker 1.11.0 <c>createHandoutJob</c>: 8 MiB); the API refuses larger documents first.</summary>
+    public const long MaxHandoutRequestBytes = 8L * 1024 * 1024;
+
+    /// <summary>Most characters of text in one handout document (worker 1.11.0 job limit).</summary>
+    public const long MaxHandoutTextChars = 500_000;
+
+    /// <summary>
+    /// Most layout cells of one handout document (worker 1.11.0 job limit): sections, bars, chords in bars, legend chords, lyric
+    /// lines and their chords, setlist entries.
+    /// </summary>
+    public const long MaxHandoutLayoutCells = 30_000;
+
+    /// <summary>Largest total size of the distinct notation PDFs of one handout (worker 1.11.0 job limit: 128 MiB).</summary>
+    public const long MaxHandoutNotationBytes = 128L * 1024 * 1024;
+
     /// <summary>Most tips per stem (FR-005).</summary>
     public const int MaxTipsPerStem = 2;
 

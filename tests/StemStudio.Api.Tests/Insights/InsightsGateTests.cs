@@ -5,19 +5,19 @@ using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.Handouts;
 using StemStudio.Api.Tests.TestSupport;
-using StemStudio.Contracts.LibraryCare;
 
 namespace StemStudio.Api.Tests.Insights;
 
 /// <summary>
-/// Security review 020, finding 10: the new write endpoints (quality request, handout creation, practice note) wait behind
-/// the backup write gate like the earlier gated operations (<c>x-stemstudio-write-gate: backupRunning</c>).
+/// Backup gate policy (013 data-model 5.2, CTO 014/022, 020 orchestrator correction 17:05): only operations that delete or
+/// replace library files wait behind the backup write gate. The 020 writes (quality request, handout creation, practice
+/// note) edit the database, start jobs or add new assets, so they stay allowed during a backup.
 /// </summary>
 public sealed class InsightsGateTests : ApiTestBase
 {
     private const string Id = "0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f";
 
-    public static TheoryData<string, string, string?, string> GatedOperations() => new()
+    public static TheoryData<string, string, string?, string> UngatedOperations() => new()
     {
         { "POST", $"/api/tracks/{Id}/quality", null, "requestQualityReport" },
         { "POST", "/api/assets/handouts", $$"""{"source":{"trackId":"{{Id}}"},"family":"bass"}""", "createHandout" },
@@ -25,26 +25,31 @@ public sealed class InsightsGateTests : ApiTestBase
     };
 
     [Theory]
-    [MemberData(nameof(GatedOperations))]
-    public async Task BackupRunning_RefusesTheWrite(string method, string path, string? body, string operation)
+    [MemberData(nameof(UngatedOperations))]
+    public async Task BackupRunning_PassesTheWriteToItsHandler(string method, string path, string? body, string operation)
+    {
+        Factory.Services.GetRequiredService<LibraryGate>().TryBeginBackup().ShouldBeTrue();
+
+        using var response = await SendAsync(method, path, body);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        await ContractAssert.MatchesAsync(response, operation);
+    }
+
+    [Fact]
+    public async Task BackupRunning_StoresThePracticeNote()
     {
         var song = await Factory.SeedSongAsync();
         Factory.Services.GetRequiredService<LibraryGate>().TryBeginBackup().ShouldBeTrue();
 
-        using var response = await SendAsync(method, path.Replace(Id, song.Id.ToString("D"), StringComparison.Ordinal), body?.Replace(Id, song.Id.ToString("D"), StringComparison.Ordinal));
+        using var response = await SendAsync("PUT", $"/api/tracks/{song.Id:D}/practice-notes/bass", """{"text":"Ghost notes."}""");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await response.JsonAsync()).GetProperty("type").GetString().ShouldBe(LibraryCareProblemTypes.BaseUri + LibraryCareProblemTypes.BackupRunning);
-        Factory.InsightsWorker.Calls.ShouldBeEmpty();
-        if (operation != "setPracticeNote")
-        {
-            // setPracticeNote documents no 409 yet (contract follow-up in the hand-off).
-            await ContractAssert.MatchesAsync(response, operation);
-        }
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await ContractAssert.MatchesAsync(response, "setPracticeNote");
     }
 
     [Theory]
-    [MemberData(nameof(GatedOperations))]
+    [MemberData(nameof(UngatedOperations))]
     public async Task GateOpen_PassesTheWriteToItsHandler(string method, string path, string? body, string operation)
     {
         using var response = await SendAsync(method, path, body);

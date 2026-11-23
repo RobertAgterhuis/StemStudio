@@ -17,4 +17,12 @@ public enum HandoutWarningCodeDto
     /// <summary>A notation file could not be read; its pages were replaced by a note.</summary>
     [JsonStringEnumMemberName("notation-unreadable")]
     NotationUnreadable,
+
+    /// <summary>A notation file was left out because the handout reached its frame or size limit; its pages were replaced by a note.</summary>
+    [JsonStringEnumMemberName("notation-omitted")]
+    NotationOmitted,
+
+    /// <summary>The cover picture was left out (not a JPEG, or larger than 40 megapixels).</summary>
+    [JsonStringEnumMemberName("artwork-omitted")]
+    ArtworkOmitted,
 }

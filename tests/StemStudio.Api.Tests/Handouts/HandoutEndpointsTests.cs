@@ -221,7 +221,10 @@ public sealed class HandoutEndpointsTests : ApiTestBase
         var facts = ready.Handout!;
         (ready.Status, facts.Kind, facts.Family, facts.Pages, facts.Songs, facts.Paper, facts.Transposition).ShouldBe((AssetStatusDto.Ready, HandoutKindDto.Song, HandoutFamilyDto.Bass, 3, 1, PaperDto.A4, (TranspositionDto?)null));
         facts.Outline.ShouldBe(["Example Song", "Notation - Bass - score", "About this handout"]);
-        facts.Warnings.Select(warning => warning.Code).ShouldBe([HandoutWarningCodeDto.NotationScaled, HandoutWarningCodeDto.NotationUnreadable, HandoutWarningCodeDto.MissingGlyphs]);
+        facts.Warnings.Select(warning => warning.Code).ShouldBe([
+            HandoutWarningCodeDto.NotationScaled, HandoutWarningCodeDto.NotationUnreadable, HandoutWarningCodeDto.MissingGlyphs,
+            HandoutWarningCodeDto.NotationOmitted, HandoutWarningCodeDto.ArtworkOmitted,
+        ]);
         facts.Omitted.ShouldContain(new OmittedIngredientDto { Code = IngredientCodeDto.Notation, Reason = OmissionReasonDto.NotAvailable });
         facts.Included.ShouldContain(IngredientCodeDto.ChordChart);
         ready.Files.Single().Role.ShouldBe(AssetFileRoleDto.Pdf);

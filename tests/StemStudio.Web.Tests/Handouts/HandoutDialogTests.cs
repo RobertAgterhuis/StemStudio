@@ -175,6 +175,19 @@ public sealed class HandoutDialogTests : PageTestContext
     }
 
     [Fact]
+    public void OptionsOfATooLongSetlist_ShowTheSongLimit_AndSubmitIsDisabled()
+    {
+        // backend 1.19.0: getHandoutOptions answers 409 too-many-songs for a setlist of more than 50 entries.
+        Api.GetHandoutOptionsAsync(Song, Arg.Any<HandoutFamilyDto>(), Arg.Any<TranspositionDto?>(), Arg.Any<CancellationToken>())
+            .Returns<HandoutOptionsDto>(_ => throw Problem(HttpStatusCode.Conflict, "Too many songs", "A setlist handout can hold up to 50 songs."));
+
+        var dialog = RenderDialog();
+
+        dialog.Find("[data-testid=handout-error]").TextContent.ShouldBe("A setlist handout can hold up to 50 songs.");
+        dialog.Find("[data-testid=handout-submit]").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Cancel_AndEscape_Close()
     {
         var dialog = RenderDialog();

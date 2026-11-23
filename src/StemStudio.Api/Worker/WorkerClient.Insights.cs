@@ -83,6 +83,11 @@ public sealed partial class WorkerClient : IWorkerInsightsClient
     public Task DeleteQualityJobAsync(string jobId, CancellationToken cancellationToken) =>
         DeleteToleratingMissingAsync(PracticePath(QualityJobs, jobId), cancellationToken);
 
+    /// <summary>The JSON body <see cref="CreateHandoutJobAsync"/> sends (the worker's wire rules), for the job size limits.</summary>
+    /// <param name="request">The request.</param>
+    /// <returns>The UTF-8 body.</returns>
+    public static byte[] HandoutBody(WorkerHandoutJobRequest request) => [];
+
     /// <inheritdoc />
     public Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken) =>
         PostJobAsync<WorkerHandoutJob>(HandoutJobs, request, cancellationToken);

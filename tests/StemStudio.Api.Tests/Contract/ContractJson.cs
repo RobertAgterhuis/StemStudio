@@ -139,7 +139,7 @@ internal static class ContractJson
     /// <summary>The 016 worker document (1.9.0), linked as <c>Contract/016/worker-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Worker016 => LazyWorker016.Value;
 
-    /// <summary>The standalone 020 backend delta (1.19.0-delta.2), linked as <c>Contract/020/backend-api.delta.openapi.yaml</c>.</summary>
+    /// <summary>The standalone 020 backend delta (1.19.0-delta.3), linked as <c>Contract/020/backend-api.delta.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend020Delta => LazyBackend020Delta.Value;
 
     /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
