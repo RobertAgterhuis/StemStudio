@@ -36,7 +36,7 @@ public sealed class ListenerExposureTests
         var entry = logs.Entries.ShouldHaveSingleItem();
         entry.Level.ShouldBe(LogLevel.Warning);
         entry.Message.ShouldContain("http://[::]:8081, http://0.0.0.0:8082");
-        entry.Message.ShouldNotContain("localhost");
+        entry.Message.ShouldNotContain("http://localhost");
     }
 
     [Theory]

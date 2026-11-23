@@ -103,6 +103,7 @@ public static class ApiComposition
         ArgumentNullException.ThrowIfNull(app);
         await PrepareStorageAsync(app.Services);
         await PrepareDatabaseAsync(app.Services);
+        ListenerExposure.WarnWhenStarted(app);
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors(CorsPolicy);
