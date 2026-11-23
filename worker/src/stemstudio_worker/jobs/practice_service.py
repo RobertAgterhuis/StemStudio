@@ -131,14 +131,6 @@ class _PracticeService[R: Any](LaneJobService[R]):
         record = self._store.get(job_id)
         return None if record is None else wire_job(record.job, self.WIRE)
 
-    def process(self, job_id: str) -> None:
-        """Run one job to a terminal state (lane thread); skips unknown and finished jobs."""
-        self._run_job(job_id, self.run)
-
-    def run(self, record: R, out_dir: Path) -> Outcome:
-        """Do the work of ``record`` into ``out_dir``; return the completed job's changes."""
-        raise NotImplementedError
-
     def _stamp(self) -> dict[str, Any]:
         now = self._clock()
         return {"job_id": new_id(), "status": _S.QUEUED, "progress": 0, "created_at": now,

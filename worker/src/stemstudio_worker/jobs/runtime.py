@@ -159,13 +159,11 @@ class Lanes:
         lyrics = LyricsService.start(wiring.lyrics, _lyrics_queues(metadata, wiring))
         render = RenderService.start(paths, render_parts.executor, clock)
         transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
-        practice = _practice(parts, wiring)
-        analysis = _analysis(parts, wiring)
-        insights = start_insights(paths, render_parts.library, clock, parts.insights)
+        practice, analysis, insights = _feature_lanes(parts, wiring)
         artwork = UserArtworkStore(paths, clock)
-        sweeper = _sweeping(metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep,
-                            transcription.sweep, practice.lane.sweep, analysis.sweep,
-                            insights.lane.sweep)  # fmt: skip
+        sweeps = (metadata, artwork, render, lyrics, transcription, practice.lane, analysis,
+                  insights.lane)  # fmt: skip
+        sweeper = _sweeping(*(lane.sweep for lane in sweeps))
         return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
                    lyrics, transcription, practice, analysis, insights)  # fmt: skip
 
@@ -178,6 +176,14 @@ class Lanes:
         self.practice.lane.stop(timeout)
         self.instrument_analysis.stop(timeout)
         self.insights.lane.stop(timeout)
+
+
+def _feature_lanes(
+    parts: "WorkerParts", wiring: LaneWiring
+) -> tuple[PracticeServices, InstrumentAnalysisService, InsightsServices]:
+    """The practice (014), instrument analysis (016) and insights (020) lanes, started."""
+    insights = start_insights(wiring.paths, parts.render.library, wiring.clock, parts.insights)
+    return _practice(parts, wiring), _analysis(parts, wiring), insights
 
 
 def _practice(parts: "WorkerParts", wiring: LaneWiring) -> PracticeServices:

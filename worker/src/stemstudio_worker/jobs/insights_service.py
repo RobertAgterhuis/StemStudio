@@ -8,7 +8,6 @@ stage.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, ClassVar
 
 from stemstudio_worker.jobs.insights_lane import InsightsLane
@@ -56,14 +55,6 @@ class InsightsJobService[R: Any](LaneJobService[R]):
     def get(self, job_id: str) -> Any:
         """The wire job with ``job_id``, or None."""
         return self.job_of(job_id)
-
-    def process(self, job_id: str) -> None:
-        """Run one job to a terminal state (lane thread); skips unknown and finished jobs."""
-        self._run_job(job_id, self.run)
-
-    def run(self, record: R, out_dir: Path) -> Outcome:
-        """Do the work of ``record`` into ``out_dir``; return the completed job's changes."""
-        raise NotImplementedError
 
     def _submit(self, job_id: str) -> None:
         """Queue on the insights lane (under its thread cap)."""
