@@ -134,6 +134,12 @@ export class MixerPage {
     await this.byId('transport-play').click();
   }
 
+  /** Presses pause (`transport-pause`; `transport-play` only plays) and waits until the transport is paused. */
+  async pause(): Promise<void> {
+    await this.byId('transport-pause').click();
+    await expect(this.byId('transport-pause')).toHaveAttribute('aria-pressed', 'true');
+  }
+
   /** Current peak level of a meter in dBFS. */
   async peak(target: MeterTarget): Promise<number> {
     return peakDb(this.meter(target));
