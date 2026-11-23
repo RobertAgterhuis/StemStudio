@@ -110,6 +110,7 @@ affected_select() {
   echo -e "\n=== affected selection ==="
   out="$(cd "$REPO_ROOT" && uv run --no-project python -I scripts/affected_select.py --format lines "${AFFECTED_FROM[@]}")"
   code=$?
+  out="${out//$'\r'/}"  # Python on Windows prints CRLF
   if [[ $code -eq 166 ]]; then echo "Nothing changed since the base: no step runs."; exit 0; fi
   if [[ $code -ne 0 ]]; then echo "affected_select.py failed (exit $code): running everything"; return; fi
   while read -r kind key verb rest; do affected_line "$kind" "$key" "$verb" "$rest"; done <<< "$out"
