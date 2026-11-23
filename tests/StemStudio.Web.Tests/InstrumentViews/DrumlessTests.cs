@@ -74,11 +74,13 @@ public sealed class DrumlessTests
         Drumless.Apply(_state, tempoKnown: true);
 
         Drumless.Guide(_state, DrumPieceDto.Hihat);
-        Muted().ShouldBe(["drums", "drums.kick", "drums.rest", "drums.snare"]);
+        Muted().ShouldBe(["drums.kick", "drums.rest", "drums.snare"]);
+        Drumless.IsApplied(_state).ShouldBeTrue();
 
         var change = Drumless.Guide(_state, DrumPieceDto.Snare);
-        Muted().ShouldBe(["drums", "drums.hihat", "drums.kick", "drums.rest"]);
+        Muted().ShouldBe(["drums.hihat", "drums.kick", "drums.rest"]);
         change.Single(c => c.Stem == "drums.snare").Mute.ShouldBeFalse();
+        Drumless.IsApplied(_state).ShouldBeTrue();
 
         Drumless.Guide(_state, null);
         Muted().ShouldBe(["drums", "drums.hihat", "drums.kick", "drums.rest", "drums.snare"]);

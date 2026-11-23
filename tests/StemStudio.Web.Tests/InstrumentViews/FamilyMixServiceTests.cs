@@ -116,7 +116,8 @@ public sealed class FamilyMixServiceTests
 
         var result = FamilyMixService.Guide(_state, DrumPieceDto.Snare);
 
-        Muted().ShouldBe(["drums", "drums.kick", "drums.rest"]);
+        // Decision 3 (2026-11-23): the parent's group mute is released and the siblings are muted, so the piece sounds.
+        Muted().ShouldBe(["drums.kick", "drums.rest"]);
         _state.AllChannels.ShouldAllBe(c => !c.Solo);
         result.ShouldContain(c => c.Stem == "drums.snare" && !c.Mute);
     }
@@ -129,15 +130,57 @@ public sealed class FamilyMixServiceTests
 
         FamilyMixService.Guide(_state, DrumPieceDto.Snare);
 
-        Muted().ShouldBe(["drums", "drums.kick", "drums.rest"]);
+        Muted().ShouldBe(["drums.kick", "drums.rest"]);
     }
 
     [Fact]
-    public void Guide_WithoutDrumlessFirst_StillMutesTheOtherDrums()
+    public void Guide_WithoutDrumlessFirst_StillMutesTheOtherDrums_AndLeavesOtherFamiliesAlone()
     {
+        _state.ToggleMute(StemNames.Bass);
+        _state.ToggleMute(StemNames.Drums);
+
         FamilyMixService.Guide(_state, DrumPieceDto.Kick);
 
-        Muted().ShouldBe(["drums", "drums.rest", "drums.snare"]);
+        Muted().ShouldBe(["bass", "drums.rest", "drums.snare"]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Guide_ThePieceIsTheOnlyAudibleDrum_FromACollapsedOrExpandedGroup(bool expandedBefore)
+    {
+        FamilyMixService.MinusOne(_state, InstrumentFamilyDto.Drums);
+        _state.SetExpanded(StemNames.Drums, expandedBefore);
+
+        FamilyMixService.Guide(_state, DrumPieceDto.Snare);
+        _state.SetExpanded(StemNames.Drums, true);
+
+        _state.Channel(StemNames.Drums).Mute.ShouldBeFalse();
+        _state.AllChannels.Where(c => c.Stem.StartsWith("drums.", StringComparison.Ordinal) && _state.IsAudible(c))
+            .Select(c => c.Stem).ShouldBe(["drums.snare"]);
+    }
+
+    [Fact]
+    public void Orchestral_WithOtherSplitIntoItsFamilyOnly_MutesTheParentToo_CollapsedAndExpanded()
+    {
+        // Decision 2 (2026-11-23): a collapsed group plays its parent, so a parent whose details all belong to the
+        // family (rest counts for the parent's family) is muted with them.
+        var track = TestData.Track() with
+        {
+            Detail = TestData.Phase(DetailPhaseStatusDto.Completed, 100, "Completed") with
+            {
+                Parents = [TestData.Split(StemNames.Other, "strings", "brass", "woodwinds", "rest")],
+            },
+        };
+        var state = new MixerState(track);
+
+        FamilyMixService.MinusOne(state, InstrumentFamilyDto.Orchestral);
+
+        state.AllChannels.Where(c => c.Mute).Select(c => c.Stem).Order(StringComparer.Ordinal)
+            .ShouldBe(["other", "other.brass", "other.rest", "other.strings", "other.woodwinds"]);
+        state.IsAudible(state.Channel(StemNames.Other)).ShouldBeFalse();
+        state.SetExpanded(StemNames.Other, true);
+        state.AllChannels.Where(c => c.Stem.StartsWith("other", StringComparison.Ordinal)).ShouldAllBe(c => !state.IsAudible(c));
     }
 
     [Fact]
