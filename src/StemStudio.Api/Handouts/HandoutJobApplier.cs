@@ -20,6 +20,9 @@ public sealed class HandoutJobApplier(IWorkerInsightsClient worker, IAssetFileSt
     /// <summary>Error when the worker's result breaks the contract.</summary>
     public const string InvalidResult = "The processing service sent an unusable handout result; try again.";
 
+    /// <summary>Error when the PDF is larger than <see cref="WorkerClient.MaxHandoutBytes"/> (192 MiB).</summary>
+    public const string TooLarge = "The handout PDF is larger than 192 MiB, so it was not stored. Make it with less sheet music or for fewer songs.";
+
     /// <summary>Role of the PDF.</summary>
     public const string PdfRole = "pdf";
 
@@ -40,7 +43,7 @@ public sealed class HandoutJobApplier(IWorkerInsightsClient worker, IAssetFileSt
 
     private Task CompleteAsync(Asset asset, WorkerHandoutJob job, CancellationToken cancellationToken) => AssetJobState.StoreAsync(
         () => StoreAsync(asset, job, cancellationToken),
-        exception => AssetJobApplier.FailureReason(exception)?.Replace("rendered file", "handout PDF", StringComparison.Ordinal),
+        FailureReason,
         AssetJobState.Discard(asset, files, Now));
 
     private async Task StoreAsync(Asset asset, WorkerHandoutJob job, CancellationToken cancellationToken)
@@ -55,6 +58,11 @@ public sealed class HandoutJobApplier(IWorkerInsightsClient worker, IAssetFileSt
         var warnings = result.Warnings.Select(warning => warning with { Text = Cut(warning.Text) }).ToList();
         asset.CompleteHandout([new AssetFile(PdfRole, Asset.HandoutFileName, "application/pdf", stored.SizeBytes, stored.Sha256)], new HandoutRendering(result.Pages, result.Outline.Select(title => title.Length <= MaxTitle ? title : title[..MaxTitle]).ToList(), warnings), Now);
     }
+
+    /// <summary>A readable reason, or null to keep the item for the next poll (an unreachable worker).</summary>
+    private static string? FailureReason(Exception exception) => exception is WorkerResponseTooLargeException
+        ? TooLarge
+        : AssetJobApplier.FailureReason(exception)?.Replace("rendered file", "handout PDF", StringComparison.Ordinal);
 
     private static bool IsUsable(WorkerHandoutResult result) =>
         result is { Pages: >= 1, Outline.Count: <= MaxOutline, Warnings.Count: <= MaxWarnings }

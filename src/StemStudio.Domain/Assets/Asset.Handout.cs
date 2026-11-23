@@ -8,6 +8,9 @@ public sealed partial class Asset
     /// <summary>Role and file name of a handout's PDF.</summary>
     public const string HandoutFileName = "handout.pdf";
 
+    /// <summary>Most warnings of a handout (planned and rendered together).</summary>
+    public const int MaxHandoutWarnings = 50;
+
     /// <summary>The handout plan and, once ready, its result; null for other kinds.</summary>
     public HandoutFacts? Handout { get; private set; }
 
@@ -24,7 +27,7 @@ public sealed partial class Asset
         var provenance = start.Provenance;
         Require(provenance, provenance?.HandoutRecipe is not null && provenance.Origin == AssetOrigin.Handout, "A handout item needs its handout recipe.");
         var asset = New(id, AssetKind.Handout, name).Started(provenance!, nowUtc);
-        asset.Handout = start.Plan with { Pages = 0, Warnings = [], Outline = [] };
+        asset.Handout = Planned(start.Plan);
         return asset;
     }
 
@@ -34,7 +37,7 @@ public sealed partial class Asset
     {
         ArgumentNullException.ThrowIfNull(plan);
         RequireHandout();
-        Handout = plan with { Pages = 0, Warnings = [], Outline = [] };
+        Handout = Planned(plan);
     }
 
     /// <summary>Makes a handout item ready with its PDF and the worker's result.</summary>
@@ -49,8 +52,11 @@ public sealed partial class Asset
         ArgumentOutOfRangeException.ThrowIfLessThan(rendering.Pages, 1);
         var plan = RequireHandout();
         MarkReady(files, nowUtc);
-        Handout = plan with { Pages = rendering.Pages, Outline = rendering.Outline.ToList(), Warnings = rendering.Warnings.ToList() };
+        Handout = plan with { Pages = rendering.Pages, Outline = rendering.Outline.ToList(), Warnings = plan.Warnings.Concat(rendering.Warnings).Take(MaxHandoutWarnings).ToList() };
     }
+
+    /// <summary>A plan before rendering: no pages or outline; its own warnings (what the planner left out) are kept.</summary>
+    private static HandoutFacts Planned(HandoutFacts plan) => plan with { Pages = 0, Warnings = plan.Warnings.Take(MaxHandoutWarnings).ToList(), Outline = [] };
 
     private HandoutFacts RequireHandout() =>
         Kind == AssetKind.Handout && Handout is { } plan ? plan : throw new InvalidOperationException($"Item {Id} is not a handout.");

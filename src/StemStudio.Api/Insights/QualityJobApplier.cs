@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 using StemStudio.Domain;
 using StemStudio.Domain.Insights;
@@ -9,8 +11,9 @@ namespace StemStudio.Api.Insights;
 
 /// <summary>
 /// One pass over every queued or running quality report (run by the job sync tick): polls the worker job, applies it, saves,
-/// and removes the worker job once the report is ready or failed. The worker's result is checked before it is stored. An
-/// unreachable worker keeps the state for the next tick.
+/// and removes the worker job once the report is ready or failed. The worker's result is checked before it is stored. One
+/// broken report (a refused poll, an unreadable answer, a track deleted meanwhile) is logged and never stops the others; an
+/// unreachable worker ends the pass and keeps every state for the next tick.
 /// </summary>
 /// <param name="tracks">Tracks.</param>
 /// <param name="worker">The worker insights lane.</param>
@@ -37,17 +40,36 @@ public sealed partial class QualityJobApplier(ITrackRepository tracks, IWorkerIn
             LogUnreadableStoredValue(logger, column);
         }
 
-        foreach (var track in active)
+        var reachable = true;
+        await TrackPass.RunAsync(
+            active,
+            track => track.Id,
+            async track => reachable = reachable && await TrySyncAsync(track, cancellationToken),
+            (trackId, exception) => LogSyncFailed(logger, trackId, exception));
+    }
+
+    /// <summary>Synchronises one report; false when the worker is unreachable (the rest of the pass waits for the next tick).</summary>
+    private async Task<bool> TrySyncAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
         {
-            try
+            await SyncAsync(track, cancellationToken);
+            return true;
+        }
+        catch (WorkerUnavailableException)
+        {
+            LogWorkerUnavailable(logger, track.Id);
+            return false;
+        }
+        catch (DbUpdateConcurrencyException race)
+        {
+            // The track was deleted (or changed) meanwhile: forget its unsaved changes so the next report still saves.
+            foreach (var entry in race.Entries)
             {
-                await SyncAsync(track, cancellationToken);
+                entry.State = EntityState.Detached;
             }
-            catch (WorkerUnavailableException)
-            {
-                LogWorkerUnavailable(logger, track.Id);
-                return;
-            }
+
+            throw;
         }
     }
 
@@ -117,6 +139,9 @@ public sealed partial class QualityJobApplier(ITrackRepository tracks, IWorkerIn
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A stored {Column} could not be read and is treated as missing (logged once; making it again replaces it)")]
     private static partial void LogUnreadableStoredValue(ILogger logger, string column);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Quality report of track {TrackId} could not be synchronised; retrying on the next tick")]
+    private static partial void LogSyncFailed(ILogger logger, Guid trackId, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Quality report of track {TrackId}: processing service unreachable, retrying on the next tick")]
     private static partial void LogWorkerUnavailable(ILogger logger, Guid trackId);

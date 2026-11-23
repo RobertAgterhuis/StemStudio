@@ -67,8 +67,13 @@ public interface IWorkerInsightsClient
 /// <summary>Insights-lane calls of the worker API 1.11.0 (feature 020).</summary>
 public sealed partial class WorkerClient : IWorkerInsightsClient
 {
-    /// <summary>Largest handout PDF the API takes from the worker: 64 MiB (a 50-song setlist with notation).</summary>
-    public const long MaxHandoutBytes = 64L * 1024 * 1024;
+    /// <summary>
+    /// Largest handout PDF the API takes from the worker: 192 MiB, streamed to disk. The worker reads at most 128 MiB of
+    /// notation PDFs per job (<c>ContractLimits.MaxHandoutNotationBytes</c>, the same total the API accepts) and the request
+    /// body is at most 8 MiB; 64 MiB of margin covers fonts, covers (at most 200 KB each) and layout. A larger PDF fails the
+    /// item with <c>HandoutJobApplier.TooLarge</c>.
+    /// </summary>
+    public const long MaxHandoutBytes = 192L * 1024 * 1024;
 
     private const string QualityJobs = "v1/quality-jobs";
     private const string HandoutJobs = "v1/handout-jobs";
