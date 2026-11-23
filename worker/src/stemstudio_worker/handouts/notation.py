@@ -197,6 +197,10 @@ def _merge(target: PageObject, source: PageObject, box: tuple[float, float, floa
     target.merge_transformed_page(source, placed.transform(fit(box, _size(source))))
 
 
+MAX_OUTLINE_CHARS: Final = 200
+"""Longest ``HandoutResult.outline`` item; a longer bookmark title ends in an ellipsis."""
+
+
 def pdf_facts(pdf: bytes) -> tuple[int, tuple[str, ...]]:
     """Page count and the bookmark titles in document order of a finished handout."""
     reader = PdfReader(BytesIO(pdf))
@@ -209,5 +213,11 @@ def _titles(outline: Sequence[object]) -> list[str]:
         if isinstance(item, list):
             titles.extend(_titles(item))
         else:
-            titles.append(str(getattr(item, "title", "")))
+            titles.append(_shortened(str(getattr(item, "title", ""))))
     return titles
+
+
+def _shortened(title: str) -> str:
+    if len(title) <= MAX_OUTLINE_CHARS:
+        return title
+    return title[: MAX_OUTLINE_CHARS - 1] + "…"
