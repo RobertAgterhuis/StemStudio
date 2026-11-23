@@ -199,7 +199,8 @@ def test_handout_styles_use_tokens_only(tmp_path: Path) -> None:
     write_file(
         tmp_path,
         f"{STYLES}/handout.css",
-        "@page { margin: 18mm; }\nh1 {\n  color: var(--ss-text);\n  border: 1px solid currentColor;\n}\n",
+        "@page { margin: 18mm; }\nh1 {\n  color: var(--ss-text);\n"
+        "  border: 1px solid currentColor;\n}\n",
     )
     assert _messages(tmp_path) == []
 
@@ -345,3 +346,15 @@ def test_clean_report_has_a_passing_insights_and_handouts_section(tmp_path: Path
     run_all.main(["--root", str(tmp_path), "--report", str(report)], _dup())
     text = report.read_text(encoding="utf-8")
     assert "## Insights and handouts\n\n**PASS** - handout style in sync" in text
+
+
+def test_build_output_below_the_handout_package_is_skipped(tmp_path: Path) -> None:
+    write_module(tmp_path, "handouts/__pycache__/renderer.py", "HTML(string=s)\n")
+    write_file(tmp_path, f"{STYLES}/node_modules/x.css", "p { color: red; }\n")
+    assert _messages(tmp_path) == []
+
+
+def test_main_exits_one_on_a_breach_and_zero_when_clean(tmp_path: Path) -> None:
+    assert handout_rules.main(["--root", str(tmp_path)]) == 0
+    write_module(tmp_path, "handouts/renderer.py", "HTML(string=s)\n")
+    assert handout_rules.main(["--root", str(tmp_path)]) == 1
