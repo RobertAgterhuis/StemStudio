@@ -17,7 +17,7 @@
   <ItemGroup Label="Web">
     <PackageVersion Include="Radzen.Blazor" Version="13.1.0" />
     <!-- Help topics (feature 004): Markdown rendering, BSD-2-Clause; 1.5.1 because 1.6.0 was < 2 weeks old at pinning. -->
-    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="Markdig" Version="1.6.0" />
   </ItemGroup>
   <ItemGroup Label="Agent">
     <!-- Feature 011 (ADR-020, research.md section 3): newest versions published >= 2 weeks before pinning (2026-11-15).
@@ -25,8 +25,8 @@
          Microsoft.Extensions.AI 10.11.0 (MIT, 2026-10-14); OllamaSharp 5.5.0 (MIT, 2026-09-30; needs MEAI >= 10.8.0);
          Anthropic 13.3.0 (official C# SDK, Apache-2.0, 2026-10-24; needs MEAI.Abstractions >= 10.5.1). -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
-    <PackageVersion Include="OllamaSharp" Version="5.5.0" />
-    <PackageVersion Include="Anthropic" Version="13.3.0" />
+    <PackageVersion Include="OllamaSharp" Version="5.5.2" />
+    <PackageVersion Include="Anthropic" Version="13.6.0" />
   </ItemGroup>
   <ItemGroup Label="LyricAssist">
     <!-- Feature 023 (ADR-037, research R-02/R-10): managed Hunspell port for the deterministic spelling layer.
