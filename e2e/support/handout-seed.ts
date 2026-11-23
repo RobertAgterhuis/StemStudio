@@ -44,6 +44,8 @@ export interface SetlistEntryPlan {
   readonly file: string;
   readonly folder: 'practice-flow' | 'families';
   readonly note: string;
+  /** Tempo of a generated setlist song (absent for the 014 song, whose facts are in its own manifest). */
+  readonly bpm?: number;
 }
 
 /** The committed plan (`tests/fixtures/families/manifest.json`). */

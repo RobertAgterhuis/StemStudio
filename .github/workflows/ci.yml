@@ -815,7 +815,7 @@ jobs:
       fail-fast: false
       matrix:
         # The commands of every pass are in scripts/ci-e2e-pass.sh (--dry-run prints them).
-        pass: [recording, practice-flow, restart, agent, lyric, gpu, instrument, fake-mic]
+        pass: [recording, practice-flow, restart, agent, lyric, gpu, instrument, fake-mic, insights]
     env:
       STEMSTUDIO_SEPARATOR: fake
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5

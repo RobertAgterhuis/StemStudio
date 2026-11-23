@@ -11,13 +11,14 @@
 #   gpu            003 @gpu specs with a fake GPU, then with a fake GPU that runs out of memory
 #   instrument     016 instrument views (@instrument, Chromium and Firefox)
 #   fake-mic       016 singing feedback with the qa microphone fixtures (projects fake-mic-*)
+#   insights       020 stem quality reports and lesson handouts (@insights, Chromium and Firefox)
 #
 # Usage (from the repository root): scripts/ci-e2e-pass.sh [--dry-run] <pass> | --list
 #   --dry-run  print the commands instead of running them
 # Exit codes: the pass's exit code; 2 on wrong usage or an unknown pass.
 set -euo pipefail
 
-PASSES=(recording practice-flow restart agent lyric gpu instrument fake-mic)
+PASSES=(recording practice-flow restart agent lyric gpu instrument fake-mic insights)
 DRY=0
 WAIT=(--wait --wait-timeout 300)
 
@@ -62,6 +63,8 @@ pass_gpu() {
 
 pass_instrument() { run "(cd e2e && npm run test:instrument)"; }
 
+pass_insights() { run "(cd e2e && npm run test:insights)"; }
+
 # The 015 digital loopback (docker-compose.e2e.yml) would feed the song into the input; the fake microphone needs it off.
 pass_fake_mic() {
   run "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false docker compose up -d ${WAIT[*]} web"
@@ -70,7 +73,7 @@ pass_fake_mic() {
 }
 
 usage() {
-  sed -n '17,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+  sed -n '16,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
   exit 2
 }
 
