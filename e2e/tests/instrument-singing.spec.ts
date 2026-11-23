@@ -35,7 +35,8 @@ test.describe('singing on pitch (016 US4)', { tag: ['@fake-mic', '@fake-mic-on-p
     await recording.choosePart('vocals');
 
     await recording.recordFor(4);
-    const takeId = await recording.stripTakeId();
+    // The strip shows the local id until the upload is saved; the row then carries the server id (as the 015 specs read it).
+    const takeId = await recording.newestSavedTakeId();
     await recording.waitForRow(takeId, 'ready', takeReadyTimeoutMs);
     await page.getByTestId(`take-score-${takeId}`).click();
 

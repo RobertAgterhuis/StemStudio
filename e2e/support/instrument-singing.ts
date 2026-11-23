@@ -7,6 +7,7 @@
 import { expect, type Page, type Request } from '@playwright/test';
 import { InstrumentViews } from '../pages/instrument-views';
 import type { MixerPage } from '../pages/mixer-page';
+import { RecordingPanel } from '../pages/recording-panel';
 import type { StemStudioApi, TrackDto } from './api';
 import { fakeJobTimeoutMs } from './env';
 import type { InstrumentViewsApi } from './instrument-views';
@@ -55,13 +56,21 @@ export async function singThrough(page: Page, mixer: MixerPage, track: TrackDto)
   const ui = new InstrumentViews(page);
   await mixer.goto(track.id);
   await mixer.waitForReady(['vocals']);
+  // Spec US4 scenario 2: the input is chosen and open in 015 (the recording panel) before singing starts.
+  await new RecordingPanel(page).openWithInput();
   await ui.practiseAsFamily('vocals');
   await expect(ui.view).toHaveAttribute('data-view', 'singing');
   await watchAttributes(page, 'karaoke-score', ['data-score']);
   const uploads = watchUploads(page);
   await ui.startSinging(referenceMs);
   await mixer.play();
-  await expect(ui.singingSummary).toBeVisible({ timeout: 1000 * (track.durationSeconds ?? 20) + 15_000 });
+  // Play to the end of the track, then stop singing: the panel shows its summary on stop (FR-046 "at the end" is an
+  // open item of the 016 integration: the engine has no end-of-song signal for the singing session).
+  const transport = page.getByTestId('transport-state');
+  await expect(transport).toHaveText(/playing/iu, { timeout: 15_000 });
+  await expect(transport).toHaveText(/stopped/iu, { timeout: 1000 * (track.durationSeconds ?? 20) + 15_000 });
+  await ui.singingToggle.click();
+  await expect(ui.singingSummary).toBeVisible();
   const unitScores = distinctValues(await readWatched(page, 'karaoke-score'), 'data-score').filter((v) => v !== '').map(Number);
   return { unitScores, average: Number(await ui.singingSummary.getAttribute('data-average')), uploads };
 }
