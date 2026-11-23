@@ -16,7 +16,7 @@ from stemstudio_worker.ports import (
 )
 from stemstudio_worker.schemas import QualityResult
 
-from .results import kind_of, stem_of
+from .results import conforms, kind_of, stem_of
 
 CHANNELS = (
     "vocals", "drums", "bass", "guitar", "piano", "other",
@@ -134,3 +134,9 @@ def test_a_missing_file_fails_like_the_real_analyzer(inputs: QualityInputs) -> N
 
 def test_default_sleep_is_the_real_clock() -> None:
     assert fake_module.time.sleep is FakeQualityAnalyzer()._sleep
+
+
+def test_fake_result_conforms_to_the_worker_contract(result: QualityResult) -> None:
+    """Consumer-driven check against the OpenAPI document (LESSONS 016), not only the model."""
+    payload = result.model_dump(mode="json", by_alias=True)
+    conforms("QualityResult", payload)

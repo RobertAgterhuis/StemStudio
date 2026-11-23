@@ -16,7 +16,7 @@ from stemstudio_worker.ports import (
 )
 from stemstudio_worker.schemas import DetailParentInput, QualityResult
 
-from .results import kind_of, stem_of
+from .results import conforms, kind_of, stem_of
 from .synthetic import FAMILIES, arranged_song, gate_holes, inject_bleed, write_stem
 
 SECONDS = 30.0
@@ -156,3 +156,7 @@ def test_an_unreadable_stem_fails_the_job(tmp_path: Path, library: dict[str, Pat
     files["drums.kick"] = bad
     with pytest.raises(QualityAnalysisError, match=r"kick\.flac"):
         SignalQualityAnalyzer().analyze(_inputs(files), lambda _: None)
+
+
+def test_real_result_conforms_to_the_worker_contract(result: QualityResult) -> None:
+    conforms("QualityResult", result.model_dump(mode="json", by_alias=True))
