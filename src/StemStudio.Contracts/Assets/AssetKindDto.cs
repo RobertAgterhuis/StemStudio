@@ -13,4 +13,8 @@ public enum AssetKindDto
     /// <summary>Sheet music (reserved for feature 008).</summary>
     [JsonStringEnumMemberName("score")]
     Score,
+
+    /// <summary>A lesson handout PDF (feature 020, backend-api 1.19.0).</summary>
+    [JsonStringEnumMemberName("handout")]
+    Handout,
 }

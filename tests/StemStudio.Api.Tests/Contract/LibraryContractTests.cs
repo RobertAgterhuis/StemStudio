@@ -98,10 +98,13 @@ public sealed partial class LibraryContractTests
             .ShouldAllBe(op => Strings(op.Operation["tags"]!).Single() == "library");
     }
 
+    private static JsonNode Asset1150 => Backend016.Root["components"]!["schemas"]!["Asset"]!;
+
     [Fact]
     public void Asset_GainsOnlyTheRequiredPlacementOfTheDelta()
     {
-        var after = Schema("Asset").DeepClone().AsObject();
+        // 020 added Asset.handout (1.19.0); the 022 placement rule is checked on 016's 1.15.0, the last document before it.
+        var after = Asset1150.DeepClone().AsObject();
         var required = after["required"]!.AsArray();
 
         JsonNode.DeepEquals(after["properties"]!["placement"], Localized(Delta.Root["components"]!["schemas"]!["Asset"]!["properties"]!["placement"]!)).ShouldBeTrue();
@@ -116,8 +119,8 @@ public sealed partial class LibraryContractTests
     {
         var delta = Delta.Root["components"]!["schemas"]!["Asset"]!["properties"]!.AsObject().Select(p => p.Key);
 
-        delta.ShouldBe(Schema("Asset")["properties"]!.AsObject().Select(p => p.Key), ignoreOrder: true);
-        Strings(Delta.Root["components"]!["schemas"]!["Asset"]!["required"]!).ShouldBe(Strings(Schema("Asset")["required"]!));
+        delta.ShouldBe(Asset1150["properties"]!.AsObject().Select(p => p.Key), ignoreOrder: true);
+        Strings(Delta.Root["components"]!["schemas"]!["Asset"]!["required"]!).ShouldBe(Strings(Asset1150["required"]!));
     }
 
     [Fact]

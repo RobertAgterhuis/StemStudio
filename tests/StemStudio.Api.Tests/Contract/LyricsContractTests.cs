@@ -29,8 +29,8 @@ public sealed class LyricsContractTests
     {
         Backend006.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.6.0");
         Backend008.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.7.0");
-        // The linked worker document is 016's 1.9.0 since the 016 Phase 0 (it contains 1.6.0 unchanged except additions).
-        WorkerContract.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.9.0");
+        // The linked worker document is 020's 1.11.0 since the 020 Phase 0 (it contains 1.6.0 unchanged except additions).
+        WorkerContract.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.11.0");
     }
 
     [Theory]

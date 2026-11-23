@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using StemStudio.Contracts.Handouts;
 using StemStudio.Contracts.Library;
 using StemStudio.Contracts.Scores;
 
@@ -32,6 +34,10 @@ public sealed record AssetDto
 
     /// <summary>Score facts of a ready score item (1.7.0); null otherwise.</summary>
     public ScoreFactsDto? Score { get; init; }
+
+    /// <summary>Facts of a ready handout item (1.19.0, feature 020); null (absent on the wire) otherwise.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HandoutFactsDto? Handout { get; init; }
 
     /// <summary>Where the item came from.</summary>
     public required ProvenanceDto Provenance { get; init; }

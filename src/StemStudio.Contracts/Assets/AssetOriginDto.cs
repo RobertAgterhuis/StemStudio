@@ -21,4 +21,8 @@ public enum AssetOriginDto
     /// <summary>A play-along take (feature 015, backend-api 1.14.0); hidden from the library list unless asked for.</summary>
     [JsonStringEnumMemberName("recording")]
     Recording,
+
+    /// <summary>A lesson handout made from a song or setlist (feature 020, backend-api 1.19.0).</summary>
+    [JsonStringEnumMemberName("handout")]
+    Handout,
 }

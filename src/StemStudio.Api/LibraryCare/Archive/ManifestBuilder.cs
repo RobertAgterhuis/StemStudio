@@ -39,7 +39,7 @@ public sealed record ManifestInput
 public static class ManifestBuilder
 {
     /// <summary>Backend API contract version written into archives.</summary>
-    public const string BackendApiVersion = "1.15.0";
+    public const string BackendApiVersion = "1.19.0";
 
     /// <summary>Builds the manifest: a category with entries is included; others are excluded by option or as empty.</summary>
     /// <param name="input">The input.</param>
