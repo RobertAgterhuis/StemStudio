@@ -142,6 +142,8 @@ paths:
         field `document`): more than 8 MiB of request body, 500 000 characters of text, 30 000
         layout cells or 128 MiB of notation PDFs together (worker-api 1.11.0 `createHandoutJob`).
         At most 3 handouts of one song or setlist are made at a time (`409 handouts-active`).
+        `retryAsset` of a failed handout counts against the same cap and answers the same
+        `409 handouts-active` and `422` (field `document`).
       requestBody:
         required: true
         content:
@@ -674,7 +676,7 @@ components:
       properties:
         code:
           type: string
-          description: The worker's warnings (worker `HandoutWarningCode`).
+          description: The warnings of the handout (worker `HandoutWarningCode`); the API adds `notation-omitted` when it drops notation items above the per-song limit.
           enum: [missing-glyphs, notation-scaled, notation-unreadable, notation-omitted, artwork-omitted]
         text:
           type: string
