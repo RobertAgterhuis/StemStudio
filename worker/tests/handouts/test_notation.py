@@ -6,14 +6,18 @@ pypdf runs everywhere; the tests through the whole renderer need WeasyPrint (Lin
 import io
 import time
 from pathlib import Path
+from typing import cast
 
 import pypdf
 import pytest
 from pypdf.generic import (
     ArrayObject,
+    DecodedStreamObject,
     DictionaryObject,
     FloatObject,
+    IndirectObject,
     NameObject,
+    PdfObject,
     TextStringObject,
 )
 
@@ -383,3 +387,59 @@ def test_outline_titles_over_the_contract_length_are_shortened() -> None:
     _, outline = pdf_facts(buffer.getvalue())
 
     assert outline == ("T" * 199 + "…", "Form")
+
+
+def _action(writer: pypdf.PdfWriter, text: str) -> IndirectObject:
+    script = {
+        NameObject("/S"): NameObject("/JavaScript"),
+        NameObject("/JS"): TextStringObject(text),
+    }
+    return writer._add_object(DictionaryObject(script))
+
+
+def _stream(data: bytes, **keys: PdfObject) -> DecodedStreamObject:
+    stream = DecodedStreamObject()
+    stream.set_data(data)
+    stream.update({NameObject(f"/{key}"): value for key, value in keys.items()})
+    return stream
+
+
+def _hooked(path: Path) -> Path:
+    """A notation PDF whose page resources carry inert hooks: a form XObject with a JavaScript
+    action and an embedded file, a JavaScript action in the resources and one in the font."""
+    writer = pypdf.PdfWriter(clone_from=notation_pdf(path))
+    page = writer.pages[0]
+    secret = _stream(b"EMBEDDED-SECRET", Type=NameObject("/EmbeddedFile"))
+    box = ArrayObject([FloatObject(0)] * 2 + [FloatObject(10)] * 2)
+    form = _stream(b"0 0 m 10 10 l S", Type=NameObject("/XObject"), Subtype=NameObject("/Form"),
+                   BBox=box, JSHook=_action(writer, "pwn-xobject"),
+                   EFHook=writer._add_object(secret))  # fmt: skip
+    resources = cast(DictionaryObject, page["/Resources"].get_object())
+    resources[NameObject("/XObject")] = DictionaryObject(
+        {NameObject("/X1"): writer._add_object(form)}
+    )
+    resources[NameObject("/JSRes")] = _action(writer, "pwn-resources")
+    font = cast(DictionaryObject, cast(DictionaryObject, resources["/Font"])["/F1"].get_object())
+    font[NameObject("/FontHook")] = _action(writer, "pwn-font")
+    text = b"BT /F1 24 Tf 72 700 Td (NOTATION hooked 1) Tj ET q /X1 Do Q"
+    page[NameObject("/Contents")] = writer._add_object(_stream(text))
+    with path.open("wb") as handle:
+        writer.write(handle)
+    return path
+
+
+def test_resources_of_a_merged_page_keep_only_drawing_keys(tmp_path: Path) -> None:
+    source = _hooked(tmp_path / "hooked.pdf")
+    frame = Frame(page=0, box=(50, 50, 400, 600), source=source, source_page=0)
+
+    merged = merge_frames(_blank(1), [frame], lambda _done: None)
+
+    for needle in (b"/JavaScript", b"EMBEDDED-SECRET", b"/JSHook", b"/EFHook", b"/FontHook",
+                   b"/JSRes"):  # fmt: skip
+        assert needle not in merged, needle
+    page = pypdf.PdfReader(io.BytesIO(merged)).pages[0]
+    xobjects = cast(DictionaryObject, cast(DictionaryObject, page["/Resources"])["/XObject"])
+    (form,) = [cast(DictionaryObject, x.get_object()) for x in xobjects.values()]
+    assert str(form["/Subtype"]) == "/Form"
+    assert [float(v) for v in cast(ArrayObject, form["/BBox"])] == [0.0, 0.0, 10.0, 10.0]
+    assert "NOTATION hooked 1" in page.extract_text()
