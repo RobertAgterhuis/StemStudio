@@ -33,8 +33,17 @@
 # Feature 014 (practice flow, sections scenario 4): a second short pass starts the api with
 # STEMSTUDIO_SECTION_DETECT_ON_COMPLETE=false (base file) and runs
 # `E2E_SECTION_DETECT_ON_COMPLETE=false npm run test:practice-flow-no-detect`.
+#
+# Feature 020 (insights and handouts, T012): the worker runs the deterministic fake quality analyzer
+# (data-model 2.6: ratings per channel, so every family and level is reachable) with 2 insights
+# threads; both can be overridden from the shell (STEMSTUDIO_QUALITY_ANALYZER, STEMSTUDIO_INSIGHTS_THREADS).
+# The api starts a report after every separation (StemStudio__AutoQualityReport, base file).
 
 services:
+  worker:
+    environment:
+      STEMSTUDIO_QUALITY_ANALYZER: ${STEMSTUDIO_QUALITY_ANALYZER:-fake}
+      STEMSTUDIO_INSIGHTS_THREADS: ${STEMSTUDIO_INSIGHTS_THREADS:-2}
   web:
     environment:
       - StemStudio__Recording__TestLoopback=${STEMSTUDIO_RECORDING_TEST_LOOPBACK:-true}

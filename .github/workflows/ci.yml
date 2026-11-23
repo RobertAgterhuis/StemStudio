@@ -29,10 +29,13 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  # Round 016: CONTRACTS_DIR holds the newest full documents, backend 1.15.0 (= 015's 1.14.0 + the
-  # instrument views delta) and worker 1.9.0 (= 014's 1.8.0 + the delta), both deltas, merge_full.py
-  # and the chord spelling vectors 1.0.0 (generator + tests).
-  CONTRACTS_DIR: specs/016-instrument-views/contracts
+  # Round 020: CONTRACTS_DIR holds the newest full documents, backend 1.19.0 (= 016's 1.15.0 + the
+  # insights and handouts delta) and worker 1.11.0 (= 016's 1.9.0 + the delta), both deltas and
+  # merge_full.py.
+  CONTRACTS_DIR: specs/020-insights-handouts/contracts
+  # Feature 016 (backend 1.15.0, worker 1.9.0, both deltas, merge_full.py): its checks stay pinned
+  # here, among them the chord spelling vectors 1.0.0 (generator + tests) that only 016 holds.
+  INSTRUMENT_CONTRACTS: specs/016-instrument-views/contracts
   # Feature 015: backend 1.14.0 (= 014's 1.13.0 + the recording delta) with its delta and merge script;
   # render vectors 1.1.0 (007's 1.0.0 + the take cases) are 015's.
   RECORDING_CONTRACTS: specs/015-play-along-recording/contracts
@@ -221,6 +224,9 @@ jobs:
       - name: Mypy (strict)
         working-directory: worker
         run: uv run --frozen mypy src tests
+      - name: Handout style copy equals the app tokens and Archivo font (020 sync_handout_style.py --check, drift)
+        working-directory: worker
+        run: uv run --frozen python scripts/sync_handout_style.py --check
       - name: Pytest with 90 % line+branch gate
         working-directory: worker
         run: uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml --cov-fail-under=90
@@ -354,11 +360,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Redocly lint, instrument views documents (016; backend 1.15.0, worker 1.9.0 and both deltas)
+      - name: Redocly lint, insights and handouts documents (020; backend 1.19.0, worker 1.11.0 and both deltas)
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$CONTRACTS_DIR/redocly.yaml"
           "$CONTRACTS_DIR/backend-api.openapi.yaml" "$CONTRACTS_DIR/worker-api.openapi.yaml"
           "$CONTRACTS_DIR/backend-api.delta.openapi.yaml" "$CONTRACTS_DIR/worker-api.delta.openapi.yaml"
+      - name: Redocly lint, instrument views documents (016; backend 1.15.0, worker 1.9.0 and both deltas)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$INSTRUMENT_CONTRACTS/redocly.yaml"
+          "$INSTRUMENT_CONTRACTS/backend-api.openapi.yaml" "$INSTRUMENT_CONTRACTS/worker-api.openapi.yaml"
+          "$INSTRUMENT_CONTRACTS/backend-api.delta.openapi.yaml" "$INSTRUMENT_CONTRACTS/worker-api.delta.openapi.yaml"
       - name: Redocly lint, recording documents (015; backend 1.14.0 and its delta)
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$RECORDING_CONTRACTS/redocly.yaml"
@@ -436,11 +447,13 @@ jobs:
       - name: 015 full backend 1.14.0 is 1.13.0 plus the recording delta (merge_recording_delta.py --check)
         run: uv run --no-project --with "$PYYAML" python -I "$RECORDING_CONTRACTS/merge_recording_delta.py" --check
       - name: 016 full backend 1.15.0 and worker 1.9.0 are 015/014 plus the 016 deltas (merge_full.py --check, freshness and superset)
-        run: uv run --no-project --with "$PYYAML" python -I "$CONTRACTS_DIR/merge_full.py" --check
+        run: uv run --no-project --with "$PYYAML" python -I "$INSTRUMENT_CONTRACTS/merge_full.py" --check
       - name: 016 chord spelling vectors 1.0.0 are up to date (generate_chord_spelling_vectors.py --check, stdlib)
-        run: python3 "$CONTRACTS_DIR/generate_chord_spelling_vectors.py" --check
+        run: python3 "$INSTRUMENT_CONTRACTS/generate_chord_spelling_vectors.py" --check
       - name: 016 chord spelling vector tests (test_generate_chord_spelling_vectors.py)
-        run: uv run --no-project --with "$PYTEST" python -m pytest "$CONTRACTS_DIR"
+        run: uv run --no-project --with "$PYTEST" python -m pytest "$INSTRUMENT_CONTRACTS"
+      - name: 020 full backend 1.19.0 and worker 1.11.0 are 016's plus the 020 deltas (merge_full.py --check, freshness and superset)
+        run: uv run --no-project --with "$PYYAML" python -I "$CONTRACTS_DIR/merge_full.py" --check
       - name: Render vectors are up to date (render-vectors 1.1.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -579,7 +592,7 @@ jobs:
         run: npx playwright test --list
 
   cpu-image-guard:
-    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011), no contact URL (005 FR-010), Leipzig font (008)
+    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011), no contact URL (005 FR-010), Leipzig font (008), PDF engine (020)
     needs: changes
     if: ${{ needs.changes.outputs.cpu-image != 'false' }}
     runs-on: ubuntu-24.04
@@ -590,6 +603,8 @@ jobs:
         run: scripts/check-cpu-image.sh --build stemstudio/worker:ci-cpu
       - name: The worker image lists the Leipzig and DejaVu fonts and imports verovio, cairosvg, music21, reportlab (008 SC-004, 014 SC-008)
         run: scripts/check-worker-fonts.sh stemstudio/worker:ci-cpu
+      - name: The worker image imports WeasyPrint with Pango >= 1.44 and lists DejaVu Sans (020 FR-012, SC-005)
+        run: scripts/check-worker-pdf.sh stemstudio/worker:ci-cpu
       - name: The worker image does not set STEMSTUDIO_CONTACT_URL (005 FR-010; only the user's own env may)
         run: |
           image_env="$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' stemstudio/worker:ci-cpu)"
@@ -800,7 +815,7 @@ jobs:
       fail-fast: false
       matrix:
         # The commands of every pass are in scripts/ci-e2e-pass.sh (--dry-run prints them).
-        pass: [recording, practice-flow, restart, agent, lyric, gpu, instrument, fake-mic]
+        pass: [recording, practice-flow, restart, agent, lyric, gpu, instrument, fake-mic, insights]
     env:
       STEMSTUDIO_SEPARATOR: fake
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5

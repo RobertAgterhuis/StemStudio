@@ -37,6 +37,8 @@ runs:
         # 015 recording inputs (module run from tests/fixtures) and the 014 practice-flow song.
         (cd tests/fixtures && uv run --project ../../worker --frozen python -m recording.generate_recording_fixtures)
         uv run --project worker --frozen python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
+        # 020 per-family handout plan: the two short setlist songs next to its manifest.
+        uv run --project worker --frozen python tests/fixtures/families/generate_family_fixtures.py
     - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
       shell: bash
       # Owner uid 1654 (the api), group = the runner's group with setgid and group write, so the

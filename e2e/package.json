@@ -8,10 +8,11 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic\"",
-    "test:chromium": "playwright test --project=chromium --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic\"",
-    "test:firefox": "playwright test --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic\"",
+    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic|@insights\"",
+    "test:chromium": "playwright test --project=chromium --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic|@insights\"",
+    "test:firefox": "playwright test --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist|@recording|@instrument|@fake-mic|@insights\"",
     "test:instrument": "playwright test --project=chromium --project=firefox --grep @instrument --grep-invert \"@fake-mic\"",
+    "test:insights": "playwright test --project=chromium --project=firefox --grep @insights",
     "test:fake-mic": "playwright test --project=fake-mic-on-pitch --project=fake-mic-semitone --project=fake-mic-silence",
     "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key|@practice|@library-care\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",

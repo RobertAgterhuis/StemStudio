@@ -42,6 +42,7 @@ def render(data: ReportInput) -> str:
         _secrets(data.findings),
         _library_care(data.findings),
         _instrument(data.findings),
+        _handouts(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -163,6 +164,16 @@ def _instrument(findings: Sequence[Finding]) -> str:
         "Instrument views",
         "no weights_only=False in the worker, no DOM/Web Audio globals in the engine pitch code "
         "(`instrument_rules.py`).",
+    )
+
+
+def _handouts(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings,
+        "handouts",
+        "Insights and handouts",
+        "handout style in sync with the app tokens, every url_fetcher is the URLFetcher "
+        "subclass of handouts/fetcher.py (`handout_rules.py`; handout colours in Design tokens).",
     )
 
 

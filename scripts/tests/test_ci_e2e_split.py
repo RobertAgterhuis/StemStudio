@@ -36,6 +36,7 @@ PASSES = {
         "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false docker compose up",
         "npm run test:fake-mic",
     ],
+    "insights": ["npm run test:insights"],
 }
 """Every feature pass and what its dry run must show (014/015 set + instrument, fake-mic)."""
 
@@ -132,6 +133,15 @@ def test_the_default_suite_runs_per_browser_with_the_same_exclusions() -> None:
         assert f"--project={browser}" in scripts[f"test:{browser}"]
         assert _grep_invert(scripts[f"test:{browser}"]) == excluded
     assert {"@instrument", "@fake-mic", "@recording", "@restart", "@gpu", "@agent"} <= excluded
+    assert "@insights" in excluded
+
+
+def test_the_insights_script_selects_the_020_specs_on_both_browsers() -> None:
+    """Feature 020: the @insights specs run in their own pass (seeding nine score items)."""
+    script = _scripts()["test:insights"]
+
+    assert "--grep @insights" in script
+    assert "--project=chromium --project=firefox" in script
 
 
 def test_the_instrument_and_fake_mic_scripts_select_the_016_specs() -> None:

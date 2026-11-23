@@ -3,7 +3,9 @@
 Checks: SIG unit metrics, duplication, dependency direction, raw colours, the licence records
 of vendored code, the Claude key handling rules (``secret_rules.py``, 011 follow-up claude-key)
 the library care rules (``library_care_rules.py``, 013: LibraryCare layering, banned ZIP APIs)
-and the instrument view rules (``instrument_rules.py``, 016: safe checkpoint loading, pitch scope).
+the instrument view rules (``instrument_rules.py``, 016: safe checkpoint loading, pitch scope)
+and the insights and handouts rules (``handout_rules.py``, 020: style drift, handout colours,
+url_fetcher).
 
 Usage::
 
@@ -22,6 +24,7 @@ from pathlib import Path
 import css_tokens_check
 import dependency_check
 import duplication
+import handout_rules
 import instrument_rules
 import library_care_rules
 import secret_rules
@@ -52,6 +55,7 @@ class GateResult:
     secret_findings: list[Finding] = field(default_factory=list)
     library_care_findings: list[Finding] = field(default_factory=list)
     instrument_findings: list[Finding] = field(default_factory=list)
+    handout_findings: list[Finding] = field(default_factory=list)
 
     @property
     def findings(self) -> list[Finding]:
@@ -65,6 +69,7 @@ class GateResult:
             *self.secret_findings,
             *self.library_care_findings,
             *self.instrument_findings,
+            *self.handout_findings,
         ]
 
     @property
@@ -91,6 +96,7 @@ def run(root: Path, paths: Sequence[Path], dup_run: DuplicationRun = duplication
         secret_findings=secret_rules.run(root),
         library_care_findings=library_care_rules.run(root),
         instrument_findings=instrument_rules.run(root),
+        handout_findings=handout_rules.run(root),
     )
 
 

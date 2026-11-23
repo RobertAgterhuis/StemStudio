@@ -77,6 +77,8 @@ COMPONENTS: tuple[Component, ...] = (
     Component("worker/metadata", (WORKER + "metadata/",)),
     Component("worker/lyrics", (WORKER + "lyrics/",)),
     Component("worker/engraving", (WORKER + "engraving/",)),
+    Component("worker/handouts", (WORKER + "handouts/",)),
+    Component("worker/insights", (WORKER + "insights/",)),
     Component("worker/render", (WORKER + "render/",)),
     Component("worker/separation", (WORKER + "separation/",)),
     Component("worker/detail", (WORKER + "detail/",)),

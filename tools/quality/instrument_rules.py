@@ -22,11 +22,11 @@ Exit code 0 = clean, 1 = a rule is broken.
 
 import re
 import sys
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
 
-from common import EXCLUDED_DIRS, Finding, Severity, build_parser, relative, report_findings
+from common import Finding, Severity, build_parser, files_below, relative, report_findings
 
 CHECK: Final = "instrument"
 """Check name of every finding of this module."""
@@ -57,13 +57,6 @@ def run(root: Path) -> list[Finding]:
     return [*check_weights_only(root), *check_pitch_globals(root)]
 
 
-def _files(folder: Path, suffix: str) -> Iterator[Path]:
-    if folder.is_dir():
-        for path in sorted(folder.rglob(f"*{suffix}")):
-            if not EXCLUDED_DIRS & set(path.relative_to(folder).parts):
-                yield path
-
-
 def _line(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
@@ -71,7 +64,7 @@ def _line(text: str, offset: int) -> int:
 def check_weights_only(root: Path) -> list[Finding]:
     """(a) Every ``weights_only=False`` in a worker source file."""
     findings = []
-    for path in _files(root / WORKER_SRC, ".py"):
+    for path in files_below(root / WORKER_SRC, ".py"):
         text = path.read_text(encoding="utf-8")
         for match in _WEIGHTS_ONLY_FALSE.finditer(text):
             message = "weights_only=False: load checkpoints with weights_only=True and safe globals"
@@ -82,7 +75,7 @@ def check_weights_only(root: Path) -> list[Finding]:
 def check_pitch_globals(root: Path) -> list[Finding]:
     """(b) DOM and Web Audio globals in the engine's pitch code."""
     findings = []
-    for path in _files(root / PITCH_DIR, ".ts"):
+    for path in files_below(root / PITCH_DIR, ".ts"):
         code = _TS_NOISE.sub(lambda m: re.sub(r"[^\n]", " ", m.group()), path.read_text("utf-8"))
         local = {match.group("name") for match in _LOCAL.finditer(code)}
         for match in _DOM.finditer(code):
