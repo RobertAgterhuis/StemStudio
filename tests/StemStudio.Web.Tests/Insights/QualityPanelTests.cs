@@ -40,10 +40,9 @@ public sealed class QualityPanelTests : PageTestContext
     }
 
     [Fact]
-    public void Check_QueuesTheReport_ShowsProgress_DisablesTheButton_AndPollsUntilReady()
+    public void Check_QueuesTheReport_ShowsProgress_AndDisablesTheButton()
     {
         Api.RequestQualityReportAsync(Track, Arg.Any<CancellationToken>()).Returns(InsightsData.Report(QualityReportStatusDto.Queued, stems: false));
-        Reports(InsightsData.NoReport(), InsightsData.Report(QualityReportStatusDto.Running, 40, stems: false), InsightsData.ReadyReport());
         var panel = RenderPanel();
 
         panel.Find("[data-testid=quality-check]").Click();
@@ -52,6 +51,14 @@ public sealed class QualityPanelTests : PageTestContext
         panel.Find("[data-testid=quality-check]").HasAttribute("disabled").ShouldBeTrue();
         panel.Find("[data-testid=quality-progress]").ShouldNotBeNull();
         panel.Find("[data-testid=quality-status-live]").TextContent.ShouldBe("Stem quality check queued.");
+    }
+
+    [Fact]
+    public void Polling_ShowsTheProgress_UntilTheReportIsReady()
+    {
+        Reports(InsightsData.Report(QualityReportStatusDto.Queued, stems: false), InsightsData.Report(QualityReportStatusDto.Running, 40, stems: false), InsightsData.ReadyReport());
+        var panel = RenderPanel();
+
         Timer.Tick();
         panel.WaitForAssertion(() => panel.Find("[data-testid=quality-progress]").GetAttribute("aria-valuenow").ShouldBe("40"));
         Timer.Tick();
@@ -74,10 +81,19 @@ public sealed class QualityPanelTests : PageTestContext
         rating.QuerySelector(".rzi")!.GetAttribute("aria-hidden").ShouldBe("true");
         rating.GetAttribute("role").ShouldBe("img");
         rating.GetAttribute("aria-label").ShouldBe("Other: fair, some sound of guitar is in this stem");
+        panel.FindAll("[data-testid^=quality-previous-]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NotPresent_IsRatedProbablyNotInThisSong_WithTheSpillReason()
+    {
+        Reports(InsightsData.ReadyReport());
+
+        var panel = RenderPanel();
+
         panel.Find("[data-testid=quality-row-piano]").GetAttribute("data-rating").ShouldBe("not-present");
         panel.Find("[data-testid=quality-rating-piano]").TextContent.ShouldContain("Probably not in this song");
         panel.Find("[data-testid=quality-reason-piano]").TextContent.ShouldContain("what you hear is spill from other instruments");
-        panel.FindAll("[data-testid^=quality-previous-]").ShouldBeEmpty();
     }
 
     [Fact]

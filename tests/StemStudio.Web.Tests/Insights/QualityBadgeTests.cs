@@ -78,4 +78,15 @@ public sealed class QualityBadgeTests : StemStudio.Web.Tests.Mixer.MixerTestCont
         mixer.WaitForAssertion(() => mixer.Find("[data-testid=strip-piano]"));
         mixer.FindAll("[data-testid^=quality-badge-]").ShouldBeEmpty();
     }
+
+    [Fact]
+    public void InsightsCss_IsLoaded_UsesTokensOnly_AndKeepsTargetsAndFocus()
+    {
+        var css = RepoPaths.ReadWeb("wwwroot/css/components/insights.css");
+
+        RepoPaths.ReadWeb("Components/App.razor").ShouldContain("\"insights\"");
+        css.ShouldContain("min-height: var(--ss-target-min)");
+        css.ShouldContain(".ss-quality-badge:focus-visible");
+        System.Text.RegularExpressions.Regex.IsMatch(css, @"#[0-9a-fA-F]{3,8}\b|rgb\(|hsl\(").ShouldBeFalse();
+    }
 }

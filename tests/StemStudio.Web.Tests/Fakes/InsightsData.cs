@@ -97,17 +97,18 @@ public static class InsightsData
     /// <summary>A tip.</summary>
     /// <param name="code">Code.</param>
     /// <param name="text">Text.</param>
-    /// <param name="action">Action kind; null = advice only.</param>
-    /// <param name="channel">Channel of the action.</param>
-    /// <param name="parent">Parent of the action.</param>
-    /// <param name="child">Child of the action.</param>
+    /// <param name="action">The action; null = advice only.</param>
     /// <returns>The tip.</returns>
-    public static TipDto Tip(TipCodeDto code, string text, TipActionKindDto? action = null, string channel = "other", string? parent = null, string? child = null) => new()
-    {
-        Code = code,
-        Text = text,
-        Action = action is { } kind ? new TipActionDto { Kind = kind, Channel = channel, Parent = parent, Child = child } : null,
-    };
+    public static TipDto Tip(TipCodeDto code, string text, TipActionDto? action = null) => new() { Code = code, Text = text, Action = action };
+
+    /// <summary>A tip action.</summary>
+    /// <param name="kind">Kind.</param>
+    /// <param name="channel">Channel the tip is about.</param>
+    /// <param name="parent">Parent for detail actions.</param>
+    /// <param name="child">Detail stem for <c>open-detail</c>.</param>
+    /// <returns>The action.</returns>
+    public static TipActionDto Action(TipActionKindDto kind, string channel, string? parent = null, string? child = null) =>
+        new() { Kind = kind, Channel = channel, Parent = parent, Child = child };
 
     /// <summary>The bass options example.</summary>
     /// <returns>The options.</returns>

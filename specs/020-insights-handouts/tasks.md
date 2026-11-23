@@ -132,8 +132,8 @@ in the execution plan.
 - [ ] T043 [US1] [backend] Implement them
 - [ ] T044 [P] [US1] [backend] Failing tests endpoints `GET/POST /api/tracks/{id}/quality`, `Track.quality` badge, reason texts of data-model 4.6, disclaimer
 - [ ] T045 [US1] [backend] Implement the endpoints
-- [ ] T046 [P] [US1] [frontend] Failing bUnit tests `QualityPanel`, `QualityRow`, `QualityBadge`: states, polling, level visibility (Beginner/Advanced/Expert), text + icon (R20-1), `aria-label`, outdated notice, "was ..." (US1 scenarios 1-4, FR-016)
-- [ ] T047 [US1] [frontend] Implement the components on the track page and the mixer strip badge
+- [x] T046 [P] [US1] [frontend] Failing bUnit tests `QualityPanel`, `QualityRow`, `QualityBadge`: states, polling, level visibility (Beginner/Advanced/Expert), text + icon (R20-1), `aria-label`, outdated notice, "was ..." (US1 scenarios 1-4, FR-016)
+- [x] T047 [US1] [frontend] Implement the components on the track page and the mixer strip badge
 - [ ] T048 [US1] [qa] E2E `e2e/tests/stem-quality.spec.ts`: report after separation for all six stem types, detail rows after a split, levels per journey level, "Check again" on an existing track (wait on the report's own state, LESSONS 013/022). **Done when** the spec typechecks and lints in the wave and passes on a real fake stack at the mid-wave checkpoint (LESSONS 022/023)
 
 **Checkpoint**: HO:us1 per owner.

@@ -7,8 +7,8 @@ be fixed (smallest valid change) and reported; behaviour/scope questions go via 
 | Checkpoint | State |
 |---|---|
 | foundational (T026/T027) | done, `frontend-020-foundational.md` |
-| us1 (T046/T047) | next |
-| us2 (T053/T054) | open |
+| us1 (T046/T047) | done, `frontend-020-us1.md` |
+| us2 (T053/T054) | next |
 | us3 (T076-T079) | open |
 | us4 (T085/T086) | open |
 
