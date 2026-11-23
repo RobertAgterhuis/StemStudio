@@ -55,7 +55,8 @@ pass_gpu() {
     # Only the worker's environment changes, so compose recreates just the worker.
     run "STEMSTUDIO_FAKE_DEVICE=$device docker compose up -d ${WAIT[*]}"
     worker_health
-    run "(cd e2e && npm run test:gpu)"
+    # The @gpu specs read the device themselves (e2e/support/env.ts), as in the 003 job.
+    run "(cd e2e && STEMSTUDIO_FAKE_DEVICE=$device npm run test:gpu)"
   done
 }
 
