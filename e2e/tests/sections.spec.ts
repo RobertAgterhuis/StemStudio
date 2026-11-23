@@ -3,7 +3,7 @@ import type { MixerPage } from '../pages/mixer-page';
 import { SectionLane } from '../pages/section-lane';
 import type { StemStudioApi, TrackDto } from '../support/api';
 import { fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { apiContextOptions, fakeJobTimeoutMs } from '../support/env';
 import { expectLoop } from '../support/expert-flow';
 import { practiceFlowFixturePath } from '../support/fixtures';
 import { blurActiveElement } from '../support/help';
@@ -29,7 +29,7 @@ let flow: PracticeFlowApi;
 
 test.beforeEach(async ({ playwright }) => {
   test.setTimeout(fakeJobTimeoutMs + 90_000);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  context = await playwright.request.newContext(apiContextOptions);
   flow = new PracticeFlowApi(context);
 });
 

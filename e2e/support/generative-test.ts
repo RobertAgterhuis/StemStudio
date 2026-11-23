@@ -15,7 +15,7 @@ import { StyleEditorPage } from '../pages/style-editor-page';
 import { StyleLibraryPage } from '../pages/style-library-page';
 import { UseMyVoiceDialog } from '../pages/use-my-voice-dialog';
 import { VoiceProfilesPage } from '../pages/voice-profiles-page';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { GenerationApi } from './generation-api';
 import { test as lyricsScore } from './test';
 import { VoiceApi } from './voice-api';
@@ -38,12 +38,12 @@ export interface GenerativeFixtures {
 /** Extended Playwright test. */
 export const test = lyricsScore.extend<GenerativeFixtures>({
   generationApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new GenerationApi(context));
     await context.dispose();
   },
   voiceApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new VoiceApi(context));
     await context.dispose();
   },

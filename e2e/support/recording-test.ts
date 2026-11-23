@@ -6,7 +6,7 @@
  */
 import { AppShell } from '../pages/app-shell';
 import { RecordingPanel } from '../pages/recording-panel';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { RecordingApi } from './recording-api';
 import { test as suite } from './test';
 
@@ -29,7 +29,7 @@ export const test = suite.extend<RecordingFixtures>({
     await use(new AppShell(page));
   },
   recordingApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new RecordingApi(context));
     await context.dispose();
   },

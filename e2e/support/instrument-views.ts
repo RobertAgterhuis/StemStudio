@@ -8,7 +8,7 @@
  */
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import type { StemStudioApi, TrackDto } from './api';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { okJson } from './http';
 
 /** Contract `AnalysisStatus`. */
@@ -246,7 +246,7 @@ export function useInstrumentApi(timeoutMs: number): InstrumentApiSuite {
   let views: InstrumentViewsApi | undefined;
   test.beforeEach(async ({ playwright }) => {
     test.setTimeout(timeoutMs);
-    context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    context = await playwright.request.newContext(apiContextOptions);
     views = new InstrumentViewsApi(context);
     await views.requireFeature();
   });

@@ -28,7 +28,7 @@ import { TrackDetailPage } from '../pages/track-detail-page';
 import { TrackListPage } from '../pages/track-list-page';
 import { StemStudioApi } from './api';
 import { AssetsApi } from './assets-api';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { LyricsApi } from './lyrics-api';
 import { MetadataApi } from './metadata-api';
 import { ScoreApi } from './score-api';
@@ -76,27 +76,27 @@ export interface SuiteFixtures {
 /** Extended Playwright test. */
 export const test = base.extend<SuiteFixtures>({
   api: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new StemStudioApi(context));
     await context.dispose();
   },
   metadataApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new MetadataApi(context));
     await context.dispose();
   },
   assetsApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new AssetsApi(context));
     await context.dispose();
   },
   lyricsApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new LyricsApi(context));
     await context.dispose();
   },
   scoreApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new ScoreApi(context));
     await context.dispose();
   },

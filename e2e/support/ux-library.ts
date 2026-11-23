@@ -8,7 +8,7 @@
  */
 import { request } from '@playwright/test';
 import { AssetsApi, type AssetDto } from './assets-api';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { ScoreApi } from './score-api';
 
 /** Fixed name of the seeded library item. */
@@ -21,7 +21,7 @@ const renderMs = 60_000;
 
 /** Finds or creates the seeded item of `trackId` and waits until it is ready. */
 export async function ensureLibraryItem(trackId: string): Promise<AssetDto> {
-  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const context = await request.newContext(apiContextOptions);
   try {
     const assets = new AssetsApi(context);
     const listed = await assets.list({ q: uxLibraryItemName });
@@ -37,7 +37,7 @@ export async function ensureLibraryItem(trackId: string): Promise<AssetDto> {
 
 /** Finds or creates the seeded score item (the bass of `trackId`, profile bass) and waits until it is ready. */
 export async function ensureScoreItem(trackId: string): Promise<AssetDto> {
-  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const context = await request.newContext(apiContextOptions);
   try {
     const assets = new AssetsApi(context);
     const listed = await assets.list({ q: uxScoreItemName });
