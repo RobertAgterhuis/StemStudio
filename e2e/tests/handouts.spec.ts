@@ -6,6 +6,7 @@ import { familyManifest, seedFixtureSong, seedTimeoutMs, type SeededSong } from 
 import { handoutFamilies, handoutTimeoutMs, InsightsApi, type HandoutFamily } from '../support/insights-api';
 import { useInsightsApi } from '../support/insights-suite';
 import { StemStudioApi } from '../support/api';
+import { PracticeFlowApi } from '../support/practice-flow';
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/test';
 
@@ -62,8 +63,9 @@ test.describe('one-click lesson handout per family (020 US3, SC-006)', { tag: '@
       const pdf = await handoutPdf(assetsApi, item);
       expectHandoutPages(pdf, item);
       expect(pdfWords(pdf)).toContain(familyPlan.practiceNote);
-      for (const section of plan.song.sections) {
-        expect(pdfWords(pdf), `form chart row ${section}`).toContain(section);
+      // The fake analyser labels by bars ("Verse 1", ...), not the song's composed form: read what the stack holds.
+      for (const section of (await new PracticeFlowApi(suite.context()).sections(track.id)).sections) {
+        expect(pdfWords(pdf), `form chart row ${section.label}`).toContain(section.label);
       }
       expect(pdf.outline).toContain('Practice notes');
       await page.goto('/library?view=all');

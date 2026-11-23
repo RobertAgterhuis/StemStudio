@@ -24,7 +24,12 @@ default and feature suites stay green on a stack without the other lanes.
   (the uncovered line is `sys.exit(main())`), total 99 %.
 - E2E: `npm run lint` 0 warnings, `npm run typecheck` clean, `playwright test --list --grep @insights`: 55 tests in 5
   files (chromium, firefox, a11y); the default selection lists none of them.
-- Smoke on an isolated fake stack (project `e2e020`, ports 38080/38081): see "Smoke" below.
+- Smoke on an isolated fake stack (project `e2e020`, ports 38080/38081, images built from this branch; the 020
+  backend is not on it): the seeding steps all passed in 59 s on the real 014/016 fakes (sections, 42 chord
+  segments, lyrics found, the detail split, all eight notation items incl. guitar/bass tabs and the `clarinet-bb`
+  part on `other.woodwinds`, the three-song setlist with its notes); worker `/health` shows the `insights` lane;
+  `npm run test:insights` on Chromium: 24 skipped (feature skip), 0 failed. Finding fixed: the fake section labels
+  differ from the song's form, so the form-chart check reads the stack's sections. Stack torn down with `down -v`.
 
 ## Decisions
 

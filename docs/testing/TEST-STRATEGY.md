@@ -2277,6 +2277,9 @@ outline, title, `/Lang`, text; no new npm dependency), `pages/quality-panel.ts`,
   opens the mixer with `strip-other-<child>` visible.
 - Rating accessible names contain the rating words (good, fair, poor, "not in this song", "not rated").
 - The handout item's name contains the family label (data-model 5.4 default name); the PDF footer reads "Page n of N".
+- The fake section analyser labels the fixture song by bars (smoke 2026-11-23: Intro, Verse 1, Chorus 1, Verse 2,
+  Chorus 2, Guitar solo), not by its composed form (`manifest.json` `song.sections`); the form-chart check reads the
+  labels from `GET /api/tracks/{id}/sections`.
 - A one-click handout's item is found as the new handout asset of the track with that family (the browser does not
   see the Blazor server's API call).
 
