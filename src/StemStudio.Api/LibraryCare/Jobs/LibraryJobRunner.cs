@@ -46,8 +46,19 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
     /// <param name="work">The work.</param>
     /// <param name="job">The queued job.</param>
     /// <returns>False when another job is active (<c>409 library-job-running</c>).</returns>
-    public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, out LibraryJobDto job)
+    public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, out LibraryJobDto job) =>
+        TryStart(kind, archiveFileName, work, null, out job);
+
+    /// <summary>Starts a job unless one is active, with actions around its visible life.</summary>
+    /// <param name="kind">Kind.</param>
+    /// <param name="archiveFileName">Archive the job reads or writes.</param>
+    /// <param name="work">The work.</param>
+    /// <param name="hooks">Begin and end actions, or null.</param>
+    /// <param name="job">The queued job.</param>
+    /// <returns>False when another job is active.</returns>
+    public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, LibraryJobHooks? hooks, out LibraryJobDto job)
     {
+        _ = hooks;
         ArgumentNullException.ThrowIfNull(work);
         job = LibraryJobs.Queued(Guid.NewGuid(), kind, archiveFileName, clock.GetUtcNow());
         lock (_lock)

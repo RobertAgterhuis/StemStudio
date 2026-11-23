@@ -8,6 +8,14 @@ namespace StemStudio.Api.LibraryCare.Jobs;
 /// <returns>The report.</returns>
 public delegate Task<LibraryJobReportDto> LibraryJobWork(LibraryJobContext context, CancellationToken cancellationToken);
 
+/// <summary>
+/// Actions around the visible life of a job: <paramref name="Begin"/> before it can be seen running, <paramref name="End"/>
+/// after its finished record is stored (the backup gate is closed exactly while the job reads as active).
+/// </summary>
+/// <param name="Begin">Runs synchronously when the job is accepted.</param>
+/// <param name="End">Runs after the finished job is stored.</param>
+public sealed record LibraryJobHooks(Action Begin, Action End);
+
 /// <summary>A progress report of a running library job.</summary>
 /// <param name="Stage">Stage.</param>
 /// <param name="StageText">Readable stage text (no file paths).</param>
