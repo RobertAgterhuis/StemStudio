@@ -162,20 +162,29 @@ def merge_frames(pdf: bytes, frames: Sequence[Frame], progress: Callable[[float]
 
 
 def _merged(pdf: bytes, frames: Sequence[Frame], progress: Callable[[float], None]) -> bytes:
+    """Merge source by source, so only one notation reader is held at a time."""
     writer = PdfWriter(clone_from=BytesIO(pdf))
-    readers: dict[Path, PdfReader] = {}
+    done = 0
     try:
-        for done, frame in enumerate(frames, 1):
-            reader = readers.get(frame.source) or readers.setdefault(
-                frame.source, _open(frame.source)
-            )
-            _merge(writer.pages[frame.page], reader.pages[frame.source_page], frame.box)
-            progress(done / len(frames))
+        for source, group in _by_source(frames).items():
+            reader = _open(source)
+            for frame in group:
+                _merge(writer.pages[frame.page], reader.pages[frame.source_page], frame.box)
+                done += 1
+                progress(done / len(frames))
     except (NotationUnreadableError, PyPdfError, IndexError, ValueError, KeyError) as exc:
         raise HandoutRenderError(HANDOUT_FAILED_TEXT) from exc
     out = BytesIO()
     writer.write(out)
     return out.getvalue()
+
+
+def _by_source(frames: Sequence[Frame]) -> dict[Path, list[Frame]]:
+    """``frames`` grouped by their notation file, in order of first use."""
+    groups: dict[Path, list[Frame]] = {}
+    for frame in frames:
+        groups.setdefault(frame.source, []).append(frame)
+    return groups
 
 
 def _merge(target: PageObject, source: PageObject, box: tuple[float, float, float, float]) -> None:

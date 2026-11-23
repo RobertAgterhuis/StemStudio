@@ -250,14 +250,14 @@ def test_a_font_file_that_cannot_be_read_maps_nothing(tmp_path: Path) -> None:
 
 
 class _SizeSpy:
-    """A ``NotationReader`` that records its calls and gives every file two A4 pages."""
+    """A ``NotationReader`` that records its calls and gives every file one A4 page."""
 
     def __init__(self) -> None:
         self.calls: list[Path] = []
 
     def page_sizes(self, path: Path) -> tuple[tuple[float, float], ...]:
         self.calls.append(path)
-        return ((595.28, 841.89),) * 2
+        return ((595.28, 841.89),)
 
 
 def _items(*paths: str) -> list[dict[str, str]]:
@@ -340,3 +340,11 @@ def test_a_render_within_its_deadline_completes(files: dict[str, Path]) -> None:
     assert result.pages == 4
     assert RENDER_DEADLINE_SECONDS == 240.0
     assert RenderLimits().frames == MAX_NOTATION_FRAMES == 600
+
+
+def test_a_notation_file_gone_since_the_job_started_becomes_a_note(files: dict[str, Path]) -> None:
+    files[SCORE].unlink()
+
+    result = WeasyHandoutRenderer(layout=FakeLayout()).render(request(), files, lambda _f: None)
+
+    assert [w.text for w in result.warnings] == [notation_unreadable_text("Bass - score")]

@@ -48,23 +48,83 @@ MAX_WARNINGS: Final = 50
 """``HandoutResult.warnings`` holds at most 50."""
 
 MAX_NOTATION_FRAMES: Final = 600
-"""Most notation frame pages of one handout."""
+"""Most notation frame pages of one handout (50 songs with 12 pages each); further items are
+notes with a ``notation-unreadable`` warning."""
 
 MAX_JOB_NOTATION_BYTES: Final = 128 * 1024 * 1024
-"""Largest total size of the distinct notation PDFs of one handout."""
+"""Largest total size of the distinct notation PDFs one handout reads; further files are notes."""
 
 RENDER_DEADLINE_SECONDS: Final = 240.0
-"""Wall-clock limit of one render."""
+"""Wall-clock limit of one render; past it the job fails with ``HANDOUT_FAILED_TEXT``."""
 
 
 @dataclass(frozen=True, slots=True)
 class RenderLimits:
-    """Limits of one render (stub)."""
+    """Limits of one render (defaults above; tests pass smaller ones and a fake clock)."""
 
     frames: int = MAX_NOTATION_FRAMES
     notation_bytes: int = MAX_JOB_NOTATION_BYTES
     seconds: float = RENDER_DEADLINE_SECONDS
     clock: Callable[[], float] = time.monotonic
+
+
+class _Deadline:
+    """The wall-clock end of one render."""
+
+    def __init__(self, limits: RenderLimits) -> None:
+        self._clock = limits.clock
+        self._end = limits.clock() + limits.seconds
+
+    def check(self) -> None:
+        """Raise ``HandoutRenderError(HANDOUT_FAILED_TEXT)`` once the deadline has passed."""
+        if self._clock() > self._end:
+            _LOG.warning("A handout render passed its deadline")
+            raise HandoutRenderError(HANDOUT_FAILED_TEXT)
+
+    def guard(self, progress: InsightsProgress) -> InsightsProgress:
+        """``progress`` that checks the deadline first."""
+
+        def report(fraction: float, /) -> None:
+            self.check()
+            progress(fraction)
+
+        return report
+
+
+@dataclass(slots=True)
+class _NotationBudget:
+    """The notation one render may read: each file once, within the frame and byte limits."""
+
+    reader: NotationReader
+    limits: RenderLimits
+    deadline: _Deadline
+    pages: dict[Path, tuple[tuple[float, float], ...] | None] = field(default_factory=dict)
+    frames: int = 0
+    read_bytes: int = 0
+
+    def admit(self, source: Path) -> tuple[tuple[float, float], ...] | None:
+        """Page sizes of ``source`` when its pages fit the job (None: the item becomes a note)."""
+        self.deadline.check()
+        if source not in self.pages:
+            self.pages[source] = self._read(source)
+        sizes = self.pages[source]
+        if sizes is None or self.frames + len(sizes) > self.limits.frames:
+            return None
+        self.frames += len(sizes)
+        return sizes
+
+    def _read(self, source: Path) -> tuple[tuple[float, float], ...] | None:
+        try:
+            size = source.stat().st_size
+        except OSError:
+            return None
+        if self.read_bytes + size > self.limits.notation_bytes:
+            return None
+        self.read_bytes += size
+        try:
+            return self.reader.page_sizes(source)
+        except NotationUnreadableError:
+            return None
 
 
 Layout = Callable[[str, AllowList], Any]
@@ -93,7 +153,7 @@ class _Job:
 
     request: HandoutJobRequest
     files: Mapping[str, Path]
-    reader: NotationReader
+    notation: _NotationBudget
     allowed: AllowList
     sources: list[tuple[str, Path, int]] = field(default_factory=list)
     warnings: list[HandoutWarning] = field(default_factory=list)
@@ -130,11 +190,8 @@ class _Job:
         return NotationBlock(heading, item.title, frames, None)
 
     def sizes(self, source: Path | None, title: str) -> tuple[tuple[float, float], ...] | None:
-        """Page sizes of ``source`` (None when it cannot be read); warns when scaled."""
-        try:
-            sizes = self.reader.page_sizes(source) if source is not None else None
-        except NotationUnreadableError:
-            return None
+        """Page sizes of ``source`` (None: unreadable or over the limits); warns when scaled."""
+        sizes = self.notation.admit(source) if source is not None else None
         if sizes is not None and not all(fits_paper(s, self.request.paper) for s in sizes):
             self.warn("notation-scaled", scaled_text(title))
         return sizes
@@ -166,9 +223,11 @@ class WeasyHandoutRenderer:
         """
         check_notice(request.document)
         layout = self._layout or _default_layout()
-        job = _Job(request, files, self._reader, AllowList.for_job(files))
+        deadline = _Deadline(self._limits)
+        notation = _NotationBudget(self._reader, self._limits, deadline)
+        job = _Job(request, files, notation, AllowList.for_job(files))
         try:
-            return _render(job, progress, layout)
+            return _render(job, deadline.guard(progress), layout)
         except HandoutRenderError:
             raise
         except Exception as exc:
