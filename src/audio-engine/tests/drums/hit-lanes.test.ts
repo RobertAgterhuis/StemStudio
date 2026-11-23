@@ -64,6 +64,12 @@ describe('hit lanes canvas', () => {
     expect(rig.host.dataset.positionMs).toBe('0');
   });
 
+  it('lays the canvas out as a block filling the host, so its size never feeds back into the host height', () => {
+    // An inline canvas adds a baseline gap below itself: the host grew by a few pixels on every resize (016 E2E).
+    const canvas = attached().host.querySelector('canvas');
+    expect([canvas?.style.display, canvas?.style.width, canvas?.style.height]).toEqual(['block', '100%', '100%']);
+  });
+
   it('scales the canvas by devicePixelRatio', () => {
     vi.stubGlobal('devicePixelRatio', 2);
     const rig = attached();
