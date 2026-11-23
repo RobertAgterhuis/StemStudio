@@ -47,7 +47,7 @@ def test_contract_examples_are_valid(example: str, schema: str) -> None:
 def test_health_reports_the_current_contract_version(api: Api) -> None:
     response = api.client.get("/health")
     assert_conforms(response, "/health")
-    assert response.json()["contractVersion"] == "1.9.0"
+    assert response.json()["contractVersion"] == "1.11.0"
 
 
 def test_create_returns_202_with_location(api: Api) -> None:

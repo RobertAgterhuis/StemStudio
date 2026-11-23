@@ -140,7 +140,9 @@ def _score_request(profile: ScoreProfile, **extra: Any) -> dict[str, Any]:
 
 
 def test_contract_version_is_1_9_0() -> None:
-    assert CONTRACT_VERSION == V190.root["info"]["version"] == "1.9.0"
+    # 020 Phase 0: the code follows 1.11.0, which contains 1.9.0 (test_insights_contract.py).
+    assert V190.root["info"]["version"] == "1.9.0"
+    assert CONTRACT_VERSION == "1.11.0"
 
 
 def test_1_9_0_contains_1_8_0_except_the_additive_fields() -> None:
@@ -175,7 +177,8 @@ def test_every_new_schema_has_a_model_with_the_same_fields(name: str) -> None:
 )
 def test_extended_schemas_match_their_models(model: type[BaseModel], schema: str) -> None:
     fields = {f.alias or key for key, f in model.model_fields.items()}
-    assert fields == set(V190.schemas[schema]["properties"])
+    later = {"insights"} if model is Health else set()  # 1.11.0 (020)
+    assert fields == set(V190.schemas[schema]["properties"]) | later
 
 
 @pytest.mark.parametrize(

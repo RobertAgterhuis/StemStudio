@@ -107,6 +107,13 @@ SoundTouch code; they load the module through the documented ABI (`third_party/s
 | fontTools[woff] + brotli (**build stage only**, converts the font; not in the runtime image) | 4.68.0 | MIT | https://github.com/fonttools/fonttools |
 | ReportLab (setlist PDFs; feature 014, ADR-023; no extras: no accel, pycairo, bidi or shaping) | 5.1.0 | BSD-3-Clause-style ReportLab licence | https://www.reportlab.com/dev/opensource/ |
 | DejaVu Sans / DejaVu Sans Bold (Debian `fonts-dejavu-core`, system fonts of the worker image for the setlist PDFs; feature 014) | distro | Bitstream Vera font licence (permissive) + public-domain changes by the DejaVu authors | https://dejavu-fonts.github.io/License.html |
+| WeasyPrint (lesson handout PDFs, HTML + CSS paged media; feature 020, ADR-029 D7) | 70.0 | BSD-3-Clause | https://github.com/Kozea/WeasyPrint |
+| pydyf / tinyhtml5 (via WeasyPrint) | 0.13.0 / 2.1.0 | BSD-3-Clause / MIT | https://github.com/CourtBouillon/pydyf, https://github.com/CourtBouillon/tinyhtml5 |
+| Pyphen (hyphenation, via WeasyPrint; used under the MPL-1.1 option of its GPL-2.0+/LGPL-2.1+/MPL-1.1 tri-licence) | 0.18.1 | **MPL-1.1** (tri-licence) | https://github.com/Kozea/Pyphen |
+| fontTools[woff] + brotli + zopfli (via WeasyPrint, **now also in the runtime image**; feature 020) | 4.68.0 / locked / 0.4.3 | MIT / MIT / Apache-2.0 | https://github.com/fonttools/fonttools |
+| Jinja2 + MarkupSafe (handout templates with autoescape; feature 020; were transitive, now direct) | 3.1.6 / 3.0.4 | BSD-3-Clause | https://github.com/pallets/jinja |
+| Pango + HarfBuzz (Debian `libpango-1.0-0`, `libpangoft2-1.0-0`; system libraries WeasyPrint loads unmodified; feature 020, both worker variants) | distro (Pango >= 1.44) | **LGPL-2.1-or-later** / MIT | https://gitlab.gnome.org/GNOME/pango, https://github.com/harfbuzz/harfbuzz |
+| Archivo (handout font, copied from `src/StemStudio.Web/wwwroot/fonts/archivo/` into the worker package; feature 020) | as the app | OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
 
 | onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
 | rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |

@@ -18,6 +18,7 @@ TranscriberKind = Literal["real", "fake"]
 StructureAnalyzerKind = Literal["real", "fake"]
 ChordEngineKind = Literal["btc", "chroma-hmm", "fake"]
 PitchEngineKind = Literal["pyin", "yin", "fake"]
+QualityAnalyzerKind = Literal["real", "fake"]
 
 _SEPARATORS: tuple[SeparatorKind, ...] = ("demucs", "fake")
 _DEVICES: tuple[DeviceKind, ...] = ("cpu", "cuda", "auto")
@@ -33,7 +34,10 @@ _TRANSCRIBERS: tuple[str, ...] = ("", "real", "fake")
 _STRUCTURE_ANALYZERS: tuple[str, ...] = ("", "real", "fake")
 _CHORD_ENGINES: tuple[str, ...] = ("", "btc", "chroma-hmm", "fake")
 _PITCH_ENGINES: tuple[str, ...] = ("", "pyin", "yin", "fake")
+_QUALITY_ANALYZERS: tuple[str, ...] = ("", "real", "fake")
 _DEFAULT_ANALYSIS_THREADS = 4
+_DEFAULT_INSIGHTS_THREADS = 4
+_MAX_INSIGHTS_THREADS = 16
 _MAX_THREADS = 64
 _LANGUAGE = re.compile(r"[a-z]{2,3}")
 _MAX_LANGUAGES = 5
@@ -132,6 +136,22 @@ class InstrumentAnalysisSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class InsightsSettings:
+    """Settings of the ``insights`` lane (feature 020, data-model 1).
+
+    Attributes:
+        quality_analyzer: ``STEMSTUDIO_QUALITY_ANALYZER``: ``real`` signal measures or the
+            deterministic ``fake`` (data-model 2.6); unset = ``fake`` with ``separator=fake``,
+            else ``real``.
+        threads: numpy/scipy BLAS threads of the lane (``STEMSTUDIO_INSIGHTS_THREADS``, 1..16;
+            unset or blank = 4).
+    """
+
+    quality_analyzer: QualityAnalyzerKind = "real"
+    threads: int = _DEFAULT_INSIGHTS_THREADS
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerSettings:
     """Runtime settings of the worker.
 
@@ -168,6 +188,7 @@ class WorkerSettings:
             ``real`` (``stems-novelty``) or the deterministic ``fake`` (data-model 2.4); unset =
             ``fake`` with ``separator=fake``, else ``real``.
         instrument_analysis: Chord, pitch and thread settings of feature 016.
+        insights: Quality analyzer and thread settings of feature 020.
     """
 
     data_dir: Path
@@ -188,6 +209,7 @@ class WorkerSettings:
     gpu_lease_wait_seconds: float = 900.0
     structure_analyzer: StructureAnalyzerKind = "real"
     instrument_analysis: InstrumentAnalysisSettings = InstrumentAnalysisSettings()
+    insights: InsightsSettings = InsightsSettings()
 
 
 GPU_LEASE_BUSY_REASON = "GPU busy with another StemStudio job"
@@ -308,15 +330,32 @@ class _AnalysisSettings(TypedDict):
     transcription: TranscriptionSettings
     structure_analyzer: StructureAnalyzerKind
     instrument_analysis: InstrumentAnalysisSettings
+    insights: InsightsSettings
 
 
 def _analysis_settings(env: Mapping[str, str], separator: SeparatorKind) -> _AnalysisSettings:
-    """Read the 008 transcription, the 014 structure analyser and the 016 analysis variables."""
+    """Read the 008 transcription, 014 structure, 016 analysis and 020 insights variables."""
     return {
         "transcription": _transcription_settings(env, separator),
         "structure_analyzer": _structure_analyzer(env, separator),
         "instrument_analysis": _instrument_analysis_settings(env, separator),
+        "insights": _insights_settings(env, separator),
     }
+
+
+def _insights_settings(env: Mapping[str, str], separator: SeparatorKind) -> InsightsSettings:
+    """Read ``STEMSTUDIO_QUALITY_ANALYZER`` and ``STEMSTUDIO_INSIGHTS_THREADS`` (feature 020)."""
+    kind = _choice(env, "STEMSTUDIO_QUALITY_ANALYZER", _QUALITY_ANALYZERS)
+    raw = env.get("STEMSTUDIO_INSIGHTS_THREADS", "").strip() or str(_DEFAULT_INSIGHTS_THREADS)
+    if not raw.isdigit() or not 0 < int(raw) <= _MAX_INSIGHTS_THREADS:
+        msg = f"STEMSTUDIO_INSIGHTS_THREADS must be a whole number from 1 to 16; got {raw!r}"
+        raise ValueError(msg)
+    return InsightsSettings(
+        quality_analyzer=cast(
+            QualityAnalyzerKind, kind or ("fake" if separator == "fake" else "real")
+        ),
+        threads=int(raw),
+    )
 
 
 def _instrument_analysis_settings(

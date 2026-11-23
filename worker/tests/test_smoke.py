@@ -48,6 +48,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "transcribe": {"queued": 0, "running": False},
             "practice": {"queued": 0, "running": False},
             "instrumentAnalysis": {"queued": 0, "running": False},
+            "insights": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
             "available": True,
@@ -71,7 +72,14 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "chordEngine": "btc",
             "pitchEngine": "pyin",
         },
-        "contractVersion": "1.9.0",
+        # 1.11.0 (020): the skeleton default until main.py reports the configured analyzer.
+        "insights": {
+            "analyzer": "real",
+            "analyzerVersion": "0.0.0",
+            "renderer": {"weasyprint": None, "pango": None},
+            "fonts": {"archivo": False, "fallback": False},
+        },
+        "contractVersion": "1.11.0",
     }
 
 
