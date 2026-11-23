@@ -1,11 +1,12 @@
 """Notation PDFs (008/016 scores) merged into the handout's frame pages with pypdf (R-07).
 
-A notation PDF is untrusted input: it is read with size and page limits, an encrypted, damaged or
-oddly sized file is "unreadable" (its pages become a note and a ``notation-unreadable`` warning,
-the job still completes), and only page content is merged. Annotations (links, JavaScript
-actions, form fields) are dropped and the source document's catalogue (open actions, embedded
-files, document JavaScript) is never copied. Each page is scaled to fit its frame, centred, never
-cropped; a page that is not the handout's paper size gives a ``notation-scaled`` warning.
+A notation PDF is untrusted input: it is read with size and page limits and parsed under the
+stricter pypdf limits of ``PARSE_LIMITS``; an encrypted, damaged, oddly sized or too heavy file
+is "unreadable" (its pages become a note and a ``notation-unreadable`` warning, the job still
+completes), and only page content is merged. Annotations (links, JavaScript actions, form
+fields) are dropped and the source document's catalogue (open actions, embedded files, document
+JavaScript) is never copied. Each page is scaled to fit its frame, centred, never cropped; a page
+that is not the handout's paper size gives a ``notation-scaled`` warning.
 """
 
 from collections.abc import Callable, Mapping, Sequence
@@ -14,7 +15,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Final
 
-from pypdf import PageObject, PdfReader, PdfWriter, Transformation
+from pypdf import PageObject, PdfReader, PdfWriter, Transformation, apply_configuration
 from pypdf.errors import PyPdfError
 from pypdf.generic import NameObject
 
@@ -34,6 +35,20 @@ PAPER_SIZES_PT: Final[Mapping[str, tuple[float, float]]] = {
     "letter": (612.0, 792.0),
 }
 """Handout paper sizes in points."""
+
+_MIB: Final = 1024 * 1024
+
+PARSE_LIMITS: Final[Mapping[str, int]] = {
+    "stream_parsing_work_maximum_count": 200_000,
+    "zlib_maximum_output_length": 16 * _MIB,
+    "lzw_maximum_output_length": 16 * _MIB,
+    "run_length_maximum_output_length": 16 * _MIB,
+    "brotli_maximum_output_length": 16 * _MIB,
+    "stream_decoding_work_maximum_length": 64 * _MIB,
+}
+"""pypdf limits while a notation PDF is checked and merged (pypdf's defaults are 2 M tokens and
+75 MB per stream). A dense engraved page (Verovio + CairoSVG) has about 72 k tokens and checks and
+merges in about 0.25 s; 200 k tokens bound one page to about 0.6 s."""
 
 _SIZE_TOLERANCE_PT: Final = 2.0
 _DROPPED_KEYS: Final = ("/Annots", "/AA")
@@ -90,7 +105,8 @@ class PypdfNotationReader:
         Raises:
             NotationUnreadableError: Too large, encrypted, damaged, too many or odd pages.
         """
-        return _checked_sizes(path, _open(path))
+        with apply_configuration(**PARSE_LIMITS):
+            return _checked_sizes(path, _open(path))
 
 
 def fits_paper(size: tuple[float, float], paper: str) -> bool:
@@ -134,6 +150,11 @@ def merge_frames(pdf: bytes, frames: Sequence[Frame], progress: Callable[[float]
     Raises:
         HandoutRenderError: A notation file changed and cannot be merged any more.
     """
+    with apply_configuration(**PARSE_LIMITS):
+        return _merged(pdf, frames, progress)
+
+
+def _merged(pdf: bytes, frames: Sequence[Frame], progress: Callable[[float], None]) -> bytes:
     writer = PdfWriter(clone_from=BytesIO(pdf))
     readers: dict[Path, PdfReader] = {}
     try:
