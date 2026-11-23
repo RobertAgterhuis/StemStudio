@@ -90,6 +90,6 @@ and merges in about 0.25 s; a 50-song request at the text and cell limits render
   `handouts/**` 100 % line / 100 % branch.
 - `ruff check`, `ruff format --check`, `mypy --strict src tests scripts` (517 files): clean.
 - `tools/quality/run_all.py` (jobs, handouts, api, main + their tests): PASS, 0 errors; jscpd
-  output read: no production clones. New soft warnings: complexity 6 in `pdf_resources._child`,
-  `body_limit._read_within`, `handout_limits._chars`; unit size of the test fixture `_hooked`.
+  output read: no production clones. New soft warnings: complexity 6 in `pdf_resources._child`
+  and `body_limit._read_within`; unit size of the test fixture `_hooked`.
 - New dependencies: none (Pillow and pypdf were already direct dependencies).
