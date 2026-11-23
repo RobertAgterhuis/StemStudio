@@ -340,9 +340,9 @@ text, the row wins.
 
 - [ ] T139 [CTO] Merge the owner branches; full build, lint, unit + coverage gates; Playwright suite incl. the eight `instrument-*.spec.ts` on the fake stack (retries 0); `pytest -m integration worker/tests/harmony worker/tests/analysis` once (T063, pYIN)
 - [ ] T140 [CTO] Reference-machine validation quickstart V1-V14 with a real song per family (incl. a song with a key change and one in E-flat for capo); record times vs SC-001/SC-003 and the pYIN time, refine `StemStudio:InstrumentViews:Estimates` test-first if off by more than 50 %; SC-007 performance trace; SC-009 first-time-user check per family; record in `docs/STATUS.md`
-- [ ] T141 [CTO] `docs/THIRD-PARTY-LICENSES.md`: vendored BTC subset (MIT, Park et al. 2019, commit `2682317b`), weights `btc-majmin` and `btc-large-voca` (MIT, URL, SHA-256); note that no new package was added; README "Instrument views" section (families, limits, microphone privacy)
+- [x] T141 [CTO] `docs/THIRD-PARTY-LICENSES.md`: vendored BTC subset (MIT, Park et al. 2019, commit `2682317b`), weights `btc-majmin` and `btc-large-voca` (MIT, URL, SHA-256); note that no new package was added; README "Instrument views" section (families, limits, microphone privacy)
 - [ ] T142 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
-- [ ] T143 [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave): user manual chapter "Instrument views" (per family, key, capo, singing privacy), technical manual (analyses, lane, worklet, contracts 1.15.0/1.9.0/2.6.0, models); `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `docs/public/build-manifest.json`; `node tools/docs/check.mjs` passes
+- [x] T143 [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave): user manual chapter "Instrument views" (per family, key, capo, singing privacy), technical manual (analyses, lane, worklet, contracts 1.15.0/1.9.0/2.6.0, models); `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `docs/public/build-manifest.json`; `node tools/docs/check.mjs` passes
 
 ---
 
