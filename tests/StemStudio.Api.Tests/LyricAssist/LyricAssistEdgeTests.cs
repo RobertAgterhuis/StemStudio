@@ -148,7 +148,9 @@ public sealed class LyricAssistEdgeTests : AssistTestBase
         (await Client.DeleteAsync(new Uri(ApiRoutes.LyricsSheet(sheet.Id), UriKind.Relative), Ct)).Dispose();
 
         // The stream ends (the keep-alive tick finds the assist gone) instead of waiting for the idle timeout.
-        (await reader.ReadToEndAsync(Ct).WaitAsync(TimeSpan.FromSeconds(30), Ct)).ShouldNotContain("event: assist.");
+        // (The rest of the stored events may still arrive first; the point is that the stream ends.)
+        var rest = await reader.ReadToEndAsync(Ct).WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        rest.ShouldNotContain("event: assist.completed");
     }
 
     private static async Task<bool> ReadUntilAsync(StreamReader reader, string line)
