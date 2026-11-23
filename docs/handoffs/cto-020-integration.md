@@ -51,6 +51,28 @@ not merged to `main` (the orchestrator does that). Logs: `.claude/scratchpad/020
 Stack: compose project `e2e020i` (ports 39080/39081, images `e2e020i/*:local`, fake separator), retries 0, suites one
 after another; torn down with volumes and images; the owner's `stemstudio` project untouched.
 
+## Code-review fixes (branch `020-fix-cr`, backend; red `c296b227`, green `915af4f1`)
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | Handout PDF above the 64 MiB download cap stayed Rendering and was downloaded every tick | `WorkerClient.MaxHandoutBytes` 192 MiB (128 MiB notation total + 64 MiB margin for the 8 MiB body, fonts, covers <= 200 KB each; streamed to disk); `WorkerResponseTooLargeException` fails the item with `HandoutJobApplier.TooLarge` |
+| 2 | Score key from the first item of the whole song list, not transposed | `HandoutKeys` (Domain): chord key, else the first concert-pitch score (score/tab, no transposed part or drums) of the family notation, then of the song, written for the transposition; music21 tonics parsed (`B-`), spelled by the chord rule, unreadable tonic = no key |
+| 3 | One bad quality job stopped the pass | `TrackPass` per item; a `DbUpdateConcurrencyException` detaches the track so later reports still save; only `WorkerUnavailableException` ends the pass |
+| 4 | Setlist table in concert keys | Same key rule as the facts, in the handout's transposition |
+| 5 | Retry outside the start lock and the cap | Retry under `HandoutGate`: stored status read again (`IAssetRepository.StoredStatusAsync`, a second click gets 409 `asset-not-failed`), counted against `MaxActivePerSource` (the failed item itself is not active) |
+| 6 | Silent drops | > 8 notation items per song: planned `notation-omitted` warning (kept on the item, put before the renderer's, at most 50); `Guid.Empty` in `notationAssetIds` 422; setlist positions close up when a track is gone |
+| 8 | Quality job left running when the track is deleted | `TrackDeletionService` removes a queued/running worker quality job, best effort (logged) |
+
+Verification: Release build `-warnaserror` 0 warnings; `dotnet format --verify-no-changes` clean; .NET suites all passed
+(Domain 4347, Persistence 196, Api 3758 + 4 skipped, Web 4045, Agent 995, AgentEval 178); line/branch Api 98.62/91.03,
+Domain 98.73/93.91, Persistence 99.56/93.26, Web 99.1/92.52, Agent 99.26/94.33, AgentEval 98/90.65; `run_all.py` PASS
+(0 errors, 543 clones, the 3 new ones in tests only). No UI texts changed; the worker is untouched.
+
+For a decision: (a) a setlist song whose track is deleted meanwhile has no contract code (none of `notation-omitted`,
+`artwork-omitted`, ... fits); it is left out without a warning, positions renumbered. A code such as `song-omitted` needs a
+contract change. (b) Contract wording: `retryAsset` 409 should name `handouts-active` (and 422 `document`, already returned
+before this fix); `HandoutWarning.code` says "the worker's warnings" but `notation-omitted` now also comes from the API.
+
 ## Open items
 
 - Owner: MUSDB18-HQ for G1/G2; confirm the two setlist PDFs (014 stand PDF + 020 setlist handout).
