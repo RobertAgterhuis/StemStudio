@@ -14,26 +14,15 @@ namespace StemStudio.Api.Tests.Security;
 public sealed class ApiExposureTests : IDisposable
 {
     private static readonly IPAddress WebContainer = IPAddress.Parse("172.18.0.5");
-    private readonly ApiFactory _factory;
-    private readonly HttpClient _client;
-
-    public ApiExposureTests()
+    private readonly ApiFactory _factory = new()
     {
-        _factory = new ApiFactory
-        {
-            Settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = "web" },
-            ConfigureServices = services => services.AddSingleton<IHostAddressResolver>(new StaticResolver("web", WebContainer)),
-        };
-        _client = _factory.CreateClient();
-    }
+        Settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = "web" },
+        ConfigureServices = services => services.AddSingleton<IHostAddressResolver>(new StaticResolver("web", WebContainer)),
+    };
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public void Dispose()
-    {
-        _client.Dispose();
-        _factory.Dispose();
-    }
+    public void Dispose() => _factory.Dispose();
 
     // 003 flipped (step 3): a write without an Origin is accepted only from loopback or the internal caller.
     [Theory]
@@ -149,28 +138,15 @@ public sealed class ApiExposureTests : IDisposable
 
     private async Task<HttpResponseMessage> SendAsync(Call call)
     {
+        using var client = _factory.CreateClient();
         using var request = new HttpRequestMessage(call.Method, call.Path);
-        if (call.Peer is not null)
-        {
-            request.Headers.Add(TestPeerStartup.Header, call.Peer);
-        }
-
-        if (call.Host is not null)
-        {
-            request.Headers.Host = call.Host;
-        }
-
-        if (call.Origin is not null)
-        {
-            request.Headers.Add("Origin", call.Origin);
-        }
-
-        if (call.Extra is var (name, value))
+        request.Headers.Host = call.Host ?? request.Headers.Host;
+        foreach (var (name, value) in call.Headers())
         {
             request.Headers.TryAddWithoutValidation(name, value);
         }
 
-        return await _client.SendAsync(request, Ct);
+        return await client.SendAsync(request, Ct);
     }
 
     private static async Task ShouldBeRefusedAsync(HttpResponseMessage response)
@@ -192,6 +168,12 @@ public sealed class ApiExposureTests : IDisposable
         public string? Origin { get; init; }
 
         public (string Name, string Value)? Extra { get; init; }
+
+        public IEnumerable<(string Name, string Value)> Headers()
+        {
+            (string Name, string? Value)[] all = [(TestPeerStartup.Header, Peer), ("Origin", Origin), (Extra?.Name ?? string.Empty, Extra?.Value)];
+            return all.Where(header => header.Value is not null).Select(header => (header.Name, header.Value!));
+        }
     }
 
     private sealed class StaticResolver(string host, IPAddress address) : IHostAddressResolver

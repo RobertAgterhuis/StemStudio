@@ -58,6 +58,7 @@ public static class ApiComposition
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
+        services.AddApiExposure();
         AddFeatureModules(builder, options);
         return builder;
     }
@@ -309,7 +310,6 @@ public static class ApiComposition
         services.Configure<RouteHandlerOptions>(routes => routes.ThrowOnBadRequest = false);
         services.Configure<JsonOptions>(json => json.SerializerOptions.PropertyNameCaseInsensitive = true);
         services.AddOpenApi();
-        services.AddApiExposure();
         services.AddCors(cors => cors.AddPolicy(CorsPolicy, policy => policy
             .WithOrigins(options.WebOrigin)
             .WithMethods("GET")

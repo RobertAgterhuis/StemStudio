@@ -61,13 +61,13 @@ public static class CrossSiteRequestGuard
             || (origin.Length > 0 ? !policy.IsAllowedOrigin(origin) : !await peers.IsTrustedAsync(context.Connection.RemoteIpAddress, context.RequestAborted));
     }
 
-    private static bool IsGuarded(HttpContext context)
-    {
-        var request = context.Request;
-        return !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method)
-            && request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
-            && context.GetEndpoint()?.Metadata.GetMetadata<OriginCheckedByEndpoint>() is null;
-    }
+    private static bool IsGuarded(HttpContext context) =>
+        IsStateChanging(context.Request.Method)
+        && context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+        && context.GetEndpoint()?.Metadata.GetMetadata<OriginCheckedByEndpoint>() is null;
+
+    private static bool IsStateChanging(string method) =>
+        !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method) && !HttpMethods.IsOptions(method);
 
     private static bool IsCrossSiteFetch(HttpRequest request) =>
         string.Equals(request.Headers["Sec-Fetch-Site"].ToString(), "cross-site", StringComparison.OrdinalIgnoreCase);

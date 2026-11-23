@@ -29,8 +29,9 @@ Config = dict[str, Any]
 
 
 def _services(config: Config) -> dict[str, Any]:
-    services = config.get("services")
-    return services if isinstance(services, dict) else {}
+    """Return the services mapping; anything else (a list, nothing) counts as no services."""
+    found = config.get("services") or {}
+    return found if isinstance(found, dict) else {}
 
 
 def _ports(config: Config, service: str) -> list[dict[str, Any]]:
@@ -42,6 +43,11 @@ def _ports(config: Config, service: str) -> list[dict[str, Any]]:
 def _describe(service: str, port: dict[str, Any]) -> str:
     host_ip = port.get("host_ip") or ALL_INTERFACES
     return f"{service}:{port.get('published')} on {host_ip}"
+
+
+def _all_ports(config: Config, services: Iterable[str]) -> list[str]:
+    """Describe every published port of the given services."""
+    return [_describe(name, port) for name in services for port in _ports(config, name)]
 
 
 def check_publishes(config: Config) -> str | None:
@@ -64,7 +70,7 @@ def check_bind_address(config: Config, expected: str) -> str | None:
 def check_internal_services(config: Config) -> str | None:
     """Return a problem when a service other than ``api`` and ``web`` publishes a port."""
     others = [name for name in _services(config) if name not in PUBLISHED]
-    exposed = [_describe(name, port) for name in others for port in _ports(config, name)]
+    exposed = _all_ports(config, others)
     return f"internal services publish ports: {'; '.join(exposed)}" if exposed else None
 
 
