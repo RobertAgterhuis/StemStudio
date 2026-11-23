@@ -103,6 +103,7 @@ public sealed class NotationCatalogAdapter(IAssetRepository assets) : INotationC
             Transposition = transposition,
             Channel = asset.Provenance.ScoreRecipe?.Source.Channel,
             PdfPath = $"assets/{asset.Id}/{pdf.FileName}",
+            SizeBytes = pdf.SizeBytes,
             Key = facts.Key,
             Attribution = facts.Attribution,
             CreatedAt = asset.CreatedAt,

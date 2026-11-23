@@ -1,4 +1,3 @@
-using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Contracts.Insights;
 
 namespace StemStudio.Api.Insights;
@@ -15,7 +14,7 @@ public static class QualityEndpoints
         app.MapGet(route, (Guid trackId, QualityService quality, CancellationToken ct) => quality.GetAsync(trackId, ct))
             .WithName("getQualityReport").WithTags("insights").Produces<QualityReportDto>().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPost(route, (Guid trackId, QualityService quality, CancellationToken ct) => quality.RequestAsync(trackId, ct))
-            .WithName("requestQualityReport").RequireGateOpen().WithTags("insights").Produces<QualityReportDto>(StatusCodes.Status202Accepted)
+            .WithName("requestQualityReport").WithTags("insights").Produces<QualityReportDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
     }

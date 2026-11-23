@@ -1,7 +1,6 @@
 using StemStudio.Api.SongSections;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
-using StemStudio.Contracts.LibraryCare;
 
 namespace StemStudio.Api.Insights;
 
@@ -186,7 +185,7 @@ public static class InsightsProblems
     /// <summary>409 <c>quality-running</c>.</summary>
     /// <returns>The problem.</returns>
     public static IResult QualityRunning() =>
-        PracticeFlowProblems.Conflict("quality-running", "Quality report already running", "A quality report for this track is already being made.");
+        PracticeFlowProblems.Conflict(InsightsProblemTypes.QualityRunning, "Quality report already running", "A quality report for this track is already being made.");
 
     /// <summary>409 <c>setlist-empty</c>.</summary>
     /// <returns>The problem.</returns>
@@ -196,16 +195,13 @@ public static class InsightsProblems
     /// <param name="max">The limit.</param>
     /// <returns>The problem.</returns>
     public static IResult TooManySongs(int max) =>
-        PracticeFlowProblems.Conflict("too-many-songs", "Too many songs", $"A setlist handout can hold up to {max} songs.");
+        PracticeFlowProblems.Conflict(InsightsProblemTypes.TooManySongs, "Too many songs", $"A setlist handout can hold up to {max} songs.");
 
-    /// <summary>
-    /// 409 <c>jobs-active</c> (the existing 013 code, without <c>activeWork</c>): the song or setlist already has the most
-    /// handouts that are being made.
-    /// </summary>
+    /// <summary>409 <c>handouts-active</c>: the song or setlist already has the most handouts that are being made.</summary>
     /// <param name="max">The limit.</param>
     /// <returns>The problem.</returns>
     public static IResult HandoutsActive(int max) => PracticeFlowProblems.Conflict(
-        LibraryCareProblemTypes.JobsActive, "Handouts are being made", $"Up to {max} handouts of a song or setlist are made at a time; wait until one is ready.");
+        InsightsProblemTypes.HandoutsActive, "Handouts are being made", $"Up to {max} handouts of a song or setlist are made at a time; wait until one is ready.");
 
     /// <summary>503 <c>worker-unavailable</c> (nothing was stored).</summary>
     /// <returns>The problem.</returns>

@@ -97,10 +97,16 @@ public sealed partial class HandoutService(
 
     private async Task<IResult> SubmitAsync(Asset asset, HandoutDraft draft, bool added, CancellationToken cancellationToken)
     {
+        var request = new WorkerHandoutJobRequest(assembler.Document(draft.Handout), draft.Facts.Paper);
+        if (HandoutJobLimits.Refusal(HandoutJobLimits.Measure(request, NotationSizes(draft.Handout))) is { } tooLarge)
+        {
+            return HandoutProblems.Field("document", tooLarge);
+        }
+
         WorkerHandoutJob job;
         try
         {
-            job = await worker.CreateHandoutJobAsync(new WorkerHandoutJobRequest(assembler.Document(draft.Handout), draft.Facts.Paper), cancellationToken);
+            job = await worker.CreateHandoutJobAsync(request, cancellationToken);
         }
         catch (WorkerUnavailableException)
         {
@@ -115,6 +121,17 @@ public sealed partial class HandoutService(
         var kept = await SubmittedJob.KeepAsync(
             () => StoreAsync(asset, job.HandoutJobId, added), () => worker.DeleteHandoutJobAsync(job.HandoutJobId, CancellationToken.None), logger);
         return kept!;
+    }
+
+    private static Dictionary<string, long> NotationSizes(PlannedHandout handout)
+    {
+        var sizes = new Dictionary<string, long>(StringComparer.Ordinal);
+        foreach (var item in handout.Songs.SelectMany(song => song.Notation))
+        {
+            sizes[item.PdfPath] = item.SizeBytes;
+        }
+
+        return sizes;
     }
 
     /// <summary>Stores the item of an accepted job; no cancellation from here on (the job exists).</summary>

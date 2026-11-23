@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace StemStudio.Api.Worker;
 
 /// <summary>
@@ -86,7 +88,7 @@ public sealed partial class WorkerClient : IWorkerInsightsClient
     /// <summary>The JSON body <see cref="CreateHandoutJobAsync"/> sends (the worker's wire rules), for the job size limits.</summary>
     /// <param name="request">The request.</param>
     /// <returns>The UTF-8 body.</returns>
-    public static byte[] HandoutBody(WorkerHandoutJobRequest request) => [];
+    public static byte[] HandoutBody(WorkerHandoutJobRequest request) => JsonSerializer.SerializeToUtf8Bytes(request, Json);
 
     /// <inheritdoc />
     public Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken) =>

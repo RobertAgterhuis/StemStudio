@@ -51,6 +51,9 @@ public sealed record NotationItem
     /// <summary>Library path of the PDF (<c>assets/&lt;id&gt;/score.pdf</c>).</summary>
     public required string PdfPath { get; init; }
 
+    /// <summary>Size of the PDF in bytes (the handout job size limit).</summary>
+    public long SizeBytes { get; init; }
+
     /// <summary>The score's key, or null.</summary>
     public KeyInfo? Key { get; init; }
 

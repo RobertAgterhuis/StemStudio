@@ -82,10 +82,14 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
             return (null, HandoutProblems.SetlistNotFound(setlistId.Value));
         }
 
-        // At most the song limit is read: a longer setlist cannot be made (409 too-many-songs on create), so its options are
-        // those of the first songs and the request stays bounded.
+        // A longer setlist cannot be made (409 too-many-songs, as on create); nothing is read, so the request stays bounded.
+        if (setlist.Entries.Count > options.Value.MaxSetlistHandoutSongs)
+        {
+            return (null, InsightsProblems.TooManySongs(options.Value.MaxSetlistHandoutSongs));
+        }
+
         var songs = new List<(HandoutMaterial, Track)>();
-        foreach (var entry in setlist.Entries.Take(options.Value.MaxSetlistHandoutSongs))
+        foreach (var entry in setlist.Entries)
         {
             if (await tracks.FindAsync(entry.TrackId, cancellationToken) is { } track)
             {
