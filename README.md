@@ -210,6 +210,22 @@ chords; drum hits and the reference melody come from separated stems, so bleed c
 fingering is chosen by the computer. **Microphone privacy**: singing feedback runs entirely in the browser; neither
 the microphone audio nor the scores are sent to the server. Use headphones while singing.
 
+### Stem quality and lesson handouts (feature 020)
+
+- **Stem quality**: after every separation StemStudio rates each stem and detail stem (Good, Fair, Poor, Probably not
+  in this song, Not rated) with a short reason, the main bleed source and up to two tips with a button (Split further,
+  Open detail stem, Mute). The ratings are estimates made from the stems alone; until they are validated on real
+  multitrack music every rating is labelled a *rough indication*.
+- **Lesson handouts**: one click on the track page makes a PDF for one instrument family (Band overview, Vocals,
+  Guitar, Bass, Keys, Drums, Melodic instruments in C, B-flat, E-flat or F) with the song facts, the form chart with
+  bars, chords over the lyrics, the chord chart, the family's sheet music or tablature and your practice notes. The
+  PDF is kept in the library (Make again, Retry). A setlist handout makes one lesson PDF for up to 50 songs; the 014
+  **PDF for the stand** stays the quick print of a set.
+- **Practice notes**: one note per family per song, printed in that family's handout.
+
+The handout PDFs are made in the worker with WeasyPrint (BSD-3-Clause) and Pango/HarfBuzz from the image, without
+network access; every page carries "For personal practice and teaching only".
+
 ### AI composer agent (feature 011, optional)
 
 The **Agent** button in the header opens a panel on every page. The agent turns a command into a
@@ -433,6 +449,13 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 - **Library folders** are derived from names that come from online lookups and tags, so two bands
   with the same name share a folder until you rename one with library info. There are no artist
   photos, and no folder download or rename-a-whole-folder action.
+- **Stem quality** ratings are rough indications: they have only been checked on synthetic test songs (the check on
+  real multitrack music is pending). Artefacts are estimated from dropouts only (no "watery" flicker measure), and
+  instruments that hold notes together on the same beats can read as bleed. Tracks separated into 4 stems get no
+  quality report.
+- **Handouts**: at most 3 handouts of one song or setlist are made at a time, a setlist handout holds up to 50 songs,
+  and very large handouts are capped (600 sheet music pages; further sheet music is left out with a note). Sheet music
+  pages are pictures, so handouts are not fully accessible to screen readers.
 - **Lyric assistant.** The local model is weaker in Dutch than in English, a 40-line sheet takes
   roughly half a minute to a minute, and suggestions can be wrong or mislabel a deliberate choice:
   read each one before accepting. Only Dutch and English, sheets up to 4,096 characters. Lyrics that

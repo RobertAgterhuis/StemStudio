@@ -133,11 +133,38 @@ tracks, so every entry has a song (Phase 0; the planned `available` flag is drop
 `progress` 0..1, `error`, `result` (`HandoutResult` \| null), times. Lifecycle as 2.4.
 **HandoutResult**: `fileName` (`handout.pdf`), `contentType` (`application/pdf`), `sizeBytes`,
 `sha256`, `pages`, `outline` (string[]: bookmark titles in order), `warnings`
-(`HandoutWarning[]`: `code` (`missing-glyphs` \| `notation-scaled` \| `notation-unreadable`),
-`text`). File: `GET /v1/handout-jobs/{id}/file` (409 `handout-not-completed`).
+(`HandoutWarning[]`: `code` (`missing-glyphs` \| `notation-scaled` \| `notation-unreadable` \|
+`notation-omitted` \| `artwork-omitted`; the last two additive at integration, orchestrator 16:14), `text`). File: `GET /v1/handout-jobs/{id}/file` (409 `handout-not-completed`).
 
 Error texts: "A notation file could not be read: <title>" (the page is replaced by a note, warning
 `notation-unreadable`, job still completes); "The handout could not be written" (fail).
+
+**Job limits** (security fixes, orchestrator 16:14; the API mirrors the request limits in
+`ContractLimits` and refuses before it submits, `422` on the field `document`):
+
+| Limit | Value | When it is exceeded |
+|---|---|---|
+| request body | 8 MiB | refused (`422`) |
+| text of the document | 500,000 characters | refused (`422`) |
+| layout cells (sections, bars, chords, legend chords, lyric lines and their chords, setlist entries) | 30,000 | refused (`422`) |
+| notation PDFs of one request, together | 128 MiB | refused (`422`) |
+| notation pages per handout (frames) | 600 | further items become a note page, warning `notation-omitted`: "A notation file was left out because the handout reached its size limit: <title>" |
+| notation bytes per handout while rendering | 128 MiB | as above |
+| parsing a notation PDF (pypdf) | 200,000 tokens per content stream, 16 MiB per decoded stream; at most 50,000 resource objects per page; resources stripped to drawing keys (no actions, files or metadata) | the file counts as unreadable (`notation-unreadable`) |
+| artwork | JPEG only, at most 40 megapixels | left out, warning `artwork-omitted`: "The cover picture was left out because it is not a JPEG or is larger than 40 megapixels: <song>" |
+| render time | 240 s | the job fails with "The handout could not be written" |
+
+The API caps the handouts that are made at the same time at **3 per song or setlist** (`409
+handouts-active`: "Up to 3 handouts of a song or setlist are made at a time; wait until one is
+ready."; a Retry is not counted) and a setlist handout at `StemStudio:MaxSetlistHandoutSongs`
+songs (`409 too-many-songs` on create and on the options: "A setlist handout can hold up to 50
+songs.").
+
+**Write gate** (orchestrator 17:05, correcting 16:05): requesting a quality report, creating a
+handout and setting a practice note are **not** gated during a backup or restore. The project
+policy (013 data-model 5.2) gates only operations that delete or replace library files; database
+edits, job starts and new assets are allowed. The maintenance answer (`503` while a restore
+switches the library) still covers them.
 
 ### 2.6 Fake analyzer (E2E determinism)
 
@@ -179,30 +206,67 @@ hop 512, Hann; 64 mel bands 30 Hz-11 kHz; power `P(t,b)`; `L = 10 log10(P + 1e-1
 `M` is the sum of the six standard stems in the time domain before the STFT. Activity: a frame is
 active when the broadband level is above `max(-50 dBFS, stem peak - 40 dB)` (002 gate family).
 
-### 4.2 Bleed (B2 with guard)
+### 4.2 Bleed (B2 with the ratio-floor guard)
 
 For stem i and every other standard stem j (detail stems: every other *standard* stem and the
-siblings in the same parent): per band, `g = max(0, <P_i, P_j> / <P_j, P_j>)` over j's active
-frames (closed-form non-negative scalar least squares); `g_quiet` the same over frames where
-`L_i <= L_j - 15 dB`; `g* = min(g, g_quiet)`; leakage `E_ij = sum_tb g*_b P_j(t,b)`; share
-`s_ij = E_ij / sum_tb P_i(t,b)`, clipped to 0..1. `index = max_j s_ij`, `mainSource = argmax`.
+siblings in the same parent; a sibling counts as the parent stem, so `mainSource` is always a
+standard stem), per band b over j's active frames:
+
+- `g_b = max(0, <P_i, P_j> / <P_j, P_j>)` (closed-form non-negative scalar least squares);
+- `floor_b` = the 5th percentile of `P_i / P_j` over j's **loud cells** (j active and
+  `L_j >= peak_b(j) - 20 dB`): the ratio floor. Bleed is a constant-ratio copy, so it shows in
+  every loud cell of j; joint playing does not. This replaces the quiet-frame fit `g_quiet` of
+  the plan (orchestrator 2026-11-23 14:40, Q1: Spearman 0.95 against 0.81 on V1, same cost);
+- `g*_b = min(g_b, floor_b, 1)`: the gain is capped at 1 (`thresholds.MAX_GAIN`, orchestrator
+  15:33, Q3), so a source never counts louder in i than it is itself;
+- leakage `E_ij = sum_b g*_b sum_t P_j(t,b)`; share `s_ij = E_ij / sum_tb P_i(t,b)`, clipped to
+  0..1. `index = max_j s_ij`, `mainSource = argmax`. The index is an energy share, so it grows
+  with the square of the bleed amplitude.
+
+Constants (`insights/thresholds.py`, `ANALYZER_VERSION` 1.0.0): `LOUD_RANGE_DB` 20,
+`FLOOR_PERCENTILE` 5, `MAX_GAIN` 1, `CO_OCCURRENCE_RATIO` 2; levels T1 **0.0065**, T2 **0.053**
+(V1 2026-11-23, seeds 7/11/23: Spearman 0.94/0.97/0.91, levels correct 93/87/87 %).
+
+**Known limit** (orchestrator 15:33, Q3 (a)): instruments that sustain together on the same grid
+(the dense V1 control song, every family all the time) can read as bleed: 1 of 6 stems was
+falsely High (guitar 0.080 from bass). The control test stays a strict `xfail` until G1 on real
+music decides; the labels stay `indicative`.
 
 ### 4.3 Co-occurrence guard
 
-Pairs {drums, bass}, {guitar, other}, {piano, other}, {guitar, piano}: when `g / g_quiet > 2` the
-level is capped at `medium` and `coOccurrence = true`.
+Pairs {drums, bass}, {guitar, other}, {piano, other}, {guitar, piano}: when the share of the
+full fit (`g`) divided by the share of the guarded fit (`g*`) is above 2 the level is capped at `medium` and
+`coOccurrence = true` (reason `bleed-together`). On V1 the playing-together control (kick and
+bass on the same onsets) never reached High.
 
 ### 4.4 Artefacts
 
-A1 flicker ratio and A2 dropout ratio as research.md R-03, each divided by the mix's value
-(floor 1e-3), mapped to 0..1 with `x / (x + K)` (K calibrated); `index = max`. Detail stems add
-`model-residual` when the parent's `modelResidualDb > -20` and `rest-share` when the parent's
-`rest` energy share > 0.25 (rest stems themselves get `rest-share` from the same value).
+**A2 dropouts only** (orchestrator 15:33): A1 flicker is **not shipped** and does not feed the
+level (on V1 it stayed flat after the fixed injection and the 1 h redesign; its scale differs about
+tenfold per family, so no family-neutral thresholds exist). The kind `flicker` stays in the
+contract enum (the fake analyzer still emits it, 2.6) but the signal analyzer never reports it.
+
+A2 works on the 23 ms block envelope and judges **every family against its own envelope**
+(orchestrator 14:40, Q2: each family counts equally, not only drums). A hole is a run of blocks
+that:
+
+- lies more than 30 dB below the median of its +-0.5 s neighbourhood (43 blocks);
+- lasts at most 13 blocks (0.3 s);
+- **falls abruptly**: the maximum of the two blocks before it minus its first block is at least
+  25 dB;
+- **recovers abruptly**: the maximum of the two blocks after it minus its last block is at least
+  25 dB (natural decays fall slowly and are not holes).
+
+Share = hole blocks / active frames; `x = share / max(mix share, 1e-3)`; `index = x / (x + 50)`.
+Levels T1 0.35, T2 **0.62** (V1: Spearman 0.96, 100 % correct; clean stems of every family 0).
+Kind `dropouts` when the level is at least `medium`. Detail stems add `model-residual` when the
+parent's `modelResidualDb > -20` and `rest-share` when the parent's `rest` energy share > 0.25
+(rest stems themselves get `rest-share` from the same value).
 
 ### 4.5 Levels and rating
 
-`low` < T1 <= `medium` < T2 <= `high` per dimension (T1/T2 calibrated on V1, initial guesses: bleed
-0.10/0.30, artefacts 0.35/0.65). A dimension that was **measured and failed** G1 reports `unknown`
+`low` < T1 <= `medium` < T2 <= `high` per dimension (T1/T2 calibrated on V1: bleed 0.0065/0.053,
+artefacts 0.35/0.62; the plan's initial guesses were 0.10/0.30 and 0.35/0.65). A dimension that was **measured and failed** G1 reports `unknown`
 instead of `low`/`medium` (only `high` is shown). A dimension not measured yet (Phase 0: G1 not
 run) is `indicative` and reports all levels; guitar, piano, detail and rest stems are always
 `indicative`. Rating, in order: `activeSeconds < 10` -> `unknown`;

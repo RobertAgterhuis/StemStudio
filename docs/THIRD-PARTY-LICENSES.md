@@ -110,9 +110,11 @@ SoundTouch code; they load the module through the documented ABI (`third_party/s
 | WeasyPrint (lesson handout PDFs, HTML + CSS paged media; feature 020, ADR-029 D7) | 70.0 | BSD-3-Clause | https://github.com/Kozea/WeasyPrint |
 | pydyf / tinyhtml5 (via WeasyPrint) | 0.13.0 / 2.1.0 | BSD-3-Clause / MIT | https://github.com/CourtBouillon/pydyf, https://github.com/CourtBouillon/tinyhtml5 |
 | Pyphen (hyphenation, via WeasyPrint; used under the MPL-1.1 option of its GPL-2.0+/LGPL-2.1+/MPL-1.1 tri-licence) | 0.18.1 | **MPL-1.1** (tri-licence) | https://github.com/Kozea/Pyphen |
-| fontTools[woff] + brotli + zopfli (via WeasyPrint, **now also in the runtime image**; feature 020) | 4.68.0 / locked / 0.4.3 | MIT / MIT / Apache-2.0 | https://github.com/fonttools/fonttools |
+| fontTools[woff] + brotli + zopfli (via WeasyPrint, **now also in the runtime image**; fontTools is also imported directly: the handout missing-glyph check reads the font cmap; feature 020) | 4.68.0 / 1.2.1 / 0.4.3 | MIT / MIT / Apache-2.0 | https://github.com/fonttools/fonttools, https://github.com/google/brotli, https://github.com/fonttools/py-zopfli |
+| threadpoolctl (imported directly: caps the BLAS threads of the `insights` lane, `STEMSTUDIO_INSIGHTS_THREADS`; feature 020; also via scikit-learn) | 3.8.0 | BSD-3-Clause | https://github.com/joblib/threadpoolctl |
 | Jinja2 + MarkupSafe (handout templates with autoescape; feature 020; were transitive, now direct) | 3.1.6 / 3.0.4 | BSD-3-Clause | https://github.com/pallets/jinja |
-| Pango + HarfBuzz (Debian `libpango-1.0-0`, `libpangoft2-1.0-0`; system libraries WeasyPrint loads unmodified; feature 020, both worker variants) | distro (Pango >= 1.44) | **LGPL-2.1-or-later** / MIT | https://gitlab.gnome.org/GNOME/pango, https://github.com/harfbuzz/harfbuzz |
+| Pango (Debian `libpango-1.0-0`, `libpangoft2-1.0-0`; system libraries WeasyPrint loads unmodified through cffi; feature 020, both worker variants) | Debian 13 (1.56.3) | **LGPL-2.1-or-later** | https://gitlab.gnome.org/GNOME/pango |
+| HarfBuzz (Debian `libharfbuzz0b` via Pango, and `libharfbuzz-subset0` for WeasyPrint's font subsetting; unmodified system libraries; feature 020, both worker variants) | Debian 13 (10.2.0) | MIT ("Old MIT") | https://github.com/harfbuzz/harfbuzz |
 | Archivo (handout font, copied from `src/StemStudio.Web/wwwroot/fonts/archivo/` into the worker package; feature 020) | as the app | OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
 
 | onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |

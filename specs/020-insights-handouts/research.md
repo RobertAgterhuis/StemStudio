@@ -54,6 +54,18 @@ Edge Cases).
 in this song"; B1 is computed in the Phase 0 validation as a challenger and replaces B2 only if
 it ranks better on V1 and V2 (recorded in research).
 
+**Wave outcome (2026-11-23, beat-analysis us1 hand-off; orchestrator 14:40 and 15:33)**: the
+quiet-frame fit is replaced by a **ratio floor**: per band, the 5th percentile of `P_i / P_j`
+over the source's loud cells (j active and within 20 dB of its band peak); the guarded gain is
+`g* = min(g, floor, 1)`, so the gain is also capped at 1 (`thresholds.MAX_GAIN`). Same idea (bleed
+is a constant-ratio copy, present in every loud cell of the source), same cost, better ranking on
+V1 (Spearman 0.95 against 0.81). The co-occurrence cap compares the full and the guarded share
+(ratio above 2). Thresholds from V1: T1 0.0065, T2 0.053 (an energy share, so far below the plan's
+guesses 0.10/0.30). Known limit: instruments that sustain together on one grid (the dense control
+song) can read as bleed (1 of 6 stems falsely High); the control stays a strict `xfail` and the
+labels stay `indicative` until G1 runs on real music. B1 was not needed as a challenger. Binding
+formulas: data-model 4.2-4.3.
+
 ## R-03 Artefact measures (candidates and choice)
 
 | Id | Measure | Idea |
@@ -66,6 +78,17 @@ it ranks better on V1 and V2 (recorded in research).
 **Decision**: artefact index = max(normalised A1, normalised A2), plus A3 as artefact *kinds* for
 detail stems. Normalisation constants and level thresholds are calibrated in Phase 0 on V1 and
 become constants in the worker's `insights/thresholds.py`; any change bumps `analyzerVersion`.
+
+**Wave outcome (2026-11-23, orchestrator 14:40 and 15:33)**: **A1 flicker is not shipped.** The
+fixed musical-noise injection still left it flat, and the 1 h redesign (a stem-only dip statistic)
+rose for 5 of 6 families but with scales about tenfold apart per family (clean vocals already
+1.5-1.8 per mille), so no family-neutral threshold exists. The artefact level is **A2 dropouts
+only**, and the labels stay `indicative`. A2 judges every family against its own envelope: a hole
+lies more than 30 dB below the +-0.5 s median, lasts at most 0.3 s, and both falls and recovers by
+at least 25 dB within two 23 ms blocks (natural decays are slow, so they are not holes);
+`index = x / (x + 50)` with `x` the stem's share over the mix's share (floor 1e-3). Thresholds from
+V1: T1 0.35, T2 0.62 (Spearman 0.96, 100 % of the levels correct, clean stems of every family 0).
+A3 unchanged. Binding formulas: data-model 4.4.
 
 ## R-04 Validation protocol and gate G1 (P0)
 
@@ -267,6 +290,19 @@ G1 (data-model 4.5). V1 (synthetic, committed) still gates the thresholds (SC-00
 | No network | **WeasyPrint 70 changed the fetcher API**: `url_fetcher` must be an instance of a subclass of `weasyprint.urls.URLFetcher` overriding `fetch(url, headers=None)` and returning `URLFetcherResponse` (a plain function fails with `AttributeError: _fail_on_errors`). The spike's subclass served only packaged files and refused `https://example.com/x.png` (recorded, rendering continued). Use `allowed_protocols=("file",)` as a second guard. |
 
 Typst stays the recorded fallback; it is not needed.
+
+### Wave measurements (2026-11-23)
+
+| What | Result | Source |
+|---|---|---|
+| V1 bleed (30 ordered pairs x 4 amounts, index = max over sources), `arranged_song` seeds 7/11/23 | Spearman 0.94/0.97/0.91; levels correct 93/87/87 %; `mainSource` correct 100 % at amount >= 0.1 | beat-analysis us1 hand-off, `test_validation_v1.py` |
+| V1 playing-together control (kick and bass on the same onsets) | never High (co-occurrence cap) | same |
+| V1 dense same-grid control (every family all the time) | 1 of 6 stems falsely High (guitar 0.080 from bass); strict `xfail`, known limit | same |
+| V1 dropouts, 6 families x 3 amounts | Spearman 0.96, 100 % correct; clean stems 0 | same |
+| G1 (T039) | **pending dataset** (MUSDB18-HQ); harness `tests/insights/g1.py` ready, skips without `STEMSTUDIO_MUSDB_DIR` | same |
+| SC-001 analysis time (T103), 5-min song, 6 standard + 12 detail stems, CPU only (Core Ultra 9 285K) | 14.7 s with default BLAS threads, **12.8 s** with 4 threads (budget 30 s) | beat-analysis polish hand-off |
+| SC-004 render time (T104), worker image | song handout 7 pages **0.67 s** (budget 15 s); 20-song setlist 123 pages **2.98 s** (budget 90 s); a 50-song request at 96 % of the text and cell limits 35 s | audio-ingest polish hand-off |
+| Notation PDF bomb (security fix) | 10 pages x 1.8 M tokens: 373 s before, unreadable after 0.26 s with the parse limits | audio-ingest polish hand-off |
 
 ### Not measured in Phase 0
 
