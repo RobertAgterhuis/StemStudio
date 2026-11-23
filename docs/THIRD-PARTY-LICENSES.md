@@ -3,7 +3,7 @@
 StemStudio uses only open-source components with OSI-approved licences (constitution IV). This
 file is CTO-owned and consolidated from the agents' hand-off notes. Exact versions are pinned in
 `Directory.Packages.props`, `worker/uv.lock`, `src/audio-engine/package-lock.json`,
-`e2e/package-lock.json`, `tools/quality/` and `dotnet-tools.json`. CI produces a machine-generated
+`e2e/package-lock.json`, `tools/quality/` and `.config/dotnet-tools.json`. CI produces a machine-generated
 licence report (pip-licenses, nuget-license, license-checker) as a build artifact.
 
 ## Runtime: .NET (API + Web)
@@ -300,6 +300,7 @@ says why it is off.
 | Shouldly | 4.3.0 | BSD-3-Clause |
 | YamlDotNet | 18.1.0 | MIT |
 | dotnet-ef (local tool) | 10.0.15 | MIT |
+| dotnet-affected (local tool, affected builds; refactor proposal 001) | 7.0.1 | MIT |
 | pytest, pytest-cov, pytest-timeout | 9.2.0 / 7.1.0 / 2.4.0 | MIT |
 | httpx, jsonschema, PyYAML | 0.28.1 / 4.26.0 / 6.0.3 | BSD-3-Clause / MIT / MIT |
 | ruff, mypy (+ types-* stubs) | 0.17.5 / 2.4.1 | MIT (stubs Apache-2.0) |

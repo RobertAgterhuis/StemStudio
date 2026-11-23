@@ -60,6 +60,10 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 
 - Every stack in CI or E2E gets its own temporary folders with the right owner (uid 1654 on
   Linux); Windows bind mounts show 777, so ownership checks apply to Linux only. (013)
+- A new step in `test-all.*` goes below the right `group` line, and a new top-level folder or
+  input needs a rule in `scripts/affected/components.json`; an unmapped file makes every
+  `--affected` run full, and the map test fails on a tracked file that no rule covers. Python on
+  Windows prints CRLF: strip `\r` before a shell parses its output. (proposal 001)
 
 ## Integration (CTO)
 

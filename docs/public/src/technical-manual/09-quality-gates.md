@@ -127,6 +127,28 @@ the **documentation check** (`node tools/docs/check.mjs`, chapter 12); from 012 
 contract lint and superset check, the emsdk pin check and, when the module is built,
 `test:wasm`. `-Gpu` adds the fake GPU passes.
 
+### Affected runs (lane checkpoints)
+
+```
+./scripts/test-all.ps1 -Affected [-From <ref>]     # Windows (PowerShell 7)
+scripts/test-all.sh --affected [--from <ref>]       # Linux, macOS
+```
+
+`--affected` runs only the step groups a change needs. `scripts/affected_select.py` lists the
+files changed since the base (default: the merge-base with `main`; uncommitted and untracked files
+count too), maps them to step groups through `scripts/affected/components.json` (with the
+cross-component edges, for example a contract change also runs the .NET, worker, generator,
+engine and E2E-lint checks) and narrows the .NET projects with the pinned local tool
+`dotnet-affected` (`.config/dotnet-tools.json`) plus the test projects that read non-.NET files.
+The .NET steps then build, format and test a solution filter of those projects; each affected
+test project keeps its 90 % gate. The script prints every group with `run` or `skip` and the
+reason. The run is full when a changed file is on `.claude/tipoca/affected/always-build.txt`
+(for example `Directory.Packages.props`, `global.json`, `.editorconfig`, the CI files, the
+selector itself), when a changed file matches no rule, when the base is missing or when the
+analysis fails; nothing changed means no step runs. Lanes use it for checkpoint runs;
+integration and the pre-merge run stay full (no switch). On pull requests CI uses the same
+selection per job; a push to `main` and a manual run stay full.
+
 ## Licence gate
 
 The CI job `licences` reports the licences of NuGet, Python and npm packages. Every new

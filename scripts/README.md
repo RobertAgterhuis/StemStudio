@@ -62,7 +62,8 @@ them to another disk or computer to keep a copy elsewhere.
 | `check-worker-fonts.{sh,ps1}` | Leipzig music font in the worker image (008) |
 | `check-soundtouch-served.{sh,ps1}` | the web serves SoundTouch WASM and its notices (012) |
 | `check-cpu-image.{sh,ps1}`, `image-licences.{sh,ps1}` | CPU image without CUDA, image licence report |
-| `test-all.{sh,ps1}` | every test suite of the repository |
+| `test-all.{sh,ps1}` | every test suite of the repository; `--affected [--from <ref>]` (`-Affected [-From]`) only what a change needs |
+| `affected_select.py` (`affected/components.json`) | affected selection for test-all and CI: changed paths to step groups, dotnet-affected for .NET (proposal 001) |
 
 The Python checks are tested in `scripts/tests` (`scripts/pyproject.toml`, >= 90 % line and
 branch coverage in CI).
