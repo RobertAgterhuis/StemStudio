@@ -32,6 +32,11 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>Completed tracks whose quality report is queued or running, for the quality synchroniser (oldest first, feature 020).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListQualityActiveAsync(CancellationToken cancellationToken);
+
     /// <summary>
     /// True when the stored detail phase of <paramref name="track"/> still equals the tracked one: no other unit of work
     /// changed it since this one loaded the track (a cancel during a synchroniser pass).

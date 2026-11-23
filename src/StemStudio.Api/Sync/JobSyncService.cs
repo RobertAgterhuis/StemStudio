@@ -14,7 +14,7 @@ namespace StemStudio.Api.Sync;
 /// <see cref="TimeProvider"/> it fails orphaned imports (<see cref="OrphanedImportSweeper"/>), runs one
 /// <see cref="ITrackSynchronizer"/> pass, one <see cref="DetailSynchronizer"/> pass and one <see cref="MetadataSynchronizer"/> pass
 /// (feature 005), one <see cref="LyricsSynchronizer"/> pass (feature 006) and one <see cref="AssetSynchronizer"/> pass (feature 007), the 014 section and score view passes and the 016
-/// <see cref="AnalysisJobApplier"/> pass,
+/// <see cref="AnalysisJobApplier"/> pass and the 020 quality report pass,
 /// in a new scope.
 /// </summary>
 /// <param name="scopes">Scope factory.</param>
@@ -40,5 +40,6 @@ public sealed class JobSyncService(
         await services.GetRequiredService<SectionJobApplier>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<ScoreViewJobApplier>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<AnalysisJobApplier>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<Insights.QualityJobApplier>().SyncAllAsync(cancellationToken);
     }
 }

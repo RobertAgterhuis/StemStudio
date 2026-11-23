@@ -40,6 +40,17 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListQualityActiveAsync(CancellationToken cancellationToken)
+    {
+        // The report is one JSON column; its status is filtered in memory (a local library has few tracks).
+        var withReport = await context.Tracks
+            .Where(track => track.Status == TrackStatus.Completed && track.QualityReport != null)
+            .OrderBy(track => track.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return withReport.Where(track => track.IsQualityActive).ToList();
+    }
+
+    /// <inheritdoc />
     public async Task<bool> IsDetailPhaseCurrentAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);

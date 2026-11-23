@@ -1,4 +1,5 @@
 using StemStudio.Api.Handouts.Sources;
+using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 
 namespace StemStudio.Api.Insights;
@@ -16,15 +17,30 @@ public static class InsightsRegistration
     public static IServiceCollection AddInsights(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        services.AddOptions<InsightsOptions>().Bind(configuration.GetSection(InsightsOptions.SectionName));
         services.AddServiceClient<IWorkerInsightsClient, WorkerClient>(
             configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
-        return services.AddHandoutSources();
+        return services.AddQuality().AddHandoutSources();
     }
 
     /// <summary>Maps the 020 endpoints.</summary>
     /// <param name="app">Endpoint builder.</param>
     /// <returns>The builder.</returns>
-    public static IEndpointRouteBuilder MapInsightsEndpoints(this IEndpointRouteBuilder app) => app;
+    public static IEndpointRouteBuilder MapInsightsEndpoints(this IEndpointRouteBuilder app) => app.MapQualityEndpoints();
+
+    private static IServiceCollection AddQuality(this IServiceCollection services)
+    {
+        services.AddSingleton<QualityGate>();
+        services.AddSingleton<AnalyzerVersionCache>();
+        services.AddScoped<QualityInputs>();
+        services.AddScoped<QualityTips>();
+        services.AddScoped<QualityView>();
+        services.AddScoped<QualityService>();
+        services.AddScoped<QualityJobApplier>();
+        services.AddScoped<QualityTrigger>();
+        services.AddScoped<ITrackCompletionHook>(provider => provider.GetRequiredService<QualityTrigger>());
+        return services.AddScoped<IDetailCompletionHook>(provider => provider.GetRequiredService<QualityTrigger>());
+    }
 
     private static IServiceCollection AddHandoutSources(this IServiceCollection services)
     {

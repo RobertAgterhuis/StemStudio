@@ -11,7 +11,8 @@ namespace StemStudio.Api.InstrumentViews;
 /// drums split shows drum hits <c>unavailable</c>) and <c>key</c> (the 2.8 summary of ready chords, else absent).
 /// </summary>
 /// <param name="analyses">Analyses.</param>
-public sealed class TrackViewsProjection(ITrackAnalysisRepository analyses)
+/// <param name="quality">The quality badge (feature 020, <c>Track.quality</c>).</param>
+public sealed class TrackViewsProjection(ITrackAnalysisRepository analyses, Insights.QualityView quality)
 {
     /// <summary>The DTOs with their instrument view fields.</summary>
     /// <param name="items">Tracks with their DTOs.</param>
@@ -23,11 +24,12 @@ public sealed class TrackViewsProjection(ITrackAnalysisRepository analyses)
         var ids = items.Select(item => item.Track.Id).ToList();
         var statuses = (await analyses.StatusesAsync(ids, cancellationToken)).ToLookup(row => row.TrackId);
         var chords = await analyses.ReadyChordsAsync(ids, cancellationToken);
-        return items.Select(item => item.Dto with
+        var withViews = items.Select(item => (item.Track, item.Dto with
         {
             InstrumentViews = Statuses(item.Track, statuses[item.Track.Id].ToList()),
             Key = chords.TryGetValue(item.Track.Id, out var ready) ? KeySummary(ready) : null,
-        }).ToList();
+        })).ToList();
+        return await quality.WithBadgesAsync(withViews, cancellationToken);
     }
 
     /// <summary>The key summary of a ready chord analysis (null without a key).</summary>
