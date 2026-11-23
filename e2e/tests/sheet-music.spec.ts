@@ -5,6 +5,7 @@ import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { expect, test } from '../support/test';
 import { clefs, crossNoteheads, expectedFakeBars, fifths, isMidi, isPdf, measureCount, noteTypes, staves, timeSignature, unpitchedNotes, voices, type GridDto } from '../support/musicxml';
 import type { ScoreApi } from '../support/score-api';
+import { ensureSettledTrack } from '../support/settled-track';
 
 // Feature 008 US1-US5 (008:T045, T050, T056, T065, T070; FR-001..FR-010; SC-003; quickstart
 // M3-M8). Fake stack: the fake transcriber plays one note per beat of the track's real grid
@@ -25,9 +26,10 @@ async function readyScore(assetsApi: AssetsApi, scoreApi: ScoreApi, id: string):
   return scoreApi.musicXml(id);
 }
 
-test.beforeEach(async ({ api, scoreApi }) => {
-  test.setTimeout(fakeJobTimeoutMs + 3 * scoreMs);
-  track = await api.ensureCompleted('music_100bpm_20s.flac', fakeJobTimeoutMs);
+test.beforeEach(async ({ api, metadataApi, scoreApi }) => {
+  test.setTimeout(2 * fakeJobTimeoutMs + 3 * scoreMs);
+  // Settled lookup: a later lookup re-files the saved item and the confirmation link opens an empty folder.
+  track = await ensureSettledTrack(api, metadataApi, 'music_100bpm_20s.flac', fakeJobTimeoutMs);
   await scoreApi.requireFeature(track.id);
 });
 
