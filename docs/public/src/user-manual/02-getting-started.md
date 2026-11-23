@@ -34,6 +34,25 @@ all three services are healthy, open **http://localhost:8080** in your browser.
 - To start again later, run `docker compose up` (without `--build` unless you updated
   StemStudio).
 
+### Only this computer can open StemStudio
+
+StemStudio answers only on this computer: **http://localhost:8080** works here, but a
+phone, tablet or other computer in your network cannot open it. That is on purpose: your
+library, backups and the AI agent (with your Claude key) stay out of reach of other devices,
+for example on a shared or public Wi-Fi network.
+
+If you really want to reach StemStudio from another device, set `STEMSTUDIO_BIND_ADDRESS`
+before you start it, for example `STEMSTUDIO_BIND_ADDRESS=0.0.0.0 docker compose up`
+(or uncomment the line in your `.env` file). Also add the address the other device uses to
+`STEMSTUDIO_API_ALLOWED_HOSTS`, for example
+`STEMSTUDIO_API_ALLOWED_HOSTS=localhost;127.0.0.1;[::1];api;192.168.1.10`; without it
+the API (port 8081) answers that device with *Bad Request*. Only do this on a network you trust: every
+device in that network can then reach your songs and backups, and can replace or delete the
+Claude key you stored in Settings. Song playback on the other device needs more set-up (see the
+technical manual, "Network exposure"); a supported tablet remote is planned. Remove the
+settings and start again with `docker compose up -d` to close it. Recording (chapter 11) and
+entering the Claude key (chapter 21) still work only on the computer itself.
+
 > **Important:** `docker compose down -v` deletes **all** your tracks, stems, mixes and the
 > downloaded models. Only use it when you really want to start from scratch.
 

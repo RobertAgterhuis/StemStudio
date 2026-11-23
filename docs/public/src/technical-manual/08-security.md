@@ -6,11 +6,21 @@ feature 011, text that a language model reads or writes.
 
 ## Network exposure
 
-- Only the web app (8080) and the API (8081) have host ports. The worker, generator and
+- Only the web app (8080) and the API (8081) have host ports, and only on `127.0.0.1`
+  (refactor 004; `STEMSTUDIO_BIND_ADDRESS` opens them on purpose). The worker, generator and
   singer are reachable only on the compose network.
 - There is no authentication. **Do not expose the ports to the internet** or to an untrusted
   network.
 - The API's CORS policy allows only `GET` from the configured web origin (stem streaming).
+- The API answers `400` to a `Host` outside `StemStudio__AllowedHosts` (default `localhost`,
+  `127.0.0.1`, `[::1]`, `api`), so a DNS-rebinding page cannot read the library (refactor 003).
+- A state-changing `/api` request is refused (`403`) when it is marked `Sec-Fetch-Site:
+  cross-site`, when its `Origin` is not the web origin, or when it has no (or an empty) `Origin`
+  and the TCP peer is neither loopback nor the `web` service. Only the socket address counts:
+  `X-Forwarded-For`, `Forwarded` and `X-Real-IP` are never read. Reads (`GET`) are not checked.
+- These are browser defences, not authentication: a non-browser client can send any `Host` and
+  `Origin`. Against other devices the defence is the `127.0.0.1` binding; outside Docker the API
+  warns at start-up (`ApiListensBeyondLoopback`, 4106) when it listens beyond loopback.
 
 ## Input validation
 
@@ -40,7 +50,7 @@ stored encrypted with Data Protection; never logged, returned or stored in plain
 | The `api-data` volume (also the worker's read-only `/library` mount) | yes | `api-keys` is mounted only into `api` |
 | Logs, problem details, SSE events, screenshots, password managers | yes | write-only API, fixed problem texts, HTTP logging off for the route, `autocomplete="off"`, the page never renders the value |
 | A malicious web page in the owner's browser (CSRF) | yes | `PUT`/`DELETE` need a CORS preflight; the API allows only `GET` from the web origin (pinned by a test) |
-| Another LAN device before feature 018 | partly | it can never read the key; direct API calls and forwarded headers are refused (peer must be loopback or the `web` service); through the Web page a forged host name can overwrite or delete the stored key. Accepted until 018 binds the ports to `127.0.0.1` |
+| Another LAN device before feature 018 | yes by default, partly when opened | the ports are published on `127.0.0.1` only (refactor 004). With `STEMSTUDIO_BIND_ADDRESS` opened it can never read the key; direct API calls and forwarded headers are refused (peer must be loopback or the `web` service); through the Web page a forged host name can overwrite or delete the stored key (T7) |
 | Full host access (admin/root, Docker Desktop's VM disk, a disk image, malware running as the owner) | **no** | with the database and the key ring the key can be decrypted; on Linux the ring is not encrypted at rest; DPAPI does not stop malware running as the Windows user |
 | Memory of the running API or Web process | **no** | the key is in memory while a Claude client exists and briefly in the Blazor circuit during entry |
 | Lost key volume, restore on another computer | availability only | `stored-unreadable` with "Enter the key again" |

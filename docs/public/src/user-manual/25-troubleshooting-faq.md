@@ -7,6 +7,12 @@
 - The health pages http://localhost:8080/health and http://localhost:8081/health should
   answer *ok*.
 - Ports 8080 and 8081 must be free. Close other programs that use them.
+- Another device in your network cannot open StemStudio: that is on purpose (see
+  *Getting started*, "Only this computer can open StemStudio"). When port 8081 answers only
+  *Bad Request*, the address you used is not in `STEMSTUDIO_API_ALLOWED_HOSTS`; on this
+  computer use http://localhost:8081.
+- A script or tool that changes data through http://localhost:8081 gets *403 Cross-site request
+  refused*: send the header `Origin: http://localhost:8080` with the request.
 
 ## An import is refused or fails
 

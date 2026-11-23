@@ -19,6 +19,13 @@ The versions above are the first deliveries. The current labels (backend API 1.1
 
 ## Backend API (port 8081)
 
+Two app-wide rules apply before any endpoint (refactor 003, chapter 8 "Network exposure"): a
+`Host` outside `StemStudio__AllowedHosts` gets `400` (plain text, from ASP.NET Core host
+filtering), and a state-changing `/api` request gets `403` (problem *Cross-site request refused*)
+with a foreign `Origin`, with `Sec-Fetch-Site: cross-site`, or without an `Origin` from a peer
+that is neither loopback nor the `web` service. Clients outside the Web app send
+`Origin: http://localhost:8080`.
+
 | Method and path | Purpose |
 |---|---|
 | `GET /health` | Liveness |
