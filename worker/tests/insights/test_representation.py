@@ -219,3 +219,24 @@ def test_input_at_the_analysis_rate_is_not_resampled(tmp_path: Path) -> None:
     in_memory = rep.spectrogram_of(tone, QUALITY_SAMPLE_RATE)
     assert from_file.frames == in_memory.frames
     np.testing.assert_allclose(from_file.power, in_memory.power, rtol=1e-3, atol=1e-9)
+
+
+def test_a_truncated_flac_raises_quality_error_without_the_full_path(tmp_path: Path) -> None:
+    good = write_stem(tmp_path / "whole.flac", song(seconds=4.0)["bass"])
+    cut = tmp_path / "cut.flac"
+    cut.write_bytes(good.read_bytes()[: good.stat().st_size // 3])
+    try:
+        spec = rep.read_spectrogram(cut)
+    except QualityAnalysisError as error:
+        assert str(error) == "A stem could not be read: cut.flac"  # no folder names leak
+    else:  # libsndfile may stop early at the cut: then fewer frames, never a crash
+        assert spec.frames < rep.read_spectrogram(good).frames
+
+
+def test_many_channels_are_mixed_down(tmp_path: Path) -> None:
+    tone = _sine(1_000.0, 1.0)
+    path = tmp_path / "eight.wav"
+    sf.write(path, np.repeat(tone[:, None], 8, axis=1), SR, subtype="PCM_24")
+    spec = rep.read_spectrogram(path)
+    reference = rep.spectrogram_of(tone, SR)
+    np.testing.assert_allclose(spec.power, reference.power, rtol=1e-3, atol=1e-9)
