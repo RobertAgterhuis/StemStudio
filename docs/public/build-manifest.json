@@ -1,27 +1,27 @@
 {
   "schema": 1,
   "builtAt": "2026-11-23",
-  "sourceHash": "22071cc5f5528aa28cb0d3cb411764c913ba68efe2d5df4a7937edf7f2165817",
+  "sourceHash": "faa1133ba5bdfbfbf00ac3ca9dc1921f6b701933b544b73894c3c3d277f688f9",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
-      "pages": 63,
-      "bytes": 2420078
+      "pages": 66,
+      "bytes": 2592055
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
-      "pages": 84,
-      "bytes": 2133305
+      "pages": 88,
+      "bytes": 2184521
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "7c49238ed36fe917c78ceb571b7dde12f27ed01b93b124ff408e4d048c2a5aea"
+      "sha256": "1ef1b9b730f071a99ca7f861b1969e32a05fd8b03a73accd947938a6785768fe"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "b5088a206bd1a088992ab125145fbc973c3d103bdb08bd559a75864f119ec0b3"
+      "sha256": "f4d8920f02f0a94539e05f8b6f49d57e22b4f20fd7c0ed6872548864469b54e6"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -61,11 +61,11 @@
     },
     {
       "path": "docs/public/src/technical-manual/02-architecture.md",
-      "sha256": "66a23a1d516fec2bc96544a5a8a031a840388515e8921cf4a19d54271085c7e7"
+      "sha256": "0c55549cac94ab44bce01714348bb99c75b2a082fde562159bd343c02305ec19"
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "44c9c8284d94dfd74ec11352d83b1eee8bafbabb5874dfa5f7330fb2d770d8ed"
+      "sha256": "772e640dd3e8bbbfcc0c0c66dc19eab7171bfb3f035c9a2b90799296e2711a7b"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
@@ -73,23 +73,23 @@
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
-      "sha256": "3dda383e57d284c1b7f4e2aa52f949eac6025e6d10da9cfb3f1f89a9ca0d05d3"
+      "sha256": "b8ad11808ba0db3b85fe1e0debad9cec0cb329b70fd87e465807de0b508a1e51"
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "a9221b858e172e72bc4b288572657c29f743ef1d32f846d39541a3b8f1f8fb2b"
+      "sha256": "901ffa71f928d1d0d3a0719ff15fe80a4fb59d9373b1e1fb524db66dee88389b"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
-      "sha256": "ea3e9e86120c05d693614051439a8351f6ca547fa22b29a913a8535be19d73d0"
+      "sha256": "2604e921117f6e0f988fa56a13071bdbc6bdf11a5fa26655de631a838c0e42da"
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
-      "sha256": "b130ebe2a0d1410ff12d30b2cfec2bfd4211a832c3846bb2b75bcc5b46a809fc"
+      "sha256": "a0abdd9f7dfec60ed366aa1133b76865a17432e8dd82be6d4d625958acb21d65"
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
-      "sha256": "eaadba73dd76cf8c986c91e52419e2096f2be49cf44879786159c9a75b51143a"
+      "sha256": "fbe42692728ab697ce3753f9cac9c8994cc7825b7967dbcca12e3e56e464b8b7"
     },
     {
       "path": "docs/public/src/technical-manual/10-development-workflow.md",
@@ -97,7 +97,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/11-operations.md",
-      "sha256": "1e98b1595f437b4e831b7cfb4d4830671e2bdc529c9cb9679203bc72dbb1cb4e"
+      "sha256": "0206e5f921c539ce27b2a8cac6352247a9a3e34580756c7d754488ee630c45cd"
     },
     {
       "path": "docs/public/src/technical-manual/12-documentation.md",
@@ -109,7 +109,7 @@
     },
     {
       "path": "docs/public/src/user-manual/01-about.md",
-      "sha256": "e0e220cf63ff5fcc14e15f011fe106630a7d851f41678f5e28a1cfa72f3df657"
+      "sha256": "23d096a95ce3a07f764d3929be24c08ff7e17c5897b296e5151848b96a63fc6b"
     },
     {
       "path": "docs/public/src/user-manual/02-getting-started.md",
@@ -125,7 +125,7 @@
     },
     {
       "path": "docs/public/src/user-manual/05-stems-and-mixer.md",
-      "sha256": "90a014262ecc873fba97366296b96e65649c79273608b2d31c76bf0b73ee30b9"
+      "sha256": "f304a23d459e28157b3338b4667b50392b0c781e5aa94fb7f9428a00b8e0d211"
     },
     {
       "path": "docs/public/src/user-manual/06-mixes.md",
@@ -141,7 +141,7 @@
     },
     {
       "path": "docs/public/src/user-manual/09-setlists.md",
-      "sha256": "8960b5e8c708d266b50e5912f7daab962d8dd757efdfc9b2bc35df0831b9d1bc"
+      "sha256": "cfda8059a4f5a2d40a0bec4aa631dc5a677e3e3ec8f922643afda26eeb620a5d"
     },
     {
       "path": "docs/public/src/user-manual/10-practice-log.md",
@@ -189,26 +189,30 @@
     },
     {
       "path": "docs/public/src/user-manual/21-ai-composer-agent.md",
-      "sha256": "0d211f5edb2da6ab1f2d53db2c69226d7979baae23b1ef84f9427c58c7f14ca1"
+      "sha256": "2d887844354f34751f462c17a5a96a27aeac3e6fd962bcb0fc7c6268d42f8544"
     },
     {
       "path": "docs/public/src/user-manual/22-library-care.md",
       "sha256": "a8a11e57f7b1a3bbdecbc5dff98ed9bc9575a99cc34b5b9b48c63eb3d6e79836"
     },
     {
-      "path": "docs/public/src/user-manual/23-keyboard-shortcuts.md",
+      "path": "docs/public/src/user-manual/23-stem-quality-handouts.md",
+      "sha256": "f4092a8c56c90817510f46636edc24dd786f70c8c111381b9ca50e5537b4d98b"
+    },
+    {
+      "path": "docs/public/src/user-manual/24-keyboard-shortcuts.md",
       "sha256": "b772a53b8a8f7e589ae7875722c2fdcedf31fd092e611ee32ffe3c7ca4280cd1"
     },
     {
-      "path": "docs/public/src/user-manual/24-help-and-tours.md",
+      "path": "docs/public/src/user-manual/25-help-and-tours.md",
       "sha256": "010fe500f90618a9abeb86f089e18c8293c2c7cc4bf419cb0d5604d9459aaa8c"
     },
     {
-      "path": "docs/public/src/user-manual/25-troubleshooting-faq.md",
-      "sha256": "d955873bdd9a3ba27a161c369f06c21d166faaf230b6caf784ffbe55c44697ed"
+      "path": "docs/public/src/user-manual/26-troubleshooting-faq.md",
+      "sha256": "d78161c27146c265b68b6079d7a0c735f1e0e32b85bc133add3f6ee13352ab77"
     },
     {
-      "path": "docs/public/src/user-manual/26-legal-notice.md",
+      "path": "docs/public/src/user-manual/27-legal-notice.md",
       "sha256": "9bec7068dba08c23d4a785cf8f9f111d8cf7540c3298ad81190843bba124856a"
     },
     {
