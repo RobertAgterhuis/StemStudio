@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace StemStudio.Domain.Insights;
 
@@ -21,6 +24,10 @@ public static class StemsVersion
     /// <returns>32 lower-case hex characters.</returns>
     public static string Of(IEnumerable<StemFileStamp> stamps)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(stamps);
+        var lines = stamps.OrderBy(stamp => stamp.Channel, StringComparer.Ordinal)
+            .Select(stamp => string.Create(CultureInfo.InvariantCulture, $"{stamp.Channel}|{stamp.SizeBytes}|{stamp.LastWriteUtc.Ticks}"));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines)));
+        return Convert.ToHexStringLower(hash)[..Length];
     }
 }

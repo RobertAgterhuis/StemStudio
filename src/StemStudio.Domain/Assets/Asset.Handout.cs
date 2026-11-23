@@ -20,14 +20,20 @@ public sealed partial class Asset
     /// <returns>The item.</returns>
     public static Asset CreateHandout(Guid id, string name, Provenance provenance, HandoutFacts plan, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(plan);
+        Require(provenance, provenance?.HandoutRecipe is not null && provenance.Origin == AssetOrigin.Handout, "A handout item needs its handout recipe.");
+        var asset = New(id, AssetKind.Handout, name).Started(provenance!, nowUtc);
+        asset.Handout = plan with { Pages = 0, Warnings = [], Outline = [] };
+        return asset;
     }
 
     /// <summary>Replaces the plan of a handout item that is made again (retry).</summary>
     /// <param name="plan">The new plan.</param>
     public void Replan(HandoutFacts plan)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(plan);
+        RequireHandout();
+        Handout = plan with { Pages = 0, Warnings = [], Outline = [] };
     }
 
     /// <summary>Makes a handout item ready with its PDF and the worker's result.</summary>
@@ -38,7 +44,12 @@ public sealed partial class Asset
     /// <param name="nowUtc">Current time (UTC).</param>
     public void CompleteHandout(IReadOnlyList<AssetFile> files, int pages, IReadOnlyList<string> outline, IReadOnlyList<HandoutWarning> warnings, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(outline);
+        ArgumentNullException.ThrowIfNull(warnings);
+        ArgumentOutOfRangeException.ThrowIfLessThan(pages, 1);
+        var plan = RequireHandout();
+        MarkReady(files, nowUtc);
+        Handout = plan with { Pages = pages, Outline = outline.ToList(), Warnings = warnings.ToList() };
     }
 
     private HandoutFacts RequireHandout() =>

@@ -1,3 +1,4 @@
+using System.Text;
 
 namespace StemStudio.Domain.Handouts;
 
@@ -29,7 +30,9 @@ public sealed class PracticeNote
     /// <returns>The note.</returns>
     public static PracticeNote Create(Guid trackId, HandoutFamily family, string cleanText, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        var note = new PracticeNote { TrackId = trackId, Family = family };
+        note.Update(cleanText, nowUtc);
+        return note;
     }
 
     /// <summary>Replaces the text.</summary>
@@ -37,7 +40,12 @@ public sealed class PracticeNote
     /// <param name="nowUtc">Current time (UTC).</param>
     public void Update(string cleanText, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(cleanText) || cleanText.Length > PracticeNoteRules.MaxLength || PracticeNoteRules.Clean(cleanText) != cleanText)
+        {
+            throw new ArgumentException("The note text must be cleaned and not empty.", nameof(cleanText));
+        }
+
+        (Text, UpdatedAt) = (cleanText, nowUtc);
     }
 }
 
@@ -52,6 +60,14 @@ public static class PracticeNoteRules
     /// <returns>The cleaned text; empty when nothing is left (the note is then deleted).</returns>
     public static string Clean(string text)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(text);
+        var normalised = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        var kept = new StringBuilder(normalised.Length);
+        foreach (var character in normalised.Where(character => character == '\n' || !char.IsControl(character)))
+        {
+            kept.Append(character);
+        }
+
+        return kept.ToString().Trim();
     }
 }

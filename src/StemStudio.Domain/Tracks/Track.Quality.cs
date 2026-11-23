@@ -20,7 +20,25 @@ public sealed partial class Track
     /// <exception cref="InvalidOperationException">The track is not completed or a run is already queued or running.</exception>
     public void RequestQuality(string stemsVersion, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(stemsVersion);
+        if (Status != TrackStatus.Completed || IsQualityActive)
+        {
+            throw new InvalidOperationException($"A quality report of track {Id} cannot be started now.");
+        }
+
+        var last = QualityReport;
+        SetQuality(new QualityReport
+        {
+            Status = QualityReportStatus.Queued,
+            AnalyzerVersion = last?.AnalyzerVersion,
+            MeasuredAt = last?.MeasuredAt,
+            StemsVersion = last?.StemsVersion,
+            RequestedStemsVersion = stemsVersion,
+            Stems = last?.Stems ?? [],
+            Previous = last?.Previous ?? new Dictionary<string, QualityRating>(StringComparer.Ordinal),
+            RequestedAt = nowUtc,
+            UpdatedAt = nowUtc,
+        }, nowUtc);
     }
 
     /// <summary>Records the worker quality job of the queued run.</summary>
@@ -28,7 +46,8 @@ public sealed partial class Track
     /// <param name="nowUtc">Current time (UTC).</param>
     public void AssignQualityJob(string workerJobId, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        var jobId = JobIds.Require(workerJobId, nameof(workerJobId));
+        SetQuality(RequireActiveQuality() with { WorkerJobId = jobId, UpdatedAt = nowUtc }, nowUtc);
     }
 
     /// <summary>Applies the worker's progress; ignored when no run is active.</summary>
@@ -37,7 +56,15 @@ public sealed partial class Track
     /// <param name="nowUtc">Current time (UTC).</param>
     public void ApplyQualityProgress(bool running, double fraction, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        if (!IsQualityActive)
+        {
+            return;
+        }
+
+        var report = QualityReport!;
+        var percent = (int)Math.Round(Math.Clamp(fraction, 0, 1) * 100, MidpointRounding.AwayFromZero);
+        var status = running ? QualityReportStatus.Running : report.Status;
+        SetQuality(report with { Status = status, Progress = Math.Max(report.Progress, percent), UpdatedAt = nowUtc }, nowUtc);
     }
 
     /// <summary>Makes the run ready: its stems are shown, the ratings shown so far become the previous ratings.</summary>
@@ -46,7 +73,25 @@ public sealed partial class Track
     /// <param name="nowUtc">Current time (UTC).</param>
     public void CompleteQuality(string analyzerVersion, IReadOnlyList<StemQuality> stems, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(analyzerVersion);
+        ArgumentNullException.ThrowIfNull(stems);
+        var report = RequireActiveQuality();
+        var previous = report.Stems.Count == 0
+            ? report.Previous
+            : report.Stems.GroupBy(stem => stem.Channel, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().Rating, StringComparer.Ordinal);
+        SetQuality(report with
+        {
+            Status = QualityReportStatus.Ready,
+            Progress = 100,
+            Error = null,
+            WorkerJobId = null,
+            AnalyzerVersion = analyzerVersion,
+            MeasuredAt = nowUtc,
+            StemsVersion = report.RequestedStemsVersion,
+            Stems = stems.ToList(),
+            Previous = previous,
+            UpdatedAt = nowUtc,
+        }, nowUtc);
     }
 
     /// <summary>Fails the run; the stems of the last ready run and the previous ratings stay.</summary>
@@ -54,7 +99,9 @@ public sealed partial class Track
     /// <param name="nowUtc">Current time (UTC).</param>
     public void FailQuality(string? error, DateTime nowUtc)
     {
-        throw new NotImplementedException();
+        var report = RequireActiveQuality();
+        var reason = Text.TrimToLength(error, QualityReport.MaxErrorLength) ?? QualityFailedDefault;
+        SetQuality(report with { Status = QualityReportStatus.Failed, Error = reason, WorkerJobId = null, UpdatedAt = nowUtc }, nowUtc);
     }
 
     private QualityReport RequireActiveQuality() =>
