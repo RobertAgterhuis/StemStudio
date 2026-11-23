@@ -157,6 +157,16 @@ class DataPaths:
         """Setlist job files ``<id>.json`` and PDFs ``<id>/setlist.pdf`` (feature 014)."""
         return self.root / "setlist-document-jobs"
 
+    @property
+    def quality_jobs(self) -> Path:
+        """Quality job files ``<id>.json`` of the ``insights`` lane (feature 020)."""
+        return self.root / "quality-jobs"
+
+    @property
+    def handout_jobs(self) -> Path:
+        """Handout job files ``<id>.json`` and PDFs ``<id>/handout.pdf`` (feature 020)."""
+        return self.root / "handout-jobs"
+
     def lyrics_result(self, job_id: str) -> Path:
         """Result of a completed lyrics job (copyrighted text; deleted after the backend copy)."""
         return self.lyrics_job_dir(job_id) / "result.json"
