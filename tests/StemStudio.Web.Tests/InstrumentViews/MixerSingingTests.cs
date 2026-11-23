@@ -41,6 +41,19 @@ public sealed class MixerSingingTests : MixerTestContext
     }
 
     [Fact]
+    public async Task TheEndOfTheSong_EndsTheFeedback_AndShowsTheSummary()
+    {
+        var page = OpenSinging();
+        await page.Find("[data-testid=singing-toggle]").ClickAsync(new MouseEventArgs());
+
+        Engine.PlaybackStateChanged += Raise.Event<EventHandler<PlaybackState>>(Engine, PlaybackState.Playing);
+        Engine.PlaybackStateChanged += Raise.Event<EventHandler<PlaybackState>>(Engine, PlaybackState.Stopped);
+
+        page.WaitForAssertion(() => page.FindAll("[data-testid=singing-summary]").ShouldNotBeEmpty());
+        await Views.Received(1).StopSingingFeedbackAsync();
+    }
+
+    [Fact]
     public async Task WhileRunning_TheLeadVocalIsMuted_AndRestoredAfterwards()
     {
         var page = OpenSinging();

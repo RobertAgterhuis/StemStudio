@@ -156,7 +156,7 @@ The **pitch view** shows the melody as bars and your voice as a line. After ever
 score from 0 to 100 appears next to the karaoke banner and is announced to screen readers: the
 share of the melody you sang within the tolerance. An octave lower or higher counts the same, and
 a transposed song is scored in the new key. Without synced lyrics, sections or blocks of bars are
-scored. When you stop, a summary shows your average and your best line. A saved take can be
+scored. At the end of the song or when you stop, a summary shows your average and your best line. A saved take can be
 scored the same way with **Score this take**.
 
 - **Tolerance**: how far from the melody a note may be, in cents (100 cents is a semitone):

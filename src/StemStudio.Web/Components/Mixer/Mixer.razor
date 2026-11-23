@@ -147,7 +147,7 @@ else
                     case InstrumentViewDto.Singing:
                         <SingingPanel Track="_track" Duration="State.Duration" Sections="State.SectionSet?.Sections" EngineReady="EngineReady"
                                       ReducedMotion="@(ReducedMotion == true)" Latency="Recording?.LatencyInUse" OnRunningChanged="OnSingingRunningAsync"
-                                      OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" />
+                                      OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" Playback="Playback" />
                         break;
                     case InstrumentViewDto.Chords:
                         <ChordSheet TrackId="Id" />

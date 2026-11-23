@@ -43,6 +43,8 @@ public sealed partial class SingingPanel : IAsyncDisposable
     [Parameter]
     public PlaybackState Playback { get; set; }
 
+    private PlaybackState _lastPlayback;
+
     private bool Running { get; set; }
 
     private string StateName { get; set; } = "idle";
@@ -86,6 +88,17 @@ public sealed partial class SingingPanel : IAsyncDisposable
     {
         Views.SingingUnitScored += OnScored;
         Views.SingingStateChanged += OnStateChanged;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        var ended = _lastPlayback == PlaybackState.Playing && Playback == PlaybackState.Stopped;
+        _lastPlayback = Playback;
+        if (ended && Running)
+        {
+            await EndAsync();
+        }
     }
 
     private Task ToggleAsync() => Running ? EndAsync() : StartAsync();

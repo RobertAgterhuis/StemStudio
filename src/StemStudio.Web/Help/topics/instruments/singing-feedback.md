@@ -22,7 +22,7 @@ reviewed: "016"
 The **pitch view** shows the melody as bars and your voice as a line. After every lyric line a score from 0 to 100
 appears next to the karaoke banner and is announced to screen readers: the share of the melody you sang within the
 tolerance. Singing an octave lower or higher counts the same, and a transposed song is scored in the new key. Without
-synced lyrics, sections or blocks of bars are scored instead. When you stop, a summary shows your average and your best
+synced lyrics, sections or blocks of bars are scored instead. At the end of the song or when you stop, a summary shows your average and your best
 line. A saved take of the recording panel can be scored the same way with *Score this take*.
 
 Privacy: everything you sing stays in your browser: neither the microphone audio nor the scores are sent to the server.
