@@ -139,4 +139,4 @@ def test_a_missing_file_fails_like_the_real_analyzer(inputs: QualityInputs) -> N
 
 
 def test_default_sleep_is_the_real_clock() -> None:
-    assert fake_module.time.sleep is FakeQualityAnalyzer()._sleep  # noqa: SLF001
+    assert fake_module.time.sleep is FakeQualityAnalyzer()._sleep
