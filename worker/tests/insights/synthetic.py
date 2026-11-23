@@ -177,9 +177,27 @@ GENERATORS: Mapping[str, Callable[[np.random.Generator, float], Signal]] = {
 
 
 def song(seed: int = 7, seconds: float = SECONDS) -> dict[str, Signal]:
-    """Six clean standard stems of one synthetic song."""
+    """Six clean standard stems of one dense song: every family plays all the time on one grid."""
     return {name: GENERATORS[name](np.random.default_rng(seed + i), seconds)
             for i, name in enumerate(FAMILIES)}  # fmt: skip
+
+
+def arranged_song(seed: int = 7, seconds: float = SECONDS) -> dict[str, Signal]:
+    """The V1 song (orchestrator Q1): every family plays in independent 2-s sections (60 % on).
+
+    Real arrangements have rests; without them instruments that play together all the time
+    look like a constant-ratio copy (see ``song``, the dense control).
+    """
+    stems = song(seed, seconds)
+    section = round(2.0 * SR)
+    fade = np.hanning(round(0.2 * SR))
+    fade /= fade.sum()
+    for index, name in enumerate(FAMILIES):
+        rng = np.random.default_rng(100 + seed + index)
+        sections = (rng.random(len(stems[name]) // section + 1) < 0.6).astype(np.float64)
+        envelope = np.repeat(sections, section)[: len(stems[name])]
+        stems[name] = stems[name] * np.convolve(envelope, fade, mode="same")
+    return stems
 
 
 def inject_bleed(stem: Signal, source: Signal, alpha: float) -> Signal:
