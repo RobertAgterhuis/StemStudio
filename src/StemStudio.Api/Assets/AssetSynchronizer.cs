@@ -67,7 +67,7 @@ public sealed partial class AssetSynchronizer(
 
         try
         {
-            await (asset.Kind == AssetKind.Handout ? handouts.Worker.DeleteHandoutJobAsync(jobId, cancellationToken) : AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken));
+            await new AssetJobWorkers(worker, handouts.Worker).DeleteAsync(asset, jobId, cancellationToken);
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {

@@ -301,6 +301,7 @@ public static class ApiComposition
         services.AddScoped<AssetJobApplier>();
         services.AddScoped<AssetSynchronizer>();
         services.AddScoped<AssetService>();
+        services.AddScoped<AssetJobWorkers>();
         services.AddScoped<AssetLibraryService>();
         services.AddScoped<AssetRetryService>();
         services.AddScoped<StemPackService>();
