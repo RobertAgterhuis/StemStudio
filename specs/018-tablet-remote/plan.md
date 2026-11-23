@@ -213,6 +213,13 @@ tablet GET /remote/v1/content/sheets/{assetId} (Bearer)
    and only serves the remote surface; the in-app switch is off by default.
 2. **Exposure reduction**: base compose ports move from all interfaces to `127.0.0.1`
    (`STEMSTUDIO_BIND_ADDRESS` override); `AllowedHosts` restricted on web and API.
+   *Done ahead of 018 (2026-11-23, refactors 003 and 004):* the base compose publishes 8080/8081 on
+   `${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}` (checked by `scripts/check-loopback-ports.{sh,ps1}`, SV-05 for
+   the base ports), the API has a host allow-list (`StemStudio__AllowedHosts`, default
+   `localhost;127.0.0.1;[::1];api`; SV-04 for the API) and refuses Origin-less writes from peers other
+   than loopback or the `web` service (shared `TrustedPeerPolicy`; this also closes item 4 for those
+   requests). Still for 018: the web app's own host allow-list and the remote listener. No second
+   listener may be added without these checks.
 3. **`lan-http` exists** as a labelled, unencrypted fallback; the owner may prefer to remove it
    (then the tablet needs mkcert). Default in `docker-compose.lan.yml` is `lan-https`.
 4. Pre-existing CSRF exposure of empty-body POST endpoints in the API (research F-03) is not fixed
