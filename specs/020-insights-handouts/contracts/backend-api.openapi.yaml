@@ -5569,6 +5569,7 @@ paths:
         Starts a quality job in the worker's insights lane with all standard stems, kept detail
         stems and rest stems of the track. The previous ready report stays readable until the new
         one is ready. Automatic runs (after separations) use the same path internally.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '202':
           description: Accepted; the report is `queued`.
@@ -5635,6 +5636,7 @@ paths:
         The API assembles the handout document (data-model 6.3) and submits a worker handout job;
         the item is `queued`, then `rendering`, then `ready` with one `pdf` file. Missing optional
         ingredients never fail the request; they are listed in `handout.omitted`.
+      x-stemstudio-write-gate: backupRunning
       requestBody:
         required: true
         content:
@@ -5703,6 +5705,7 @@ paths:
       tags: [handouts]
       operationId: setPracticeNote
       summary: Set the practice note of a family; an empty (or whitespace) text deletes it.
+      x-stemstudio-write-gate: backupRunning
       requestBody:
         required: true
         content:
