@@ -23,11 +23,29 @@ public sealed class InsightsOptions
 /// </summary>
 public sealed class QualityGate : IDisposable
 {
-    /// <summary>The lock.</summary>
-    public SemaphoreSlim Lock { get; } = new(1, 1);
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
+    /// <summary>Runs an action under the lock.</summary>
+    /// <typeparam name="T">Result type.</typeparam>
+    /// <param name="action">The action.</param>
+    /// <param name="cancellationToken">Cancellation of the wait.</param>
+    /// <returns>The action's result.</returns>
+    public async Task<T> RunAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
 
     /// <inheritdoc />
-    public void Dispose() => Lock.Dispose();
+    public void Dispose() => _lock.Dispose();
 }
 
 /// <summary>

@@ -104,15 +104,15 @@ public sealed class WorkerInsightsClientTests
     }
 
     [Theory]
-    [InlineData("quality-running-job", "running", "analysing", 0.45, null)]
-    [InlineData("quality-failed-job", "failed", null, 0.2, "The stems of this track could not be read.")]
-    public async Task GetQuality_ParsesRunningAndFailedJobs(string example, string status, string? stage, double progress, string? error)
+    [InlineData("quality-running-job", "analysing", 0.45, null)]
+    [InlineData("quality-failed-job", null, 0.2, "The stems of this track could not be read.")]
+    public async Task GetQuality_ParsesRunningAndFailedJobs(string example, string? stage, double progress, string? error)
     {
         var (client, _) = Create(_ => StubHttpMessageHandler.Example(HttpStatusCode.OK, example));
 
         var job = (await client.GetQualityJobAsync(QualityJobId, Ct))!;
 
-        (job.Status.ToString().ToLowerInvariant(), job.Stage, job.Progress, job.Error).ShouldBe((status, stage, progress, error));
+        (job.Status.ToString().ToLowerInvariant(), job.Stage, job.Progress, job.Error).ShouldBe((example.Split('-')[1], stage, progress, error));
     }
 
     [Fact]

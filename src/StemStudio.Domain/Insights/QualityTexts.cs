@@ -61,11 +61,23 @@ public static partial class QualityResultRules
     private static void CheckStem(ValidationErrors errors, StemQuality stem)
     {
         errors.Check(Rendering.RenderChannel.Parse(stem.Channel) is not null, "channel", "Must be a stem or an allowed detail stem.");
-        errors.Check(stem.Bleed?.MainSource is null || StemCatalog.IsKnown(stem.Bleed.MainSource), "bleed.mainSource", "Must be a standard stem.");
-        errors.Check(IsUnit(stem.Bleed?.Index) && IsUnit(stem.Artefacts?.Index) && IsUnit(stem.ActiveShare), "index", "Must be between 0 and 1.");
-        errors.Check(double.IsFinite(stem.ActiveSeconds) && stem.ActiveSeconds >= 0 && double.IsFinite(stem.LevelDb), "activeSeconds", "Must be finite.");
-        errors.Check(stem.Artefacts?.Kinds is { Count: <= 4 } kinds && kinds.Distinct().Count() == kinds.Count, "artefacts.kinds", "Must be unique.");
         errors.Check(Enum.IsDefined(stem.Rating) && Enum.IsDefined(stem.Reason), "rating", "Must be a known rating and reason.");
+        errors.Check(double.IsFinite(stem.ActiveSeconds) && stem.ActiveSeconds >= 0 && double.IsFinite(stem.LevelDb), "activeSeconds", "Must be finite.");
+        errors.Check(IsUnit(stem.ActiveShare), "activeShare", "Must be between 0 and 1.");
+        CheckBleed(errors.Nested("bleed"), stem.Bleed);
+        CheckArtefacts(errors.Nested("artefacts"), stem.Artefacts);
+    }
+
+    private static void CheckBleed(ValidationErrors errors, BleedEstimate? bleed)
+    {
+        errors.Check(bleed is not null && IsUnit(bleed.Index), "index", "Must be between 0 and 1.");
+        errors.Check(bleed?.MainSource is null || StemCatalog.IsKnown(bleed.MainSource), "mainSource", "Must be a standard stem.");
+    }
+
+    private static void CheckArtefacts(ValidationErrors errors, ArtefactEstimate? artefacts)
+    {
+        errors.Check(artefacts is not null && IsUnit(artefacts.Index), "index", "Must be between 0 and 1.");
+        errors.Check(artefacts?.Kinds is { Count: <= 4 } kinds && kinds.Distinct().Count() == kinds.Count, "kinds", "Must be unique.");
     }
 
     private static bool IsUnit(double? value) => value is { } number && double.IsFinite(number) && number is >= 0 and <= 1;

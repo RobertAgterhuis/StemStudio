@@ -94,7 +94,7 @@ public sealed record WorkerInsightsHealth(string Analyzer, string AnalyzerVersio
 public static class WorkerInsightsJson
 {
     /// <summary>The converters, added before the general camelCase converter.</summary>
-    public static IEnumerable<JsonConverter> Converters { get; } =
+    public static IReadOnlyList<JsonConverter> Converters { get; } =
     [
         new JsonStringEnumConverter<QualityRating>(JsonNamingPolicy.KebabCaseLower),
         new JsonStringEnumConverter<QualityReason>(JsonNamingPolicy.KebabCaseLower),
@@ -109,4 +109,19 @@ public static class WorkerInsightsJson
         new JsonStringEnumConverter<NotationKind>(JsonNamingPolicy.KebabCaseLower),
         new JsonStringEnumConverter<HandoutWarningCode>(JsonNamingPolicy.KebabCaseLower),
     ];
+
+    /// <summary>Adds the kebab-case converters and then the general camelCase enum converter (worker wire rules).</summary>
+    /// <param name="options">Options to extend.</param>
+    /// <returns>The same options.</returns>
+    public static JsonSerializerOptions AddTo(JsonSerializerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        foreach (var converter in Converters)
+        {
+            options.Converters.Add(converter);
+        }
+
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
 }

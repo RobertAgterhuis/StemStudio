@@ -42,23 +42,11 @@ public sealed class QualityService(
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404, 409 or 503.</returns>
-    public async Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken)
-    {
-        await gate.Lock.WaitAsync(cancellationToken);
-        try
-        {
-            if (await tracks.FindAsync(trackId, cancellationToken) is not { } track)
-            {
-                return TrackService.NotFound(trackId);
-            }
-
-            return Refusal(track) ?? await StartLockedAsync(track, cancellationToken) ?? TypedResults.Accepted(ApiRoutes.Quality(trackId), await view.ReportAsync(track, cancellationToken));
-        }
-        finally
-        {
-            gate.Lock.Release();
-        }
-    }
+    public Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken) => gate.RunAsync(
+        async () => await tracks.FindAsync(trackId, cancellationToken) is { } track
+            ? Refusal(track) ?? await StartLockedAsync(track, cancellationToken) ?? TypedResults.Accepted(ApiRoutes.Quality(trackId), await view.ReportAsync(track, cancellationToken))
+            : TrackService.NotFound(trackId),
+        cancellationToken);
 
     /// <summary>
     /// The automatic run after a standard or detail separation (setting <c>AutoQualityReport</c>): only for a completed six-stem
@@ -75,15 +63,7 @@ public sealed class QualityService(
             return false;
         }
 
-        await gate.Lock.WaitAsync(cancellationToken);
-        try
-        {
-            return Refusal(track) is null && await StartLockedAsync(track, cancellationToken) is null;
-        }
-        finally
-        {
-            gate.Lock.Release();
-        }
+        return await gate.RunAsync(async () => Refusal(track) is null && await StartLockedAsync(track, cancellationToken) is null, cancellationToken);
     }
 
     private static IResult? Refusal(Track track) => track switch

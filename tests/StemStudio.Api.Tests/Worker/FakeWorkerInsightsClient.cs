@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Worker;
 
@@ -123,17 +122,7 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
     public void SetHandout(string jobId, WorkerRenderJobState status, double progress = 0, string? error = null) =>
         HandoutJobs[jobId] = HandoutJobs[jobId] with { Status = status, Progress = progress, Error = error };
 
-    private static JsonSerializerOptions CreateJson()
-    {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        foreach (var converter in WorkerInsightsJson.Converters)
-        {
-            options.Converters.Add(converter);
-        }
-
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return options;
-    }
+    private static JsonSerializerOptions CreateJson() => WorkerInsightsJson.AddTo(new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
     private void Submit(string call)
     {

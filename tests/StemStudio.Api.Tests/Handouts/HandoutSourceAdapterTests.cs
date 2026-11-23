@@ -108,16 +108,16 @@ public sealed class HandoutSourceAdapterTests : ApiTestBase
     {
         var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
         var other = await Factory.SeedAsync(SyncTestData.CompletedTrack("zzzzzzzzzzz"));
-        var bassScore = Score(track.Id, "bass", ScoreProfile.Bass, 1);
-        var bassTab = Score(track.Id, "bass", ScoreProfile.Bass, 2, facts => facts with { Tablature = new TablatureFacts { Tuning = TuningId.Bass4Standard, Strings = 4, Capo = 0, Layout = TabLayout.NotationAndTab } });
-        var drums = Score(track.Id, "drums", ScoreProfile.Drums, 3);
-        var trumpet = Score(track.Id, "other", ScoreProfile.Brass, 4, facts => facts with { Part = Part(WrittenInstrument.TrumpetBb) });
-        var flute = Score(track.Id, "other", ScoreProfile.Woodwinds, 5, facts => facts with { Part = Part(WrittenInstrument.Flute) });
-        var horn = Score(track.Id, "other", ScoreProfile.Brass, 6, facts => facts with { Part = Part(WrittenInstrument.HornF) });
-        var alto = Score(track.Id, "other", ScoreProfile.Woodwinds, 7, facts => facts with { Part = Part(WrittenInstrument.AltoSaxEb), Attribution = "Model: x" });
+        var bassScore = Score(track.Id, ("bass", ScoreProfile.Bass), 1);
+        var bassTab = Score(track.Id, ("bass", ScoreProfile.Bass), 2, facts => facts with { Tablature = new TablatureFacts { Tuning = TuningId.Bass4Standard, Strings = 4, Capo = 0, Layout = TabLayout.NotationAndTab } });
+        var drums = Score(track.Id, ("drums", ScoreProfile.Drums), 3);
+        var trumpet = Score(track.Id, ("other", ScoreProfile.Brass), 4, facts => facts with { Part = Part(WrittenInstrument.TrumpetBb) });
+        var flute = Score(track.Id, ("other", ScoreProfile.Woodwinds), 5, facts => facts with { Part = Part(WrittenInstrument.Flute) });
+        var horn = Score(track.Id, ("other", ScoreProfile.Brass), 6, facts => facts with { Part = Part(WrittenInstrument.HornF) });
+        var alto = Score(track.Id, ("other", ScoreProfile.Woodwinds), 7, facts => facts with { Part = Part(WrittenInstrument.AltoSaxEb), Attribution = "Model: x" });
         var failed = QueuedScore(track.Id, 8);
         failed.Fail("broken", T0);
-        await SeedAssetsAsync(bassScore, bassTab, drums, trumpet, flute, horn, alto, failed, QueuedScore(track.Id, 9), Score(other.Id, "bass", ScoreProfile.Bass, 10));
+        await SeedAssetsAsync(bassScore, bassTab, drums, trumpet, flute, horn, alto, failed, QueuedScore(track.Id, 9), Score(other.Id, ("bass", ScoreProfile.Bass), 10));
 
         var items = await WithSourceAsync<INotationCatalog, IReadOnlyList<NotationItem>>(source => source.ItemsAsync(track.Id, Ct));
 
@@ -177,7 +177,7 @@ public sealed class HandoutSourceAdapterTests : ApiTestBase
         return Asset.CreateScore(Guid.NewGuid(), $"Song {minute}", provenance, T0.AddMinutes(minute));
     }
 
-    private static Asset Score(Guid trackId, string channel, ScoreProfile profile, int minute, Func<ScoreFacts, ScoreFacts>? change = null)
+    private static Asset Score(Guid trackId, (string Channel, ScoreProfile Profile) source, int minute, Func<ScoreFacts, ScoreFacts>? change = null)
     {
         var provenance = new Provenance
         {
@@ -185,13 +185,13 @@ public sealed class HandoutSourceAdapterTests : ApiTestBase
             TrackId = trackId,
             TrackTitle = "Song",
             Contents = "Sheet music",
-            ScoreRecipe = new ScoreRecipe { Source = ScoreSource.FromChannel(trackId, channel), Profile = profile, Resolution = ScoreResolution.Sixteenth },
+            ScoreRecipe = new ScoreRecipe { Source = ScoreSource.FromChannel(trackId, source.Channel), Profile = source.Profile, Resolution = ScoreResolution.Sixteenth },
         };
         var asset = Asset.CreateScore(Guid.NewGuid(), $"Song {minute}", provenance, T0.AddMinutes(minute));
         asset.AssignJob("c4e6a8b0d2f4416385a7c9e1b3d5f7a9", T0);
         var facts = new ScoreFacts
         {
-            Profile = profile,
+            Profile = source.Profile,
             Engine = ScoreEngine.BasicPitch,
             Key = new KeyInfo("A", KeyMode.Minor, 0.8, KeySource.Estimated),
             Bpm = 120,

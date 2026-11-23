@@ -240,13 +240,11 @@ public sealed class InsightsPersistenceTests
             Included = [IngredientCode.Facts, IngredientCode.Notation],
             Omitted = [new OmittedIngredient(IngredientCode.ChordsOverLyrics, OmissionReason.NotAvailable)],
         };
-        var asset = Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", provenance, plan, T0);
+        var asset = Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", new HandoutStart(provenance, plan), T0);
         asset.AssignJob("1e2f3a4b5c6d4e7f8a9b0c1d2e3f4a5b", T0);
         asset.CompleteHandout(
             [new AssetFile("pdf", Asset.HandoutFileName, "application/pdf", 184211, new string('a', 64))],
-            5,
-            ["Example Song", "Form"],
-            [new HandoutWarning(HandoutWarningCode.NotationScaled, "Bass - score was scaled to Letter.")],
+            new HandoutRendering(5, ["Example Song", "Form"], [new HandoutWarning(HandoutWarningCode.NotationScaled, "Bass - score was scaled to Letter.")]),
             T0.AddMinutes(1));
         return asset;
     }

@@ -14,7 +14,7 @@ public sealed class HandoutAssetTests
     {
         var plan = Plan() with { Pages = 9, Outline = ["stale"], Warnings = [new HandoutWarning(HandoutWarningCode.MissingGlyphs, "x")] };
 
-        var asset = Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", Provenance(), plan, T0);
+        var asset = Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", new HandoutStart(Provenance(), plan), T0);
 
         (asset.Kind, asset.Status, asset.TrackId, asset.Provenance.Origin).ShouldBe((AssetKind.Handout, AssetStatus.Queued, asset.Provenance.TrackId, AssetOrigin.Handout));
         (asset.Handout!.Pages, asset.Handout.Outline.Count, asset.Handout.Warnings.Count, asset.Handout.Songs).ShouldBe((0, 0, 0, 1));
@@ -24,10 +24,10 @@ public sealed class HandoutAssetTests
     [Fact]
     public void CreateHandout_NeedsTheHandoutOriginAndRecipe()
     {
-        Should.Throw<ArgumentException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", Provenance() with { HandoutRecipe = null }, Plan(), T0));
-        Should.Throw<ArgumentException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", Provenance() with { Origin = AssetOrigin.Export }, Plan(), T0));
-        Should.Throw<ArgumentNullException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", Provenance(), null!, T0));
-        Should.Throw<ArgumentNullException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", null!, Plan(), T0));
+        Should.Throw<ArgumentException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", new HandoutStart(Provenance() with { HandoutRecipe = null }, Plan()), T0));
+        Should.Throw<ArgumentException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", new HandoutStart(Provenance() with { Origin = AssetOrigin.Export }, Plan()), T0));
+        Should.Throw<ArgumentNullException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", new HandoutStart(Provenance(), null!), T0));
+        Should.Throw<ArgumentNullException>(() => Asset.CreateHandout(Guid.NewGuid(), "x", null!, T0));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class HandoutAssetTests
         asset.AssignJob(JobId, T0);
         var file = new AssetFile("pdf", Asset.HandoutFileName, "application/pdf", 1200, new string('b', 64));
 
-        asset.CompleteHandout([file], 5, ["Example Song", "Form"], [new HandoutWarning(HandoutWarningCode.NotationScaled, "scaled")], T0.AddSeconds(4));
+        asset.CompleteHandout([file], new HandoutRendering(5, ["Example Song", "Form"], [new HandoutWarning(HandoutWarningCode.NotationScaled, "scaled")]), T0.AddSeconds(4));
 
         (asset.Status, asset.SizeBytes, asset.Progress, asset.WorkerJobId).ShouldBe((AssetStatus.Ready, 1200L, 100, (string?)null));
         (asset.Handout!.Pages, asset.Handout.Outline.Count, asset.Handout.Warnings.Single().Code).ShouldBe((5, 2, HandoutWarningCode.NotationScaled));
@@ -50,10 +50,10 @@ public sealed class HandoutAssetTests
         var audio = Asset.CreateRecording(Guid.NewGuid(), "Take", new Provenance { Origin = AssetOrigin.Recording, TrackTitle = "Song", Contents = "Take", Recording = new RecordingSource(Guid.NewGuid()) }, T0);
         var file = new AssetFile("pdf", Asset.HandoutFileName, "application/pdf", 1, new string('b', 64));
 
-        Should.Throw<InvalidOperationException>(() => audio.CompleteHandout([file], 1, [], [], T0));
-        Should.Throw<ArgumentOutOfRangeException>(() => Queued().CompleteHandout([file], 0, [], [], T0));
-        Should.Throw<ArgumentNullException>(() => Queued().CompleteHandout([file], 1, null!, [], T0));
-        Should.Throw<ArgumentNullException>(() => Queued().CompleteHandout([file], 1, [], null!, T0));
+        Should.Throw<InvalidOperationException>(() => audio.CompleteHandout([file], new HandoutRendering(1, [], []), T0));
+        Should.Throw<ArgumentOutOfRangeException>(() => Queued().CompleteHandout([file], new HandoutRendering(0, [], []), T0));
+        Should.Throw<ArgumentNullException>(() => Queued().CompleteHandout([file], new HandoutRendering(1, null!, []), T0));
+        Should.Throw<ArgumentNullException>(() => Queued().CompleteHandout([file], new HandoutRendering(1, [], null!), T0));
         Should.Throw<InvalidOperationException>(() => audio.Replan(Plan()));
     }
 
@@ -70,7 +70,7 @@ public sealed class HandoutAssetTests
         Should.Throw<ArgumentNullException>(() => asset.Replan(null!));
     }
 
-    private static Asset Queued() => Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", Provenance(), Plan(), T0);
+    private static Asset Queued() => Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", new HandoutStart(Provenance(), Plan()), T0);
 
     private static HandoutFacts Plan() => new()
     {

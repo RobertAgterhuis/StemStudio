@@ -104,13 +104,7 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         options.Converters.Add(new JsonStringEnumConverter<ScoreEngine>(JsonNamingPolicy.KebabCaseLower));
         options.Converters.Add(new JsonStringEnumConverter<ScoreWarningCode>(JsonNamingPolicy.KebabCaseLower));
-        foreach (var converter in WorkerInsightsJson.Converters)
-        {
-            options.Converters.Add(converter);
-        }
-
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return options;
+        return WorkerInsightsJson.AddTo(options);
     }
 
     private static string JobPath(string jobId) => $"v1/jobs/{ValidJobId(jobId)}";
