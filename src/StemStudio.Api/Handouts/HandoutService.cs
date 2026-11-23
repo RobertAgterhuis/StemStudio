@@ -29,6 +29,9 @@ public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, 
 /// <param name="clock">Clock.</param>
 public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler assembler, IWorkerInsightsClient worker, HandoutStore store, TimeProvider clock)
 {
+    /// <summary>Most handouts of one song or setlist that are queued or rendering at a time (security review 020, finding 4).</summary>
+    public const int MaxActivePerSource = 3;
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary><c>POST /api/assets/handouts</c>.</summary>

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using StemStudio.Api.Handouts;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
@@ -79,6 +80,51 @@ public sealed class HandoutSecurityTests : ApiTestBase
         deleted.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         Factory.InsightsWorker.Deleted.ShouldBe([$"handout:{job}"]);
         Factory.Worker.RenderDeletes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ParallelCreates_OfOneSource_StopAtTheActiveLimit_WithDistinctNames()
+    {
+        var song = await Factory.SeedSongAsync();
+        var other = await Factory.SeedSongAsync("bbbbbbbbbbb");
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, HandoutService.MaxActivePerSource + 3).Select(_ => Client.PostHandoutAsync(Bass(song.Id))));
+        using var elsewhere = await Client.PostHandoutAsync(Bass(other.Id));
+
+        var accepted = responses.Where(response => response.StatusCode == HttpStatusCode.Accepted).ToList();
+        var refused = responses.Where(response => response.StatusCode == HttpStatusCode.Conflict).ToList();
+        (accepted.Count, refused.Count, elsewhere.StatusCode).ShouldBe((HandoutService.MaxActivePerSource, 3, HttpStatusCode.Accepted));
+        var names = new List<string>();
+        foreach (var response in accepted)
+        {
+            names.Add((await response.BodyAsync<AssetDto>()).Name);
+        }
+
+        names.Distinct(StringComparer.Ordinal).Count().ShouldBe(HandoutService.MaxActivePerSource);
+        await ContractAssert.MatchesAsync(refused[0], "createHandout");
+        (await refused[0].JsonAsync()).GetProperty("type").GetString().ShouldBe("https://stemstudio.local/problems/jobs-active");
+        Factory.InsightsWorker.HandoutJobs.Count.ShouldBe(HandoutService.MaxActivePerSource + 1);
+        foreach (var response in responses)
+        {
+            response.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task AFinishedHandout_FreesItsPlace()
+    {
+        var song = await Factory.SeedSongAsync();
+        for (var i = 0; i < HandoutService.MaxActivePerSource; i++)
+        {
+            (await Client.PostHandoutAsync(Bass(song.Id))).StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        }
+
+        using var full = await Client.PostHandoutAsync(Bass(song.Id));
+        Factory.InsightsWorker.CompleteHandout(Factory.InsightsWorker.HandoutJobs.Keys.Order(StringComparer.Ordinal).First());
+        await Factory.SyncAssetsAsync();
+        using var again = await Client.PostHandoutAsync(Bass(song.Id));
+
+        (full.StatusCode, again.StatusCode).ShouldBe((HttpStatusCode.Conflict, HttpStatusCode.Accepted));
     }
 
     private static CreateHandoutRequest Bass(Guid trackId) => new() { Source = HandoutSourceDto.Song(trackId), Family = HandoutFamilyDto.Bass };
