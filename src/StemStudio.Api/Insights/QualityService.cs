@@ -72,7 +72,10 @@ public sealed class QualityService(
             return false;
         }
 
-        return await gate.RunAsync(async () => Refusal(track) is null && await StartLockedAsync(track, cancellationToken) is null, cancellationToken);
+        // The track was loaded before the lock: the stored report decides whether another request started one meanwhile.
+        return await gate.RunAsync(
+            async () => Refusal(track) is null && !await tracks.IsQualityActiveStoredAsync(track.Id, cancellationToken) && await StartLockedAsync(track, cancellationToken) is null,
+            cancellationToken);
     }
 
     private static IResult? Refusal(Track track) => track switch

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StemStudio.Domain.Insights;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Configurations;
@@ -48,6 +49,16 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .OrderBy(track => track.CreatedAt)
             .ToListAsync(cancellationToken);
         return withReport.Where(track => track.IsQualityActive).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsQualityActiveStoredAsync(Guid trackId, CancellationToken cancellationToken)
+    {
+        var stored = await context.Tracks.AsNoTracking()
+            .Where(track => track.Id == trackId)
+            .Select(track => new { track.QualityReport })
+            .FirstOrDefaultAsync(cancellationToken);
+        return stored?.QualityReport?.Status is QualityReportStatus.Queued or QualityReportStatus.Running;
     }
 
     /// <inheritdoc />
