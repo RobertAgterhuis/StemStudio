@@ -91,7 +91,7 @@ public sealed record WorkerHandoutRenderer(string? Weasyprint, string? Pango);
 public sealed record WorkerInsightsHealth(string Analyzer, string AnalyzerVersion, WorkerHandoutRenderer Renderer, WorkerHandoutFonts Fonts);
 
 /// <summary>Wire converters of the insights and handout jobs: their enums are kebab-case on the wire (worker 1.11.0).</summary>
-internal static class WorkerInsightsJson
+public static class WorkerInsightsJson
 {
     /// <summary>The converters, added before the general camelCase converter.</summary>
     public static IEnumerable<JsonConverter> Converters { get; } =

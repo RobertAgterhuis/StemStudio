@@ -12,6 +12,7 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Insights;
 using StemStudio.Api.InstrumentViews;
 using StemStudio.Api.Library;
 using StemStudio.Api.LibraryCare;
@@ -85,6 +86,7 @@ public static class ApiComposition
         services.AddPracticeFlow(builder.Configuration);
         services.AddRecording(builder.Configuration);
         services.AddInstrumentViews(builder.Configuration);
+        services.AddInsights(builder.Configuration);
     }
 
     private static void AddServiceClients(IServiceCollection services, IConfiguration configuration)
@@ -177,6 +179,7 @@ public static class ApiComposition
         app.MapPracticeFlowEndpoints();
         app.MapRecordingEndpoints();
         app.MapInstrumentViewEndpoints();
+        app.MapInsightsEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
