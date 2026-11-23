@@ -20,6 +20,9 @@ public sealed class HandoutJobApplier(IWorkerInsightsClient worker, IAssetFileSt
     /// <summary>Error when the worker's result breaks the contract.</summary>
     public const string InvalidResult = "The processing service sent an unusable handout result; try again.";
 
+    /// <summary>Error when the PDF is larger than <see cref="WorkerClient.MaxHandoutBytes"/>.</summary>
+    public const string TooLarge = "";
+
     /// <summary>Role of the PDF.</summary>
     public const string PdfRole = "pdf";
 

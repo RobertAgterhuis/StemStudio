@@ -35,6 +35,9 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
     /// <summary>Runs after a job was created, before the submit returns (e.g. cancel the caller, or race a second request).</summary>
     public Func<Task>? AfterSubmit { get; set; }
 
+    /// <summary>Runs before a quality job is read (e.g. fail one poll, or delete its track meanwhile).</summary>
+    public Func<string, Task>? BeforeGetQuality { get; set; }
+
     /// <summary>When set, the handout file download throws it.</summary>
     public Exception? DownloadFailure { get; set; }
 
@@ -72,10 +75,15 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
         return job;
     }
 
-    public Task<WorkerQualityJob?> GetQualityJobAsync(string jobId, CancellationToken cancellationToken)
+    public async Task<WorkerQualityJob?> GetQualityJobAsync(string jobId, CancellationToken cancellationToken)
     {
         Record($"get-quality:{jobId}");
-        return Task.FromResult(QualityJobs.GetValueOrDefault(jobId));
+        if (BeforeGetQuality is { } before)
+        {
+            await before(jobId);
+        }
+
+        return QualityJobs.GetValueOrDefault(jobId);
     }
 
     public Task DeleteQualityJobAsync(string jobId, CancellationToken cancellationToken) => Delete($"quality:{jobId}", () => QualityJobs.TryRemove(jobId, out _));

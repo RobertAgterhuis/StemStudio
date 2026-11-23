@@ -8,6 +8,9 @@ public sealed partial class Asset
     /// <summary>Role and file name of a handout's PDF.</summary>
     public const string HandoutFileName = "handout.pdf";
 
+    /// <summary>Most warnings of a handout (planned and rendered together).</summary>
+    public const int MaxHandoutWarnings = 50;
+
     /// <summary>The handout plan and, once ready, its result; null for other kinds.</summary>
     public HandoutFacts? Handout { get; private set; }
 

@@ -10,14 +10,14 @@ public sealed class HandoutAssetTests
     private static readonly DateTime T0 = new(2026, 11, 23, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void CreateHandout_QueuesAnItemWithItsPlan_WithoutPagesOrWarnings()
+    public void CreateHandout_QueuesAnItemWithItsPlan_WithoutPages_KeepingThePlannedWarnings()
     {
-        var plan = Plan() with { Pages = 9, Outline = ["stale"], Warnings = [new HandoutWarning(HandoutWarningCode.MissingGlyphs, "x")] };
+        var plan = Plan() with { Pages = 9, Outline = ["stale"], Warnings = [new HandoutWarning(HandoutWarningCode.NotationOmitted, "planned")] };
 
         var asset = Asset.CreateHandout(Guid.NewGuid(), "Example Song - Bass handout", new HandoutStart(Provenance(), plan), T0);
 
         (asset.Kind, asset.Status, asset.TrackId, asset.Provenance.Origin).ShouldBe((AssetKind.Handout, AssetStatus.Queued, asset.Provenance.TrackId, AssetOrigin.Handout));
-        (asset.Handout!.Pages, asset.Handout.Outline.Count, asset.Handout.Warnings.Count, asset.Handout.Songs).ShouldBe((0, 0, 0, 1));
+        (asset.Handout!.Pages, asset.Handout.Outline.Count, asset.Handout.Warnings.Count, asset.Handout.Songs).ShouldBe((0, 0, 1, 1));
         asset.Handout.Omitted.ShouldBe([new OmittedIngredient(IngredientCode.Lyrics, OmissionReason.NotSelected)]);
     }
 
@@ -42,6 +42,31 @@ public sealed class HandoutAssetTests
         (asset.Status, asset.SizeBytes, asset.Progress, asset.WorkerJobId).ShouldBe((AssetStatus.Ready, 1200L, 100, (string?)null));
         (asset.Handout!.Pages, asset.Handout.Outline.Count, asset.Handout.Warnings.Single().Code).ShouldBe((5, 2, HandoutWarningCode.NotationScaled));
         asset.Handout.Included.ShouldBe([IngredientCode.Facts]);
+    }
+
+    [Fact]
+    public void CompleteHandout_PutsThePlannedWarningsFirst_AndKeepsAtMostFifty()
+    {
+        var planned = new HandoutWarning(HandoutWarningCode.NotationOmitted, "planned");
+        var asset = Asset.CreateHandout(Guid.NewGuid(), "x", new HandoutStart(Provenance(), Plan() with { Warnings = [planned] }), T0);
+        asset.AssignJob(JobId, T0);
+        var file = new AssetFile("pdf", Asset.HandoutFileName, "application/pdf", 1200, new string('b', 64));
+        var rendered = Enumerable.Range(0, Asset.MaxHandoutWarnings).Select(index => new HandoutWarning(HandoutWarningCode.NotationScaled, $"w{index}")).ToList();
+
+        asset.CompleteHandout([file], new HandoutRendering(1, [], rendered), T0);
+
+        asset.Handout!.Warnings.Count.ShouldBe(Asset.MaxHandoutWarnings);
+        (asset.Handout.Warnings[0], asset.Handout.Warnings[1].Text).ShouldBe((planned, "w0"));
+    }
+
+    [Fact]
+    public void Replan_TakesTheNewPlannedWarnings()
+    {
+        var asset = Asset.CreateHandout(Guid.NewGuid(), "x", new HandoutStart(Provenance(), Plan() with { Warnings = [new HandoutWarning(HandoutWarningCode.NotationOmitted, "old")] }), T0);
+
+        asset.Replan(Plan() with { Pages = 3, Warnings = [] });
+
+        (asset.Handout!.Pages, asset.Handout.Warnings.Count).ShouldBe((0, 0));
     }
 
     [Fact]
