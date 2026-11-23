@@ -1,11 +1,11 @@
 /**
  * A completed fixture track whose band-info lookup has settled (flake list, `docs/process/FLAKES.md`).
  *
- * A new track's lookup starts when the track completes and, under suite load, waits in the worker's queue. When it
- * finishes it re-files every item of the track (feature 022, `MetadataJobApplier`): an item saved while the lookup was
- * still `searching` moves from "Unknown artist > Unknown album" into "The Fixture Band > Synthetic Sessions", and the
- * save confirmation's `export-saved-open` / `score-saved-open` link (which names the song folder at save time) then
- * opens a folder without the row. Specs that follow such a link start from this helper instead of `ensureCompleted`.
+ * A new track's lookup starts when the track completes and, under suite load, waits in the worker's metadata lane (one
+ * lookup at a time). When it finishes it re-files every item of the track (feature 022, `MetadataJobApplier`): an item
+ * saved while the lookup was still `searching` moves from "Unknown artist > Unknown album" into "The Fixture Band >
+ * Synthetic Sessions", and the save confirmation's `export-saved-open` / `score-saved-open` link (which names the song
+ * folder at save time) then opens a folder without the row. Specs that follow such a link start from this helper instead of `ensureCompleted`.
  *
  * @packageDocumentation
  */
