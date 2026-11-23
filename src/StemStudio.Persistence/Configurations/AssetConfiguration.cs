@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Handouts;
 using StemStudio.Domain.Library;
 using StemStudio.Domain.Scores;
 
@@ -70,5 +71,6 @@ public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasConversion(JsonColumn<List<AssetFile>>.Converter, JsonColumn<List<AssetFile>>.Comparer);
         builder.Property(asset => asset.Audio).HasConversion(JsonColumn<AudioFacts>.Converter!, JsonColumn<AudioFacts>.Comparer!);
         builder.Property(asset => asset.Provenance).HasConversion(JsonColumn<Provenance>.Converter, JsonColumn<Provenance>.Comparer);
+        builder.Property(asset => asset.Handout).HasConversion(JsonColumn<HandoutFacts>.Converter!, JsonColumn<HandoutFacts>.Comparer!);
     }
 }

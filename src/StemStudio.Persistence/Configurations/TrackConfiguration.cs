@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Artists;
+using StemStudio.Domain.Insights;
 using StemStudio.Domain.Library;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Configurations;
 
-/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted; the lyrics row (feature 006) is deleted with the track; library info (feature 022) as plain columns.</summary>
+/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted; the lyrics row (feature 006) is deleted with the track; library info (feature 022) as plain columns; the quality report (feature 020) as JSON.</summary>
 public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
 {
     /// <inheritdoc />
@@ -25,6 +26,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         builder.Property(track => track.Origin).HasConversion(JsonColumn<TrackOrigin>.Converter!, JsonColumn<TrackOrigin>.Comparer!);
+        builder.Property(track => track.QualityReport).HasConversion(JsonColumn<QualityReport>.Converter!, JsonColumn<QualityReport>.Comparer!);
         ConfigureArtworkAndMetadata(builder);
         builder.ComplexProperty(track => track.LibraryInfo, LibraryInfoColumns);
     }
