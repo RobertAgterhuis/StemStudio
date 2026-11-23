@@ -432,10 +432,10 @@ jobs:
           uv run --frozen ruff format --check .
           uv run --frozen mypy
           uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml
-      - name: Devops script checks (011 key_volume_checks.py, 013 backup_folder_checks.py, 023 api_image_size_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
+      - name: Devops script checks (011 key_volume_checks.py, 013 backup_folder_checks.py, 023 api_image_size_checks.py, 004 loopback_ports_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
         run: |
           cfg=scripts/pyproject.toml
-          checks=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py)
+          checks=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/loopback_ports_checks.py)
           uv run --project tools/quality --frozen ruff check --config "$cfg" "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen ruff format --config "$cfg" --check "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen mypy --config-file "$cfg" "${checks[@]}" scripts/tests
@@ -534,6 +534,13 @@ jobs:
                      and ([.services[] | select(.environment.StemStudio__Recording__TestLoopback != null)] | length == 0)'
           docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --format json             | jq -e '.services.web.environment.StemStudio__Recording__TestLoopback == "true"
                      and ([.services[] | select(.environment.StemStudio__Recording__TestLoopback != null)] | length == 1)'
+      - name: api and web publish on 127.0.0.1 unless STEMSTUDIO_BIND_ADDRESS opens them, in every combination (refactor 004, ADR-027 D3)
+        run: |
+          scripts/check-loopback-ports.sh
+          scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.gpu.yml
+          scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml
+          scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml
+          scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.e2e.yml
       - name: The key ring volume api-keys is at /keys in api only, in every combination (011 claude-key)
         run: |
           scripts/check-key-volume.sh

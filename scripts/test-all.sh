@@ -67,7 +67,7 @@ PYTEST=pytest==9.2.0
 # SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
 SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
 SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/tests)
+KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/loopback_ports_checks.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
@@ -97,6 +97,16 @@ key_volume_all() {
     scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml &&
     scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml &&
     scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml
+}
+
+# Static loopback ports check (refactor 004) for the same combinations plus the e2e override.
+# shellcheck disable=SC2329
+loopback_ports_all() {
+  scripts/check-loopback-ports.sh &&
+    scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.gpu.yml &&
+    scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml &&
+    scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml &&
+    scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.e2e.yml
 }
 
 step "dotnet tool restore" . dotnet tool restore
@@ -182,6 +192,7 @@ step "key volume checks ruff format" . uvk ruff format --config "$SCRIPTS_CFG" -
 step "key volume checks mypy" . uvk mypy --config-file "$SCRIPTS_CFG" "${KEY_CHECKS[@]}"
 step "key volume checks pytest + coverage" . uvk pytest -c "$SCRIPTS_CFG" --cov --cov-branch --cov-config="$SCRIPTS_CFG" --cov-report=term scripts/tests
 step "key volume check (compose config, all combinations)" . key_volume_all
+step "loopback ports check (compose config, all combinations)" . loopback_ports_all
 step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
 step "docs manuals up to date" . node tools/docs/check.mjs
 step "site npm ci (tools/docs markdown-it)" tools/docs npm ci --no-audit --no-fund
