@@ -174,12 +174,18 @@ internal static class HandoutSections
             return [];
         }
 
-        var chords = include.Contains(IngredientCode.ChordChart) && material.Chart is { } chart ? (chart, transposition) : ((Domain.InstrumentViews.ChordChart, Transposition)?)null;
+        var chords = ChordsOf(material, include, transposition);
         return material.Sections.Take(MaxSections).Select(section =>
         {
             var bars = BarMapper.Map(section, material.Grid, chords);
-            var tempo = include.Contains(IngredientCode.PracticeProgress) && material.BestTempo.TryGetValue(section.Id, out var percent) ? Math.Clamp(percent, 25, 200) : (int?)null;
-            return new WorkerHandoutSection(HandoutAssembler.Cut(string.IsNullOrWhiteSpace(section.Label) ? "Section" : section.Label, 80)!, Math.Max(0, section.StartSeconds), Math.Max(0, section.EndSeconds), bars.StartBar, bars.Bars, bars.ChordBars, tempo);
+            var name = HandoutAssembler.Cut(string.IsNullOrWhiteSpace(section.Label) ? "Section" : section.Label, 80)!;
+            return new WorkerHandoutSection(name, Math.Max(0, section.StartSeconds), Math.Max(0, section.EndSeconds), bars.StartBar, bars.Bars, bars.ChordBars, Tempo(material, include, section));
         }).ToList();
     }
+
+    private static (Domain.InstrumentViews.ChordChart, Transposition)? ChordsOf(HandoutMaterial material, HashSet<IngredientCode> include, Transposition transposition) =>
+        include.Contains(IngredientCode.ChordChart) && material.Chart is { } chart ? (chart, transposition) : null;
+
+    private static int? Tempo(HandoutMaterial material, HashSet<IngredientCode> include, SongSection section) =>
+        include.Contains(IngredientCode.PracticeProgress) && material.BestTempo.TryGetValue(section.Id, out var percent) ? Math.Clamp(percent, 25, 200) : null;
 }

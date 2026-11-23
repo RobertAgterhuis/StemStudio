@@ -25,15 +25,14 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
     private static readonly Dictionary<string, Transposition> TranspositionNames = Enum.GetValues<Transposition>().ToDictionary(value => IngredientPlanner.Wire(value), StringComparer.Ordinal);
 
     /// <summary>The options of a song or setlist.</summary>
-    /// <param name="trackId">The song, or null.</param>
-    /// <param name="setlistId">The setlist, or null.</param>
-    /// <param name="family">Family wire value.</param>
-    /// <param name="transposition">Transposition wire value, or null.</param>
+    /// <param name="query">The query.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200, 404 or 422.</returns>
-    public async Task<IResult> GetAsync(Guid? trackId, Guid? setlistId, string? family, string? transposition, CancellationToken cancellationToken)
+    public async Task<IResult> GetAsync(HandoutOptionsQuery query, CancellationToken cancellationToken)
     {
-        var (parsed, invalid) = Parse(trackId, setlistId, family, transposition);
+        ArgumentNullException.ThrowIfNull(query);
+        var (trackId, setlistId) = (query.TrackId, query.SetlistId);
+        var (parsed, invalid) = Parse(query);
         if (invalid is not null)
         {
             return invalid;
@@ -43,10 +42,11 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
         return problem ?? TypedResults.Ok(Options(parsed.Family, parsed.Transposition, setlistId is null ? HandoutKind.Song : HandoutKind.Setlist, songs!));
     }
 
-    private static ((HandoutFamily Family, Transposition Transposition), IResult?) Parse(Guid? trackId, Guid? setlistId, string? family, string? transposition)
+    private static ((HandoutFamily Family, Transposition Transposition), IResult?) Parse(HandoutOptionsQuery query)
     {
+        var (family, transposition) = (query.Family, query.Transposition);
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        if ((trackId is null) == (setlistId is null))
+        if ((query.TrackId is null) == (query.SetlistId is null))
         {
             errors["trackId"] = ["Give exactly one of trackId and setlistId."];
         }
@@ -104,7 +104,7 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
             FamilyLabel = Families.Label(family, transposition),
             Songs = songs.Count,
             Ingredients = Families.Offered(family, kind)
-                .Select(code => IngredientTexts.Ingredient(code, family, kind, availability.GetValueOrDefault(code, IngredientAvailability.Missing), single, notation.FirstOrDefault() ?? []))
+                .Select(code => IngredientTexts.Ingredient(code, availability.GetValueOrDefault(code, IngredientAvailability.Missing), new OptionsContext(family, kind, single, notation.FirstOrDefault() ?? [])))
                 .ToList(),
             Notation = Choices(family, transposition, songs, notation),
             Transpositions = family == HandoutFamily.Melodic ? [TranspositionDto.C, TranspositionDto.BFlat, TranspositionDto.EFlat, TranspositionDto.F] : [],
@@ -128,9 +128,9 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
 /// <summary>Texts and create actions of the ingredient list (backend 1.19.0 <c>Ingredient</c>).</summary>
 internal static class IngredientTexts
 {
-    public static IngredientDto Ingredient(
-        IngredientCode code, HandoutFamily family, HandoutKind kind, IngredientAvailability availability, (HandoutMaterial Material, Track Track)? song, IReadOnlyList<NotationItem> notation)
+    public static IngredientDto Ingredient(IngredientCode code, IngredientAvailability availability, OptionsContext context)
     {
+        var (family, kind, song, notation) = (context.Family, context.Kind, context.Song, context.Notation);
         var available = availability == IngredientAvailability.Available;
         var material = song?.Material;
         return new IngredientDto
@@ -139,7 +139,7 @@ internal static class IngredientTexts
             Status = available ? IngredientStatusDto.Available : IngredientStatusDto.Missing,
             DefaultIncluded = Families.Offer(family, code, kind) == IngredientOffer.Default,
             Text = HandoutAssembler.Cut(Text(code, availability, material, notation), 200)!,
-            Action = material is null ? null : Action(code, family, available, song!.Value, notation),
+            Action = material is null ? null : Action(code, available, context),
         };
     }
 
@@ -165,12 +165,12 @@ internal static class IngredientTexts
         _ => "No setlist notes",
     };
 
-    private static IngredientActionDto? Action(IngredientCode code, HandoutFamily family, bool available, (HandoutMaterial Material, Track Track) song, IReadOnlyList<NotationItem> notation) => code switch
+    private static IngredientActionDto? Action(IngredientCode code, bool available, OptionsContext context) => code switch
     {
         IngredientCode.FormChart when !available => IngredientActionDto.DetectSections,
-        IngredientCode.ChordsOverLyrics or IngredientCode.ChordChart when !available && !song.Material.HasChords => IngredientActionDto.DetectChords,
-        IngredientCode.ChordsOverLyrics or IngredientCode.Lyrics when !available && !song.Material.HasLyrics => IngredientActionDto.FindLyrics,
-        IngredientCode.Notation => NotationAction(family, available, song.Track, notation),
+        IngredientCode.ChordsOverLyrics or IngredientCode.ChordChart when !available && !context.Song!.Value.Material.HasChords => IngredientActionDto.DetectChords,
+        IngredientCode.ChordsOverLyrics or IngredientCode.Lyrics when !available && !context.Song!.Value.Material.HasLyrics => IngredientActionDto.FindLyrics,
+        IngredientCode.Notation => NotationAction(context.Family, available, context.Song!.Value.Track, context.Notation),
         IngredientCode.PracticeNotes when !available => IngredientActionDto.WriteNotes,
         _ => null,
     };
@@ -207,3 +207,17 @@ internal static class IngredientTexts
 
     private static string Count(int count, string noun) => string.Create(CultureInfo.InvariantCulture, $"{count} {noun}{(count == 1 ? string.Empty : "s")}");
 }
+
+/// <summary>The query of <c>getHandoutOptions</c> (enum values are parsed by their wire names).</summary>
+/// <param name="TrackId">The song, or null.</param>
+/// <param name="SetlistId">The setlist, or null.</param>
+/// <param name="Family">Family wire value.</param>
+/// <param name="Transposition">Transposition wire value, or null.</param>
+public sealed record HandoutOptionsQuery(Guid? TrackId, Guid? SetlistId, string? Family, string? Transposition);
+
+/// <summary>What the ingredient texts and actions of one options answer depend on.</summary>
+/// <param name="Family">Family.</param>
+/// <param name="Kind">Song or setlist.</param>
+/// <param name="Song">The song of a song handout; null for a setlist.</param>
+/// <param name="Notation">The default notation of the (first) song.</param>
+internal sealed record OptionsContext(HandoutFamily Family, HandoutKind Kind, (HandoutMaterial Material, Track Track)? Song, IReadOnlyList<NotationItem> Notation);

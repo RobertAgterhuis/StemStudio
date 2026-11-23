@@ -1,5 +1,5 @@
-using System.Net.Http.Json;
 using System.Net;
+using System.Net.Http.Json;
 using StemStudio.Api.Handouts;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
@@ -275,7 +275,12 @@ public sealed class HandoutEndpointsTests : ApiTestBase
 
         using var again = await Client.PostHandoutAsync(new CreateHandoutRequest
         {
-            Source = HandoutSourceDto.Song(recipe.TrackId!.Value), Family = recipe.Family, Include = recipe.Include, NotationAssetIds = recipe.NotationAssetIds, Transposition = recipe.Transposition, Paper = recipe.Paper,
+            Source = HandoutSourceDto.Song(recipe.TrackId!.Value),
+            Family = recipe.Family,
+            Include = recipe.Include,
+            NotationAssetIds = recipe.NotationAssetIds,
+            Transposition = recipe.Transposition,
+            Paper = recipe.Paper,
         });
         var second = await again.BodyAsync<AssetDto>();
         Factory.InsightsWorker.SetHandout(Factory.InsightsWorker.HandoutJobs.Keys.Min(StringComparer.Ordinal)!, WorkerRenderJobState.Failed, 0, "boom");

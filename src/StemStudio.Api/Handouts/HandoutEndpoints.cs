@@ -12,8 +12,7 @@ public static class HandoutEndpoints
     /// <returns>The builder.</returns>
     public static IEndpointRouteBuilder MapHandoutEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/handouts/options", (Guid? trackId, Guid? setlistId, string? family, string? transposition, HandoutOptionsService options, CancellationToken ct) =>
-                options.GetAsync(trackId, setlistId, family, transposition, ct))
+        app.MapGet("/api/handouts/options", ([AsParameters] HandoutOptionsQuery query, HandoutOptionsService options, CancellationToken ct) => options.GetAsync(query, ct))
             .WithName("getHandoutOptions").WithTags("handouts").Produces<HandoutOptionsDto>().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
         app.MapPost(ApiRoutes.Handouts, (CreateHandoutRequest request, HandoutService handouts, CancellationToken ct) => handouts.CreateAsync(request, ct))
