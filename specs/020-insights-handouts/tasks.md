@@ -146,8 +146,8 @@ in the execution plan.
 - [ ] T050 [US2] [backend] Implement `Domain/Insights/TipRules.cs`
 - [ ] T051 [P] [US2] [backend] Failing tests: report view builds tips from the current track state (detail phase, outcomes, stem set) and the 003 device estimate text; tips change after a detail split without re-analysis (FR-005)
 - [ ] T052 [US2] [backend] Implement the view assembly
-- [ ] T053 [P] [US2] [frontend] Failing tests `TipList`: split-detail calls the 002 start endpoint, open-detail navigates to the mixer with the parent expanded, mute patches the current mix, buttons keyboard operable
-- [ ] T054 [US2] [frontend] Implement `TipList` and the action handlers
+- [x] T053 [P] [US2] [frontend] Failing tests `TipList`: split-detail calls the 002 start endpoint, open-detail navigates to the mixer with the parent expanded, mute patches the current mix, buttons keyboard operable
+- [x] T054 [US2] [frontend] Implement `TipList` and the action handlers
 - [ ] T055 [US2] [qa] E2E tips: other -> "Split further" starts the detail separation and the report is remade; piano -> mute; guitar -> hard to isolate; no tip text contains "GPU" (SC-003). **Done when** as T048
 
 **Checkpoint**: HO:us2 per owner.

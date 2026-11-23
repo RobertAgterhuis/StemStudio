@@ -6,7 +6,7 @@ Branch `020-lane-frontend`. Not pushed, not merged.
 
 | Task | Red | Green | Result |
 |---|---|---|---|
-| T046/T047 | see `git log` "failing tests for the stem quality card" | "stem quality card on the track page" (+ SIG/test split commit) | `Api/IStemStudioApiClient.Insights.cs` + implementation: all six 1.19.0 operations (`getQualityReport`, `requestQualityReport`, `getHandoutOptions`, `createHandout`, `getPracticeNotes`, `setPracticeNote` with 204 -> null); `Insights/QualityText` (words, icons, labels, Advanced/Expert lines), `QualityLayout` (detail stems grouped under the parent, orphans last, status rules); `Components/Insights/QualityPanel` (+ `QualityRow`, `QualityRating`, `TipList`) on the track page after the detail card; `QualityBadge` on standard and detail mixer strips (`Mixer.Quality.cs`, `StemGroup` code-behind) |
+| T046/T047 | eae7f959 | 65a1e411 (+ 6985e3a0 SIG fixes) | `Api/IStemStudioApiClient.Insights.cs` + implementation: all six 1.19.0 operations (`getQualityReport`, `requestQualityReport`, `getHandoutOptions`, `createHandout`, `getPracticeNotes`, `setPracticeNote` with 204 -> null); `Insights/QualityText` (words, icons, labels, Advanced/Expert lines), `QualityLayout` (detail stems grouped under the parent, orphans last, status rules); `Components/Insights/QualityPanel` (+ `QualityRow`, `QualityRating`, `TipList`) on the track page after the detail card; `QualityBadge` on standard and detail mixer strips (`Mixer.Quality.cs`, `StemGroup` code-behind) |
 
 Consumer-driven fakes: `tests/StemStudio.Web.Tests/Fakes/InsightsData.cs` holds the `ReadyQualityReport` and
 `BassHandoutOptions` examples of backend-api 1.19.0 verbatim and derives the other states from them; `PageTestContext`
