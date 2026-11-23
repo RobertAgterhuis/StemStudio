@@ -310,3 +310,12 @@ def test_a_pdf_over_the_token_limit_completes_the_render_with_a_warning(tmp_path
     assert [(w.code, w.text) for w in result.warnings] == [
         ("notation-unreadable", "A notation file could not be read: Bass - tablature")
     ]
+
+
+def test_a_file_replaced_by_one_over_the_limit_before_the_merge_fails_the_render(
+    tmp_path: Path,
+) -> None:
+    source = token_pdf(tmp_path / "tab.pdf", 1, 2_100_000)
+
+    with pytest.raises(HandoutRenderError):
+        merge_frames(_blank(1), [Frame(0, (50, 50, 400, 600), source, 0)], lambda _done: None)

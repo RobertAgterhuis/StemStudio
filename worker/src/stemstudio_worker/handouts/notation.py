@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Final
 
 from pypdf import PageObject, PdfReader, PdfWriter, Transformation
+from pypdf.errors import PyPdfError
 from pypdf.generic import NameObject
 
 from stemstudio_worker.ports import HANDOUT_FAILED_TEXT, HandoutRenderError, NotationUnreadableError
@@ -64,14 +65,14 @@ def _size(page: PageObject) -> tuple[float, float]:
 
 
 def _checked_sizes(path: Path, reader: PdfReader) -> tuple[tuple[float, float], ...]:
-    """Page sizes of ``reader``, each page parsed once (its content stream decoded)."""
+    """Page sizes of ``reader``, each page's content stream decoded and parsed once."""
     low, high = PAGE_LIMITS_PT
     sizes: list[tuple[float, float]] = []
     try:
         for page in reader.pages:
             contents = page.get_contents()
             if contents is not None:
-                contents.get_data()
+                _ = contents.operations  # parse now: a merge never meets a parser limit
             sizes.append(_size(page))
     except Exception as exc:  # any parser failure of untrusted input
         raise _unreadable(path) from exc
@@ -142,7 +143,7 @@ def merge_frames(pdf: bytes, frames: Sequence[Frame], progress: Callable[[float]
             )
             _merge(writer.pages[frame.page], reader.pages[frame.source_page], frame.box)
             progress(done / len(frames))
-    except (NotationUnreadableError, IndexError, ValueError, KeyError) as exc:
+    except (NotationUnreadableError, PyPdfError, IndexError, ValueError, KeyError) as exc:
         raise HandoutRenderError(HANDOUT_FAILED_TEXT) from exc
     out = BytesIO()
     writer.write(out)
