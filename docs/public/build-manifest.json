@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-23",
-  "sourceHash": "41a2a27aee2c1397025e9251323b8fee48c7209526adc8a145b56cecec8d55aa",
+  "sourceHash": "34b562e8f24a626e9accc1c766820356d62c1a15f76666dc66e4da4a0fac51b5",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
-      "pages": 62,
-      "bytes": 2343106
+      "pages": 63,
+      "bytes": 2408176
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
-      "pages": 83,
-      "bytes": 2120948
+      "pages": 84,
+      "bytes": 2135610
     }
   ],
   "inputs": [
@@ -65,7 +65,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "86962393f78fd83cd9462de078f386756d8930fd63885bb0592d77f13223cede"
+      "sha256": "44c9c8284d94dfd74ec11352d83b1eee8bafbabb5874dfa5f7330fb2d770d8ed"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
@@ -77,7 +77,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "75aabaeca5f262b2f6f98e7028f81cc80ee40b3038ccb2497c00ebd1546a8e81"
+      "sha256": "a9221b858e172e72bc4b288572657c29f743ef1d32f846d39541a3b8f1f8fb2b"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
@@ -85,7 +85,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
-      "sha256": "6bff92697b55f273a2c5ed40cc994201b4d3725fc1ac67aa902968482510de53"
+      "sha256": "b130ebe2a0d1410ff12d30b2cfec2bfd4211a832c3846bb2b75bcc5b46a809fc"
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
@@ -113,7 +113,7 @@
     },
     {
       "path": "docs/public/src/user-manual/02-getting-started.md",
-      "sha256": "85c496c5eb4232829a4883eaf1ed4616d620d5b42d6fafb98a5910c7ebc627f8"
+      "sha256": "f16cdfa0a5ba1a51a7fe41e60682b9cc71d7b3d14cbc7a07de8f1e2366c0625b"
     },
     {
       "path": "docs/public/src/user-manual/03-journey-levels.md",
@@ -205,7 +205,7 @@
     },
     {
       "path": "docs/public/src/user-manual/25-troubleshooting-faq.md",
-      "sha256": "f2424dbf56bc357ce9bd67c796f97e0a8c819370fe68d5bd8ed053cf0f29f3c4"
+      "sha256": "d955873bdd9a3ba27a161c369f06c21d166faaf230b6caf784ffbe55c44697ed"
     },
     {
       "path": "docs/public/src/user-manual/26-legal-notice.md",
