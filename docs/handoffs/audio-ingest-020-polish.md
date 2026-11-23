@@ -54,6 +54,10 @@ Refactor: `ba9ecfb2` (complexity of the limit counters).
 
 ### Limits chosen (backend lane: please mirror in `ContractLimits`)
 
+> Integration update (2026-11-23): items over the frame or byte cap now warn `notation-omitted`, oversized artwork
+> warns `artwork-omitted` (worker 1.11.0-delta.3, `docs/handoffs/audio-ingest-020-integration.md`); the API mirrors
+> the four request limits in `ContractLimits` / `HandoutJobLimits`.
+
 | Limit | Value | Where | Over it |
 |---|---|---|---|
 | `POST /v1/handout-jobs` body | 8 MiB (8 388 608 bytes) | `api.body_limit`, `jobs.handout_limits.MAX_HANDOUT_BODY_BYTES` | 422, `errors.body` |
