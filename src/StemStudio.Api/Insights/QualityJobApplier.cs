@@ -2,6 +2,7 @@ using StemStudio.Api.Worker;
 using StemStudio.Domain;
 using StemStudio.Domain.Insights;
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Configurations;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Insights;
@@ -30,7 +31,13 @@ public sealed partial class QualityJobApplier(ITrackRepository tracks, IWorkerIn
     /// <returns>A task.</returns>
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
-        foreach (var track in await tracks.ListQualityActiveAsync(cancellationToken))
+        var active = await tracks.ListQualityActiveAsync(cancellationToken);
+        if (StoredJsonFaults.TryClaimReport(out var column))
+        {
+            LogUnreadableStoredValue(logger, column);
+        }
+
+        foreach (var track in active)
         {
             try
             {
@@ -107,6 +114,9 @@ public sealed partial class QualityJobApplier(ITrackRepository tracks, IWorkerIn
             LogDeleteFailed(logger, trackId, exception.Message);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A stored {Column} could not be read and is treated as missing (logged once; making it again replaces it)")]
+    private static partial void LogUnreadableStoredValue(ILogger logger, string column);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Quality report of track {TrackId}: processing service unreachable, retrying on the next tick")]
     private static partial void LogWorkerUnavailable(ILogger logger, Guid trackId);

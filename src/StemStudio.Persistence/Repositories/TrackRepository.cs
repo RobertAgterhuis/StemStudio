@@ -43,12 +43,20 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     /// <inheritdoc />
     public async Task<IReadOnlyList<Track>> ListQualityActiveAsync(CancellationToken cancellationToken)
     {
-        // The report is one JSON column; its status is filtered in memory (a local library has few tracks).
-        var withReport = await context.Tracks
-            .Where(track => track.Status == TrackStatus.Completed && track.QualityReport != null)
-            .OrderBy(track => track.CreatedAt)
-            .ToListAsync(cancellationToken);
-        return withReport.Where(track => track.IsQualityActive).ToList();
+        // The report is one JSON column: its status is filtered in SQL, so a tick loads only the active tracks. CASE keeps
+        // json_extract away from a text that is not JSON (it would fail the whole query).
+        var ids = await context.Database.SqlQuery<Guid>($$"""
+            SELECT "Id" AS "Value" FROM "Tracks"
+            WHERE "Status" = 'Completed'
+              AND CASE WHEN json_valid("QualityReport") THEN json_extract("QualityReport", '$.Status') END IN ('Queued', 'Running')
+            """).ToListAsync(cancellationToken);
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var active = await context.Tracks.Where(track => ids.Contains(track.Id)).OrderBy(track => track.CreatedAt).ToListAsync(cancellationToken);
+        return active.Where(track => track.IsQualityActive).ToList();
     }
 
     /// <inheritdoc />

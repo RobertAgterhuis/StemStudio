@@ -1,4 +1,5 @@
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Configurations;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Persistence.Tests;
@@ -66,6 +67,7 @@ public sealed class QualityQueryTests
         Queue(queued);
         Queue(broken);
         await db.SeedAsync(queued, broken);
+        var faultsBefore = StoredJsonFaults.Count;
         await db.ScalarAsync($"UPDATE Tracks SET QualityReport = '{corrupt.Replace("'", "''", StringComparison.Ordinal)}' WHERE SourceKey = 'youtube:bbbbbbbbbbb'");
 
         await using var context = db.NewContext();
@@ -75,6 +77,19 @@ public sealed class QualityQueryTests
         (await tracks.FindAsync(broken.Id, Ct))!.QualityReport.ShouldBeNull();
         (await tracks.ListAsync(Ct)).Count.ShouldBe(2);
         (await tracks.IsQualityActiveStoredAsync(broken.Id, Ct)).ShouldBeFalse();
+        StoredJsonFaults.Count.ShouldBeGreaterThan(faultsBefore);
+    }
+
+    [Fact]
+    public void AnUnreadableValue_IsReportedOnlyOnce()
+    {
+        StoredJsonFaults.Record("QualityReport");
+
+        var claims = Enumerable.Range(0, 3).Select(_ => StoredJsonFaults.TryClaimReport(out var column) ? column : null).Where(column => column is not null).ToList();
+
+        claims.Count.ShouldBeLessThanOrEqualTo(1, "another test may have claimed the report first");
+        StoredJsonFaults.TryClaimReport(out var name).ShouldBeFalse();
+        name.ShouldNotBeEmpty();
     }
 
     private static void Queue(Track track)

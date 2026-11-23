@@ -26,7 +26,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         builder.Property(track => track.Origin).HasConversion(JsonColumn<TrackOrigin>.Converter!, JsonColumn<TrackOrigin>.Comparer!);
-        builder.Property(track => track.QualityReport).HasConversion(JsonColumn<QualityReport>.Converter!, JsonColumn<QualityReport>.Comparer!);
+        builder.Property(track => track.QualityReport).HasConversion(JsonColumn<QualityReport>.TolerantConverter!, JsonColumn<QualityReport>.Comparer!);
         ConfigureArtworkAndMetadata(builder);
         builder.ComplexProperty(track => track.LibraryInfo, LibraryInfoColumns);
     }
