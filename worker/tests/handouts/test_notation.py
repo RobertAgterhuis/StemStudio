@@ -33,8 +33,18 @@ from stemstudio_worker.ports import (
     RenderedHandout,
 )
 
-from .documents import A4, LETTER, SCORE, TAB, library_files, notation_pdf, page_texts, request
-from .support import needs_weasyprint
+from .documents import (
+    A4,
+    LETTER,
+    SCORE,
+    TAB,
+    library_files,
+    notation_pdf,
+    page_texts,
+    request,
+    token_pdf,
+)
+from .support import FakeLayout, needs_weasyprint
 
 
 def test_the_reader_is_a_notation_reader_with_page_sizes(tmp_path: Path) -> None:
@@ -279,3 +289,24 @@ def test_a_blank_page_without_content_is_readable(tmp_path: Path) -> None:
     path.write_bytes(_blank(1))
 
     assert len(PypdfNotationReader().page_sizes(path)) == 1
+
+
+# ------------------------------------------------------------------ parse limits (security fixes)
+
+
+def test_a_page_over_the_parsers_own_token_limit_is_unreadable(tmp_path: Path) -> None:
+    path = token_pdf(tmp_path / "bomb.pdf", 1, 2_100_000)
+
+    with pytest.raises(NotationUnreadableError):
+        PypdfNotationReader().page_sizes(path)
+
+
+def test_a_pdf_over_the_token_limit_completes_the_render_with_a_warning(tmp_path: Path) -> None:
+    files = library_files(tmp_path / "library")
+    token_pdf(files[TAB], 1, 2_100_000)
+
+    result = WeasyHandoutRenderer(layout=FakeLayout()).render(request(), files, lambda _f: None)
+
+    assert [(w.code, w.text) for w in result.warnings] == [
+        ("notation-unreadable", "A notation file could not be read: Bass - tablature")
+    ]

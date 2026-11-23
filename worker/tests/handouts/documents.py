@@ -6,13 +6,14 @@ PDFs are small pypdf files with one line of text per page (``NOTATION <name> <pa
 
 import copy
 import io
+import zlib
 from functools import cache
 from pathlib import Path
 from typing import Any
 
 import pypdf
 import yaml
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, StreamObject
 
 from stemstudio_worker.schemas import HandoutJobRequest
 
@@ -80,6 +81,26 @@ def notation_pdf(path: Path, pages: int = 1, size: tuple[float, float] = A4) -> 
         page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): fonts})
         stream = DecodedStreamObject()
         stream.set_data(f"BT /F1 24 Tf 72 700 Td (NOTATION {path.stem} {number}) Tj ET".encode())
+        page[NameObject("/Contents")] = writer._add_object(stream)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    path.write_bytes(buffer.getvalue())
+    return path.resolve()
+
+
+def token_pdf(path: Path, pages: int, tokens: int) -> Path:
+    """A small A4 PDF whose every page has a compressed content stream of about ``tokens`` tokens.
+
+    The stream repeats ``0 0 m`` (three tokens); it compresses to a few KiB however long it is.
+    """
+    writer = pypdf.PdfWriter()
+    blob = zlib.compress(b"0 0 m\n" * (tokens // 3), 9)
+    for _ in range(pages):
+        page = writer.add_blank_page(*A4)
+        stream = StreamObject()
+        stream._data = blob  # encoded, as a hostile file carries it
+        stream[NameObject("/Filter")] = NameObject("/FlateDecode")
         page[NameObject("/Contents")] = writer._add_object(stream)
     path.parent.mkdir(parents=True, exist_ok=True)
     buffer = io.BytesIO()

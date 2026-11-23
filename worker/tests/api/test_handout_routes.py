@@ -14,7 +14,14 @@ from stemstudio_worker.ports import HANDOUT_FAILED_TEXT, HandoutRenderError
 
 from .conftest import Api, ApiFactory
 from .contract import assert_conforms, spec
-from .insights_fakes import OUTLINE, PDF, WAIT, FakeHandoutRenderer
+from .insights_fakes import (
+    OUTLINE,
+    PDF,
+    WAIT,
+    FakeHandoutRenderer,
+    blank_layout,
+    tokens_pdf,
+)
 
 JOBS = "/v1/handout-jobs"
 ONE = f"{JOBS}/{{handoutJobId}}"
@@ -304,3 +311,29 @@ def test_the_default_renderer_is_the_weasyprint_renderer() -> None:
     assert isinstance(default_handout_renderer(AppOverrides()), WeasyHandoutRenderer)
     fake = FakeHandoutRenderer()
     assert default_handout_renderer(AppOverrides(handout_renderer=fake)) is fake
+
+
+def test_a_notation_pdf_over_the_parse_limit_completes_the_job_with_a_warning(
+    make_api: ApiFactory,
+) -> None:
+    api = make_api(overrides=AppOverrides(handout_renderer=WeasyHandoutRenderer(
+        layout=blank_layout)))  # fmt: skip
+    root = _library(api)
+    for path, data in ((TAB, tokens_pdf(2_100_000)), (SCORE, tokens_pdf(30))):
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_bytes(data)
+    body = _body()
+    _song(body)["artworkPath"] = None
+
+    job_id = _create(api, body)
+    _wait(api)
+
+    job = api.client.get(f"{JOBS}/{job_id}")
+    assert_conforms(job, ONE)
+    assert job.json()["status"] == "completed", job.json()["error"]
+    assert job.json()["result"]["warnings"] == [
+        {
+            "code": "notation-unreadable",
+            "text": "A notation file could not be read: Bass - tablature",
+        }
+    ]

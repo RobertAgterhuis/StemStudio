@@ -5,9 +5,16 @@ beat-analysis lane builds the real one); ``FakeHandoutRenderer`` returns a small
 outline of the ``CompletedHandoutJob`` example. Both can be held at a gate and made to fail.
 """
 
+import io
 import threading
+import zlib
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
+
+import pypdf
+from pypdf.generic import NameObject, StreamObject
 
 from stemstudio_worker.ports import (
     InsightsProgress,
@@ -105,6 +112,42 @@ class FakeHandoutRenderer(_Gated):
         self.calls.append((request, dict(files)))
         self._run(progress)
         return RenderedHandout(pdf=PDF, pages=5, outline=OUTLINE, warnings=self.warnings)
+
+
+@dataclass
+class BlankLaidOut:
+    """A laid-out handout of blank A4 pages: page 0, then one page per notation frame."""
+
+    pdf: bytes
+    frames: dict[str, tuple[int, tuple[float, float, float, float]]] = field(default_factory=dict)
+
+
+def blank_layout(html: str, allowed: Any) -> BlankLaidOut:
+    """A layout for ``WeasyHandoutRenderer`` without Pango: one blank page per frame anchor + 1."""
+    del allowed
+    anchors = [part.split('"')[0] for part in html.split('id="frame-')[1:]]
+    writer = pypdf.PdfWriter()
+    for _ in range(len(anchors) + 1):
+        writer.add_blank_page(595, 842)
+    frames = {f"frame-{a}": (n, (50.0, 50.0, 400.0, 600.0)) for n, a in enumerate(anchors, 1)}
+    return BlankLaidOut(_bytes(writer), frames)
+
+
+def tokens_pdf(tokens: int) -> bytes:
+    """A one-page notation PDF whose compressed content stream has about ``tokens`` tokens."""
+    writer = pypdf.PdfWriter()
+    page = writer.add_blank_page(595.28, 841.89)
+    stream = StreamObject()
+    stream._data = zlib.compress(b"0 0 m\n" * (tokens // 3), 9)
+    stream[NameObject("/Filter")] = NameObject("/FlateDecode")
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    return _bytes(writer)
+
+
+def _bytes(writer: pypdf.PdfWriter) -> bytes:
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
 
 
 def write_track(root: Path) -> None:
