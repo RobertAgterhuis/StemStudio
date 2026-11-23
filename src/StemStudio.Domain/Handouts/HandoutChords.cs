@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
@@ -56,17 +55,29 @@ public static class HandoutChords
     /// <summary>The semitones a part is written above concert pitch: B-flat +2, E-flat +9, F +7.</summary>
     /// <param name="transposition">Transposition.</param>
     /// <returns>Semitones.</returns>
-    public static int Semitones(Transposition transposition) => throw new NotImplementedException();
+    public static int Semitones(Transposition transposition) => transposition switch
+    {
+        Transposition.BFlat => 2,
+        Transposition.EFlat => 9,
+        Transposition.F => 7,
+        _ => 0,
+    };
 
     /// <summary>The 016 display of a transposition (no capo).</summary>
     /// <param name="transposition">Transposition.</param>
     /// <returns>The display.</returns>
-    public static ChordDisplay Display(Transposition transposition) => throw new NotImplementedException();
+    public static ChordDisplay Display(Transposition transposition) => new(Semitones(transposition), 0);
 
     /// <summary>The note of a transposed part, e.g. "Part in B-flat (sounds a major second lower)"; null for concert pitch.</summary>
     /// <param name="transposition">Transposition.</param>
     /// <returns>The note or null.</returns>
-    public static string? TranspositionNote(Transposition transposition) => throw new NotImplementedException();
+    public static string? TranspositionNote(Transposition transposition) => transposition switch
+    {
+        Transposition.BFlat => "Part in B-flat (sounds a major second lower)",
+        Transposition.EFlat => "Part in E-flat (sounds a major sixth lower)",
+        Transposition.F => "Part in F (sounds a perfect fifth lower)",
+        _ => null,
+    };
 
     /// <summary>The symbol of one segment in the written key of the part.</summary>
     /// <param name="chart">The chart.</param>
@@ -75,7 +86,9 @@ public static class HandoutChords
     /// <returns>The symbol, or <c>N.C.</c> without a chord.</returns>
     public static string Symbol(ChordChart chart, ChordSegment segment, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(chart);
+        ArgumentNullException.ThrowIfNull(segment);
+        return ChordSpeller.Symbol(segment.Chord, chart.SpellingKeyAt(segment.StartMs), Display(transposition));
     }
 
     /// <summary>The distinct chord symbols in order of appearance (the legend line, at most 64).</summary>
@@ -84,14 +97,16 @@ public static class HandoutChords
     /// <returns>The symbols.</returns>
     public static IReadOnlyList<string> Legend(ChordChart chart, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(chart);
+        return chart.Segments.Where(segment => segment.HasChord).Select(segment => Symbol(chart, segment, transposition)).Distinct(StringComparer.Ordinal).Take(MaxSymbols).ToList();
     }
 
     /// <summary>The song's key in the written key of the part, e.g. "B minor"; null without a key.</summary>
     /// <param name="chart">The chart, or null.</param>
     /// <param name="transposition">Transposition.</param>
     /// <returns>The key text or null.</returns>
-    public static string? Key(ChordChart? chart, Transposition transposition) => throw new NotImplementedException();
+    public static string? Key(ChordChart? chart, Transposition transposition) =>
+        chart?.Key is { } key ? KeyFormatter.Name(ChordSpeller.Move(key.Key, Display(transposition))!.Value) : null;
 
     /// <summary>Chords over lyrics from 016's chord sheet (word or line placement by the lyrics' sync level).</summary>
     /// <param name="chart">The chart.</param>
@@ -101,7 +116,19 @@ public static class HandoutChords
     /// <returns>The lines.</returns>
     public static HandoutLyricLines OverLyrics(ChordChart chart, (LyricsDocument Document, int OffsetMs) lyrics, BeatGrid? grid, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(chart);
+        ArgumentNullException.ThrowIfNull(lyrics.Document);
+        var sheet = ChordSheetBuilder.Build(new SheetSource(chart, lyrics.Document, lyrics.OffsetMs, grid), Display(transposition));
+        var lines = sheet.Rows.Take(MaxLines)
+            .Select(row => new LyricLine(Cut(row.Text), null, row.Chords.Take(MaxChordsPerLine).Select(chord => new LyricChord(chord.Symbol, Math.Min(chord.CharIndex, MaxLineLength))).ToList()))
+            .ToList();
+        var placement = lyrics.Document.SyncLevel switch
+        {
+            SyncLevel.Word => ChordPlacement.Word,
+            SyncLevel.Line => ChordPlacement.Line,
+            _ => ChordPlacement.None,
+        };
+        return new HandoutLyricLines(lines, lines.Any(line => line.Chords.Count > 0) ? placement : ChordPlacement.None);
     }
 
     /// <summary>Plain lyric lines without chords.</summary>
@@ -109,7 +136,8 @@ public static class HandoutChords
     /// <returns>The lines.</returns>
     public static HandoutLyricLines Plain(LyricsDocument document)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(document);
+        return new HandoutLyricLines(document.Lines.Take(MaxLines).Select(line => new LyricLine(Cut(line.Text), null, [])).ToList(), ChordPlacement.None);
     }
 
     private static string Cut(string text) => text.Length <= MaxLineLength ? text : text[..MaxLineLength];

@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 
@@ -28,7 +27,9 @@ public static class HandoutNotice
     /// <returns>At most 20 lines of at most 300 characters.</returns>
     public static IReadOnlyList<string> Attributions(IEnumerable<AttributionSources> songs)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(songs);
+        return songs.SelectMany(Lines).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line.Length <= MaxLength ? line : line[..MaxLength])
+            .Distinct(StringComparer.Ordinal).Take(MaxAttributions).ToList();
     }
 
     /// <summary>The source text of an artwork (<c>Artwork: Cover Art Archive</c>).</summary>
@@ -36,7 +37,14 @@ public static class HandoutNotice
     /// <returns>The line.</returns>
     public static string ArtworkLine(TrackArtwork artwork)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(artwork);
+        return "Artwork: " + artwork.Source switch
+        {
+            ArtworkSource.User => "your own picture",
+            ArtworkSource.Spotify => "Spotify",
+            ArtworkSource.Embedded => "embedded in the audio file",
+            _ => "Cover Art Archive",
+        };
     }
 
     private static IEnumerable<string> Lines(AttributionSources song)
@@ -71,6 +79,7 @@ public static class HandoutNaming
     /// <returns>"&lt;Family label&gt; handout".</returns>
     public static string Contents(string familyLabel)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(familyLabel);
+        return $"{familyLabel} handout";
     }
 }

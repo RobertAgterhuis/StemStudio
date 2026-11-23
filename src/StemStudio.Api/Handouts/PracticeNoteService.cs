@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Handouts;
@@ -19,9 +18,15 @@ public sealed class PracticeNoteService(ITrackRepository tracks, IPracticeNoteRe
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 or 404.</returns>
-    public Task<IResult> ListAsync(Guid trackId, CancellationToken cancellationToken)
+    public async Task<IResult> ListAsync(Guid trackId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (await tracks.FindAsync(trackId, cancellationToken) is null)
+        {
+            return TrackService.NotFound(trackId);
+        }
+
+        var stored = await notes.ListAsync(trackId, cancellationToken);
+        return TypedResults.Ok(new PracticeNotesDto { Notes = stored.Select(ToDto).ToList() });
     }
 
     /// <summary><c>PUT /api/tracks/{trackId}/practice-notes/{family}</c>: control characters (except line breaks) are removed; an empty text deletes.</summary>
@@ -30,9 +35,24 @@ public sealed class PracticeNoteService(ITrackRepository tracks, IPracticeNoteRe
     /// <param name="request">The text.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200, 204, 404 or 422.</returns>
-    public Task<IResult> SetAsync(Guid trackId, string family, SetPracticeNoteRequest request, CancellationToken cancellationToken)
+    public async Task<IResult> SetAsync(Guid trackId, string family, SetPracticeNoteRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (!FamilyNames.TryGetValue(family ?? string.Empty, out var parsed))
+        {
+            return HandoutProblems.Field("family", "Must be one of overview, vocals, guitar, bass, keys, drums, melodic.");
+        }
+
+        if (request?.Text is not { Length: <= PracticeNoteRules.MaxLength } text)
+        {
+            return HandoutProblems.Field("text", $"Enter at most {ContractLimits.MaxPracticeNoteLength} characters.");
+        }
+
+        if (await tracks.FindAsync(trackId, cancellationToken) is null)
+        {
+            return TrackService.NotFound(trackId);
+        }
+
+        return await StoreAsync(trackId, parsed, PracticeNoteRules.Clean(text), cancellationToken);
     }
 
     private async Task<IResult> StoreAsync(Guid trackId, HandoutFamily family, string clean, CancellationToken cancellationToken)

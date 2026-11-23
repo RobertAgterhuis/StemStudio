@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Sections;
 using StemStudio.Domain.Tracks;
@@ -32,7 +31,16 @@ public static class BarMapper
     /// <returns>The bars.</returns>
     public static SectionBars Map(SongSection section, BeatGrid? grid, (ChordChart Chart, Transposition Transposition)? chords)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(section);
+        if (grid is not { Reliable: true, Downbeats.Count: > 0 })
+        {
+            return new SectionBars(null, null, null);
+        }
+
+        var downbeats = grid.Downbeats.Where(downbeat => downbeat >= section.StartSeconds && downbeat < section.EndSeconds).Take(MaxBars).ToList();
+        var startBar = section.StartBar ?? SectionSnapper.BarAt(section.StartSeconds, grid);
+        var chordBars = chords is { } chart ? ChordBars(downbeats, grid, section.EndSeconds, chart) : null;
+        return new SectionBars(startBar, downbeats.Count, chordBars);
     }
 
     private static List<IReadOnlyList<string>> ChordBars(List<double> downbeats, BeatGrid grid, double sectionEnd, (ChordChart Chart, Transposition Transposition) chords)

@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.Scores;
 
 namespace StemStudio.Domain.Handouts;
@@ -50,25 +49,43 @@ public static class Families
     /// <param name="family">Family.</param>
     /// <param name="transposition">Transposition (melodic only).</param>
     /// <returns>The label.</returns>
-    public static string Label(HandoutFamily family, Transposition? transposition = null) => throw new NotImplementedException();
+    public static string Label(HandoutFamily family, Transposition? transposition = null) => family switch
+    {
+        HandoutFamily.Overview => "Band overview",
+        HandoutFamily.Vocals => "Vocals",
+        HandoutFamily.Guitar => "Guitar",
+        HandoutFamily.Bass => "Bass",
+        HandoutFamily.Keys => "Keys",
+        HandoutFamily.Drums => "Drums",
+        _ => transposition is null or Transposition.C ? "Melodic instruments" : $"Melodic instruments in {TranspositionName(transposition.Value)}",
+    };
 
     /// <summary>The written name of a transposition (<c>B-flat</c>).</summary>
     /// <param name="transposition">Transposition.</param>
     /// <returns>The name.</returns>
-    public static string TranspositionName(Transposition transposition) => throw new NotImplementedException();
+    public static string TranspositionName(Transposition transposition) => transposition switch
+    {
+        Transposition.BFlat => "B-flat",
+        Transposition.EFlat => "E-flat",
+        Transposition.F => "F",
+        _ => "C",
+    };
 
     /// <summary>How a family offers an ingredient; <see cref="IngredientCode.SetlistNotes"/> is a default of every setlist handout only.</summary>
     /// <param name="family">Family.</param>
     /// <param name="code">Ingredient.</param>
     /// <param name="kind">Song or setlist.</param>
     /// <returns>The offer.</returns>
-    public static IngredientOffer Offer(HandoutFamily family, IngredientCode code, HandoutKind kind) => throw new NotImplementedException();
+    public static IngredientOffer Offer(HandoutFamily family, IngredientCode code, HandoutKind kind) => code == IngredientCode.SetlistNotes
+        ? kind == HandoutKind.Setlist ? D : N
+        : Table[family][SongIngredients.ToList().IndexOf(code)];
 
     /// <summary>The ingredients a family offers, in print order.</summary>
     /// <param name="family">Family.</param>
     /// <param name="kind">Song or setlist.</param>
     /// <returns>The codes.</returns>
-    public static IReadOnlyList<IngredientCode> Offered(HandoutFamily family, HandoutKind kind) => throw new NotImplementedException();
+    public static IReadOnlyList<IngredientCode> Offered(HandoutFamily family, HandoutKind kind) =>
+        SongIngredients.Append(IngredientCode.SetlistNotes).Where(code => Offer(family, code, kind) != N).ToList();
 
     /// <summary>The notation kinds that fit a family (data-model 6.1), best first.</summary>
     /// <param name="family">Family.</param>
@@ -77,7 +94,17 @@ public static class Families
     /// <returns>True when the item fits.</returns>
     public static bool Fits(HandoutFamily family, NotationItem item, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(item);
+        return family switch
+        {
+            HandoutFamily.Vocals => item.Profile == ScoreProfile.Vocals,
+            HandoutFamily.Guitar => item.Profile == ScoreProfile.Guitar,
+            HandoutFamily.Bass => item.Profile == ScoreProfile.Bass,
+            HandoutFamily.Keys => item.Profile is ScoreProfile.Piano or ScoreProfile.Keys,
+            HandoutFamily.Drums => item.Kind == NotationKind.Drums,
+            HandoutFamily.Melodic => FitsMelodic(item, transposition),
+            _ => false,
+        };
     }
 
     /// <summary>The notation a family includes by default: the newest fitting item per kind (score and tab for guitar and bass).</summary>
@@ -87,7 +114,9 @@ public static class Families
     /// <returns>The default items.</returns>
     public static IReadOnlyList<NotationItem> DefaultNotation(HandoutFamily family, IReadOnlyList<NotationItem> items, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(items);
+        return items.Where(item => Fits(family, item, transposition)).GroupBy(item => item.Kind).Select(group => group.First())
+            .OrderBy(item => KindOrder(item.Kind)).ToList();
     }
 
     private static bool FitsMelodic(NotationItem item, Transposition transposition) => transposition == Transposition.C

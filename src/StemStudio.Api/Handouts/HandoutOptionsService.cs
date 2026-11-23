@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using System.Globalization;
 using StemStudio.Api.Handouts.Sources;
 using StemStudio.Api.Tracks;
@@ -32,9 +31,16 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
     /// <param name="transposition">Transposition wire value, or null.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200, 404 or 422.</returns>
-    public Task<IResult> GetAsync(Guid? trackId, Guid? setlistId, string? family, string? transposition, CancellationToken cancellationToken)
+    public async Task<IResult> GetAsync(Guid? trackId, Guid? setlistId, string? family, string? transposition, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var (parsed, invalid) = Parse(trackId, setlistId, family, transposition);
+        if (invalid is not null)
+        {
+            return invalid;
+        }
+
+        var (songs, problem) = await SongsAsync(trackId, setlistId, parsed.Family, cancellationToken);
+        return problem ?? TypedResults.Ok(Options(parsed.Family, parsed.Transposition, setlistId is null ? HandoutKind.Song : HandoutKind.Setlist, songs!));
     }
 
     private static ((HandoutFamily Family, Transposition Transposition), IResult?) Parse(Guid? trackId, Guid? setlistId, string? family, string? transposition)
@@ -125,7 +131,16 @@ internal static class IngredientTexts
     public static IngredientDto Ingredient(
         IngredientCode code, HandoutFamily family, HandoutKind kind, IngredientAvailability availability, (HandoutMaterial Material, Track Track)? song, IReadOnlyList<NotationItem> notation)
     {
-        throw new NotImplementedException();
+        var available = availability == IngredientAvailability.Available;
+        var material = song?.Material;
+        return new IngredientDto
+        {
+            Code = HandoutMapper.Convert<IngredientCodeDto>(code),
+            Status = available ? IngredientStatusDto.Available : IngredientStatusDto.Missing,
+            DefaultIncluded = Families.Offer(family, code, kind) == IngredientOffer.Default,
+            Text = HandoutAssembler.Cut(Text(code, availability, material, notation), 200)!,
+            Action = material is null ? null : Action(code, family, available, song!.Value, notation),
+        };
     }
 
     private static string Text(IngredientCode code, IngredientAvailability availability, HandoutMaterial? material, IReadOnlyList<NotationItem> notation) => (code, availability) switch

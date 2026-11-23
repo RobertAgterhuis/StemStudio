@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using Microsoft.Extensions.Options;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Handouts.Sources;
@@ -38,7 +37,25 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
     /// <param name="ask">The request.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The draft, or the problem (404, 409, 422).</returns>
-    public Task<(HandoutDraft? Draft, IResult? Problem)> PlanAsync(HandoutAsk ask, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public async Task<(HandoutDraft? Draft, IResult? Problem)> PlanAsync(HandoutAsk ask, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ask);
+        var (songs, setlist, problem) = await SongsAsync(ask.Recipe, cancellationToken);
+        if (problem is not null)
+        {
+            return (null, problem);
+        }
+
+        var recipe = ask.Recipe;
+        var transposition = recipe.Transposition ?? Transposition.C;
+        var materials = new List<HandoutMaterial>(songs!.Count);
+        foreach (var (track, notes) in songs)
+        {
+            materials.Add(await loader.LoadAsync(track, recipe.Family, notes, cancellationToken));
+        }
+
+        return Plan(recipe, setlist, materials, transposition);
+    }
 
     private static (HandoutDraft?, IResult?) Plan(HandoutRecipe recipe, SetlistSnapshot? setlist, List<HandoutMaterial> materials, Transposition transposition)
     {
@@ -100,35 +117,8 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
         return await SetlistSongsAsync(recipe.SetlistId!.Value, cancellationToken);
     }
 
-    private async Task<(List<(Track Track, string? Notes)>?, SetlistSnapshot?, IResult?)> SetlistSongsAsync(Guid setlistId, CancellationToken cancellationToken)
-    {
-        var setlist = await setlists.FindAsync(setlistId, cancellationToken);
-        var max = options.Value.MaxSetlistHandoutSongs;
-        var refusal = setlist switch
-        {
-            null => HandoutProblems.SetlistNotFound(setlistId),
-            { Entries.Count: 0 } => InsightsProblems.SetlistEmpty(),
-            _ when setlist.Entries.Count > max => InsightsProblems.TooManySongs(max),
-            _ => null,
-        };
-        if (refusal is not null)
-        {
-            return (null, null, refusal);
-        }
-
-        var songs = new List<(Track, string?)>();
-        var kept = new List<SetlistSong>();
-        foreach (var entry in setlist!.Entries)
-        {
-            if (await tracks.FindAsync(entry.TrackId, cancellationToken) is { } track)
-            {
-                songs.Add((track, entry.Notes));
-                kept.Add(entry);
-            }
-        }
-
-        return songs.Count == 0 ? (null, null, InsightsProblems.SetlistEmpty()) : (songs, setlist with { Entries = kept }, null);
-    }
+    private Task<(List<(Track Track, string? Notes)>?, SetlistSnapshot?, IResult?)> SetlistSongsAsync(Guid setlistId, CancellationToken cancellationToken) =>
+        throw new NotImplementedException($"Setlist {setlistId} handouts ({setlists}, {options}, {cancellationToken.CanBeCanceled}) come with User Story 4.");
 }
 
 /// <summary>Problems of the handout endpoints beside the conflicts of <see cref="InsightsProblems"/>.</summary>

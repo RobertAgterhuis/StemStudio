@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using System.Globalization;
 using System.Reflection;
 using StemStudio.Api.Worker;
@@ -40,7 +39,22 @@ public sealed class HandoutAssembler(TimeProvider clock)
     /// <returns>The document.</returns>
     public WorkerHandoutDocument Document(PlannedHandout plan)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(plan);
+        var first = plan.Songs[0].Material;
+        return new WorkerHandoutDocument
+        {
+            Kind = plan.Kind,
+            Family = plan.Family,
+            FamilyLabel = Families.Label(plan.Family, plan.Transposition),
+            Title = Cut(plan.Setlist?.Name ?? first.Title, 300)!,
+            Subtitle = plan.Setlist is null ? Cut(first.Artist, 300) : string.Create(CultureInfo.InvariantCulture, $"Setlist - {plan.Songs.Count} songs"),
+            GeneratedOn = clock.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            Notice = WorkerHandoutNotice.Fixed,
+            Setlist = plan.Setlist is { } setlist ? SetlistBlock(setlist, plan) : null,
+            Songs = plan.Songs.Select(song => Song(song, plan.Transposition)).ToList(),
+            Attributions = HandoutNotice.Attributions(plan.Songs.Select(Sources)),
+            AppVersion = AppVersion,
+        };
     }
 
     /// <summary>One song of the document.</summary>
@@ -49,7 +63,25 @@ public sealed class HandoutAssembler(TimeProvider clock)
     /// <returns>The song.</returns>
     public static WorkerHandoutSong Song(PlannedSong song, Transposition transposition)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(song);
+        var material = song.Material;
+        var include = song.Include.ToHashSet();
+        return new WorkerHandoutSong
+        {
+            Title = Cut(material.Title, 300)!,
+            Artist = Cut(material.Artist, 500),
+            ArtworkPath = material.ArtworkPath,
+            Facts = SongFactsBuilder.Of(song, transposition),
+            Sections = HandoutSections.Of(material, include, transposition),
+            Lyrics = Lyrics(material, include, transposition),
+            ChordSymbols = UsesChords(include) && material.Chart is { } chart ? HandoutChords.Legend(chart, transposition) : [],
+            Notation = include.Contains(IngredientCode.Notation)
+                ? song.Notation.Take(8).Select(item => new WorkerHandoutNotation(Cut(item.Title, 120)!, item.Kind, item.PdfPath)).ToList()
+                : [],
+            PracticeNotes = include.Contains(IngredientCode.PracticeNotes) ? material.PracticeNote : null,
+            EntryNotes = include.Contains(IngredientCode.SetlistNotes) ? material.EntryNotes : null,
+            Include = song.Include,
+        };
     }
 
     private static WorkerHandoutLyrics? Lyrics(HandoutMaterial material, HashSet<IngredientCode> include, Transposition transposition)
@@ -111,10 +143,20 @@ internal static class SongFactsBuilder
 {
     public static WorkerSongFacts Of(PlannedSong song, Transposition transposition)
     {
-        throw new NotImplementedException();
+        var material = song.Material;
+        var chordKey = HandoutChords.Key(material.Chart, transposition);
+        var scoreKey = chordKey is null ? material.Notation.Concat(song.Notation).Select(item => item.Key).OfType<KeyInfo>().FirstOrDefault() : null;
+        return new WorkerSongFacts(
+            Tempo(material),
+            material.Grid is { BeatsPerBar: >= 1 and <= 99 } grid ? string.Create(CultureInfo.InvariantCulture, $"{grid.BeatsPerBar}/4") : null,
+            chordKey ?? (scoreKey is null ? null : ScoreKeyText(scoreKey)),
+            chordKey is not null ? "chords" : scoreKey is not null ? "score" : null,
+            Math.Max(0, material.DurationSeconds),
+            HandoutChords.TranspositionNote(transposition));
     }
 
-    public static int? Tempo(HandoutMaterial material) => throw new NotImplementedException();
+    public static int? Tempo(HandoutMaterial material) =>
+        material.Grid is { Bpm: > 0 } grid ? Math.Clamp((int)Math.Round(grid.Bpm, MidpointRounding.AwayFromZero), 20, 400) : null;
 
     private static string ScoreKeyText(KeyInfo key) =>
         $"{key.Tonic.Replace("-", "b", StringComparison.Ordinal)} {(key.Mode == KeyMode.Major ? "major" : "minor")}";
@@ -127,6 +169,17 @@ internal static class HandoutSections
 
     public static IReadOnlyList<WorkerHandoutSection> Of(HandoutMaterial material, HashSet<IngredientCode> include, Transposition transposition)
     {
-        throw new NotImplementedException();
+        if (!include.Contains(IngredientCode.FormChart) && !include.Contains(IngredientCode.ChordChart) && !include.Contains(IngredientCode.PracticeProgress))
+        {
+            return [];
+        }
+
+        var chords = include.Contains(IngredientCode.ChordChart) && material.Chart is { } chart ? (chart, transposition) : ((Domain.InstrumentViews.ChordChart, Transposition)?)null;
+        return material.Sections.Take(MaxSections).Select(section =>
+        {
+            var bars = BarMapper.Map(section, material.Grid, chords);
+            var tempo = include.Contains(IngredientCode.PracticeProgress) && material.BestTempo.TryGetValue(section.Id, out var percent) ? Math.Clamp(percent, 25, 200) : (int?)null;
+            return new WorkerHandoutSection(HandoutAssembler.Cut(string.IsNullOrWhiteSpace(section.Label) ? "Section" : section.Label, 80)!, Math.Max(0, section.StartSeconds), Math.Max(0, section.EndSeconds), bars.StartBar, bars.Bars, bars.ChordBars, tempo);
+        }).ToList();
     }
 }

@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
@@ -72,7 +71,20 @@ public static class HandoutAvailability
     /// <returns>Code -> availability.</returns>
     public static IReadOnlyDictionary<IngredientCode, IngredientAvailability> Of(HandoutMaterial material, IReadOnlyList<NotationItem> notation)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(material);
+        ArgumentNullException.ThrowIfNull(notation);
+        return new Dictionary<IngredientCode, IngredientAvailability>
+        {
+            [IngredientCode.Facts] = IngredientAvailability.Available,
+            [IngredientCode.FormChart] = When(material.Sections.Count > 0),
+            [IngredientCode.ChordsOverLyrics] = ChordsOverLyrics(material),
+            [IngredientCode.Lyrics] = When(material.HasLyrics),
+            [IngredientCode.ChordChart] = ChordChart(material),
+            [IngredientCode.Notation] = When(notation.Count > 0),
+            [IngredientCode.PracticeNotes] = When(material.PracticeNote is not null),
+            [IngredientCode.PracticeProgress] = When(material.Sections.Any(section => material.BestTempo.ContainsKey(section.Id))),
+            [IngredientCode.SetlistNotes] = When(material.EntryNotes is not null),
+        };
     }
 
     /// <summary>The best availability over several songs (an ingredient is in a setlist handout when one song has it).</summary>
@@ -81,7 +93,14 @@ public static class HandoutAvailability
     /// <returns>Code -> availability.</returns>
     public static IReadOnlyDictionary<IngredientCode, IngredientAvailability> Combine(IReadOnlyList<IReadOnlyDictionary<IngredientCode, IngredientAvailability>> songs, bool setlistNotes)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(songs);
+        var combined = Enum.GetValues<IngredientCode>().ToDictionary(code => code, code => songs.Select(song => song.GetValueOrDefault(code, IngredientAvailability.Missing)).DefaultIfEmpty(IngredientAvailability.Missing).Min());
+        if (setlistNotes)
+        {
+            combined[IngredientCode.SetlistNotes] = IngredientAvailability.Available;
+        }
+
+        return combined;
     }
 
     private static IngredientAvailability ChordsOverLyrics(HandoutMaterial material) => (material.HasChords && material.HasLyrics) switch

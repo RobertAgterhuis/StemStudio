@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Assets;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Assets;
@@ -36,7 +35,8 @@ public sealed class HandoutJobApplier(IWorkerInsightsClient worker, IAssetFileSt
     /// <param name="job">The job, or null when the worker no longer knows it.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
-    public Task ApplyAsync(Asset asset, WorkerHandoutJob? job, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task ApplyAsync(Asset asset, WorkerHandoutJob? job, CancellationToken cancellationToken) =>
+        AssetJobState.ApplyAsync(asset, job is null ? null : new AssetJobState(job.Status, job.Progress, job.Error), () => CompleteAsync(asset, job!, cancellationToken), Now);
 
     private Task CompleteAsync(Asset asset, WorkerHandoutJob job, CancellationToken cancellationToken) => AssetJobState.StoreAsync(
         () => StoreAsync(asset, job, cancellationToken),

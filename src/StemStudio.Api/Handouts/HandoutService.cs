@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Assets;
 using StemStudio.Api.Insights;
 using StemStudio.Api.Library;
@@ -36,18 +35,34 @@ public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler asse
     /// <param name="request">The request.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404, 409, 422 or 503.</returns>
-    public Task<IResult> CreateAsync(CreateHandoutRequest request, CancellationToken cancellationToken)
+    public async Task<IResult> CreateAsync(CreateHandoutRequest request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (HandoutRequests.Validate(request) is { } invalid)
+        {
+            return invalid;
+        }
+
+        var ask = new HandoutAsk(HandoutMapper.ToRecipe(request), request.Name?.Trim());
+        var (draft, problem) = await planner.PlanAsync(ask, cancellationToken);
+        return problem ?? (store.Disk.HasRoom() ? await CreateAsync(ask, draft!, cancellationToken) : HandoutProblems.InsufficientDiskSpace());
     }
 
     /// <summary>Plans the stored recipe of a failed handout again (current data) and resubmits it.</summary>
     /// <param name="asset">A failed handout item.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404, 409 or 503.</returns>
-    public Task<IResult> RetryAsync(Asset asset, CancellationToken cancellationToken)
+    public async Task<IResult> RetryAsync(Asset asset, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(asset);
+        var (draft, problem) = await planner.PlanAsync(new HandoutAsk(asset.Provenance.HandoutRecipe!, null), cancellationToken);
+        if (problem is not null)
+        {
+            return problem;
+        }
+
+        asset.Retry(Now);
+        asset.Replan(draft!.Facts);
+        return await SubmitAsync(asset, draft, false, cancellationToken);
     }
 
     private async Task<IResult> CreateAsync(HandoutAsk ask, HandoutDraft draft, CancellationToken cancellationToken)
@@ -114,7 +129,26 @@ public static class HandoutRequests
     /// <returns>422 or null.</returns>
     public static IResult? Validate(CreateHandoutRequest request)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(request);
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        if (request.Source is null || (request.Source.TrackId is null) == (request.Source.SetlistId is null))
+        {
+            errors["source"] = ["Give exactly one of trackId and setlistId."];
+        }
+
+        if (request.Transposition is not null && request.Family != HandoutFamilyDto.Melodic)
+        {
+            errors["transposition"] = ["A transposition is only offered for the melodic family."];
+        }
+
+        AddIncludeErrors(errors, request);
+        if (request.NotationAssetIds is { Count: > MaxNotationIds })
+        {
+            errors["notationAssetIds"] = [$"Choose at most {MaxNotationIds} notation items."];
+        }
+
+        AddNameErrors(errors, request.Name);
+        return errors.Count == 0 ? null : HandoutProblems.Fields(errors);
     }
 
     private static void AddIncludeErrors(Dictionary<string, string[]> errors, CreateHandoutRequest request)

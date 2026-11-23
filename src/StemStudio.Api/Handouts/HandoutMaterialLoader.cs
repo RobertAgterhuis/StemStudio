@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Handouts.Sources;
 using StemStudio.Domain.Handouts;
 using StemStudio.Domain.Lyrics;
@@ -21,9 +20,28 @@ public sealed class HandoutMaterialLoader(ISectionSource sections, IChordSource 
     /// <param name="entryNotes">Setlist entry notes, or null.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The material.</returns>
-    public Task<HandoutMaterial> LoadAsync(Track track, HandoutFamily family, string? entryNotes, CancellationToken cancellationToken)
+    public async Task<HandoutMaterial> LoadAsync(Track track, HandoutFamily family, string? entryNotes, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        var lyrics = track.Lyrics is { Status: LyricsStatus.Found, Document: { } document } found ? (document, found.OffsetMs) : (null, 0);
+        return new HandoutMaterial
+        {
+            TrackId = track.Id,
+            Title = track.Title,
+            Artist = track.Artist,
+            DurationSeconds = track.DurationSeconds ?? 0,
+            Grid = track.BeatGrid,
+            Artwork = track.Artwork,
+            ArtworkPath = ArtworkPath(track),
+            Sections = await sections.SectionsAsync(track, cancellationToken),
+            Chart = await chords.ChartAsync(track.Id, cancellationToken),
+            Lyrics = lyrics.document,
+            LyricsOffsetMs = lyrics.Item2,
+            BestTempo = await practice.BestTempoAsync(track.Id, cancellationToken),
+            Notation = await notation.ItemsAsync(track.Id, cancellationToken),
+            PracticeNote = (await notes.FindAsync(track.Id, family, cancellationToken))?.Text,
+            EntryNotes = entryNotes,
+        };
     }
 
     /// <summary>The library path of the shown cover (<c>tracks/&lt;id&gt;/artwork/(auto|user)/cover.jpg</c>), or null.</summary>
@@ -31,6 +49,7 @@ public sealed class HandoutMaterialLoader(ISectionSource sections, IChordSource 
     /// <returns>The path or null.</returns>
     public static string? ArtworkPath(Track track)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        return track.Artwork is null ? null : $"tracks/{track.Id:D}/artwork/{(track.HasUserArtwork ? "user" : "auto")}/cover.jpg";
     }
 }

@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 namespace StemStudio.Domain.Handouts;
 
 /// <summary>Whether a song has the data of an ingredient.</summary>
@@ -30,7 +29,9 @@ public static class IngredientPlanner
     /// <param name="kind">Song or setlist.</param>
     /// <param name="include">The requested codes, or null for the defaults.</param>
     /// <returns>One message per refused code.</returns>
-    public static IReadOnlyList<string> Refused(HandoutFamily family, HandoutKind kind, IReadOnlyList<IngredientCode>? include) => throw new NotImplementedException();
+    public static IReadOnlyList<string> Refused(HandoutFamily family, HandoutKind kind, IReadOnlyList<IngredientCode>? include) =>
+        (include ?? []).Distinct().Where(code => Families.Offer(family, code, kind) == IngredientOffer.No)
+            .Select(code => $"{Wire(code)} is not offered for the {Wire(family)} family.").ToList();
 
     /// <summary>Plans a handout.</summary>
     /// <param name="family">Family.</param>
@@ -40,19 +41,42 @@ public static class IngredientPlanner
     /// <returns>The plan.</returns>
     public static IngredientPlan Plan(HandoutFamily family, HandoutKind kind, IReadOnlyList<IngredientCode>? include, IReadOnlyDictionary<IngredientCode, IngredientAvailability> availability)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(availability);
+        var wanted = (include ?? Defaults(family, kind)).ToHashSet();
+        var included = new List<IngredientCode>();
+        var omitted = new List<OmittedIngredient>();
+        foreach (var code in Families.Offered(family, kind))
+        {
+            var state = availability.GetValueOrDefault(code, IngredientAvailability.Missing);
+            if (!wanted.Contains(code))
+            {
+                omitted.Add(new OmittedIngredient(code, OmissionReason.NotSelected));
+            }
+            else if (state == IngredientAvailability.Available)
+            {
+                included.Add(code);
+            }
+            else
+            {
+                omitted.Add(new OmittedIngredient(code, state == IngredientAvailability.NoTiming ? OmissionReason.NoTiming : OmissionReason.NotAvailable));
+            }
+        }
+
+        return new IngredientPlan(included, omitted);
     }
 
     /// <summary>The one-click defaults of a family.</summary>
     /// <param name="family">Family.</param>
     /// <param name="kind">Song or setlist.</param>
     /// <returns>The default codes.</returns>
-    public static IReadOnlyList<IngredientCode> Defaults(HandoutFamily family, HandoutKind kind) => throw new NotImplementedException();
+    public static IReadOnlyList<IngredientCode> Defaults(HandoutFamily family, HandoutKind kind) =>
+        Families.Offered(family, kind).Where(code => Families.Offer(family, code, kind) == IngredientOffer.Default).ToList();
 
     /// <summary>The wire value of an enum (kebab-case).</summary>
     /// <typeparam name="TEnum">Enum type.</typeparam>
     /// <param name="value">Value.</param>
     /// <returns>The wire text.</returns>
     public static string Wire<TEnum>(TEnum value)
-        where TEnum : struct, Enum => throw new NotImplementedException();
+        where TEnum : struct, Enum =>
+        string.Concat(value.ToString().Select((character, index) => char.IsUpper(character) && index > 0 ? "-" + char.ToLowerInvariant(character) : char.ToLowerInvariant(character).ToString()));
 }
