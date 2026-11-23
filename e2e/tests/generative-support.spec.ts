@@ -68,15 +68,14 @@ test.describe('generative fixtures', { tag: '@self-test' }, () => {
 test.describe('helpers', { tag: '@self-test' }, () => {
   test('placeholder lyrics have the exact length; names fit the 60-character limit', () => {
     expect(placeholderLyrics(4097)).toHaveLength(4097);
-    expect(uniqueName('A rather long prefix for a style name', 'firefox', 'run-0123456789').length).toBeLessThanOrEqual(60);
+    expect(uniqueName('A rather long prefix for a style name', 'chromium', 'run-0123456789').length).toBeLessThanOrEqual(60);
     expect(() => present<string>(undefined, 'the thing')).toThrow('the thing is missing');
   });
 
-  test('the fake microphone uses the file in Chromium and the built-in fake stream in Firefox', () => {
+  test('the fake microphone uses the file in the full Chromium build', () => {
     expect(fakeMicrophoneLaunchOptions('chromium', '/x/own.wav').args).toContain('--use-file-for-fake-audio-capture=/x/own.wav');
     // The headless shell cannot capture audio, so the full Chromium build is used.
     expect(fakeMicrophoneLaunchOptions('chromium', '/x/own.wav').channel).toBe('chromium');
-    expect(fakeMicrophoneLaunchOptions('firefox', '/x/own.wav').firefoxUserPrefs).toMatchObject({ 'media.navigator.streams.fake': true });
-    expect([microphonePermissions('chromium'), microphonePermissions('firefox')]).toEqual([['microphone'], []]);
+    expect([microphonePermissions('chromium'), microphonePermissions('webkit')]).toEqual([['microphone'], []]);
   });
 });

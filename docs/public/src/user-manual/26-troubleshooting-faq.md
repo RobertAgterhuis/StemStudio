@@ -237,5 +237,5 @@ are never given to the AI agent and cannot be used as a voice sample (chapters 1
 **Can I record at a slower speed?** No. Recording works at the original speed and key so the
 take lines up with the stems; playing it back works at any speed and key (chapter 11).
 
-**Which browsers are supported?** Chrome, Edge and Firefox are tested; Safari works on a
+**Which browsers are supported?** Chrome and Edge are tested; Firefox and Safari work on a
 best-effort basis. For play-along recording use Chrome or Edge.

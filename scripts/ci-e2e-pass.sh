@@ -9,9 +9,9 @@
 #   agent          011 agent specs with the fake backend, then the unavailable spec (backend none)
 #   lyric          023 lyric assistant with the fake model, then the unavailable spec
 #   gpu            003 @gpu specs with a fake GPU, then with a fake GPU that runs out of memory
-#   instrument     016 instrument views (@instrument, Chromium and Firefox)
+#   instrument     016 instrument views (@instrument, Chromium)
 #   fake-mic       016 singing feedback with the qa microphone fixtures (projects fake-mic-*)
-#   insights       020 stem quality reports and lesson handouts (@insights, Chromium and Firefox)
+#   insights       020 stem quality reports and lesson handouts (@insights, Chromium)
 #
 # Usage (from the repository root): scripts/ci-e2e-pass.sh [--dry-run] <pass> | --list
 #   --dry-run  print the commands instead of running them

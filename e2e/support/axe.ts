@@ -36,12 +36,10 @@ async function transitionsDone(page: Page): Promise<void> {
 }
 
 /**
- * Rules that crash a browser's content process instead of reporting: axe-core's `target-size`
- * crashes Firefox (Windows and the Linux Playwright image, Playwright 1.65.1) on the Settings page
- * with a stored Claude key ("Page crashed"; found at the claude-key integration). The rule still
- * runs in Chromium, where the a11y project and the same scoped scans check it.
+ * Rules that crash a browser's content process instead of reporting, per browser. Empty since the E2E suite runs
+ * Chromium only (Firefox, where `target-size` crashed, was dropped: owner decision 2026-11-23).
  */
-const crashingRules: Readonly<Record<string, readonly string[]>> = { firefox: ['target-size'] };
+const crashingRules: Readonly<Record<string, readonly string[]>> = {};
 
 /**
  * Scans only the part of the page under `selector` (for example one settings group in a given

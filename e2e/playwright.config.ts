@@ -36,14 +36,14 @@ function fakeMicProject(name: string, wav: string): Project {
 const fixedChrome = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
 
 /**
- * StemStudio E2E configuration (T022): Chromium and Firefox, retries 0, one worker because both
- * projects share one stack whose worker processes one job at a time.
+ * StemStudio E2E configuration (T022): Chromium, retries 0, one worker because the projects share
+ * one stack whose worker processes one job at a time. Firefox was dropped (owner decision 2026-11-23).
  *
  * Feature 004 (T011): every context starts at level Advanced with the welcome dismissed and no
  * tour offers (`advancedState`, ui-test-ids 1.3.0 R7), so the 1.2.0 specs run unchanged; new specs
  * override `storageState`. Projects `visual` (container only), `a11y` and `lighthouse-setup` run
  * the design-quality suites (`npm run test:visual`, `test:a11y`, `test:lighthouse`); `npm test`
- * selects only `chromium` and `firefox`.
+ * selects only `chromium`.
  *
  * Feature 015 (T010): project `recording` runs the `@recording` specs (`npm run test:recording`) in
  * the full Chromium build (`channel: 'chromium'`, fake media devices, microphone permission); each
@@ -54,7 +54,7 @@ const fixedChrome = { ...devices['Desktop Chrome'], viewport: { width: 1440, hei
  * fixtures `sing-on-pitch.wav`, `sing-semitone-off.wav` and `silence.wav` as the microphone and run only specs tagged
  * `@fake-mic-on-pitch` / `@fake-mic-semitone` / `@fake-mic-silence` (every such spec also carries `@fake-mic`);
  * `npm run test:fake-mic` runs the three, `npm run test:instrument` the other `@instrument` specs. `npm test`
- * (and `test:chromium` / `test:firefox`, the CI matrix) excludes both tags; CI runs them as their own passes.
+ * (and `test:chromium`, the CI job) excludes both tags; CI runs them as their own passes.
  */
 export default defineConfig({
   testDir: './tests',
@@ -97,7 +97,6 @@ export default defineConfig({
         launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
       },
     },
-    { name: 'firefox', grepInvert: /@fake-mic/, use: { ...devices['Desktop Firefox'] } },
     fakeMicProject('fake-mic-on-pitch', 'sing-on-pitch.wav'),
     fakeMicProject('fake-mic-semitone', 'sing-semitone-off.wav'),
     fakeMicProject('fake-mic-silence', 'silence.wav'),

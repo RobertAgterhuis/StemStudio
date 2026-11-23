@@ -48,7 +48,7 @@ and no Sigrid (ADR-038): these local checks are the quality gates.
 ## End-to-end and design gates
 
 The Playwright suite (`e2e/`) runs against an isolated compose stack with the fake separator
-on Chromium and Firefox:
+on Chromium (Firefox left the E2E suite on 2026-11-23, owner decision):
 
 | Suite | Command | Purpose |
 |---|---|---|

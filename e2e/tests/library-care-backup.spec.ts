@@ -156,9 +156,7 @@ test.describe('running backup (013 US1-2, US1-3; throttled stack)', { tag: ['@li
 });
 
 test.describe('write gate (013 FR-002)', { tag: ['@library-care', '@backup'] }, () => {
-  test('while a backup runs, deletes and clean-ups are refused with backup-running and an export still runs', async ({ api, assetsApi, careApi, trackPage, page, browserName }, testInfo) => {
-    // eslint-disable-next-line playwright/no-skipped-test -- owner decision 2026-11-23: Firefox is not the focus browser
-    test.skip(browserName === 'firefox', 'fails only in Firefox; Firefox is not the focus browser (owner decision 2026-11-23)');
+  test('while a backup runs, deletes and clean-ups are refused with backup-running and an export still runs', async ({ api, assetsApi, careApi, trackPage, page }, testInfo) => {
     requireThrottledJobs();
     test.setTimeout(fakeJobTimeoutMs * 3 + libraryJobTimeoutMs);
     const seeded = await seedLibrary(api, assetsApi, testInfo.project.name);
@@ -186,9 +184,7 @@ test.describe('write gate (013 FR-002)', { tag: ['@library-care', '@backup'] }, 
     expect((await api.getTrack(victim.id)).status).toBe('completed');
   });
 
-  test('a second backup while one runs is refused with library-job-running', async ({ api, assetsApi, careApi, browserName }, testInfo) => {
-    // eslint-disable-next-line playwright/no-skipped-test -- owner decision 2026-11-23: Firefox is not the focus browser
-    test.skip(browserName === 'firefox', 'fails only in Firefox; Firefox is not the focus browser (owner decision 2026-11-23)');
+  test('a second backup while one runs is refused with library-job-running', async ({ api, assetsApi, careApi }, testInfo) => {
     requireThrottledJobs();
     test.setTimeout(fakeJobTimeoutMs * 2 + libraryJobTimeoutMs);
     await seedLibrary(api, assetsApi, testInfo.project.name);
@@ -202,9 +198,7 @@ test.describe('write gate (013 FR-002)', { tag: ['@library-care', '@backup'] }, 
 });
 
 test.describe('library care accessibility (013 FR-032)', { tag: ['@library-care', '@backup'] }, () => {
-  test('the library care page has no axe violations on either tab', async ({ care, page, browserName }) => {
-    // eslint-disable-next-line playwright/no-skipped-test -- owner decision 2026-11-23: Firefox is not the focus browser
-    test.skip(browserName === 'firefox', 'fails only in Firefox; Firefox is not the focus browser (owner decision 2026-11-23)');
+  test('the library care page has no axe violations on either tab', async ({ care, page }) => {
     await care.goto('backups');
     expect(await axeViolations(page)).toEqual([]);
     await care.selectTab('storage');

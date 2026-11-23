@@ -416,7 +416,7 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   albums and podcasts are not supported.
 - **YouTube** downloads depend on yt-dlp keeping up with YouTube changes; update the worker image
   when downloads start failing.
-- **Browsers**: tested on Chromium and Firefox; Safari is best effort.
+- **Browsers**: the automated tests run on Chromium (Chrome, Edge); Firefox and Safari are best effort.
 - **Single user**, local only: no accounts, no authentication. Do not expose the ports to the
   internet.
 - **Lyrics** come from LRCLIB only; a song that is not there needs pasted text. Automatic

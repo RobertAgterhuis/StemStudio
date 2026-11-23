@@ -78,7 +78,7 @@ no worker contract.
 ## 1. Test pyramid
 
 ```text
-                 E2E (Playwright, Chromium + Firefox, retries 0)     e2e/tests/*.spec.ts
+                 E2E (Playwright, Chromium, retries 0)            e2e/tests/*.spec.ts
              ----------------------------------------------------
             Contract tests (OpenAPI shapes, URL vectors, UI test ids)
         ------------------------------------------------------------
@@ -404,11 +404,11 @@ uv run --project worker ruff format --check tests/fixtures
 uv run --project worker mypy --config-file tests/fixtures/pyproject.toml tests/fixtures
 
 # E2E (in e2e/)
-npm ci && npx playwright install --with-deps chromium firefox
+npm ci && npx playwright install --with-deps chromium
 npm run lint && npm run typecheck
 npx playwright test --list
 npm run fixtures         # both generators
-npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium + Firefox, retries 0
+npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium, retries 0
 npm run test:gpu         # (003) only @gpu; stack with STEMSTUDIO_FAKE_DEVICE=gpu, then again with gpu-oom
 
 # (003) the two @gpu runs (from the repository root; the same variable drives stack and suite)
@@ -464,8 +464,12 @@ tour version re-offers the tour and would add an offer chip to the 1.2.0 screens
 another state use `test.use({ storageState: ... })` per file or describe block, or a second context
 or page for cross-tab checks. The record carries a fixed timestamp, so it is deterministic.
 
-The Playwright config has five projects: `chromium` and `firefox` (testDir `tests/`, the E2E suite;
-`npm test` and the other behavioural scripts select exactly these two), `visual` (testDir
+**Owner decision 2026-11-23: Firefox is no longer part of the E2E suite** (no `firefox` project, script, CI matrix
+entry or browser install; the Firefox-only smoke `recording-firefox.spec.ts` and the Firefox skips of
+`library-care-backup.spec.ts` were removed). Older results below that name Firefox are history.
+
+The Playwright config has the project `chromium` (testDir `tests/`, the E2E suite; `npm test` and the other behavioural
+scripts select it; it had a `firefox` twin until 2026-11-23), `visual` (testDir
 `visual/`), `a11y` (testDir `a11y/`) and `lighthouse-setup` (`lighthouse/*.setup.ts`). The new
 behavioural specs in `tests/` are tagged `@ux`, so `npm run test:legacy` still runs exactly the
 1.2.0 set.
@@ -980,7 +984,7 @@ uv run --project worker python tests/fixtures/generate_score_fixtures.py
 STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
 (cd e2e && STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu npm run test:lyrics)
 # (008) sheet music, then the drums case with the detail phase
-(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium --project=firefox tests/sheet-music.spec.ts -g drums)
+(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium tests/sheet-music.spec.ts -g drums)
 # stack-free self-test of the 006/008 helpers (pass without docker)
 (cd e2e && npx playwright test tests/lyrics-score-support.spec.ts)
 ```
@@ -1493,7 +1497,7 @@ CK-SC-005). Every test starts by deleting a left-over key through the UI; `after
 stored key, so `agent.spec.ts` "settings" (Claude without a key) is unaffected.
 
 **Tag `@claude-key`** (no `@agent`, so `scripts/agent-e2e.*` never pick the spec up). `npm test`
-and `test:legacy` exclude it; `npm run test:claude-key` runs it in Chromium and Firefox. It needs
+and `test:legacy` exclude it; `npm run test:claude-key` runs it in Chromium. It needs
 the Docker CLI on the host (api recreated with and without `ANTHROPIC_API_KEY`, key ring files
 removed, logs and database read through `docker compose -f $E2E_COMPOSE_FILE`), a page base URL
 under a loopback host (`localhost`; otherwise the tests skip: key entry is local-only) and a
@@ -2016,8 +2020,8 @@ hash list, and that a rerun is byte-identical and equals the committed manifest.
   the end that every request went to the web or the API origin (20.3).
 - **Waiting.** Uploads are waited on by take id (`rec-take-row-<takeId>` and its `data-status`),
   never on a panel text alone (LESSONS qa).
-- **Firefox.** Only the unsupported and permission states are smoke-tested (T085); recording
-  itself is Chromium/Edge (research R-01).
+- **Firefox.** Recording itself is Chromium/Edge (research R-01); the Firefox smoke (T085) was removed with the
+  Firefox project (owner decision 2026-11-23).
 
 ### 21.4 (015) user story -> tests
 
@@ -2030,7 +2034,7 @@ hash list, and that a rerun is byte-identical and equals the committed manifest.
 | US5 manage takes (FR-014, FR-018) | Api update/delete/cascade, bUnit takes panel and rows | `recording-manage.spec.ts` (rename, star, delete -> asset 404, track delete removes its takes) |
 | US6 export (FR-015) | Domain take export planner, render vectors 1.1.0, bUnit export presets | `recording-export.spec.ts` (take only as WAV 24-bit: length and samples; take + mix MP3 in the Library with contents "Take n") |
 | US7 timing adjustment (FR-016) | engine `setTakeAdjustment`, Api replace-audio, bUnit adjust | `recording-adjust.spec.ts` (Expert: -10.0 ms -> `startSample` 441 lower, revision 1) |
-| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes), `tests/recording-firefox.spec.ts` (Firefox smoke, project `firefox`) |
+| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes) |
 
 SC-002, SC-004, SC-005 and one real input per family need real hardware: CTO owner checks on the
 reference machine (T089), recorded in `docs/STATUS.md`.
@@ -2253,7 +2257,7 @@ defaults against the data-model 6.2 table, families, ingredient codes and rating
 ratings against data-model 2.6, the B-flat part rule of 6.1 and the facts note of US3-5; plus format, tempo, click
 positions and reruns of the songs.
 
-### 23.3 E2E specs (tag `@insights`, own CI pass `insights`: `npm run test:insights`, Chromium and Firefox)
+### 23.3 E2E specs (tag `@insights`, own CI pass `insights`: `npm run test:insights`, Chromium)
 
 | Spec | Task | Story | What |
 |---|---|---|---|

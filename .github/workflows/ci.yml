@@ -737,7 +737,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox]
+        # Chromium only: Firefox was dropped from the E2E suite (owner decision 2026-11-23).
+        browser: [chromium]
     env:
       # Later compose calls (gpu, practice-flow passes) must keep the fake separator.
       STEMSTUDIO_SEPARATOR: fake
