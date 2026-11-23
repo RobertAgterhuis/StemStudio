@@ -1,0 +1,96 @@
+{
+  "paper": "a4",
+  "document": {
+    "kind": "song",
+    "family": "bass",
+    "familyLabel": "Bass",
+    "title": "Example Song",
+    "subtitle": "Example Band",
+    "generatedOn": "2026-11-16",
+    "notice": {
+      "footer": "For personal practice and teaching only",
+      "full": "This handout was made with StemStudio for your own practice and lessons. The song, its lyrics and its music belong to their rights holders. Do not publish, sell or share it beyond your lesson. Chords, notation and timings were made automatically and may contain errors."
+    },
+    "setlist": null,
+    "songs": [
+      {
+        "title": "Example Song",
+        "artist": "Example Band",
+        "artworkPath": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/artwork/auto/cover.jpg",
+        "facts": {
+          "tempoBpm": 120,
+          "timeSignature": "4/4",
+          "key": "A minor",
+          "keySource": "chords",
+          "durationSeconds": 262.0,
+          "transpositionNote": null
+        },
+        "sections": [
+          {
+            "name": "Intro",
+            "startSeconds": 0.0,
+            "endSeconds": 8.0,
+            "startBar": 1,
+            "bars": 4,
+            "chordBars": [
+              [
+                "Am"
+              ],
+              [
+                "F"
+              ],
+              [
+                "C"
+              ],
+              [
+                "G"
+              ]
+            ],
+            "practiceTempoPercent": null
+          },
+          {
+            "name": "Verse 1",
+            "startSeconds": 8.0,
+            "endSeconds": 40.0,
+            "startBar": 5,
+            "bars": 16,
+            "chordBars": null,
+            "practiceTempoPercent": 85
+          }
+        ],
+        "lyrics": null,
+        "chordSymbols": [
+          "Am",
+          "F",
+          "C",
+          "G"
+        ],
+        "notation": [
+          {
+            "title": "Bass - tablature",
+            "kind": "tab",
+            "pdfPath": "assets/1b2c3d4e-5f60-4718-9a0b-c1d2e3f4a5b6/tab.pdf"
+          },
+          {
+            "title": "Bass - score",
+            "kind": "score",
+            "pdfPath": "assets/2c3d4e5f-6071-4829-8a0b-c1d2e3f4a5b7/score.pdf"
+          }
+        ],
+        "practiceNotes": "Keep the eighths even in the verse; mute the open A.",
+        "entryNotes": null,
+        "include": [
+          "facts",
+          "form-chart",
+          "chord-chart",
+          "notation",
+          "practice-notes"
+        ]
+      }
+    ],
+    "attributions": [
+      "Chords detected automatically (StemStudio)"
+    ],
+    "appVersion": "0.20.0"
+  }
+}

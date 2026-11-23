@@ -1,0 +1,5 @@
+{
+  "title": "Validation failed",
+  "status": 422,
+  "detail": "notice.footer must be the fixed notice text."
+}

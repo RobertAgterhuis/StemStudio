@@ -1,0 +1,10 @@
+{
+  "handoutJobId": "1e2f3a4b5c6d4e7f8a9b0c1d2e3f4a5b",
+  "status": "failed",
+  "stage": null,
+  "progress": 0.6,
+  "error": "The handout could not be written",
+  "result": null,
+  "createdAt": "2026-11-16T10:05:00Z",
+  "updatedAt": "2026-11-16T10:05:03Z"
+}

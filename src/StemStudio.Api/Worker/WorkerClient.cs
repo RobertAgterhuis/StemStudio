@@ -23,11 +23,7 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
     /// </summary>
     public const int MaxAnalysisResponseBytes = 8 * 1024 * 1024;
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
-    {
-        // Score engines and warning codes are kebab-case on the wire (worker 1.6.0); every other enum is camelCase.
-        Converters = { new JsonStringEnumConverter<ScoreEngine>(JsonNamingPolicy.KebabCaseLower), new JsonStringEnumConverter<ScoreWarningCode>(JsonNamingPolicy.KebabCaseLower), new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-    };
+    private static readonly JsonSerializerOptions Json = CreateJson();
 
     /// <inheritdoc />
     public async Task<WorkerJob> CreateUrlJobAsync(WorkerUrlJobRequest request, CancellationToken cancellationToken)
@@ -98,6 +94,24 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         SourceType.Spotify => "spotify",
         _ => throw new ArgumentException("Uploads are sent with CreateUploadJobAsync.", nameof(type)),
     };
+
+    /// <summary>
+    /// Score engines and warning codes (worker 1.6.0) and the insights and handout enums (worker 1.11.0) are kebab-case on the
+    /// wire; every other enum is camelCase (the general converter comes last).
+    /// </summary>
+    private static JsonSerializerOptions CreateJson()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter<ScoreEngine>(JsonNamingPolicy.KebabCaseLower));
+        options.Converters.Add(new JsonStringEnumConverter<ScoreWarningCode>(JsonNamingPolicy.KebabCaseLower));
+        foreach (var converter in WorkerInsightsJson.Converters)
+        {
+            options.Converters.Add(converter);
+        }
+
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
 
     private static string JobPath(string jobId) => $"v1/jobs/{ValidJobId(jobId)}";
 
