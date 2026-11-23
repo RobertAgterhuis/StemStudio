@@ -1,18 +1,18 @@
-"""The ``HandoutRenderer`` of feature 020 (WeasyPrint + pypdf). Red stub."""
+"""Red stub (020 T068/T070/T072)."""
 
-from collections.abc import Mapping
-from pathlib import Path
+from typing import Any
 
-from stemstudio_worker.ports import HandoutRenderError, InsightsProgress, RenderedHandout
-from stemstudio_worker.schemas import HandoutJobRequest
+MAX_WARNINGS = 50
 
 
 class WeasyHandoutRenderer:
     """Stub."""
 
-    def render(
-        self, request: HandoutJobRequest, files: Mapping[str, Path], progress: InsightsProgress
-    ) -> RenderedHandout:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Stub."""
-        del request, files, progress
-        raise HandoutRenderError
+        raise NotImplementedError
+
+
+def scaled_text(*args: Any, **kwargs: Any) -> Any:
+    """Stub."""
+    raise NotImplementedError
