@@ -9,6 +9,7 @@ of 50-200 ms at ``rate`` per second.
 """
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -29,17 +30,26 @@ def _time(seconds: float) -> Signal:
     return np.arange(round(seconds * SR)) / SR
 
 
-def _partials(f0: float, count: int, seconds: float, decay: float, *, stretch: float = 0.0) -> Signal:
-    """Additive tone with 1/k partials, exponential decay ``decay`` (s); ``stretch`` = inharmonicity."""
+@dataclass(frozen=True, slots=True)
+class Tone:
+    """Partial count, exponential decay (s) and inharmonicity of an additive tone."""
+
+    count: int
+    decay: float
+    stretch: float = 0.0
+
+
+def _partials(f0: float, seconds: float, tone: Tone) -> Signal:
+    """Additive tone with 1/k partials."""
     t = _time(seconds)
     out = np.zeros_like(t)
-    for k in range(1, count + 1):
-        freq = f0 * k * np.sqrt(1 + stretch * k * k)
+    for k in range(1, tone.count + 1):
+        freq = f0 * k * np.sqrt(1 + tone.stretch * k * k)
         if freq >= SR / 2 - 500:
             break
         out += np.sin(2 * np.pi * freq * t + k) / k
     attack = np.minimum(1.0, t / 0.004)
-    return out * attack * np.exp(-t / decay)
+    return out * attack * np.exp(-t / tone.decay)
 
 
 def _place(buffer: Signal, start: float, sound: Signal) -> None:
@@ -66,7 +76,7 @@ def vocals(rng: np.random.Generator, seconds: float) -> Signal:
         phase = 2 * np.pi * f0 * (t + 0.01 / 5.5 * np.sin(2 * np.pi * 5.5 * t))
         note = np.zeros_like(t)
         for k in range(1, int(5000 / f0) + 1):
-            gain = np.sum(np.exp(-(((k * f0) - formants) / 150.0) ** 2)) + 0.02
+            gain = np.sum(np.exp(-((((k * f0) - formants) / 150.0) ** 2))) + 0.02
             note += gain * np.sin(k * phase)
         envelope = np.minimum(1.0, t / 0.03) * np.minimum(1.0, (0.5 - t) / 0.03)
         _place(out, start, note * envelope)
@@ -95,7 +105,7 @@ def drums(rng: np.random.Generator, seconds: float) -> Signal:
             _place(out, start, _kick())
         else:
             snare = 0.5 * _noise_burst(rng, 0.25, 0.06, high=False)
-            snare += 0.6 * _partials(190.0, 2, 0.25, 0.08)
+            snare += 0.6 * _partials(190.0, 0.25, Tone(2, 0.08))
             _place(out, start, snare)
     for start in np.arange(0.0, seconds, BEAT / 2):
         _place(out, start, 0.25 * _noise_burst(rng, 0.1, 0.025, high=True))
@@ -115,7 +125,7 @@ def bass(rng: np.random.Generator, seconds: float) -> Signal:
     out = np.zeros(round(seconds * SR))
     for start in np.arange(0.0, seconds, BEAT):
         f0 = float(rng.choice([41.2, 49.0, 55.0, 61.7, 73.4, 82.4, 98.0]))
-        _place(out, start, _partials(f0, 10, BEAT, 0.35))
+        _place(out, start, _partials(f0, BEAT, Tone(10, 0.35)))
     return _normalise(out)
 
 
@@ -126,7 +136,7 @@ def guitar(rng: np.random.Generator, seconds: float) -> Signal:
     for start in np.arange(0.0, seconds, 1.0):
         root = float(rng.choice(roots))
         for offset, ratio in enumerate((1.0, 1.26, 1.5)):
-            _place(out, start + 0.012 * offset, _partials(root * ratio, 16, 1.0, 0.6))
+            _place(out, start + 0.012 * offset, _partials(root * ratio, 1.0, Tone(16, 0.6)))
     return _normalise(out)
 
 
@@ -135,7 +145,7 @@ def piano(rng: np.random.Generator, seconds: float) -> Signal:
     out = np.zeros(round(seconds * SR))
     for start in np.arange(0.0, seconds, 0.75):
         f0 = float(rng.choice([261.6, 293.7, 329.6, 349.2, 392.0, 440.0, 493.9, 523.3]))
-        _place(out, start, _partials(f0, 12, 1.5, 0.9, stretch=0.0004))
+        _place(out, start, _partials(f0, 1.5, Tone(12, 0.9, 0.0004)))
     return _normalise(out)
 
 

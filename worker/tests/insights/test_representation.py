@@ -18,11 +18,16 @@ def _sine(freq: float, seconds: float, amplitude: float = 0.5, rate: int = SR) -
     return amplitude * np.sin(2 * np.pi * freq * t)
 
 
+def _amp(level_db: float) -> float:
+    """Amplitude of a sine with RMS ``level_db`` dBFS."""
+    return float(10 ** (level_db / 20) * np.sqrt(2))
+
+
 def test_constants_match_the_data_model() -> None:
     assert rep.N_FFT == 2048
     assert rep.HOP == 512
     assert rep.BANDS == 64
-    assert rep.FRAME_SECONDS == pytest.approx(512 / QUALITY_SAMPLE_RATE)
+    assert pytest.approx(512 / QUALITY_SAMPLE_RATE) == rep.FRAME_SECONDS
 
 
 def test_filterbank_has_64_bands_from_30_hz_to_11_khz() -> None:
@@ -78,7 +83,9 @@ def test_channels_are_mixed_to_mono(tmp_path: Path) -> None:
     np.testing.assert_allclose(mono.power, both.power, rtol=1e-3, atol=1e-9)
 
 
-def test_reads_in_blocks_and_matches_a_single_block_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reads_in_blocks_and_matches_a_single_block_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path = write_stem(tmp_path / "a.flac", song(seconds=6.0)["guitar"])
     whole = rep.read_spectrogram(path)
     monkeypatch.setattr(rep, "BLOCK_FRAMES", 4_000)
@@ -96,8 +103,8 @@ def test_mix_is_the_sum_of_the_six_standard_stems(tmp_path: Path) -> None:
     expected = rep.read_spectrogram(total)
     assert mix.frames == expected.frames
     np.testing.assert_allclose(mix.power, expected.power, rtol=2e-3, atol=1e-7)
-    np.testing.assert_allclose(separate["drums"].power,
-                               rep.read_spectrogram(paths["drums"]).power, rtol=1e-4, atol=1e-9)  # fmt: skip
+    alone = rep.read_spectrogram(paths["drums"]).power
+    np.testing.assert_allclose(separate["drums"].power, alone, rtol=1e-4, atol=1e-9)
 
 
 def test_mix_pads_a_shorter_stem_with_silence(tmp_path: Path) -> None:
@@ -119,7 +126,7 @@ def test_mixed_input_rates_are_refused(tmp_path: Path) -> None:
 
 def test_level_and_activity_floor(tmp_path: Path) -> None:
     # -10, -45 and -55 dBFS segments (sine RMS = amplitude - 3 dB): peak -10 -> floor -50.
-    parts = [_sine(500.0, 1.0, amplitude=10 ** (level / 20) * np.sqrt(2)) for level in (-10, -45, -55)]
+    parts = [_sine(500.0, 1.0, amplitude=_amp(level)) for level in (-10, -45, -55)]
     spec = rep.read_spectrogram(write_stem(tmp_path / "a.flac", np.concatenate(parts)))
     per_second = round(1 / rep.FRAME_SECONDS)
     middle = slice(per_second // 4, per_second * 3 // 4)
@@ -133,12 +140,12 @@ def test_level_and_activity_floor(tmp_path: Path) -> None:
 
 
 def test_activity_floor_is_40_db_below_a_loud_peak(tmp_path: Path) -> None:
-    parts = [_sine(500.0, 1.0, amplitude=10 ** (level / 20) * np.sqrt(2)) for level in (-3, -38, -46)]
+    parts = [_sine(500.0, 1.0, amplitude=_amp(level)) for level in (-6, -41, -49)]
     spec = rep.read_spectrogram(write_stem(tmp_path / "a.flac", np.concatenate(parts), channels=1))
     per_second = round(1 / rep.FRAME_SECONDS)
     active = spec.active()
-    assert active[per_second + 3 : 2 * per_second - 3].all()  # -38 > -43
-    assert not active[2 * per_second + 3 :].any()  # -46 < -43
+    assert active[per_second + 3 : 2 * per_second - 3].all()  # -41 > -46
+    assert not active[2 * per_second + 3 :].any()  # -49 < -46
 
 
 def test_silence_has_no_active_frames(tmp_path: Path) -> None:
@@ -149,7 +156,9 @@ def test_silence_has_no_active_frames(tmp_path: Path) -> None:
 
 
 def test_empty_file_gives_zero_frames(tmp_path: Path) -> None:
-    spec = rep.read_spectrogram(write_stem(tmp_path / "e.flac", np.zeros(0)))
+    path = tmp_path / "e.wav"
+    sf.write(path, np.zeros((0, 2)), SR, subtype="PCM_16")  # libsndfile cannot open an empty FLAC
+    spec = rep.read_spectrogram(path)
     assert spec.frames == 0
     assert spec.power.shape == (0, rep.BANDS)
     assert not spec.active().any()
