@@ -1,0 +1,17 @@
+@* Rating word with its icon (R20-1: never colour alone); the image role carries the full accessible label, which
+   contains the visible word (WCAG 2.5.3). *@
+
+<span class="ss-quality-rating" role="img" aria-label="@QualityText.AriaLabel(Stem)" data-testid="@TestId" data-rating="@WireName.Of(Stem.Rating)">
+    <span class="rzi" aria-hidden="true">@QualityText.Icon(Stem.Rating)</span>
+    <span>@QualityText.Rating(Stem.Rating)</span>
+</span>
+
+@code {
+    /// <summary>The stem.</summary>
+    [Parameter, EditorRequired]
+    public StemQualityViewDto Stem { get; set; } = default!;
+
+    /// <summary>The test id of the element.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+}

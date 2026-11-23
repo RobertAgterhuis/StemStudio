@@ -1,15 +1,48 @@
-<li></li>
+@* One stem of the quality card (ui-test-ids 1.19.0 quality-row-<channel>): rating word + icon (R20-1), "was ...", reason,
+   Advanced bleed and artefacts, Expert indices, the tips, and the detail stems of a split parent under it (US1 AS2). *@
+
+<li class="ss-quality-row" data-testid="@($"quality-row-{Key}")" data-rating="@WireName.Of(Stem.Rating)" id="@($"quality-row-{Key}")">
+    <div class="ss-quality-head">
+        <span class="ss-quality-channel">@QualityText.Channel(Stem.Channel)</span>
+        <QualityRating Stem="Stem" TestId="@($"quality-rating-{Key}")" />
+        @if (QualityText.Previous(Stem) is { } previous)
+        {
+            <span class="ss-small ss-muted" data-testid="@($"quality-previous-{Key}")">@previous</span>
+        }
+    </div>
+    <p class="ss-small" data-testid="@($"quality-reason-{Key}")">@Stem.Reason</p>
+    <LevelGate Feature="quality.details">
+        <p class="ss-small ss-muted" data-testid="@($"quality-bleed-{Key}")" data-help-id="@($"quality-bleed-{Key}")">@QualityText.Bleed(Stem.Bleed)</p>
+        <p class="ss-small ss-muted" data-testid="@($"quality-artefacts-{Key}")" data-help-id="@($"quality-artefacts-{Key}")">@QualityText.Artefacts(Stem.Artefacts)</p>
+    </LevelGate>
+    <LevelGate Feature="quality.indices">
+        <p class="ss-small ss-muted ss-num" data-testid="@($"quality-index-{Key}")" data-help-id="@($"quality-index-{Key}")"
+           data-bleed-reliability="@WireName.Of(Stem.Bleed.Reliability)" data-artefact-reliability="@WireName.Of(Stem.Artefacts.Reliability)">@QualityText.Indices(Stem)</p>
+    </LevelGate>
+    <TipList Stem="Stem" Actions="Actions" />
+    @if (Children.Count > 0)
+    {
+        <ul class="ss-quality-rows ss-quality-children" aria-label="@($"Detail stems of {QualityText.Channel(Stem.Channel)}")">
+            @foreach (var child in Children)
+            {
+                <QualityRow Stem="child" Actions="Actions" />
+            }
+        </ul>
+    }
+</li>
 
 @code {
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary>The stem.</summary>
+    [Parameter, EditorRequired]
     public StemQualityViewDto Stem { get; set; } = default!;
 
-    /// <summary>Stub.</summary>
+    /// <summary>Its detail stems, shown under it.</summary>
     [Parameter]
     public IReadOnlyList<StemQualityViewDto> Children { get; set; } = [];
 
-    /// <summary>Stub.</summary>
+    /// <summary>What the tip buttons do; null shows tips without buttons.</summary>
     [Parameter]
     public ITipActions? Actions { get; set; }
+
+    private string Key => QualityText.Key(Stem.Channel);
 }

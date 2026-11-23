@@ -1,11 +1,21 @@
-<span></span>
+@* Rating chip on a mixer channel strip (ui-test-ids 1.19.0 quality-badge-<channel>): icon + word (R20-1); it links to
+   the stem's row of the quality card on the track page. *@
+
+<a class="ss-quality-badge" href="@($"tracks/{TrackId}#quality-row-{Key}")" data-testid="@($"quality-badge-{Key}")"
+   data-rating="@WireName.Of(Stem.Rating)" data-help-id="@($"quality-badge-{Key}")"
+   aria-label="@($"Quality of {QualityText.Channel(Stem.Channel)}: {QualityText.Rating(Stem.Rating)}. Open the stem quality report")">
+    <span class="rzi" aria-hidden="true">@QualityText.Icon(Stem.Rating)</span>
+    <span>@QualityText.Rating(Stem.Rating)</span>
+</a>
 
 @code {
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary>The track of the mixer.</summary>
+    [Parameter, EditorRequired]
     public Guid TrackId { get; set; }
 
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary>The stem's rating.</summary>
+    [Parameter, EditorRequired]
     public StemQualityViewDto Stem { get; set; } = default!;
+
+    private string Key => QualityText.Key(Stem.Channel);
 }

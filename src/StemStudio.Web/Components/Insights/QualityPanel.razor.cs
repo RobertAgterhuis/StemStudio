@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Components;
+using StemStudio.Contracts.Insights;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Web.Api;
 using StemStudio.Web.Insights;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Insights;
 
@@ -11,6 +14,9 @@ namespace StemStudio.Web.Components.Insights;
 /// </summary>
 public sealed partial class QualityPanel
 {
+    [Inject]
+    private IStemStudioApiClient Api { get; set; } = default!;
+
     /// <summary>The completed track of the page.</summary>
     [Parameter, EditorRequired]
     public TrackDto Track { get; set; } = default!;
@@ -19,9 +25,73 @@ public sealed partial class QualityPanel
     [Parameter]
     public ITipActions? Actions { get; set; }
 
-    /// <inheritdoc />
-    protected override bool NeedsPolling => false;
+    private QualityReportDto? Report { get; set; }
+
+    private string? Error { get; set; }
+
+    private bool Requesting { get; set; }
+
+    private bool Active => Report is { } report && QualityLayout.IsActive(report.Status);
+
+    private bool CheckDisabled => Active || Requesting;
+
+    private string CheckText => QualityLayout.CheckText(Report?.Status ?? QualityReportStatusDto.None);
+
+    private string WireStatus => WireName.Of(Report?.Status ?? QualityReportStatusDto.None);
+
+    private IReadOnlyList<QualityGroup> Groups => QualityLayout.Group(Report!.Stems);
+
+    private string LiveText => Report?.Status switch
+    {
+        QualityReportStatusDto.Queued => "Stem quality check queued.",
+        QualityReportStatusDto.Running => "Checking stem quality.",
+        QualityReportStatusDto.Ready => "Stem quality ratings are ready.",
+        QualityReportStatusDto.Failed => "The stem quality check failed.",
+        _ => string.Empty,
+    };
 
     /// <inheritdoc />
-    protected override Task RefreshAsync(CancellationToken ct) => Task.CompletedTask;
+    protected override bool NeedsPolling => Active;
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync(ct => Api.GetQualityReportAsync(Track.Id, ct), Stopping);
+        StartPolling();
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        // The page's track poll sees an automatic report start (Track.quality) before this card does.
+        if (Report is not null && !Active && Track.Quality is { } badge && QualityLayout.IsActive(badge.Status))
+        {
+            await LoadAsync(ct => Api.GetQualityReportAsync(Track.Id, ct), Stopping);
+            StartPolling();
+        }
+    }
+
+    /// <inheritdoc />
+    protected override Task RefreshAsync(CancellationToken ct) => LoadAsync(token => Api.GetQualityReportAsync(Track.Id, token), ct);
+
+    private async Task CheckAsync()
+    {
+        Requesting = true;
+        await LoadAsync(ct => Api.RequestQualityReportAsync(Track.Id, ct), Stopping);
+        Requesting = false;
+        StartPolling();
+    }
+
+    private async Task LoadAsync(Func<CancellationToken, Task<QualityReportDto>> call, CancellationToken ct)
+    {
+        try
+        {
+            Report = await call(ct);
+            Error = null;
+        }
+        catch (ApiException ex)
+        {
+            Error = ex.Error.UserMessage;
+        }
+    }
 }
