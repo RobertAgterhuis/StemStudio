@@ -42,3 +42,21 @@ falls back to (A). This changes a saved mix from the track page.
   for the family's stem; `detect-chords` and `find-lyrics` go to the track page lyrics/chords card; `detect-sections`
   to the mixer; `split-drums` starts nothing, it scrolls to the detail section; `write-notes` focuses
   `practice-notes-text` with the family selected. In the dialog they are links/buttons that close the dialog first.
+
+## Answers (orchestrator, 2026-11-23)
+
+Q1 -> A (one-time exception: `specs/020-insights-handouts/contracts/help-topic.schema.json`, help-content 1.2.0).
+Q2 -> A (`/tracks/{id}/mixer?mute=<channel>`, unsaved, no API call). Q3 -> confirmed.
+
+## Q4 (T027): the feature id `practice-notes.edit` breaks the help-content id pattern
+
+`contracts/help-topics.md` names the catalogue entry `practice-notes.edit` (topic `practice-notes`, Beginner). Both
+the help-topic schema (`feature`: `^[a-z]+(\.[a-z0-9-]+)+$`, 004 and the new 1.2.0) and the 004 catalogue test allow no
+hyphen in the first segment, so the topic's `feature: practice-notes.edit` fails schema validation and the entry fails
+`FeatureCatalogTests`. Everything else of T026/T027 is green locally (uncommitted until this is settled).
+
+Proposal (A): use `practice.notes-edit` (valid; sits with the other `practice.*` entries; same level and topic) and
+record it as an approved correction of help-topics.md in my hand-off.
+
+Alternative (B): `notes.practice` or another valid id you prefer. Changing the pattern itself is not proposed (it is
+a 004 rule that every feature id follows).
