@@ -100,6 +100,7 @@ public sealed class QualityBadgeTests : StemStudio.Web.Tests.Mixer.MixerTestCont
 
         badge.ShouldContain("border-radius: var(--ss-radius-control)");
         badge.ShouldContain("max-inline-size: 100%");
+        badge.ShouldContain("flex-wrap: wrap"); // the icon takes its own line before a word spills past the border
         badge.ShouldNotContain("--ss-radius-pill");
     }
 }
