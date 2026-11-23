@@ -35,6 +35,9 @@ public sealed class HandoutService(
     /// <summary>Most handouts of one song or setlist that are queued or rendering at a time (security review 020, finding 4).</summary>
     public const int MaxActivePerSource = 3;
 
+    /// <summary>The <c>document</c> error when the worker refuses a handout (its reason is logged, never echoed).</summary>
+    public const string WorkerRefused = "The processing service could not lay out this handout. Try again, or leave out an ingredient.";
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary><c>POST /api/assets/handouts</c>.</summary>

@@ -113,7 +113,7 @@ public sealed class QualityServiceTests : ApiTestBase
     }
 
     [Fact]
-    public async Task ARefusedJob_IsStoredAsFailed_WithTheWorkersReason()
+    public async Task ARefusedJob_IsStoredAsFailed_WithAFixedText_AndTheWorkersReasonIsLogged()
     {
         var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
         Factory.InsightsWorker.SubmitFailure = new WorkerRequestException(HttpStatusCode.NotFound, "tracks/x/stems/piano.flac does not exist.");
@@ -122,7 +122,8 @@ public sealed class QualityServiceTests : ApiTestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var report = await response.BodyAsync<QualityReportDto>();
-        (report.Status, report.Error).ShouldBe((QualityReportStatusDto.Failed, "The processing service refused the quality check: tracks/x/stems/piano.flac does not exist."));
+        (report.Status, report.Error).ShouldBe((QualityReportStatusDto.Failed, QualityService.WorkerRefused));
+        Factory.Logs.For(nameof(QualityService)).ShouldContain(entry => entry.Message.Contains("piano.flac", StringComparison.Ordinal));
     }
 
     [Fact]

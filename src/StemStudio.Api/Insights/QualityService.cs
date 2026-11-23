@@ -36,6 +36,9 @@ public sealed class QualityService(
     /// <summary>Detail of <c>track-not-ready</c> for a track without the six standard stems.</summary>
     public const string NotSixStems = "The quality report needs the six-stem separation (vocals, drums, bass, guitar, piano and other).";
 
+    /// <summary>The report error when the worker refuses a quality job (its reason is logged, never echoed).</summary>
+    public const string WorkerRefused = "The processing service refused the quality check; try again.";
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary><c>GET /api/tracks/{trackId}/quality</c>.</summary>

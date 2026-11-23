@@ -195,7 +195,8 @@ public sealed class HandoutEndpointsTests : ApiTestBase
         using var response = await Client.PostHandoutAsync(Bass(song.Id));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.FieldErrorsAsync("document")).Single().ShouldContain("notice.footer");
+        (await response.FieldErrorsAsync("document")).Single().ShouldBe(HandoutService.WorkerRefused, "the worker's text is logged, never echoed");
+        Factory.Logs.For(nameof(HandoutService)).ShouldContain(entry => entry.Message.Contains("notice.footer", StringComparison.Ordinal));
         using var list = await Client.GetAsync(new Uri(ApiRoutes.Assets + "?kind=handout", UriKind.Relative), Ct);
         (await list.JsonAsync()).GetProperty("total").GetInt32().ShouldBe(0);
     }
