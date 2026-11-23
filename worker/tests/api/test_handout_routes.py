@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from stemstudio_worker.handouts.renderer import WeasyHandoutRenderer
+from stemstudio_worker.jobs import handout_limits
 from stemstudio_worker.jobs.handout_service import stage_of
 from stemstudio_worker.main import AppOverrides, default_handout_renderer
 from stemstudio_worker.ports import HANDOUT_FAILED_TEXT, HandoutRenderError
@@ -337,3 +338,35 @@ def test_a_notation_pdf_over_the_parse_limit_completes_the_job_with_a_warning(
             "text": "A notation file could not be read: Bass - tablature",
         }
     ]
+
+
+def test_a_body_over_the_size_limit_is_422_and_queues_nothing(
+    api: Api, renderer: FakeHandoutRenderer
+) -> None:
+    oversized = b" " * (handout_limits.MAX_HANDOUT_BODY_BYTES + 1)
+
+    response = api.client.post(
+        JOBS, content=oversized, headers={"content-type": "application/json"}
+    )
+
+    assert response.status_code == 422
+    assert_conforms(response, JOBS, "post")
+    assert response.json()["errors"] == {"body": ["The request body is larger than 8 MiB."]}
+    _wait(api)
+    assert renderer.calls == []
+
+
+@pytest.mark.parametrize("limit", ["MAX_HANDOUT_TEXT_CHARS", "MAX_HANDOUT_CELLS",
+                                   "MAX_HANDOUT_NOTATION_BYTES"])  # fmt: skip
+def test_a_document_over_a_job_limit_is_422_and_queues_nothing(
+    api: Api, renderer: FakeHandoutRenderer, monkeypatch: pytest.MonkeyPatch, limit: str
+) -> None:
+    monkeypatch.setattr(handout_limits, limit, 3)
+
+    response = api.client.post(JOBS, json=_body())
+
+    assert response.status_code == 422
+    assert_conforms(response, JOBS, "post")
+    assert list(response.json()["errors"]) == ["document"]
+    _wait(api)
+    assert renderer.calls == []
