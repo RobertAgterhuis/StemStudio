@@ -16,7 +16,8 @@ namespace StemStudio.Api.Handouts;
 /// <param name="Reader">Maps items.</param>
 /// <param name="Filer">Files new items in the library folders (feature 022).</param>
 /// <param name="Disk">Free-space guard.</param>
-public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, ILibraryFiler Filer, DiskSpaceGuard Disk);
+/// <param name="Gate">The start lock (active limit, name, insert and submit).</param>
+public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, ILibraryFiler Filer, DiskSpaceGuard Disk, HandoutGate Gate);
 
 /// <summary>
 /// Creates handout library items and makes failed ones again (FR-008..FR-014): validate, plan, assemble the document, store the
@@ -68,14 +69,26 @@ public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler asse
         return await SubmitAsync(asset, draft, false, cancellationToken);
     }
 
-    private async Task<IResult> CreateAsync(HandoutAsk ask, HandoutDraft draft, CancellationToken cancellationToken)
-    {
-        var label = Families.Label(draft.Handout.Family, draft.Handout.Transposition);
-        var title = draft.Handout.Setlist?.Name ?? draft.Handout.Songs[0].Material.Title;
-        var name = ask.Name ?? AssetNaming.DefaultName(title, HandoutNaming.Contents(label), await store.Assets.NamesAsync(cancellationToken));
-        var asset = Asset.CreateHandout(Guid.NewGuid(), name, new HandoutStart(Provenance(ask.Recipe, draft, label), draft.Facts), Now);
-        return await SubmitAsync(asset, draft, true, cancellationToken);
-    }
+    private Task<IResult> CreateAsync(HandoutAsk ask, HandoutDraft draft, CancellationToken cancellationToken) => store.Gate.RunAsync(
+        async () =>
+        {
+            if (await ActiveCountAsync(ask.Recipe, cancellationToken) >= MaxActivePerSource)
+            {
+                return InsightsProblems.HandoutsActive(MaxActivePerSource);
+            }
+
+            var label = Families.Label(draft.Handout.Family, draft.Handout.Transposition);
+            var title = draft.Handout.Setlist?.Name ?? draft.Handout.Songs[0].Material.Title;
+            var name = ask.Name ?? AssetNaming.DefaultName(title, HandoutNaming.Contents(label), await store.Assets.NamesAsync(cancellationToken));
+            var asset = Asset.CreateHandout(Guid.NewGuid(), name, new HandoutStart(Provenance(ask.Recipe, draft, label), draft.Facts), Now);
+            return await SubmitAsync(asset, draft, true, cancellationToken);
+        },
+        cancellationToken);
+
+    /// <summary>The queued or rendering handouts of the recipe's song or setlist.</summary>
+    private async Task<int> ActiveCountAsync(HandoutRecipe recipe, CancellationToken cancellationToken) =>
+        (await store.Assets.ListActiveAsync(cancellationToken)).Count(asset => asset.Kind == AssetKind.Handout
+            && asset.Provenance.HandoutRecipe is { } active && active.TrackId == recipe.TrackId && active.SetlistId == recipe.SetlistId);
 
     private async Task<IResult> SubmitAsync(Asset asset, HandoutDraft draft, bool added, CancellationToken cancellationToken)
     {

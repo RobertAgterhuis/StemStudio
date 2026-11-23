@@ -45,6 +45,7 @@ public static class InsightsRegistration
 
     private static IServiceCollection AddHandouts(this IServiceCollection services)
     {
+        services.AddSingleton<HandoutGate>();
         services.AddScoped<HandoutMaterialLoader>();
         services.AddScoped<HandoutPlanner>();
         services.AddScoped<HandoutAssembler>();

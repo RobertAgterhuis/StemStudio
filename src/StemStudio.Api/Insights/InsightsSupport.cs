@@ -1,6 +1,7 @@
 using StemStudio.Api.SongSections;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
+using StemStudio.Contracts.LibraryCare;
 
 namespace StemStudio.Api.Insights;
 
@@ -18,10 +19,10 @@ public sealed class InsightsOptions
 }
 
 /// <summary>
-/// The lock around "check, insert and start" of a quality report (LESSONS 023: a database check alone lets two requests both
-/// start). One lock for the whole library: requests are rare and short.
+/// A lock around "check, insert and start" (LESSONS 023: a database check alone lets two requests both start). One lock for
+/// the whole library: starts are rare and short.
 /// </summary>
-public sealed class QualityGate : IDisposable
+public abstract class StartLock : IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
@@ -45,8 +46,31 @@ public sealed class QualityGate : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _lock.Dispose();
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Releases the semaphore.</summary>
+    /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _lock.Dispose();
+        }
+    }
 }
+
+/// <summary>The start lock of quality reports: check, store and start of a report run under it.</summary>
+public sealed class QualityGate : StartLock;
+
+/// <summary>
+/// The start lock of handouts (security review 020, finding 4): the active limit per source, the name pick, the insert and
+/// the worker submit run under it, so parallel requests neither pass the limit nor pick the same name.
+/// </summary>
+public sealed class HandoutGate : StartLock;
 
 /// <summary>
 /// The worker's current analyzer version (<c>/health.insights.analyzerVersion</c>) for the <c>outdated</c> flag, cached for a
@@ -119,6 +143,15 @@ public static class InsightsProblems
     /// <returns>The problem.</returns>
     public static IResult TooManySongs(int max) =>
         PracticeFlowProblems.Conflict("too-many-songs", "Too many songs", $"A setlist handout can hold up to {max} songs.");
+
+    /// <summary>
+    /// 409 <c>jobs-active</c> (the existing 013 code, without <c>activeWork</c>): the song or setlist already has the most
+    /// handouts that are being made.
+    /// </summary>
+    /// <param name="max">The limit.</param>
+    /// <returns>The problem.</returns>
+    public static IResult HandoutsActive(int max) => PracticeFlowProblems.Conflict(
+        LibraryCareProblemTypes.JobsActive, "Handouts are being made", $"Up to {max} handouts of a song or setlist are made at a time; wait until one is ready.");
 
     /// <summary>503 <c>worker-unavailable</c> (nothing was stored).</summary>
     /// <returns>The problem.</returns>
