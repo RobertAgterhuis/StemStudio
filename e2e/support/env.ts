@@ -12,6 +12,16 @@ export const webBaseUrl: string = process.env.E2E_BASE_URL ?? 'http://localhost:
 export const apiBaseUrl: string = process.env.E2E_API_URL ?? 'http://localhost:8081';
 
 /**
+ * Options of a Playwright API request context against the stack under test (refactor 003): the Web app's `Origin` marks
+ * the requests as the app's. The API refuses a write without an `Origin` unless it comes from loopback or the web
+ * container, and behind Docker port forwarding the test runner's requests arrive from the bridge gateway, not loopback.
+ */
+export const apiContextOptions = {
+  baseURL: apiBaseUrl,
+  extraHTTPHeaders: { Origin: new URL(webBaseUrl).origin },
+};
+
+/**
  * Identifier of this suite run, shared by all workers (set once in `playwright.config.ts`).
  * Mix names include it so reruns against the same data volume never collide.
  */

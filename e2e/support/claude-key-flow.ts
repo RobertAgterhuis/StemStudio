@@ -9,7 +9,7 @@ import { expect, request, test, type APIResponse, type Browser, type BrowserCont
 import { ClaudeKeySection } from '../pages/claude-key-section';
 import type { AgentApi, AgentStatusDto, ClaudeKeyStatusDto } from './agent-api';
 import { allSentinels, findLeaks } from './claude-key';
-import { apiBaseUrl, webBaseUrl } from './env';
+import { apiContextOptions, webBaseUrl } from './env';
 import { isLoopbackUrl, nonLoopbackBaseUrl } from './lan-origin';
 import { preferencesRecord, storageStateFor } from './preferences';
 
@@ -33,7 +33,7 @@ export function requireLanBaseUrl(): string {
  * without one, so that no real key is ever displayed, replaced or tested by them.
  */
 export async function expectNoEnvironmentKey(): Promise<void> {
-  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const context = await request.newContext(apiContextOptions);
   try {
     const status = (await (await context.get('/api/agent/status')).json()) as AgentStatusDto;
     expect(status.claude.key.source, 'start the stack without ANTHROPIC_API_KEY in the shell').not.toBe('environment');

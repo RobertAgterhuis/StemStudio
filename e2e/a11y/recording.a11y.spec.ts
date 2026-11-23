@@ -3,7 +3,7 @@ import { axeViolations } from '../support/axe';
 import { requireChromium } from '../support/feature-skips';
 import { recordingLaunchOptions, takeReadyTimeoutMs } from '../support/recording';
 import { RecordingApi } from '../support/recording-api';
-import { apiBaseUrl } from '../support/env';
+import { apiContextOptions } from '../support/env';
 import { cellState, matrixThemes } from '../support/visual';
 import { expect, test } from '../support/ux-test';
 
@@ -18,7 +18,7 @@ test.beforeEach(({ browserName }) => {
 });
 
 test.afterEach(async ({ playwright, uxData }) => {
-  const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  const context = await playwright.request.newContext(apiContextOptions);
   await new RecordingApi(context).deleteAllTakes(uxData.plainTrack.id);
   await context.dispose();
 });

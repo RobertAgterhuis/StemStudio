@@ -1,5 +1,6 @@
 # Tool configuration for the tested devops check scripts in scripts/ (currently
-# key_volume_checks.py, 011 follow-up claude-key T019, and backup_folder_checks.py, 013 T011).
+# key_volume_checks.py, 011 follow-up claude-key T019, backup_folder_checks.py, 013 T011, and
+# loopback_ports_checks.py, refactor 004).
 # This is not a package: the checks run in the small quality-gate environment
 # (`uv run --project tools/quality ...`), which provides pytest, pytest-cov, ruff and mypy
 # (only its tools are used; its own pytest settings are not).
@@ -17,7 +18,7 @@ pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 
 [tool.coverage.run]
-source = ["key_volume_checks", "backup_folder_checks", "api_image_size_checks"]
+source = ["key_volume_checks", "backup_folder_checks", "api_image_size_checks", "loopback_ports_checks"]
 branch = true
 
 [tool.coverage.report]
@@ -39,7 +40,9 @@ select = [
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["key_volume_checks", "backup_folder_checks", "api_image_size_checks"]
+known-first-party = [
+    "key_volume_checks", "backup_folder_checks", "api_image_size_checks", "loopback_ports_checks",
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5

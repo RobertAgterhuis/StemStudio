@@ -3,6 +3,24 @@
 #   STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait   # fast stack for E2E / smoke tests
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (optional)
 #
+# Network exposure (refactor 004, ADR-027 D3): web (8080) and api (8081) are published on
+# 127.0.0.1 only, so only THIS computer reaches them (Docker Desktop forwards them to the host
+# browser as before). The worker and the generative services publish no host port.
+#   STEMSTUDIO_BIND_ADDRESS=127.0.0.1       default; host address both ports are published on.
+#                                           0.0.0.0 or a LAN address lets every device on that
+#                                           network reach the library, the backups and the agent,
+#                                           and (until feature 018) overwrite or delete the stored
+#                                           Claude key (threat T7). Open it only on a network you
+#                                           trust and close it again afterwards.
+#   STEMSTUDIO_API_ALLOWED_HOSTS=...        api host allow-list (refactor 003, StemStudio__AllowedHosts),
+#                                           semicolon-separated; empty = localhost;127.0.0.1;[::1];api.
+#                                           With the ports opened, a device that calls the api by a
+#                                           LAN name or address gets 400 until that name is added:
+#                                           localhost;127.0.0.1;[::1];api;192.168.1.10
+#   Writes to the api without an Origin header are accepted only from loopback or the web
+#   service (refactor 003); a script on the host sends Origin: http://localhost:8080.
+#   Check: scripts/check-loopback-ports.{sh,ps1}
+#
 # GPU option (feature 003): the override builds stemstudio/worker:local-gpu (CUDA torch +
 # onnxruntime-gpu, ~11.6 GB) and lets the worker use the GPU when one is usable; prerequisites are
 # in docker-compose.gpu.yml. Without it everything runs on the CPU, as before.
@@ -114,6 +132,11 @@ services:
       context: .
       dockerfile: docker/worker.Dockerfile
     image: stemstudio/worker:local
+    # Refactor 004 step 4: the image already runs as non-root; no setuid gain, no Linux capabilities.
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
     environment:
       STEMSTUDIO_SEPARATOR: ${STEMSTUDIO_SEPARATOR:-demucs}
       STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-cpu}
@@ -166,12 +189,19 @@ services:
       context: .
       dockerfile: docker/api.Dockerfile
     image: stemstudio/api:local
+    # Refactor 004 step 4: the image already runs as non-root; no setuid gain, no Linux capabilities.
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
     # List form (not a mapping) so the Claude key can be a bare pass-through entry (DELTA.md 7).
     environment:
       - ASPNETCORE_HTTP_PORTS=8081
       - StemStudio__DataDir=/data
       - StemStudio__WorkerBaseUrl=http://worker:8000
       - StemStudio__WebOrigin=http://localhost:8080
+      # Refactor 003: host allow-list of the api (400 for any other Host); empty = localhost;127.0.0.1;[::1];api.
+      - StemStudio__AllowedHosts=${STEMSTUDIO_API_ALLOWED_HOSTS:-}
       # Feature 011 (AI composer agent): Ollama on the host, initial backend, E2E fake script.
       - StemStudio__Agent__Ollama__BaseUrl=${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}
       - StemStudio__Agent__Backend=${STEMSTUDIO_AGENT_BACKEND:-ollama}
@@ -193,7 +223,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "8081:8081"
+      - "${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8081:8081"
     volumes:
       - api-data:/data
       # Data Protection key ring (011 follow-up claude-key): api only, never the worker, web or a
@@ -222,6 +252,11 @@ services:
       context: .
       dockerfile: docker/web.Dockerfile
     image: stemstudio/web:local
+    # Refactor 004 step 4: the image already runs as non-root; no setuid gain, no Linux capabilities.
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
       StemStudio__ApiBaseUrl: http://api:8081
@@ -229,7 +264,7 @@ services:
       # Feature 015: the browser never streams a take larger than the api accepts.
       StemStudio__Recording__MaxStreamBytes: ${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
     ports:
-      - "8080:8080"
+      - "${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8080:8080"
     volumes:
       - web-keys:/home/app/.aspnet/DataProtection-Keys
     depends_on:

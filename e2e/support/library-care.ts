@@ -12,7 +12,7 @@ import { LibraryCarePage } from '../pages/library-care-page';
 import type { MixDto, StemStudioApi, TrackDto } from './api';
 import type { AssetDto, AssetsApi } from './assets-api';
 import { fakeStems } from './detail';
-import { apiBaseUrl, detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from './env';
+import { apiContextOptions, detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from './env';
 import { archiveOf, LibraryCareApi, type BackupOptionsDto, type LibraryJobDto, type RestoreOptionsDto } from './library-care-api';
 import { mixSettings } from './practice';
 import { test as suite } from './test';
@@ -44,7 +44,7 @@ export const test = suite.extend<LibraryCareFixtures>({
     await use(new LibraryCarePage(page));
   },
   careApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new LibraryCareApi(context));
     await context.dispose();
   },

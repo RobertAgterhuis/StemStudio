@@ -13,7 +13,7 @@
 import { execFileSync } from 'node:child_process';
 import { expect, request } from '@playwright/test';
 import { claudeKeyVariable } from './claude-key';
-import { apiBaseUrl, composeFile } from './env';
+import { apiContextOptions, composeFile } from './env';
 
 /** Time for the api to be recreated or restarted and report healthy. */
 export const apiRestartTimeoutMs = 180_000;
@@ -61,7 +61,7 @@ export async function loseKeyRing(): Promise<void> {
 
 /** Polls `GET /api/agent/status` until it answers 200. */
 export async function waitForApi(): Promise<void> {
-  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const context = await request.newContext(apiContextOptions);
   try {
     await expect
       .poll(async () => (await context.get('/api/agent/status').catch(() => null))?.status() ?? 0, {

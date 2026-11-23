@@ -8,7 +8,7 @@
 import { LibraryFoldersPage } from '../pages/library-folders-page';
 import { LibraryInfoDialog } from '../pages/library-info-dialog';
 import { LibrarySearch } from '../pages/library-search';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { LibraryApi } from './library-api';
 import type { LibrarySeedClients } from './library-seed';
 import { test as base } from './generative-test';
@@ -26,7 +26,7 @@ export interface LibraryFixtures {
 /** Extended Playwright test. */
 export const test = base.extend<LibraryFixtures>({
   libraryApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new LibraryApi(context));
     await context.dispose();
   },

@@ -3,7 +3,7 @@ import { PracticeLogPanel, PracticePage } from '../pages/practice-log-panel';
 import { SetlistsPage } from '../pages/setlists-page';
 import { ShortcutSettings } from '../pages/shortcut-settings';
 import { axeViolations } from '../support/axe';
-import { apiBaseUrl } from '../support/env';
+import { apiContextOptions } from '../support/env';
 import { blurActiveElement } from '../support/help';
 import { PracticeFlowApi } from '../support/practice-flow';
 import { openScoreAtBar, openSectionLane, openSetlistEditor, openSetlistPlay, seedPracticeUx } from '../support/practice-flow-ux';
@@ -88,7 +88,7 @@ test.describe('practice flow by keyboard only', { tag: '@practice-flow' }, () =>
 
   test.afterAll(async ({ playwright }) => {
     // The Practice page walk switches the log back; this restores it if that test failed half-way.
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await new PracticeFlowApi(context).setPracticeLog(true);
     await context.dispose();
   });

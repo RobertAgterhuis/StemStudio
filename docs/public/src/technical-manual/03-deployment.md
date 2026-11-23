@@ -18,12 +18,46 @@ and a healthcheck; the API waits for a healthy worker and the web app for a heal
 | Service | Image | Host port | Volumes | Healthcheck |
 |---|---|---|---|---|
 | worker | `stemstudio/worker:local` | none (`expose: 8000`) | `worker-data:/data`, `model-cache:/models` | `GET /health` on 8000 |
-| api | `stemstudio/api:local` | 8081 | `api-data:/data` | `GET /health` on 8081 |
-| web | `stemstudio/web:local` | 8080 | `web-keys` (data-protection keys) | `GET /health` on 8080 |
+| api | `stemstudio/api:local` | 127.0.0.1:8081 | `api-data:/data` | `GET /health` on 8081 |
+| web | `stemstudio/web:local` | 127.0.0.1:8080 | `web-keys` (data-protection keys) | `GET /health` on 8080 |
+
+### Network exposure (ADR-027 D3, refactors 003 and 004)
+
+The api and web ports are published as `"${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:<port>:<port>"`,
+so by default only the host itself reaches them. Docker Desktop on Windows and macOS forwards
+`127.0.0.1` bindings to the host browser, and the CI health checks (`curl http://localhost:8080`)
+keep working because the runner is the host. The worker and the generative services publish no
+host port at all. `scripts/check-loopback-ports.{sh,ps1}` asserts this in every compose
+combination (and that the opt-in is honoured); CI runs it next to the compose validation.
+
+The API adds two checks of its own, whatever the binding:
+
+- **Host allow-list.** A request whose `Host` is not in `StemStudio__AllowedHosts` (compose:
+  `STEMSTUDIO_API_ALLOWED_HOSTS`; semicolon-separated, ports ignored; empty =
+  `localhost;127.0.0.1;[::1];api`) gets `400`. This stops DNS rebinding.
+- **Writes without an `Origin`.** A state-changing `/api` request without an `Origin` header is
+  accepted only from loopback or the `web` service (`StemStudio__Agent__KeyEntry__InternalCaller`);
+  otherwise `403`. Behind Docker port forwarding a request from the host arrives from the bridge
+  gateway, not from loopback, so a script on the host sends `Origin: http://localhost:8080` (the
+  E2E suite does the same). Outside Docker the API logs `ApiListensBeyondLoopback` (4106) at
+  start-up when it listens on a non-loopback address.
+
+`STEMSTUDIO_BIND_ADDRESS=0.0.0.0` (or one LAN address of the host) opens both ports to that
+network. That is an explicit opt-in with a known risk (threat T7): every device on the network can
+then reach the library, the backups and the agent endpoints, and until feature 018 a device that
+forges the host name can overwrite or delete the stored Claude key. A device that calls the API by
+a LAN name or address also needs that name in the allow-list, for example
+`STEMSTUDIO_API_ALLOWED_HOSTS=localhost;127.0.0.1;[::1];api;192.168.1.10`, or it gets `400`.
+The browser of such a device also fetches stems from `StemStudio__PublicApiBaseUrl`
+(`http://localhost:8081`, which is the device itself), so playback there needs an own override of
+that value and of `StemStudio__WebOrigin`; the supported LAN path is the tablet remote of
+ADR-027 (feature 018, own listener and `docker-compose.lan.yml`). Roll back by unsetting the
+variables and running `docker compose up -d`.
 
 Kestrel serves directly without a reverse proxy. A proxy added later must accept request
 bodies of at least 200 MiB plus multipart overhead. Containers run as non-root users (the
-worker as uid/gid 10001).
+worker as uid/gid 10001); worker, api and web also drop every Linux capability
+(`cap_drop: [ALL]`) and run with `no-new-privileges` (refactor 004).
 
 ## SoundTouch module (012)
 
@@ -136,7 +170,9 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `PYTORCH_CUDA_ALLOC_CONF` | worker | unset | Optional CUDA allocator tuning |
 | `StemStudio__DataDir` | api | `/data` | SQLite database, uploads, stems |
 | `StemStudio__WorkerBaseUrl` | api | `http://worker:8000` | Worker address |
-| `StemStudio__WebOrigin` | api | `http://localhost:8080` | CORS origin for stem requests |
+| `StemStudio__WebOrigin` | api | `http://localhost:8080` | CORS origin for stem requests; the only accepted `Origin` of a write |
+| `StemStudio__AllowedHosts` | api | empty (= `localhost;127.0.0.1;[::1];api`) | Host allow-list (refactor 003); compose passes `STEMSTUDIO_API_ALLOWED_HOSTS` |
+| `STEMSTUDIO_BIND_ADDRESS` | compose | `127.0.0.1` | Host address the api (8081) and web (8080) ports are published on; `0.0.0.0` or a LAN address opens them to the network (threat T7, see "Network exposure") |
 | `StemStudio__ApiBaseUrl` | web | `http://api:8081` | Server-side API calls |
 | `StemStudio__PublicApiBaseUrl` | web | `http://localhost:8081` | Stem URLs used by the browser |
 | `ASPNETCORE_HTTP_PORTS` | api, web | 8081, 8080 | Listening ports |

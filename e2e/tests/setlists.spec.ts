@@ -5,7 +5,7 @@ import { ShortcutSettings } from '../pages/shortcut-settings';
 import type { StemStudioApi, TrackDto } from '../support/api';
 import { axeViolations } from '../support/axe';
 import { fillAndCommit } from '../support/controls';
-import { apiBaseUrl, fakeJobTimeoutMs, runId } from '../support/env';
+import { apiContextOptions, fakeJobTimeoutMs, runId } from '../support/env';
 import { fixturePath } from '../support/fixtures';
 import { blurActiveElement } from '../support/help';
 import { mixSettings } from '../support/practice';
@@ -22,7 +22,7 @@ let flow: PracticeFlowApi;
 
 test.beforeEach(async ({ playwright }) => {
   test.setTimeout(3 * fakeJobTimeoutMs + 120_000);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  context = await playwright.request.newContext(apiContextOptions);
   flow = new PracticeFlowApi(context);
 });
 
