@@ -1,4 +1,5 @@
 using System.Net;
+using StemStudio.Api.Security;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent.Secrets;
@@ -9,11 +10,11 @@ namespace StemStudio.Api.Agent.Secrets;
 /// Web app's. Runs before the handler reads the body; a refusal answers 403 <c>local-only</c> and is logged at most once a
 /// minute with the reason and the peer address, never the body. Before feature 018 the host check is a soft layer (plan T7).
 /// </summary>
-/// <param name="policy">Internal caller and web origin.</param>
-/// <param name="resolver">Resolves the internal caller.</param>
+/// <param name="policy">Web origin.</param>
+/// <param name="peers">Loopback or the internal caller (shared with the app-wide guard, refactor 003).</param>
 /// <param name="clock">Clock of the log rate limit.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class LocalOnlyKeyEntryFilter(KeyEntryPolicy policy, IHostAddressResolver resolver, TimeProvider clock, ILogger<LocalOnlyKeyEntryFilter> logger)
+public sealed partial class LocalOnlyKeyEntryFilter(KeyEntryPolicy policy, TrustedPeerPolicy peers, TimeProvider clock, ILogger<LocalOnlyKeyEntryFilter> logger)
     : IEndpointFilter
 {
     /// <summary>Detail of 403 <c>local-only</c>.</summary>
@@ -48,7 +49,7 @@ public sealed partial class LocalOnlyKeyEntryFilter(KeyEntryPolicy policy, IHost
     public async Task<string?> RefusalReasonAsync(HttpContext http)
     {
         ArgumentNullException.ThrowIfNull(http);
-        if (!await IsTrustedPeerAsync(http.Connection.RemoteIpAddress, http.RequestAborted))
+        if (!await peers.IsTrustedAsync(http.Connection.RemoteIpAddress, http.RequestAborted))
         {
             return "peer";
         }
@@ -59,23 +60,6 @@ public sealed partial class LocalOnlyKeyEntryFilter(KeyEntryPolicy policy, IHost
         }
 
         return http.Request.Headers.Origin is { Count: > 0 } origin && !policy.IsAllowedOrigin(origin.ToString()) ? "origin" : null;
-    }
-
-    private async Task<bool> IsTrustedPeerAsync(IPAddress? peer, CancellationToken cancellationToken)
-    {
-        if (peer is null)
-        {
-            return false;
-        }
-
-        var address = KeyEntryPolicy.Normalise(peer);
-        if (IPAddress.IsLoopback(address) || policy.InternalCaller is not { } caller)
-        {
-            return IPAddress.IsLoopback(address);
-        }
-
-        var known = await resolver.ResolveAsync(caller, cancellationToken);
-        return known.Select(KeyEntryPolicy.Normalise).Contains(address);
     }
 
     private void LogRateLimited(string reason, IPAddress? peer)
