@@ -350,3 +350,24 @@ def test_a_dense_engraved_page_is_within_the_parse_budget(tmp_path: Path) -> Non
     path = token_pdf(tmp_path / "dense.pdf", 2, 72_000 * 2)
 
     assert len(PypdfNotationReader().page_sizes(path)) == 2
+
+
+def test_the_merge_opens_each_notation_file_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+                                                 ) -> None:  # fmt: skip
+    tab, score = notation_pdf(tmp_path / "tab.pdf", 2), notation_pdf(tmp_path / "score.pdf")
+    opened: list[Path] = []
+    real_open = notation._open
+
+    def spy(path: Path) -> pypdf.PdfReader:
+        opened.append(path)
+        return real_open(path)
+
+    monkeypatch.setattr(notation, "_open", spy)
+    frames = [Frame(0, (50, 50, 400, 600), tab, 0), Frame(1, (50, 50, 400, 600), score, 0),
+              Frame(2, (50, 50, 400, 600), tab, 1)]  # fmt: skip
+
+    texts = page_texts(merge_frames(_blank(3), frames, lambda _done: None))
+
+    assert opened == [tab, score]
+    assert ["NOTATION tab 1" in texts[0], "NOTATION score 1" in texts[1],
+            "NOTATION tab 2" in texts[2]] == [True, True, True]  # fmt: skip

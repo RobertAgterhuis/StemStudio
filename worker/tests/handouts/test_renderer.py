@@ -16,7 +16,13 @@ from stemstudio_worker.handouts.glyphs import (
     missing_characters,
     printed_texts,
 )
-from stemstudio_worker.handouts.renderer import MAX_WARNINGS, WeasyHandoutRenderer
+from stemstudio_worker.handouts.renderer import (
+    MAX_NOTATION_FRAMES,
+    MAX_WARNINGS,
+    RENDER_DEADLINE_SECONDS,
+    RenderLimits,
+    WeasyHandoutRenderer,
+)
 from stemstudio_worker.handouts.resources import ARCHIVO_FONT, AllowList
 from stemstudio_worker.ports import (
     HANDOUT_FAILED_TEXT,
@@ -24,6 +30,7 @@ from stemstudio_worker.ports import (
     HandoutRenderer,
     HandoutRenderError,
     NotationUnreadableError,
+    notation_unreadable_text,
 )
 from stemstudio_worker.schemas import HandoutJobRequest
 
@@ -237,3 +244,99 @@ def test_a_font_file_that_cannot_be_read_maps_nothing(tmp_path: Path) -> None:
     broken.write_bytes(b"not a font")
 
     assert covered((broken, tmp_path / "missing.ttf")) == frozenset()
+
+
+# ------------------------------------------------------------------ job limits (security fixes)
+
+
+class _SizeSpy:
+    """A ``NotationReader`` that records its calls and gives every file two A4 pages."""
+
+    def __init__(self) -> None:
+        self.calls: list[Path] = []
+
+    def page_sizes(self, path: Path) -> tuple[tuple[float, float], ...]:
+        self.calls.append(path)
+        return ((595.28, 841.89),) * 2
+
+
+def _items(*paths: str) -> list[dict[str, str]]:
+    return [{"title": f"Part {n}", "kind": "score", "pdfPath": p} for n, p in enumerate(paths)]
+
+
+def test_page_sizes_are_read_once_per_notation_file(files: dict[str, Path]) -> None:
+    spy = _SizeSpy()
+    songs = [request(notation=_items(SCORE, TAB, SCORE)).document.songs[0]] * 3
+    many = HandoutJobRequest.model_construct(
+        document=request().document.model_copy(update={"songs": songs}), paper="a4"
+    )
+
+    WeasyHandoutRenderer(spy, FakeLayout()).render(many, files, lambda _f: None)
+
+    assert spy.calls == [files[SCORE], files[TAB]]
+
+
+def test_frames_over_the_job_cap_become_notes(files: dict[str, Path]) -> None:
+    layout = FakeLayout()
+    renderer = WeasyHandoutRenderer(layout=layout, limits=RenderLimits(frames=3))
+
+    result = renderer.render(request(notation=_items(TAB, SCORE, TAB)), files, lambda _f: None)
+
+    assert [(w.code, w.text) for w in result.warnings] == [
+        ("notation-unreadable", notation_unreadable_text("Part 2"))
+    ]
+    assert layout.html[0].count('id="frame-') == 3
+    assert result.pages == 4
+
+
+def test_notation_files_over_the_job_byte_budget_become_notes(files: dict[str, Path]) -> None:
+    budget = files[TAB].stat().st_size + 10
+    renderer = WeasyHandoutRenderer(layout=FakeLayout(), limits=RenderLimits(notation_bytes=budget))
+
+    result = renderer.render(request(notation=_items(TAB, SCORE, TAB)), files, lambda _f: None)
+
+    assert [w.text for w in result.warnings] == [notation_unreadable_text("Part 1")]
+
+
+class _Clock:
+    """A clock that moves ``step`` seconds on every reading."""
+
+    def __init__(self, step: float) -> None:
+        self.now = 0.0
+        self.step = step
+
+    def __call__(self) -> float:
+        self.now += self.step
+        return self.now
+
+
+def test_a_render_past_its_deadline_fails_with_the_fixed_text(files: dict[str, Path]) -> None:
+    layout = FakeLayout()
+    limits = RenderLimits(seconds=10.0, clock=_Clock(4.0))
+
+    with pytest.raises(HandoutRenderError) as raised:
+        WeasyHandoutRenderer(layout=layout, limits=limits).render(request(), files, lambda _f: None)
+
+    assert str(raised.value) == HANDOUT_FAILED_TEXT
+
+
+def test_the_deadline_is_checked_while_the_notation_is_read(files: dict[str, Path]) -> None:
+    layout = FakeLayout()
+    limits = RenderLimits(seconds=10.0, clock=_Clock(6.0))
+
+    with pytest.raises(HandoutRenderError):
+        WeasyHandoutRenderer(layout=layout, limits=limits).render(request(), files, lambda _f: None)
+
+    assert layout.html == []
+
+
+def test_a_render_within_its_deadline_completes(files: dict[str, Path]) -> None:
+    limits = RenderLimits(seconds=1000.0, clock=_Clock(1.0))
+
+    result = WeasyHandoutRenderer(layout=FakeLayout(), limits=limits).render(
+        request(), files, lambda _f: None
+    )
+
+    assert result.pages == 4
+    assert RENDER_DEADLINE_SECONDS == 240.0
+    assert RenderLimits().frames == MAX_NOTATION_FRAMES == 600

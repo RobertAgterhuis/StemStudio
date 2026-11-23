@@ -10,6 +10,7 @@ WeasyPrint is imported when the first handout is rendered, so the worker starts 
 
 import importlib
 import logging
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -45,6 +46,26 @@ from stemstudio_worker.schemas import HandoutJobRequest, HandoutNotation, Handou
 _LOG = logging.getLogger(__name__)
 MAX_WARNINGS: Final = 50
 """``HandoutResult.warnings`` holds at most 50."""
+
+MAX_NOTATION_FRAMES: Final = 600
+"""Most notation frame pages of one handout."""
+
+MAX_JOB_NOTATION_BYTES: Final = 128 * 1024 * 1024
+"""Largest total size of the distinct notation PDFs of one handout."""
+
+RENDER_DEADLINE_SECONDS: Final = 240.0
+"""Wall-clock limit of one render."""
+
+
+@dataclass(frozen=True, slots=True)
+class RenderLimits:
+    """Limits of one render (stub)."""
+
+    frames: int = MAX_NOTATION_FRAMES
+    notation_bytes: int = MAX_JOB_NOTATION_BYTES
+    seconds: float = RENDER_DEADLINE_SECONDS
+    clock: Callable[[], float] = time.monotonic
+
 
 Layout = Callable[[str, AllowList], Any]
 """HTML + allow-list -> ``layout.LaidOut`` (``layout.lay_out``; replaced in tests)."""
@@ -127,10 +148,12 @@ def _frame(placed: tuple[int, tuple[float, float, float, float]], source: Path, 
 class WeasyHandoutRenderer:
     """``HandoutRenderer`` with Jinja2 templates, WeasyPrint and pypdf."""
 
-    def __init__(self, reader: NotationReader | None = None, layout: Layout | None = None) -> None:
+    def __init__(self, reader: NotationReader | None = None, layout: Layout | None = None,
+                 limits: RenderLimits | None = None) -> None:  # fmt: skip
         """Read notation with ``reader`` (pypdf) and lay out with ``layout`` (WeasyPrint)."""
         self._reader = reader or PypdfNotationReader()
         self._layout = layout
+        self._limits = limits or RenderLimits()
 
     def render(
         self, request: HandoutJobRequest, files: Mapping[str, Path], progress: InsightsProgress
