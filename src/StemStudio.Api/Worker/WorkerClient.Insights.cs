@@ -72,26 +72,34 @@ public sealed partial class WorkerClient : IWorkerInsightsClient
     private const string HandoutJobs = "v1/handout-jobs";
 
     /// <inheritdoc />
-    public Task<WorkerQualityJob> CreateQualityJobAsync(WorkerQualityJobRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<WorkerQualityJob> CreateQualityJobAsync(WorkerQualityJobRequest request, CancellationToken cancellationToken) =>
+        PostJobAsync<WorkerQualityJob>(QualityJobs, request, cancellationToken);
 
     /// <inheritdoc />
-    public Task<WorkerQualityJob?> GetQualityJobAsync(string jobId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<WorkerQualityJob?> GetQualityJobAsync(string jobId, CancellationToken cancellationToken) =>
+        GetJobOrNullAsync<WorkerQualityJob>(PracticePath(QualityJobs, jobId), cancellationToken);
 
     /// <inheritdoc />
-    public Task DeleteQualityJobAsync(string jobId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task DeleteQualityJobAsync(string jobId, CancellationToken cancellationToken) =>
+        DeleteToleratingMissingAsync(PracticePath(QualityJobs, jobId), cancellationToken);
 
     /// <inheritdoc />
-    public Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken) =>
+        PostJobAsync<WorkerHandoutJob>(HandoutJobs, request, cancellationToken);
 
     /// <inheritdoc />
-    public Task<WorkerHandoutJob?> GetHandoutJobAsync(string jobId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<WorkerHandoutJob?> GetHandoutJobAsync(string jobId, CancellationToken cancellationToken) =>
+        GetJobOrNullAsync<WorkerHandoutJob>(PracticePath(HandoutJobs, jobId), cancellationToken);
 
     /// <inheritdoc />
-    public Task DownloadHandoutFileAsync(string jobId, Stream destination, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task DownloadHandoutFileAsync(string jobId, Stream destination, CancellationToken cancellationToken) =>
+        DownloadAsync($"{PracticePath(HandoutJobs, jobId)}/file", destination, MaxHandoutBytes, cancellationToken);
 
     /// <inheritdoc />
-    public Task DeleteHandoutJobAsync(string jobId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task DeleteHandoutJobAsync(string jobId, CancellationToken cancellationToken) =>
+        DeleteToleratingMissingAsync(PracticePath(HandoutJobs, jobId), cancellationToken);
 
     /// <inheritdoc />
-    public Task<WorkerInsightsHealth?> GetInsightsHealthAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+    public async Task<WorkerInsightsHealth?> GetInsightsHealthAsync(CancellationToken cancellationToken) =>
+        (await GetHealthAsync(cancellationToken)).Insights;
 }
