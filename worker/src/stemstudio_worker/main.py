@@ -29,6 +29,7 @@ from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNov
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
+    insights_routes,
     instrument_analysis_routes,
     lyrics_routes,
     metadata_routes,
@@ -45,9 +46,11 @@ from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.documents import ReportLabSetlistRenderer
 from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.engraving.score_view import VerovioScoreViewRenderer
+from stemstudio_worker.handouts.health import fonts_health, renderer_health
 from stemstudio_worker.harmony.btc import BtcParts, BtcRecognizer, TorchBtcRuntime
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.insights import InsightsParts
 from stemstudio_worker.jobs.instrument_analysis_chords import (
     ChordPipelineParts,
     PipelineChordAnalyzer,
@@ -59,6 +62,7 @@ from stemstudio_worker.jobs.instrument_analysis_ports import (
 )
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.practice_lane import PracticeParts
+from stemstudio_worker.jobs.quality_service import UnavailableAnalyzer
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
     OnlineParts,
@@ -104,7 +108,12 @@ from stemstudio_worker.ports import (
     StructureAnalyzer,
 )
 from stemstudio_worker.render import create_library_reader, create_render_executor
-from stemstudio_worker.schemas import CONTRACT_VERSION, InstrumentAnalysisModels, ScoreProfile
+from stemstudio_worker.schemas import (
+    CONTRACT_VERSION,
+    InsightsHealth,
+    InstrumentAnalysisModels,
+    ScoreProfile,
+)
 from stemstudio_worker.separation import create_separator
 from stemstudio_worker.storage.services import (
     StorageServices,
@@ -132,6 +141,7 @@ _ROUTERS = (
     storage.router,
     practice_routes.router,
     instrument_analysis_routes.router,
+    insights_routes.router,
 )
 
 
@@ -157,6 +167,7 @@ class AppOverrides:
         setlist_renderer: Setlist PDFs (default ``documents.ReportLabSetlistRenderer``).
         instrument_analysis: Chords, drum hits and melody parts (default
             :func:`create_instrument_analysis_parts`, feature 016).
+        quality_analyzer: Stem quality analyzer (default :func:`create_quality_analyzer`, 020).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -282,8 +293,9 @@ class _Parts:
         render = default_render(settings, self.overrides)
         scores = default_transcription(settings, self.overrides, devices, render.library)
         practice = default_practice(settings, self.overrides)
+        insights = default_insights(settings, self.overrides)
         parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice,
-                            analysis)  # fmt: skip
+                            analysis, insights)  # fmt: skip
         return WorkerRuntime.start_with(settings, parts)
 
     def _analysis(
@@ -505,21 +517,35 @@ class ChordModelStore(ModelStore):
         self._root = model_dir / "harmony"
 
 
-QUALITY_ANALYZERS: Final[dict[str, str]] = {}
+# ------------------------------------------------------------------ feature 020: insights
+
+QUALITY_ANALYZERS: Final[dict[str, str]] = {
+    "real": "insights.analyzer:SignalQualityAnalyzer",
+    "fake": "insights.fake:FakeQualityAnalyzer",
+}
+"""``STEMSTUDIO_QUALITY_ANALYZER`` -> ``<module>:<class>`` in beat-analysis's ``insights``."""
 
 
 def create_quality_analyzer(
     settings: WorkerSettings, loader: Loader = importlib.import_module
-) -> Any:
-    """Stub."""
-    raise NotImplementedError
+) -> QualityAnalyzer:
+    """The configured analyzer (data-model 1); a stand-in that fails readably when not installed."""
+    built = _Lookup(loader).build(QUALITY_ANALYZERS[settings.insights.quality_analyzer], "quality")
+    if isinstance(built, MissingPart):
+        return UnavailableAnalyzer()
+    analyzer: QualityAnalyzer = built
+    return analyzer
 
 
 def default_insights(
     settings: WorkerSettings, overrides: AppOverrides, loader: Loader = importlib.import_module
-) -> Any:
-    """Stub."""
-    raise NotImplementedError
+) -> InsightsParts:
+    """The feature 020 parts and the ``Health.insights`` they give (renderer and fonts probed)."""
+    analyzer = overrides.quality_analyzer or create_quality_analyzer(settings, loader)
+    health = InsightsHealth(analyzer=settings.insights.quality_analyzer,
+                            analyzer_version=analyzer.version, renderer=renderer_health(),
+                            fonts=fonts_health())  # fmt: skip
+    return InsightsParts(analyzer=analyzer, health=health, threads=settings.insights.threads)
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn

@@ -52,8 +52,8 @@ def fake_quality(channel: str, kind: str) -> StemQuality:
         "activeShare": 0.02 if rating == "not-present" else 0.7, "levelDb": -12.0,
         "bleed": BleedEstimate.model_validate({"level": bleed, "index": 0.2, "mainSource": source,
                                                "coOccurrence": False, "reliability": "indicative"}),
-        "artefacts": ArtefactEstimate(level=artefacts, index=0.3, kinds=kinds,
-                                      reliability="indicative"),
+        "artefacts": ArtefactEstimate.model_validate({"level": artefacts, "index": 0.3,
+                                                      "kinds": kinds, "reliability": "indicative"}),
     })  # fmt: skip
 
 
