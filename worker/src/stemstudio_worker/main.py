@@ -94,6 +94,7 @@ from stemstudio_worker.ports import (
     DeviceRunner,
     DrumTranscriber,
     GpuNeed,
+    HandoutRenderer,
     ImageNormalizer,
     LibraryReader,
     LyricsLookup,
@@ -186,6 +187,7 @@ class AppOverrides:
     setlist_renderer: SetlistDocumentRenderer | None = None
     instrument_analysis: InstrumentAnalysisParts | None = None
     quality_analyzer: QualityAnalyzer | None = None
+    handout_renderer: HandoutRenderer | None = None
 
 
 def create_app(
@@ -546,6 +548,11 @@ def default_insights(
                             analyzer_version=analyzer.version, renderer=renderer_health(),
                             fonts=fonts_health())  # fmt: skip
     return InsightsParts(analyzer=analyzer, health=health, threads=settings.insights.threads)
+
+
+def default_handout_renderer(overrides: AppOverrides) -> HandoutRenderer:
+    """Stub."""
+    raise NotImplementedError
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn
