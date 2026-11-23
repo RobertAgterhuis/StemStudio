@@ -14,11 +14,10 @@ from datetime import datetime
 from typing import Any
 
 from stemstudio_worker.jobs.handout_store import HandoutJobStore
-from stemstudio_worker.jobs.lanes import LaneScheduler
+from stemstudio_worker.jobs.lanes import SharedLane
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.quality_store import QualityJobStore
-from stemstudio_worker.schemas import LaneHealth
 
 ThreadCap = Callable[[int], AbstractContextManager[object]]
 """Enters a limit of ``n`` intra-op threads for the duration of one job."""
@@ -72,38 +71,36 @@ class InsightsStores:
         return [*self.quality.sweep(now), *self.handouts.sweep(now)]
 
 
-def _unknown_kind(job_id: str) -> None:  # pragma: no cover - every job names its process
-    """Default process of the lane: jobs are always submitted with their kind's function."""
-    raise LookupError(job_id)
+@dataclass(frozen=True, slots=True)
+class ThreadLimit:
+    """The intra-op thread limit of every insights job.
+
+    Attributes:
+        threads: Thread count (``STEMSTUDIO_INSIGHTS_THREADS``, 1..16).
+        cap: Enters the limit around one job.
+    """
+
+    threads: int
+    cap: ThreadCap = blas_threads
 
 
-class InsightsLane:
+class InsightsLane(SharedLane):
     """The shared insights lane over :class:`InsightsStores`."""
 
-    def __init__(self, stores: InsightsStores, clock: Clock, threads: int, cap: ThreadCap) -> None:
-        """Create a stopped lane over loaded ``stores``.
-
-        Args:
-            stores: The two job stores.
-            clock: Stamps the sweep.
-            threads: Intra-op thread limit of every job (1..16).
-            cap: Enters the thread limit around one job.
-        """
+    def __init__(self, stores: InsightsStores, clock: Clock, limit: ThreadLimit) -> None:
+        """Create a stopped lane over loaded ``stores``; ``clock`` stamps the sweep."""
+        super().__init__("insights")
         self.stores = stores
-        self.scheduler = LaneScheduler("insights", _unknown_kind)
         self._clock = clock
-        self._threads = threads
-        self._cap = cap
+        self._limit = limit
 
     @classmethod
-    def loaded(
-        cls, paths: DataPaths, clock: Clock, threads: int, cap: ThreadCap = blas_threads
-    ) -> "InsightsLane":
+    def loaded(cls, paths: DataPaths, clock: Clock, limit: ThreadLimit) -> "InsightsLane":
         """Load both stores and fail the jobs a restart interrupted (the lane is stopped)."""
         stores = InsightsStores.of(paths)
         stores.load_all()
         stores.reconcile(clock)
-        return cls(stores, clock, threads, cap)
+        return cls(stores, clock, limit)
 
     def submit(self, process: Callable[[str], None], job_id: str) -> None:
         """Queue ``process(job_id)`` behind the jobs of both kinds already waiting."""
@@ -111,26 +108,10 @@ class InsightsLane:
 
     def _capped(self, process: Callable[[str], None]) -> Callable[[str], None]:
         def run(job_id: str) -> None:
-            with self._cap(self._threads):
+            with self._limit.cap(self._limit.threads):
                 process(job_id)
 
         return run
-
-    def start(self) -> None:
-        """Start the lane thread."""
-        self.scheduler.start()
-
-    def stop(self, timeout: float | None = None) -> None:
-        """Stop the lane thread; a running job fails at the next start."""
-        self.scheduler.stop(timeout)
-
-    def join(self, timeout: float | None = None) -> bool:
-        """Block until no job waits or runs; False on timeout."""
-        return self.scheduler.join(timeout)
-
-    def health(self) -> LaneHealth:
-        """Waiting jobs and whether one runs (``Health.lanes.insights``)."""
-        return self.scheduler.health()
 
     def sweep(self) -> list[str]:
         """Remove terminal jobs of both kinds older than 24 hours."""

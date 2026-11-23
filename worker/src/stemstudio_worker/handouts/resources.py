@@ -61,7 +61,7 @@ class AllowList:
         """
         allowed = frozenset((ARCHIVO_FONT, *paths))
         for path in allowed:
-            if not path.is_absolute() or path.suffix not in CONTENT_TYPES:
+            if not _plain_path(path):
                 raise _refused(str(path))
         return cls(allowed)
 
@@ -91,13 +91,19 @@ class AllowList:
 
     def _path_of(self, url: str) -> Path:
         parts = urlsplit(url)
-        plain = parts.scheme == "file" and not (parts.netloc or parts.query or parts.fragment)
-        if not plain or "#" in url or "?" in url:
-            raise _refused(url)
+        plain = (parts.scheme, parts.netloc, parts.query, parts.fragment) == ("file", "", "", "")
         path = Path(url2pathname(unquote(parts.path)))
-        if path not in self.paths or ".." in path.parts:
+        if not plain or not _NO_QUERY.isdisjoint(url) or path not in self.paths:
             raise _refused(url)
         return path
+
+
+_NO_QUERY: Final = frozenset("?#")
+
+
+def _plain_path(path: Path) -> bool:
+    """An absolute path without ``..`` of a known resource type."""
+    return path.is_absolute() and ".." not in path.parts and path.suffix in CONTENT_TYPES
 
 
 def _read_regular(path: Path) -> bytes:

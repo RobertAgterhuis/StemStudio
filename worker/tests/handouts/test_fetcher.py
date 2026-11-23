@@ -230,3 +230,8 @@ def test_hostile_markup_and_css_fetch_nothing_outside_the_allow_list(
     assert "https://example.com/remote.css" in fetcher.refused
     assert secret in fetcher.refused
     assert all(url == artwork for url in fetcher.fetched)
+
+
+def test_paths_with_parent_steps_cannot_be_allowed(tmp_path: Path) -> None:
+    with pytest.raises(RefusedResourceError):
+        AllowList.of([tmp_path / "a" / ".." / "cover.jpg"])

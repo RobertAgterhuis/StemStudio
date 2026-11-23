@@ -10,7 +10,12 @@ import pytest
 
 from stemstudio_worker.jobs import insights_lane
 from stemstudio_worker.jobs.handout_store import StoredHandoutJob
-from stemstudio_worker.jobs.insights_lane import InsightsLane, InsightsStores, blas_threads
+from stemstudio_worker.jobs.insights_lane import (
+    InsightsLane,
+    InsightsStores,
+    ThreadLimit,
+    blas_threads,
+)
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.quality_store import StoredQualityJob
 from stemstudio_worker.schemas import (
@@ -80,7 +85,7 @@ def cap() -> CapSpy:
 
 @pytest.fixture
 def lane(tmp_path: Path, cap: CapSpy) -> Iterator[InsightsLane]:
-    started = InsightsLane.loaded(DataPaths(tmp_path), FakeClock(), threads=3, cap=cap)
+    started = InsightsLane.loaded(DataPaths(tmp_path), FakeClock(), ThreadLimit(3, cap))
     started.start()
     yield started
     started.stop(WAIT)
@@ -138,7 +143,7 @@ def test_loading_fails_the_jobs_a_restart_interrupted(tmp_path: Path, cap: CapSp
     stores.handouts.save(_handout("2" * 32, S.QUEUED))
     stores.handouts.save(_handout("3" * 32, S.COMPLETED))
 
-    lane = InsightsLane.loaded(DataPaths(tmp_path), FakeClock(), threads=4, cap=cap)
+    lane = InsightsLane.loaded(DataPaths(tmp_path), FakeClock(), ThreadLimit(4, cap))
 
     quality = lane.stores.quality.get("1" * 32)
     handout = lane.stores.handouts.get("2" * 32)
@@ -156,7 +161,7 @@ def test_sweep_covers_both_stores(tmp_path: Path, cap: CapSpy) -> None:
     stores.quality.save(_quality("1" * 32, S.COMPLETED, timedelta(hours=25)))
     stores.handouts.save(_handout("2" * 32, S.FAILED, timedelta(hours=25)))
     stores.handouts.save(_handout("3" * 32, S.FAILED, timedelta(hours=1)))
-    lane = InsightsLane(stores, lambda: T0, 4, cap)
+    lane = InsightsLane(stores, lambda: T0, ThreadLimit(4, cap))
 
     assert sorted(lane.sweep()) == ["1" * 32, "2" * 32]
     assert stores.handouts.get("3" * 32) is not None
