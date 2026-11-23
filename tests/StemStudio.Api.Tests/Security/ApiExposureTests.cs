@@ -57,15 +57,18 @@ public sealed class ApiExposureTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    // 003 flips: every host name is accepted today (DNS rebinding).
+    // 003 flipped (step 2): a Host outside the allow-list is refused before routing (DNS rebinding, ADR-027 D6).
     [Theory]
     [InlineData("evil.example")]
     [InlineData("192.168.1.10:8081")]
-    public async Task ForeignHost_IsAcceptedToday(string host)
+    [InlineData("localhost.evil.example")]
+    [InlineData("127.0.0.1.nip.io:8081")]
+    [InlineData("[0:0:0:0:0:0:0:1]:8081")]
+    public async Task ForeignHost_Is400(string host)
     {
         using var response = await SendAsync(Health(host));
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Theory]
@@ -84,6 +87,8 @@ public sealed class ApiExposureTests : IDisposable
     [InlineData("127.0.0.1:8081")]
     [InlineData("[::1]:8081")]
     [InlineData("api:8081")]
+    [InlineData("API")]
+    [InlineData("LocalHost:18081")]
     public async Task LocalHostNames_AreAccepted(string host)
     {
         using var response = await SendAsync(Health(host));
