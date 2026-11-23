@@ -9,5 +9,12 @@ public static class TipLinks
     /// <param name="trackId">Track.</param>
     /// <param name="action">The action.</param>
     /// <returns>The relative link.</returns>
-    public static string Mixer(Guid trackId, TipActionDto action) => throw new NotImplementedException();
+    public static string Mixer(Guid trackId, TipActionDto action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var query = action.Kind == TipActionKindDto.Mute
+            ? $"mute={Uri.EscapeDataString(action.Channel)}"
+            : $"expand={Uri.EscapeDataString(action.Parent ?? action.Channel)}";
+        return $"tracks/{trackId}/mixer?{query}";
+    }
 }

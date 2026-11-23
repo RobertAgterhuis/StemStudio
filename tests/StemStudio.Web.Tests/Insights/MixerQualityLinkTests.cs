@@ -57,4 +57,14 @@ public sealed class MixerQualityLinkTests : MixerTestContext
         page.WaitForAssertion(() => page.Find("[data-testid=strip-vocals]"));
         Engine.DidNotReceive().SetExpandedAsync(Arg.Any<string>(), Arg.Any<bool>());
     }
+
+    [Fact]
+    public void Mute_OfATrackThatIsNotReady_ShowsTheNotReadyMessage()
+    {
+        Api.GetTrackAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(TestData.Track(StemStudio.Contracts.Tracks.TrackStatusDto.Separating));
+
+        var page = RenderWith("mute=piano");
+
+        page.FindAll("[data-testid=mute-piano]").ShouldBeEmpty();
+    }
 }

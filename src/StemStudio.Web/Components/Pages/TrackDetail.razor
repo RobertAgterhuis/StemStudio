@@ -95,7 +95,7 @@ else
             <TrackSummary Track="Track" OnExport="OpenExport" OnExportAll="OpenStemPack" OnScore="OpenScore" />
             <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" OnExport="OpenExport"
                            OnScore="OpenScore" />
-            <QualityPanel Track="Track" />
+            <QualityPanel Track="Track" Actions="this" />
             @if (Guitarist)
             {
                 <StemStudio.Web.Components.InstrumentViews.CapoMode TrackId="Track.Id" OnChanged="OnCapoChanged" />
