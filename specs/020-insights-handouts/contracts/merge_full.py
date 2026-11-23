@@ -138,16 +138,16 @@ def items(body: str, indent: int) -> dict[str, str]:
     return found
 
 
-def in_block(text: str, header: str, indent: int, old: str, new: str) -> str:
-    """Replaces a unique string inside one block."""
-    start, end = block(text, header, indent)
+def in_block(text: str, header: str, old: str, new: str) -> str:
+    """Replaces a unique string inside one block (a path at indent 2, a component at indent 4)."""
+    start, end = block(text, header, 2 if header.startswith("/") else 4)
     return text[:start] + replace_once(text[start:end], old, new) + text[end:]
 
 
 def add_properties(text: str, schema: str, props: str, required: bool) -> str:
     """Inserts properties first in ``properties`` of a schema; optionally appends their names to ``required``."""
     names = list(items(props, 8))
-    text = in_block(text, schema, 4, "      properties:\n", "      properties:\n" + props)
+    text = in_block(text, schema, "      properties:\n", "      properties:\n" + props)
     if required:
         start, end = block(text, schema, 4)
         body = re.sub(r"^      required: \[(.*)\]$", lambda m: f"      required: [{m.group(1)}, {', '.join(names)}]",
@@ -200,7 +200,7 @@ def worker_extensions(text: str) -> str:
     """Step 3 for the worker document."""
     text = add_properties(text, "Health", "        insights:\n          $ref: '#/components/schemas/InsightsHealth'\n", True)
     text = add_properties(text, "LanesHealth", "        insights:\n          $ref: '#/components/schemas/LaneHealth'\n", True)
-    text = in_block(text, "LanesHealth", 4, "instrument-analysis 1.9.0).", "instrument-analysis 1.9.0, insights 1.11.0).")
+    text = in_block(text, "LanesHealth", "instrument-analysis 1.9.0).", "instrument-analysis 1.9.0, insights 1.11.0).")
     start, end = block(text, "/health", 2)
     body = text[start:end]
     if body.count(LANE_EXAMPLE) < 1 or body.count("                    contractVersion:") != body.count(LANE_EXAMPLE):
@@ -214,9 +214,9 @@ def worker_extensions(text: str) -> str:
 def backend_extensions(text: str) -> str:
     """Step 3 for the backend document."""
     text = add_enum(text, "AssetKind", ["handout"])
-    text = in_block(text, "AssetKind", 4, "`score` (sheet music, 1.7.0).", "`score` (sheet music, 1.7.0) and `handout` (lesson handout PDF, 1.19.0).")
+    text = in_block(text, "AssetKind", "`score` (sheet music, 1.7.0).", "`score` (sheet music, 1.7.0) and `handout` (lesson handout PDF, 1.19.0).")
     text = add_enum(text, "AssetOrigin", ["handout"])
-    text = in_block(text, "AssetOrigin", 4, "hidden from the library list unless asked for.",
+    text = in_block(text, "AssetOrigin", "hidden from the library list unless asked for.",
                     "hidden from the library list unless asked for. `handout` (1.19.0): a lesson handout.")
     asset = ("        handout:\n          oneOf:\n            - $ref: '#/components/schemas/HandoutFacts'\n            - type: 'null'\n"
              "          description: Facts of a `handout` item (1.19.0); absent or null for other kinds and before it is ready.\n")
