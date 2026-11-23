@@ -1,0 +1,146 @@
+#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
+using StemStudio.Api.Assets;
+using StemStudio.Api.Insights;
+using StemStudio.Api.Library;
+using StemStudio.Api.Worker;
+using StemStudio.Contracts;
+using StemStudio.Contracts.Handouts;
+using StemStudio.Domain;
+using StemStudio.Domain.Assets;
+using StemStudio.Domain.Handouts;
+using StemStudio.Persistence.Repositories;
+
+namespace StemStudio.Api.Handouts;
+
+/// <summary>The collaborators of <see cref="HandoutService"/> that store and file items.</summary>
+/// <param name="Assets">Asset repository.</param>
+/// <param name="Reader">Maps items.</param>
+/// <param name="Filer">Files new items in the library folders (feature 022).</param>
+/// <param name="Disk">Free-space guard.</param>
+public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, ILibraryFiler Filer, DiskSpaceGuard Disk);
+
+/// <summary>
+/// Creates handout library items and makes failed ones again (FR-008..FR-014): validate, plan, assemble the document, store the
+/// queued item and submit the worker handout job.
+/// </summary>
+/// <param name="planner">Plans the handout.</param>
+/// <param name="assembler">Assembles the worker document.</param>
+/// <param name="worker">The worker insights lane.</param>
+/// <param name="store">Item storage.</param>
+/// <param name="clock">Clock.</param>
+public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler assembler, IWorkerInsightsClient worker, HandoutStore store, TimeProvider clock)
+{
+    private DateTime Now => clock.GetUtcNow().UtcDateTime;
+
+    /// <summary><c>POST /api/assets/handouts</c>.</summary>
+    /// <param name="request">The request.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>202, 404, 409, 422 or 503.</returns>
+    public Task<IResult> CreateAsync(CreateHandoutRequest request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Plans the stored recipe of a failed handout again (current data) and resubmits it.</summary>
+    /// <param name="asset">A failed handout item.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>202, 404, 409 or 503.</returns>
+    public Task<IResult> RetryAsync(Asset asset, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task<IResult> CreateAsync(HandoutAsk ask, HandoutDraft draft, CancellationToken cancellationToken)
+    {
+        var label = Families.Label(draft.Handout.Family, draft.Handout.Transposition);
+        var title = draft.Handout.Setlist?.Name ?? draft.Handout.Songs[0].Material.Title;
+        var name = ask.Name ?? AssetNaming.DefaultName(title, HandoutNaming.Contents(label), await store.Assets.NamesAsync(cancellationToken));
+        var asset = Asset.CreateHandout(Guid.NewGuid(), name, new HandoutStart(Provenance(ask.Recipe, draft, label), draft.Facts), Now);
+        return await SubmitAsync(asset, draft, true, cancellationToken);
+    }
+
+    private async Task<IResult> SubmitAsync(Asset asset, HandoutDraft draft, bool added, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var job = await worker.CreateHandoutJobAsync(new WorkerHandoutJobRequest(assembler.Document(draft.Handout), draft.Facts.Paper), cancellationToken);
+            asset.AssignJob(job.HandoutJobId, Now);
+        }
+        catch (WorkerUnavailableException)
+        {
+            return InsightsProblems.WorkerUnavailable();
+        }
+        catch (WorkerRequestException refused)
+        {
+            return HandoutProblems.Field("document", $"The processing service refused the handout: {refused.Detail}");
+        }
+
+        if (added)
+        {
+            await store.Filer.FileAsync(asset, cancellationToken);
+            store.Assets.Add(asset);
+        }
+
+        await store.Assets.SaveAsync(cancellationToken);
+        return TypedResults.Accepted(ApiRoutes.Asset(asset.Id), await store.Reader.ToDtoAsync(asset, cancellationToken));
+    }
+
+    private static Provenance Provenance(HandoutRecipe recipe, HandoutDraft draft, string label)
+    {
+        var handout = draft.Handout;
+        var first = handout.Songs[0].Material;
+        var title = handout.Setlist?.Name ?? first.Title;
+        return new Provenance
+        {
+            Origin = AssetOrigin.Handout,
+            TrackId = handout.Kind == HandoutKind.Song ? first.TrackId : null,
+            TrackTitle = title.Length <= ExportService.MaxTrackTitleLength ? title : title[..ExportService.MaxTrackTitleLength],
+            TrackArtist = handout.Kind == HandoutKind.Song ? first.Artist : null,
+            SourceAssetIds = handout.Songs.Where(song => song.Include.Contains(IngredientCode.Notation)).SelectMany(song => song.Notation.Select(item => item.AssetId)).Distinct().ToList(),
+            Contents = HandoutNaming.Contents(label),
+            HandoutRecipe = recipe with { SetlistName = handout.Setlist?.Name },
+        };
+    }
+}
+
+/// <summary>Request rules of <c>createHandout</c> that need no data (422).</summary>
+public static class HandoutRequests
+{
+    /// <summary>Most notation ids in a request.</summary>
+    public const int MaxNotationIds = 400;
+
+    /// <summary>The problem of an invalid request, or null.</summary>
+    /// <param name="request">The request.</param>
+    /// <returns>422 or null.</returns>
+    public static IResult? Validate(CreateHandoutRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    private static void AddIncludeErrors(Dictionary<string, string[]> errors, CreateHandoutRequest request)
+    {
+        var kind = request.Source?.TrackId is not null ? HandoutKind.Song : HandoutKind.Setlist;
+        var include = request.Include?.Select(code => HandoutMapper.Convert<IngredientCode>(code)).ToList();
+        if (IngredientPlanner.Refused(HandoutMapper.Convert<HandoutFamily>(request.Family), kind, include) is { Count: > 0 } refused)
+        {
+            errors["include"] = [.. refused];
+        }
+    }
+
+    private static void AddNameErrors(Dictionary<string, string[]> errors, string? name)
+    {
+        if (name is null)
+        {
+            return;
+        }
+
+        try
+        {
+            AssetNaming.Validate(name);
+        }
+        catch (DomainValidationException invalid)
+        {
+            errors["name"] = [.. invalid.Errors.Select(error => error.Message)];
+        }
+    }
+}

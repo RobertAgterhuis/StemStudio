@@ -12,7 +12,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="reader">Maps the item.</param>
 /// <param name="scores">Retries score items (feature 008).</param>
 /// <param name="takes">Resolves a recipe's take again (feature 015).</param>
-public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores, ITakeExportSource takes)
+/// <param name="handouts">Makes failed handouts again (feature 020).</param>
+public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores, ITakeExportSource takes, Handouts.HandoutService handouts)
 {
     /// <summary>Re-plans and resubmits a failed item.</summary>
     /// <param name="id">Item ID.</param>
@@ -31,7 +32,12 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
             return refused;
         }
 
-        return asset.Kind == AssetKind.Score ? await scores.RetryAsync(asset, cancellationToken) : await RetryExportAsync(asset, cancellationToken);
+        return asset.Kind switch
+        {
+            AssetKind.Score => await scores.RetryAsync(asset, cancellationToken),
+            AssetKind.Handout => await handouts.RetryAsync(asset, cancellationToken),
+            _ => await RetryExportAsync(asset, cancellationToken),
+        };
     }
 
     private async Task<IResult> RetryExportAsync(Asset asset, CancellationToken cancellationToken)

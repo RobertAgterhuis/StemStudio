@@ -1,3 +1,4 @@
+using StemStudio.Api.Handouts;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
@@ -16,9 +17,10 @@ namespace StemStudio.Api.Assets;
 /// <param name="applier">Applies render job states.</param>
 /// <param name="scores">Applies transcription job states (feature 008).</param>
 /// <param name="finisher">Finishes ready takes (feature 015).</param>
+/// <param name="handouts">Applies handout jobs (feature 020).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class AssetSynchronizer(
-    IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ScoreJobApplier scores, IAssetFinisher finisher, ILogger<AssetSynchronizer> logger)
+    IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ScoreJobApplier scores, IAssetFinisher finisher, HandoutJobs handouts, ILogger<AssetSynchronizer> logger)
 {
     /// <summary>Synchronises every active item.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -48,9 +50,12 @@ public sealed partial class AssetSynchronizer(
     }
 
     /// <summary>Polls and applies the render job, or the transcription job of a score item.</summary>
-    private async Task PollAsync(Asset asset, string jobId, CancellationToken cancellationToken) => await (asset.Kind == AssetKind.Score
-        ? scores.ApplyAsync(asset, await worker.GetTranscriptionJobAsync(jobId, cancellationToken), cancellationToken)
-        : applier.ApplyAsync(asset, await worker.GetRenderJobAsync(jobId, cancellationToken), cancellationToken));
+    private async Task PollAsync(Asset asset, string jobId, CancellationToken cancellationToken) => await (asset.Kind switch
+    {
+        AssetKind.Score => scores.ApplyAsync(asset, await worker.GetTranscriptionJobAsync(jobId, cancellationToken), cancellationToken),
+        AssetKind.Handout => handouts.Applier.ApplyAsync(asset, await handouts.Worker.GetHandoutJobAsync(jobId, cancellationToken), cancellationToken),
+        _ => applier.ApplyAsync(asset, await worker.GetRenderJobAsync(jobId, cancellationToken), cancellationToken),
+    });
 
     /// <summary>Removes the worker's copy once the item is ready or failed (best effort; the worker sweeps after 24 h).</summary>
     private async Task DeleteFinishedJobAsync(Asset asset, string jobId, CancellationToken cancellationToken)
@@ -62,7 +67,7 @@ public sealed partial class AssetSynchronizer(
 
         try
         {
-            await AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken);
+            await (asset.Kind == AssetKind.Handout ? handouts.Worker.DeleteHandoutJobAsync(jobId, cancellationToken) : AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken));
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {

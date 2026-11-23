@@ -1,3 +1,4 @@
+using StemStudio.Api.Handouts;
 using StemStudio.Api.Handouts.Sources;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
@@ -20,13 +21,13 @@ public static class InsightsRegistration
         services.AddOptions<InsightsOptions>().Bind(configuration.GetSection(InsightsOptions.SectionName));
         services.AddServiceClient<IWorkerInsightsClient, WorkerClient>(
             configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
-        return services.AddQuality().AddHandoutSources();
+        return services.AddQuality().AddHandoutSources().AddHandouts();
     }
 
     /// <summary>Maps the 020 endpoints.</summary>
     /// <param name="app">Endpoint builder.</param>
     /// <returns>The builder.</returns>
-    public static IEndpointRouteBuilder MapInsightsEndpoints(this IEndpointRouteBuilder app) => app.MapQualityEndpoints();
+    public static IEndpointRouteBuilder MapInsightsEndpoints(this IEndpointRouteBuilder app) => app.MapQualityEndpoints().MapHandoutEndpoints();
 
     private static IServiceCollection AddQuality(this IServiceCollection services)
     {
@@ -40,6 +41,19 @@ public static class InsightsRegistration
         services.AddScoped<QualityTrigger>();
         services.AddScoped<ITrackCompletionHook>(provider => provider.GetRequiredService<QualityTrigger>());
         return services.AddScoped<IDetailCompletionHook>(provider => provider.GetRequiredService<QualityTrigger>());
+    }
+
+    private static IServiceCollection AddHandouts(this IServiceCollection services)
+    {
+        services.AddScoped<HandoutMaterialLoader>();
+        services.AddScoped<HandoutPlanner>();
+        services.AddScoped<HandoutAssembler>();
+        services.AddScoped<HandoutStore>();
+        services.AddScoped<HandoutService>();
+        services.AddScoped<HandoutOptionsService>();
+        services.AddScoped<HandoutJobApplier>();
+        services.AddScoped<HandoutJobs>();
+        return services.AddScoped<PracticeNoteService>();
     }
 
     private static IServiceCollection AddHandoutSources(this IServiceCollection services)
