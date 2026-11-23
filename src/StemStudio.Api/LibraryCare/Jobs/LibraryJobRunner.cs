@@ -58,7 +58,6 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
     /// <returns>False when another job is active.</returns>
     public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, LibraryJobHooks? hooks, out LibraryJobDto job)
     {
-        _ = hooks;
         ArgumentNullException.ThrowIfNull(work);
         job = LibraryJobs.Queued(Guid.NewGuid(), kind, archiveFileName, clock.GetUtcNow());
         lock (_lock)
@@ -68,7 +67,8 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
                 return false;
             }
 
-            var running = new Running(new LibraryJobContext(job with { StartedAt = job.CreatedAt }, clock), new CancellationTokenSource());
+            var running = new Running(new LibraryJobContext(job with { StartedAt = job.CreatedAt }, clock), new CancellationTokenSource(), hooks);
+            hooks?.Begin();
             _running = running;
             _idle = Task.Run(() => RunAsync(running, work));
             return true;
@@ -145,6 +145,8 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
             _running = null;
         }
 
+        running.Hooks?.End();
+
         running.Cancellation.Dispose();
     }
 
@@ -177,5 +179,5 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
     [LoggerMessage(Level = LogLevel.Error, Message = "Library job {Kind} failed unexpectedly ({ExceptionType})")]
     private static partial void LogUnexpected(ILogger logger, LibraryJobKindDto kind, string exceptionType);
 
-    private sealed record Running(LibraryJobContext Context, CancellationTokenSource Cancellation);
+    private sealed record Running(LibraryJobContext Context, CancellationTokenSource Cancellation, LibraryJobHooks? Hooks);
 }
