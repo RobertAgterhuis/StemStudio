@@ -13,7 +13,7 @@
          One-time edit by the architect (feature 004, T003); the rest of this project is frontend-owned.
          016 Phase 0 (T004): help-content 1.1.0 schema (area `instruments`) from specs/016-instrument-views/contracts.
          020 (Q1, orchestrator): help-content 1.2.0 schema (areas `insights`, `handouts`) from specs/020-insights-handouts/contracts. -->
-    <None Include="..\..\specs\016-instrument-views\contracts\help-topic.schema.json;..\..\specs\004-design-system-ux\contracts\tour.schema.json"
+    <None Include="..\..\specs\020-insights-handouts\contracts\help-topic.schema.json;..\..\specs\004-design-system-ux\contracts\tour.schema.json"
           Link="Contracts\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

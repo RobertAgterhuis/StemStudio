@@ -105,8 +105,8 @@ in the execution plan.
 - [ ] T023 [backend] Implement the worker clients
 - [ ] T024 [P] [backend] Failing tests for the source ports and adapters `ISectionSource`, `ISetlistSource`, `IPracticeLogSource`, `IChordSource`, `INotationCatalog` over the merged 014/016 services, using the shapes of DELTA.md "Phase 0 outcome" P0-4 (setlist `note` "" -> null; practice progress = `bestTrainerPercent`; chords as 016 chart + key; notation by `ScoreFacts.profile/tablature/part`)
 - [ ] T025 [backend] Implement the adapters
-- [ ] T026 [P] [frontend] Failing tests: feature-catalogue entries and levels (help-topics.md), every new topic file loads and validates against the 004 schema
-- [ ] T027 [frontend] Add the catalogue entries and the help topic files (FR-016; not the deferred G2 topic/entry)
+- [x] T026 [P] [frontend] Failing tests: feature-catalogue entries and levels (help-topics.md), every new topic file loads and validates against the 004 schema
+- [x] T027 [frontend] Add the catalogue entries and the help topic files (FR-016; not the deferred G2 topic/entry)
 - [ ] T028 [P] [qa] Failing tests for the per-family fixture builder `tests/fixtures/families/` (one fixture song with sections, chords, word-timed lyrics, and score/tab/drum/transposed-part PDFs for all seven families; a three-song setlist; seeding through the fake-stack API)
 - [ ] T029 [qa] Implement the fixture builder and the E2E seeding helper (SC-006)
 

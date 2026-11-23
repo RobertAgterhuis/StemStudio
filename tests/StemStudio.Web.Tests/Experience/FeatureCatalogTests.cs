@@ -122,7 +122,7 @@ public sealed class FeatureCatalogTests
         { "handout.one-click", [B, A, E], "handouts" },
         { "handout.customise", [A, E], "handout-families" },
         { "handout.transposition", [A, E], "handout-transposition" },
-        { "practice-notes.edit", [B, A, E], "practice-notes" },
+        { "practice.notes-edit", [B, A, E], "practice-notes" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)

@@ -37,7 +37,7 @@ public sealed class InsightsHelpTests
         { "handout.one-click", B, "handouts" },
         { "handout.customise", A, "handout-families" },
         { "handout.transposition", A, "handout-transposition" },
-        { "practice-notes.edit", B, "practice-notes" },
+        { "practice.notes-edit", B, "practice-notes" },
     };
 
     [Theory]

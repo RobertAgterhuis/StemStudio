@@ -119,6 +119,13 @@ public static class FeatureCatalog
         new("key.details", Advanced, null, "song-key"),
         new("capo.mode", Beginner, null, "capo-mode"),
         new("capo.sounding", Advanced, null, "capo-mode"),
+        new("quality.report", Beginner, null, "stem-quality"),
+        new("quality.details", Advanced, null, "stem-quality-measures"),
+        new("quality.indices", Expert, null, "stem-quality-reliability"),
+        new("handout.one-click", Beginner, null, "handouts"),
+        new("handout.customise", Advanced, null, "handout-families"),
+        new("handout.transposition", Advanced, null, "handout-transposition"),
+        new("practice.notes-edit", Beginner, null, "practice-notes"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>
