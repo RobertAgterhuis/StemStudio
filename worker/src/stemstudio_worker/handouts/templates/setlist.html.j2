@@ -1,0 +1,30 @@
+{#- Cover of a setlist handout: name, notes, running order and contents with page numbers. -#}
+{% macro cover(view) -%}
+<section class="cover">
+<h1 data-running="{{ view.title }} - {{ view.family_label }}">{{ view.setlist.name }}</h1>
+{%- if view.subtitle %}
+<p class="byline">{{ view.subtitle }}</p>
+{%- endif %}
+<p class="family">{{ view.family_label }} handout, made on {{ view.generated_on }}</p>
+{%- if view.setlist.notes %}
+<p class="text">{{ view.setlist.notes }}</p>
+{%- endif %}
+<h2>Running order</h2>
+<table class="order">
+<thead><tr><th>#</th><th>Song</th><th>Artist</th><th>Key</th><th>Tempo</th><th>Length</th><th>Notes</th></tr></thead>
+<tbody>
+{%- for entry in view.setlist.entries %}
+<tr>{% for cell in entry %}<td{% if loop.last %} class="text"{% endif %}>{{ cell }}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+<h2>Contents</h2>
+<div class="contents">
+<ul>
+{%- for song in view.songs %}
+<li><a href="#{{ song.anchor }}">{{ song.title }}</a></li>
+{%- endfor %}
+</ul>
+</div>
+</section>
+{%- endmacro %}

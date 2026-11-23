@@ -1,5 +1,6 @@
 {#- Lesson handout (feature 020, data-model 6.4-6.6). Autoescaped: every value is text. -#}
 {%- import "song.html.j2" as song_parts -%}
+{%- import "setlist.html.j2" as setlist_parts -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -15,6 +16,9 @@
 {%- endautoescape %}
 </head>
 <body>
+{%- if view.setlist %}
+{{ setlist_parts.cover(view) }}
+{%- endif %}
 {%- for song in view.songs %}
 {{ song_parts.song(song, first=(loop.first and not view.setlist)) }}
 {%- endfor %}

@@ -92,7 +92,7 @@ def test_a_setlist_has_a_cover_contents_and_every_song_on_a_new_page(tmp_path: P
     assert len(starts) == 3
     assert all(f"Song {i}" in texts[page] for i, page in enumerate(starts, 1))
     for number, page in enumerate(starts, 1):
-        assert re.search(rf"Song {number}\.*\s*{page + 1}\b", cover), (number, page)
+        assert re.search(rf"Song {number} *\.+ *{page + 1}\b", cover), (number, page)
     assert "About this handout" in texts[-1]
 
 
