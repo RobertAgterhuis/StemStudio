@@ -5,7 +5,6 @@ the Linux worker image and CI. Every hostile case must be refused without touchi
 or a file outside the allow-list.
 """
 
-import os
 from pathlib import Path
 
 import pytest
@@ -116,7 +115,7 @@ def test_query_and_fragment_are_refused(allowed: AllowList, files: dict[str, Pat
 
 def _symlink(link: Path, target: Path) -> None:
     try:
-        os.symlink(target, link)
+        link.symlink_to(target)
     except OSError:
         pytest.skip("symlinks are not available here")
 

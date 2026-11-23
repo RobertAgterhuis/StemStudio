@@ -1,40 +1,112 @@
-"""Allow-list of the files a handout render may read (feature 020, FR-018). Red stub."""
+"""The files a handout render may read: packaged assets and the job's artwork (FR-018, ADR-029 D7).
 
+An :class:`AllowList` maps the ``file:`` URI of every allowed file to its real path. A URL is
+served only when it names one of these files exactly: no other scheme (``http(s)``, ``data:``,
+``ftp``), no host (``file://server/share`` would be a network path on Windows), no query or
+fragment, no ``..`` and no percent-encoded detour. The file must still be a regular file at the
+same real path when it is read (a symlink swapped in later is refused) and at most
+``MAX_RESOURCE_BYTES`` large. Notation PDFs are merged by pypdf, never fetched by the layout, so
+they are not on the list.
+"""
+
+import stat
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
+from urllib.parse import unquote, urlsplit
+from urllib.request import url2pathname
+
+from stemstudio_worker.ports import ARTWORK_PATTERN
+
+ASSETS_DIR: Final = Path(__file__).resolve().parent / "assets"
+"""Packaged copies of the app tokens and the Archivo font (``scripts/sync_handout_style.py``)."""
+
+ARCHIVO_FONT: Final = ASSETS_DIR / "fonts" / "archivo" / "Archivo-Variable-latin.woff2"
+"""Archivo variable font (OFL-1.1), Latin subset."""
+
+TOKENS_CSS: Final = ASSETS_DIR / "tokens.css"
+"""The app's light-theme tokens (``--ss-*``)."""
+
+MAX_RESOURCE_BYTES: Final = 16 * 1024 * 1024
+"""Largest file the layout may read (a cover is far smaller)."""
+
+CONTENT_TYPES: Final[Mapping[str, str]] = {
+    ".woff2": "font/woff2",
+    ".jpg": "image/jpeg",
+}
+"""The only file types the layout may read, by suffix."""
 
 
 class RefusedResourceError(ValueError):
-    """Stub."""
+    """A URL or file is not on the allow-list (WeasyPrint logs it and goes on without it)."""
 
 
+def _refused(what: str) -> RefusedResourceError:
+    return RefusedResourceError(f"Not an allowed handout resource: {what[:200]}")
+
+
+@dataclass(frozen=True, slots=True)
 class AllowList:
-    """Stub."""
+    """The real paths a render may read, by their ``file:`` URI."""
+
+    paths: frozenset[Path]
 
     @classmethod
     def of(cls, paths: Iterable[Path]) -> "AllowList":
-        """Stub."""
-        raise NotImplementedError
+        """Allow ``paths`` (absolute real paths of a known type) and the packaged font.
+
+        Raises:
+            RefusedResourceError: A path is relative or not a known resource type.
+        """
+        allowed = frozenset((ARCHIVO_FONT, *paths))
+        for path in allowed:
+            if not path.is_absolute() or path.suffix not in CONTENT_TYPES:
+                raise _refused(str(path))
+        return cls(allowed)
 
     @classmethod
     def for_job(cls, files: Mapping[str, Path]) -> "AllowList":
-        """Stub."""
-        raise NotImplementedError
+        """The packaged font plus the artwork of ``files`` (library path -> real path)."""
+        return cls.of(real for path, real in files.items() if ARTWORK_PATTERN.fullmatch(path))
 
     def uri(self, path: Path) -> str:
-        """Stub."""
-        raise NotImplementedError
+        """The ``file:`` URI the layout uses for an allowed ``path``.
+
+        Raises:
+            RefusedResourceError: ``path`` is not allowed.
+        """
+        if path not in self.paths:
+            raise _refused(str(path))
+        return path.as_uri()
 
     def read(self, url: str) -> tuple[bytes, str]:
-        """Stub."""
-        raise NotImplementedError
+        """The bytes and content type of the allowed file ``url`` names.
+
+        Raises:
+            RefusedResourceError: The URL names no allowed file, or the file changed.
+        """
+        path = self._path_of(url)
+        return _read_regular(path), CONTENT_TYPES[path.suffix]
+
+    def _path_of(self, url: str) -> Path:
+        parts = urlsplit(url)
+        plain = parts.scheme == "file" and not (parts.netloc or parts.query or parts.fragment)
+        if not plain or "#" in url or "?" in url:
+            raise _refused(url)
+        path = Path(url2pathname(unquote(parts.path)))
+        if path not in self.paths or ".." in path.parts:
+            raise _refused(url)
+        return path
 
 
-ARCHIVO_FONT = (
-    Path(__file__).resolve().parent
-    / "assets"
-    / "fonts"
-    / "archivo"
-    / "Archivo-Variable-latin.woff2"
-)
-MAX_RESOURCE_BYTES = 0
+def _read_regular(path: Path) -> bytes:
+    """Read ``path`` if it is still a small regular file at its own real path."""
+    try:
+        info = path.lstat()
+        same = path.resolve(strict=True) == path
+    except OSError:
+        raise _refused(str(path)) from None
+    if not (same and stat.S_ISREG(info.st_mode)) or info.st_size > MAX_RESOURCE_BYTES:
+        raise _refused(str(path))
+    return path.read_bytes()
