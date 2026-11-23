@@ -85,8 +85,12 @@
 #   STEMSTUDIO_QUALITY_ANALYZER=real|fake   worker: empty (default) = fake with the fake separator, else
 #                                           real (signal measures of the stems; no download)
 #   STEMSTUDIO_INSIGHTS_THREADS=1..16       worker: numpy/scipy threads of the insights lane (empty = 4)
-#   STEMSTUDIO_AUTO_QUALITY_REPORT=true|false   api: a stem quality report after every separation
-#                                           (default true; StemStudio__AutoQualityReport)
+#   STEMSTUDIO_QUALITY_REPORT_ENABLED=true|false   api and web: the stem quality report as a whole
+#                                           (default false: its measures failed gate G1 on real music;
+#                                           StemStudio__QualityReport__Enabled). Off = no report is made,
+#                                           read or shown; handouts and practice notes are not affected
+#   STEMSTUDIO_AUTO_QUALITY_REPORT=true|false   api: while the report is on, a report after every
+#                                           separation (default true; StemStudio__AutoQualityReport)
 #   Handout PDFs are made in the worker with WeasyPrint, Pango and the DejaVu/Archivo fonts of the
 #   image, without network (check: scripts/check-worker-pdf.{sh,ps1}).
 # See .env.example for every optional variable in one place.
@@ -227,7 +231,9 @@ services:
       - StemStudio__BackupHostDirHint=${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}
       # Feature 014 (practice flow): section detection after every separation (default on).
       - StemStudio__Practice__SectionDetectOnComplete=${STEMSTUDIO_SECTION_DETECT_ON_COMPLETE:-true}
-      # Feature 020: a stem quality report after every separation (default true).
+      # Feature 020: the stem quality report (default off, owner decision 2026-11-23: G1 failed on real music)
+      # and, while it is on, a report after every separation (default true).
+      - StemStudio__QualityReport__Enabled=${STEMSTUDIO_QUALITY_REPORT_ENABLED:-false}
       - StemStudio__AutoQualityReport=${STEMSTUDIO_AUTO_QUALITY_REPORT:-true}
       # Feature 015 (play-along recording): largest take upload (bytes; default 256 MiB).
       - StemStudio__Recording__MaxUploadBytes=${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
@@ -277,6 +283,8 @@ services:
       StemStudio__PublicApiBaseUrl: http://localhost:8081
       # Feature 015: the browser never streams a take larger than the api accepts.
       StemStudio__Recording__MaxStreamBytes: ${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
+      # Feature 020: the same quality report switch as the api (default off).
+      StemStudio__QualityReport__Enabled: ${STEMSTUDIO_QUALITY_REPORT_ENABLED:-false}
     ports:
       - "${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8080:8080"
     volumes:

@@ -16,7 +16,7 @@ namespace StemStudio.Api.Insights;
 /// <param name="inputs">Plans the worker request.</param>
 /// <param name="view">Builds the report view.</param>
 /// <param name="gate">The start lock.</param>
-/// <param name="options">The <c>AutoQualityReport</c> setting.</param>
+/// <param name="options">The <c>QualityReport:Enabled</c> and <c>AutoQualityReport</c> settings.</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class QualityService(
@@ -49,19 +49,29 @@ public sealed partial class QualityService(
             ? TypedResults.Ok(await view.ReportAsync(track, cancellationToken))
             : TrackService.NotFound(trackId);
 
-    /// <summary><c>POST /api/tracks/{trackId}/quality</c>: (re)makes the report.</summary>
+    /// <summary>
+    /// <c>POST /api/tracks/{trackId}/quality</c>: (re)makes the report. While the report is switched off
+    /// (<c>StemStudio:QualityReport:Enabled</c> false) a known track answers 503 and nothing is stored or started.
+    /// </summary>
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404, 409 or 503.</returns>
-    public Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken) => gate.RunAsync(
+    public Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken) =>
+        options.Value.QualityReport.Enabled ? RequestEnabledAsync(trackId, cancellationToken) : RefuseSwitchedOffAsync(trackId, cancellationToken);
+
+    private async Task<IResult> RefuseSwitchedOffAsync(Guid trackId, CancellationToken cancellationToken) =>
+        await tracks.FindAsync(trackId, cancellationToken) is null ? TrackService.NotFound(trackId) : InsightsProblems.QualityReportOff();
+
+    private Task<IResult> RequestEnabledAsync(Guid trackId, CancellationToken cancellationToken) => gate.RunAsync(
         async () => await tracks.FindAsync(trackId, cancellationToken) is { } track
             ? Refusal(track) ?? await StartLockedAsync(track, cancellationToken) ?? TypedResults.Accepted(ApiRoutes.Quality(trackId), await view.ReportAsync(track, cancellationToken))
             : TrackService.NotFound(trackId),
         cancellationToken);
 
     /// <summary>
-    /// The automatic run after a standard or detail separation (setting <c>AutoQualityReport</c>): only for a completed six-stem
-    /// track without an active report; an unreachable worker leaves the report as it was.
+    /// The automatic run after a standard or detail separation (settings <c>QualityReport:Enabled</c> and
+    /// <c>AutoQualityReport</c>): only for a completed six-stem track without an active report; an unreachable worker leaves
+    /// the report as it was.
     /// </summary>
     /// <param name="track">The track (tracked by this scope).</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -69,7 +79,7 @@ public sealed partial class QualityService(
     public async Task<bool> StartAutomaticallyAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        if (!options.Value.AutoQualityReport)
+        if (!options.Value.AutomaticQualityReports)
         {
             return false;
         }

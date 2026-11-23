@@ -17,10 +17,14 @@ Each measure carries a reliability label:
   enough.
 - **rough indication**: not validated for this kind of stem.
 
-**Validation state** (November 2026): the check on real music has not run yet, so every rating is a **rough
-indication**. The thresholds were checked on a synthetic set, where known amounts of bleed and artefacts were mixed
-into clean stems on purpose; there the measures ranked the amounts correctly. Guitar, piano, detail and rest stems stay
-rough indications even after the real check, because the models separate them less reliably.
+**Validation state** (November 2026): the check on real music ran on 25 songs of MUSDB18-HQ, a public set of songs
+with their separate instruments, and **failed** for vocals, drums, bass and other in both measures: the ratings did not
+follow the real amount of bleed and artefacts. So every rating is a **rough indication**, and for vocals, drums, bass
+and other Low and Medium are not shown (they read as unknown); only High is shown. The thresholds were checked on a
+synthetic set, where known amounts of bleed and artefacts were mixed into clean stems on purpose; there the measures
+ranked the amounts correctly. Guitar, piano, detail and rest stems are not in that public set; they stay rough
+indications with every level shown. This is why the report is switched off by default
+([Stem quality](help:stem-quality)).
 
 What the rough indication leaves out today:
 

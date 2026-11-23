@@ -15,6 +15,9 @@ public sealed partial class Mixer
 {
     private QualityReportDto? _quality;
 
+    [Inject]
+    private Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> WebOptions { get; set; } = default!;
+
     /// <summary>Channel to mute on open (<c>?mute=</c>, the "Mute" tip).</summary>
     [SupplyParameterFromQuery(Name = "mute")]
     public string? MuteChannel { get; set; }
@@ -38,10 +41,11 @@ public sealed partial class Mixer
     /// <returns>The stem view or null.</returns>
     private StemQualityViewDto? QualityOf(string channel) => QualityLayout.Find(_quality, channel);
 
-    // Only a track that ever had a report (Track.quality) is asked; a failing read just shows no badges.
+    // Only a track that ever had a report (Track.quality) is asked, and only while the report is switched on
+    // (StemStudio:QualityReport:Enabled); a failing read just shows no badges.
     private async Task LoadQualityAsync()
     {
-        if (_track?.Quality is null)
+        if (!WebOptions.Value.QualityReport.Enabled || _track?.Quality is null)
         {
             return;
         }

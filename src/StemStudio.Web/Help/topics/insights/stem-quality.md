@@ -11,6 +11,13 @@ related: [stem-quality-tips, stem-quality-measures, detail-stems]
 reviewed: "020"
 ---
 
+**Switched off by default.** The stem quality report is switched off by default, because its measures are not yet
+reliable on real music: a check on songs of MUSDB18-HQ, a public set of songs with their separate instruments, found
+that the ratings did not follow how well the stems were really separated. Whoever runs StemStudio can switch it on with
+the setting `StemStudio:QualityReport:Enabled` (in Docker: `STEMSTUDIO_QUALITY_REPORT_ENABLED=true`; see the technical
+manual). While it is off, the track page has no **Stem quality** card and the mixer shows no quality badges. When it is
+on, read every rating as a **rough indication** only ([How reliable the ratings are](help:stem-quality-reliability)).
+
 The **Stem quality** card on the track page rates every stem and every detail stem, so you know which stems you can
 trust for practice. Each rating has a word and an icon, never just a colour:
 
@@ -24,7 +31,7 @@ The ratings are **estimates** made from the stems alone, without the original re
 separate instruments the song was recorded with, so it cannot measure the truth; it looks for signs instead. A rating
 can be wrong, and the card always says so.
 
-**When reports are made**: automatically after every six-stem separation and every detail split, and for older tracks
+**When reports are made** (while the report is switched on): automatically after every six-stem separation and every detail split, and for older tracks
 when you press **Check stem quality**. A track separated into 4 stems gets no report: the check needs the six stems
 (vocals, drums, bass, guitar, piano and other). Press **Check again** to make a new report, for example after an update: a report made
 with an older version is marked "Made with an older version". The previous rating stays visible as "was Fair" when

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using StemStudio.Contracts.Insights;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
@@ -11,8 +12,12 @@ namespace StemStudio.Api.Insights;
 /// <param name="inputs">Stem files of the track.</param>
 /// <param name="versions">The worker's current analyzer version.</param>
 /// <param name="tips">Builds the tips from the current track state.</param>
-public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versions, QualityTips tips)
+/// <param name="options">The <c>QualityReport:Enabled</c> switch: while it is off every report reads as <c>none</c> and no track
+/// carries a badge, also when an older report is stored.</param>
+public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versions, QualityTips tips, IOptions<InsightsOptions> options)
 {
+    private bool Enabled => options.Value.QualityReport.Enabled;
+
     /// <summary>The report of a track.</summary>
     /// <param name="track">The track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -20,8 +25,9 @@ public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versi
     public async Task<QualityReportDto> ReportAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        var outdated = await OutdatedAsync(track, cancellationToken);
-        return QualityMapper.ToDto(track.QualityReport, outdated, track.QualityReport is null ? new Dictionary<string, IReadOnlyList<TipDto>>() : tips.For(track));
+        var report = Enabled ? track.QualityReport : null;
+        var outdated = report is not null && await OutdatedAsync(track, cancellationToken);
+        return QualityMapper.ToDto(report, outdated, report is null ? new Dictionary<string, IReadOnlyList<TipDto>>() : tips.For(track));
     }
 
     /// <summary>Adds the badge (<c>Track.quality</c>) to track DTOs.</summary>
@@ -31,6 +37,11 @@ public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versi
     public async Task<IReadOnlyList<TrackDto>> WithBadgesAsync(IReadOnlyList<(Track Track, TrackDto Dto)> items, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(items);
+        if (!Enabled)
+        {
+            return items.Select(item => item.Dto with { Quality = null }).ToList();
+        }
+
         var result = new List<TrackDto>(items.Count);
         foreach (var (track, dto) in items)
         {

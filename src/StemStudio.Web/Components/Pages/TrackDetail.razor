@@ -95,7 +95,10 @@ else
             <TrackSummary Track="Track" OnExport="OpenExport" OnExportAll="OpenStemPack" OnScore="OpenScore" />
             <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" OnExport="OpenExport"
                            OnScore="OpenScore" />
-            <QualityPanel Track="Track" Actions="this" />
+            @if (QualityReportEnabled)
+            {
+                <QualityPanel Track="Track" Actions="this" />
+            }
             <section class="ss-panel ss-handouts" aria-labelledby="handouts-heading">
                 <div class="ss-label-row">
                     <h2 class="ss-heading" id="handouts-heading">Lesson handouts</h2>

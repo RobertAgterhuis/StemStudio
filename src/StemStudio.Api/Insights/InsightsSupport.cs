@@ -231,6 +231,14 @@ public static class InsightsProblems
     public static IResult HandoutsActive(int max) => PracticeFlowProblems.Conflict(
         InsightsProblemTypes.HandoutsActive, "Handouts are being made", $"Up to {max} handouts of a song or setlist are made at a time; wait until one is ready.");
 
+    /// <summary>
+    /// 503 while the quality report is switched off: the contract's 503 of <c>requestQualityReport</c> with a readable detail
+    /// and no problem type of its own (the contract has no code for "switched off"); nothing was stored.
+    /// </summary>
+    /// <returns>The problem.</returns>
+    public static IResult QualityReportOff() => TypedResults.Problem(
+        QualityReportOffDetail, statusCode: StatusCodes.Status503ServiceUnavailable, title: "Stem quality report switched off");
+
     /// <summary>503 <c>worker-unavailable</c> (nothing was stored).</summary>
     /// <returns>The problem.</returns>
     public static IResult WorkerUnavailable() => TypedResults.Problem(

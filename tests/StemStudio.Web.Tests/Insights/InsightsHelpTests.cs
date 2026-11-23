@@ -110,7 +110,7 @@ public sealed class InsightsHelpTests
 
         var reliability = Catalog.Topic("stem-quality-reliability")!.Markdown;
         reliability.ShouldContain("rough indication");
-        reliability.ShouldContain("has not run yet");
+        reliability.ShouldContain("MUSDB18-HQ");
         reliability.ShouldContain("analyzer version", Case.Insensitive);
     }
 

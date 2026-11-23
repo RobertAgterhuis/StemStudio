@@ -10,8 +10,8 @@ from typing import Final, Literal
 
 from stemstudio_worker.schemas import QualityInputKind, QualityLevel, Reliability, StemName
 
-ANALYZER_VERSION: Final = "1.0.0"
-"""``analyzerVersion`` of every result of the signal analyzer."""
+ANALYZER_VERSION: Final = "1.0.1"
+"""``analyzerVersion`` of every result of the signal analyzer (1.0.1: the G1 outcome, 2026-11-23)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,11 +103,17 @@ G1_STEM_TYPES: Final[tuple[StemName, ...]] = ("vocals", "drums", "bass", "other"
 """Stem types that V2 (MUSDB18-HQ: four sources) can validate; the others never can."""
 
 G1_RESULTS: Final[dict[tuple[str, Dimension], G1Status]] = {
-    (stem, dimension): "not-measured"
+    (stem, dimension): "failed"
     for stem in G1_STEM_TYPES
     for dimension in ("bleed", "artefacts")
 }
-"""Outcome of gate G1 per stem type and dimension (Phase 0: not run, dataset pending)."""
+"""Outcome of gate G1 per stem type and dimension.
+
+Phase 0 (2026-11-23, MUSDB18-HQ test split, fixed seeded subset of 25 tracks, museval 0.4.1): failed
+on all 8 cells. No Spearman reached its gate (bleed >= 0.5, artefacts >= 0.4); the best was drums
+bleed 0.49, drums artefacts ran significantly the wrong way (-0.60). Every V2 stem type therefore
+stays a rough indication that shows only ``high`` (``shown_level``).
+"""
 
 
 def g1_status(channel: str, kind: QualityInputKind, dimension: Dimension) -> G1Status:

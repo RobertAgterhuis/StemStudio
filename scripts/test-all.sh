@@ -82,7 +82,7 @@ PYTEST=pytest==9.2.0
 # SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
 SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
 SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/affected_select.py scripts/loopback_ports_checks.py scripts/tests)
+KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/affected_select.py scripts/loopback_ports_checks.py scripts/quality_report_setting_checks.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
@@ -154,6 +154,13 @@ loopback_ports_all() {
     scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml &&
     scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml &&
     scripts/check-loopback-ports.sh -f docker-compose.yml -f docker-compose.e2e.yml
+}
+
+# Static quality report setting check (020): off in the base file, on with the e2e override.
+# shellcheck disable=SC2329
+quality_report_setting_all() {
+  scripts/check-quality-report-setting.sh --expect false &&
+    scripts/check-quality-report-setting.sh --expect true -f docker-compose.yml -f docker-compose.e2e.yml
 }
 
 group dotnet
@@ -259,6 +266,7 @@ step "key volume checks pytest + coverage" . uvk pytest -c "$SCRIPTS_CFG" --cov 
 group compose
 step "key volume check (compose config, all combinations)" . key_volume_all
 step "loopback ports check (compose config, all combinations)" . loopback_ports_all
+step "quality report setting check (compose config, base and e2e)" . quality_report_setting_all
 group quality-gate
 step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
 group docs-manuals
