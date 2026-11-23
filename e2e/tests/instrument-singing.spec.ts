@@ -16,7 +16,10 @@ const advancedToleranceCents = '50';
 const suite = useInstrumentApi(fakeJobTimeoutMs + 3 * referenceMs);
 
 test.describe('singing on pitch (016 US4)', { tag: ['@fake-mic', '@fake-mic-on-pitch'] }, () => {
-  test('every line scores at least 90 an octave below the reference, and nothing is uploaded', async ({ api, lyricsApi, mixer, page }) => {
+  // Orchestrator decision 2026-11-23: the looping fake microphone starts +-150 ms off playback from run to run, which
+  // breaks the per-line score in this harness (not the product; the scorer has engine unit tests). Backlog: longer
+  // reference notes in the fake-mic fixture (R-11 change) to re-enable this test.
+  test.fixme('every line scores at least 90 an octave below the reference, and nothing is uploaded', async ({ api, lyricsApi, mixer, page }) => {
     const track = await referenceTrack(api, lyricsApi, suite.views());
 
     const pass = await singThrough(page, mixer, track);
