@@ -56,22 +56,37 @@ public sealed partial class HandoutService(
         return problem ?? (store.Disk.HasRoom() ? await CreateAsync(ask, draft!, cancellationToken) : HandoutProblems.InsufficientDiskSpace());
     }
 
-    /// <summary>Plans the stored recipe of a failed handout again (current data) and resubmits it.</summary>
+    /// <summary>
+    /// Plans the stored recipe of a failed handout again (current data) and resubmits it under the start lock: the stored
+    /// status is checked again there (a second click gets 409 <c>asset-not-failed</c>) and the item counts against
+    /// <see cref="MaxActivePerSource"/> like a new handout (it is failed, so it is not counted twice).
+    /// </summary>
     /// <param name="asset">A failed handout item.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>202, 404, 409 or 503.</returns>
+    /// <returns>202, 404, 409, 422 or 503.</returns>
     public async Task<IResult> RetryAsync(Asset asset, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(asset);
-        var (draft, problem) = await planner.PlanAsync(new HandoutAsk(asset.Provenance.HandoutRecipe!, null), cancellationToken);
-        if (problem is not null)
-        {
-            return problem;
-        }
+        var recipe = asset.Provenance.HandoutRecipe!;
+        var (draft, problem) = await planner.PlanAsync(new HandoutAsk(recipe, null), cancellationToken);
+        return problem ?? await store.Gate.RunAsync(
+            async () =>
+            {
+                if (await store.Assets.StoredStatusAsync(asset.Id, cancellationToken) != AssetStatus.Failed)
+                {
+                    return AssetProblems.NotFailed();
+                }
 
-        asset.Retry(Now);
-        asset.Replan(draft!.Facts);
-        return await SubmitAsync(asset, draft, false, cancellationToken);
+                if (await ActiveCountAsync(recipe, cancellationToken) >= MaxActivePerSource)
+                {
+                    return InsightsProblems.HandoutsActive(MaxActivePerSource);
+                }
+
+                asset.Retry(Now);
+                asset.Replan(draft!.Facts);
+                return await SubmitAsync(asset, draft, false, cancellationToken);
+            },
+            cancellationToken);
     }
 
     private Task<IResult> CreateAsync(HandoutAsk ask, HandoutDraft draft, CancellationToken cancellationToken) => store.Gate.RunAsync(
@@ -195,6 +210,10 @@ public static class HandoutRequests
         if (request.NotationAssetIds is { Count: > MaxNotationIds })
         {
             errors["notationAssetIds"] = [$"Choose at most {MaxNotationIds} notation items."];
+        }
+        else if (request.NotationAssetIds?.Contains(Guid.Empty) == true)
+        {
+            errors["notationAssetIds"] = ["A notation item id cannot be empty."];
         }
 
         AddNameErrors(errors, request.Name);

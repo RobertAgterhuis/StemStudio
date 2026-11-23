@@ -30,6 +30,9 @@ public sealed record HandoutDraft(PlannedHandout Handout, Domain.Handouts.Handou
 /// <param name="options">The setlist song limit.</param>
 public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setlists, HandoutMaterialLoader loader, IOptions<InsightsOptions> options)
 {
+    /// <summary>Most notation items one song prints (data-model 2.5 <c>HandoutSong.notation</c>).</summary>
+    public const int MaxNotationPerSong = 8;
+
     /// <summary>Detail of <c>track-not-ready</c> for a song handout.</summary>
     public const string TrackNotReady = "The track is still being processed; make a handout when it is completed.";
 
@@ -60,12 +63,13 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
     private static (HandoutDraft?, IResult?) Plan(HandoutRecipe recipe, SetlistSnapshot? setlist, List<HandoutMaterial> materials, Transposition transposition)
     {
         var known = materials.SelectMany(material => material.Notation).Select(item => item.AssetId).ToHashSet();
-        if (recipe.NotationAssetIds?.FirstOrDefault(id => !known.Contains(id)) is { } unknown && unknown != Guid.Empty)
+        if (recipe.NotationAssetIds?.Where(id => !known.Contains(id)).Cast<Guid?>().FirstOrDefault() is { } unknown)
         {
             return (null, HandoutProblems.Field("notationAssetIds", $"{unknown} is not a ready notation item of this {(setlist is null ? "song" : "setlist")}."));
         }
 
-        var notation = materials.Select(material => Notation(material, recipe, transposition)).ToList();
+        var chosen = materials.Select(material => Chosen(material, recipe, transposition)).ToList();
+        var notation = chosen.Select(items => (IReadOnlyList<NotationItem>)items.Take(MaxNotationPerSong).ToList()).ToList();
         var availability = materials.Select((material, index) => HandoutAvailability.Of(material, notation[index])).ToList();
         var combined = HandoutAvailability.Combine(availability, setlist?.Notes is not null);
         var plan = IngredientPlanner.Plan(recipe.Family, recipe.Kind, recipe.Include, combined);
@@ -79,6 +83,7 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
             Songs = songs.Count,
             Included = plan.Included,
             Omitted = plan.Omitted,
+            Warnings = NotationWarnings(materials, chosen),
         };
         return (new HandoutDraft(new PlannedHandout(recipe.Kind, recipe.Family, transposition, setlist, songs), facts), null);
     }
@@ -92,10 +97,30 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
     {
         ArgumentNullException.ThrowIfNull(material);
         ArgumentNullException.ThrowIfNull(recipe);
-        var chosen = recipe.NotationAssetIds is { } ids
+        return Chosen(material, recipe, transposition).Take(MaxNotationPerSong).ToList();
+    }
+
+    private static IReadOnlyList<NotationItem> Chosen(HandoutMaterial material, HandoutRecipe recipe, Transposition transposition) =>
+        recipe.NotationAssetIds is { } ids
             ? material.Notation.Where(item => ids.Contains(item.AssetId)).ToList()
             : Families.DefaultNotation(recipe.Family, material.Notation, transposition);
-        return chosen.Take(8).ToList();
+
+    /// <summary>A <c>notation-omitted</c> warning for every song with more chosen notation than it prints.</summary>
+    private static List<HandoutWarning> NotationWarnings(List<HandoutMaterial> materials, List<IReadOnlyList<NotationItem>> chosen) =>
+        materials.Select((material, index) => (material.Title, Dropped: chosen[index].Count - MaxNotationPerSong))
+            .Where(song => song.Dropped > 0)
+            .Select(song => new HandoutWarning(HandoutWarningCode.NotationOmitted, NotationOmittedText(song.Dropped, song.Title)))
+            .Take(Domain.Assets.Asset.MaxHandoutWarnings)
+            .ToList();
+
+    /// <summary>The text of a song's dropped notation (at most 300 characters).</summary>
+    /// <param name="dropped">How many items were left out.</param>
+    /// <param name="title">Song title.</param>
+    /// <returns>The text.</returns>
+    public static string NotationOmittedText(int dropped, string title)
+    {
+        var items = dropped == 1 ? "1 sheet music item" : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{dropped} sheet music items");
+        return $"{items} of \"{HandoutAssembler.Cut(title, 200)}\" {(dropped == 1 ? "was" : "were")} left out: a handout prints at most {MaxNotationPerSong} per song.";
     }
 
     private static List<IngredientCode> SongInclude(IReadOnlyList<IngredientCode> included, IReadOnlyDictionary<IngredientCode, IngredientAvailability> song) =>
@@ -137,10 +162,11 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
         var kept = new List<SetlistSong>();
         foreach (var entry in setlist!.Entries)
         {
+            // A track deleted after the setlist was read (014 removes its entries) is left out; the positions close up.
             if (await tracks.FindAsync(entry.TrackId, cancellationToken) is { } track)
             {
                 songs.Add((track, entry.Notes));
-                kept.Add(entry);
+                kept.Add(entry with { Position = kept.Count + 1 });
             }
         }
 

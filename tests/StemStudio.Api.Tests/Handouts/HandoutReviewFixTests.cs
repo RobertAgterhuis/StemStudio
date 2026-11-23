@@ -117,7 +117,7 @@ public sealed class HandoutReviewFixTests : ApiTestBase
         using var late = await second!;
 
         (first.StatusCode, late.StatusCode).ShouldBe((HttpStatusCode.Accepted, HttpStatusCode.Conflict));
-        (await late.JsonAsync()).GetProperty("type").GetString().ShouldBe("https://stemstudio.local/problems/asset-not-failed");
+        (await late.JsonAsync()).GetProperty("type").GetString().ShouldBe("asset-not-failed");
         Factory.InsightsWorker.HandoutRequests.Count.ShouldBe(2);
         (await Factory.FindAssetAsync(created.Id))!.WorkerJobId.ShouldBe(Factory.InsightsWorker.HandoutJobs.Keys.Single());
     }

@@ -3,7 +3,6 @@ using System.Reflection;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Handouts;
 using StemStudio.Domain.Lyrics;
-using StemStudio.Domain.Scores;
 
 namespace StemStudio.Api.Handouts;
 
@@ -76,7 +75,7 @@ public sealed class HandoutAssembler(TimeProvider clock)
             Lyrics = Lyrics(material, include, transposition),
             ChordSymbols = UsesChords(include) && material.Chart is { } chart ? HandoutChords.Legend(chart, transposition) : [],
             Notation = include.Contains(IngredientCode.Notation)
-                ? song.Notation.Take(8).Select(item => new WorkerHandoutNotation(Cut(item.Title, 120)!, item.Kind, item.PdfPath)).ToList()
+                ? song.Notation.Take(HandoutPlanner.MaxNotationPerSong).Select(item => new WorkerHandoutNotation(Cut(item.Title, 120)!, item.Kind, item.PdfPath)).ToList()
                 : [],
             PracticeNotes = include.Contains(IngredientCode.PracticeNotes) ? material.PracticeNote : null,
             EntryNotes = include.Contains(IngredientCode.SetlistNotes) ? material.EntryNotes : null,
@@ -109,7 +108,7 @@ public sealed class HandoutAssembler(TimeProvider clock)
             setlist.Entries[index].Position,
             Cut(song.Material.Title, 300)!,
             Cut(song.Material.Artist, 500),
-            HandoutChords.Key(song.Material.Chart, Transposition.C),
+            SongFactsBuilder.Key(song, plan.Transposition).Key,
             SongFactsBuilder.Tempo(song.Material),
             song.Material.DurationSeconds,
             Cut(song.Material.EntryNotes, 4000))).ToList());
@@ -144,22 +143,22 @@ internal static class SongFactsBuilder
     public static WorkerSongFacts Of(PlannedSong song, Transposition transposition)
     {
         var material = song.Material;
-        var chordKey = HandoutChords.Key(material.Chart, transposition);
-        var scoreKey = chordKey is null ? material.Notation.Concat(song.Notation).Select(item => item.Key).OfType<KeyInfo>().FirstOrDefault() : null;
+        var (key, source) = Key(song, transposition);
         return new WorkerSongFacts(
             Tempo(material),
             material.Grid is { BeatsPerBar: >= 1 and <= 99 } grid ? string.Create(CultureInfo.InvariantCulture, $"{grid.BeatsPerBar}/4") : null,
-            chordKey ?? (scoreKey is null ? null : ScoreKeyText(scoreKey)),
-            chordKey is not null ? "chords" : scoreKey is not null ? "score" : null,
+            key,
+            source,
             Math.Max(0, material.DurationSeconds),
             HandoutChords.TranspositionNote(transposition));
     }
 
+    /// <summary>The written key and its source: the chord key, else the first concert-pitch score of the family's notation, then of the song.</summary>
+    public static (string? Key, string? Source) Key(PlannedSong song, Transposition transposition) =>
+        HandoutKeys.Of(song.Material.Chart, song.Notation.Concat(song.Material.Notation), transposition);
+
     public static int? Tempo(HandoutMaterial material) =>
         material.Grid is { Bpm: > 0 } grid ? Math.Clamp((int)Math.Round(grid.Bpm, MidpointRounding.AwayFromZero), 20, 400) : null;
-
-    private static string ScoreKeyText(KeyInfo key) =>
-        $"{key.Tonic.Replace("-", "b", StringComparison.Ordinal)} {(key.Mode == KeyMode.Major ? "major" : "minor")}";
 }
 
 /// <summary>The form chart of a handout song (data-model 2.5 <c>HandoutSection</c>).</summary>

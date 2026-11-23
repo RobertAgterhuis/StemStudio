@@ -63,6 +63,12 @@ public interface IAssetRepository
     /// <returns>The tracked items.</returns>
     Task<IReadOnlyList<Asset>> ListActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>The stored status of an item, read past the tracked copy (a check under a start lock).</summary>
+    /// <param name="id">Item ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The status, or null when the item is gone.</returns>
+    Task<AssetStatus?> StoredStatusAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>Every item name (for unique default names).</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The names.</returns>
@@ -117,6 +123,10 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
             .Where(asset => asset.Status == AssetStatus.Queued || asset.Status == AssetStatus.Rendering)
             .OrderBy(asset => asset.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<AssetStatus?> StoredStatusAsync(Guid id, CancellationToken cancellationToken) =>
+        await context.Assets.AsNoTracking().Where(asset => asset.Id == id).Select(asset => (AssetStatus?)asset.Status).FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<string>> NamesAsync(CancellationToken cancellationToken) =>
