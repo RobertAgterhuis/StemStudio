@@ -1,0 +1,261 @@
+{
+  "description": "Affected selection map (refactor proposal 001; scripts/affected_select.py). Each rule ties path globs to step groups of scripts/test-all.* and the CI jobs, plus .NET test projects that read the matched files at run time. Globs are matched case-insensitively against repository paths: '**' spans folders, '*' and '?' stay inside one folder, a glob without '/' matches the file name in any folder. Every changed file must match at least one rule, otherwise the run is full (fail safe). A rule with no groups marks files that no step reads (documentation, agent notes).",
+  "version": 1,
+  "groups": {
+    "dotnet": "dotnet tool restore, build, format, test with the 90 % coverage gate (affected projects via dotnet-affected)",
+    "dotnet-agent-floor": "StemStudio.Agent coverage floor (only when StemStudio.Agent.Tests is affected)",
+    "dotnet-agent-eval-floor": "StemStudio.AgentEval coverage floor (only when StemStudio.AgentEval.Tests is affected)",
+    "dotnet-perf": "performance budgets, uninstrumented (only when StemStudio.Api.Tests is affected)",
+    "worker": "worker uv sync, ruff, mypy, pytest + coverage",
+    "generator": "generator uv sync, ruff, mypy, pytest + coverage",
+    "audio-engine": "audio engine npm ci, lint, typecheck, test:coverage, build",
+    "soundtouch": "SoundTouch WASM: emsdk pin check, Node WASM suite (test:wasm), reproducible build in CI",
+    "web-interop": "web-interop npm ci, lint, typecheck, test:coverage, build",
+    "contracts": "OpenAPI contract lint, superset and merge checks, output schema, vectors",
+    "secret-scan": "secret scan self-test and scan (tracked files)",
+    "quality-tools": "tools/quality ruff, mypy, pytest + coverage",
+    "scripts-tests": "devops check scripts (scripts/tests) ruff, mypy, pytest + coverage, split E2E jobs check",
+    "compose": "compose validation and the key volume and loopback ports checks for every compose combination",
+    "quality-gate": "SIG checks on the whole code base (tools/quality/run_all.py)",
+    "docs-manuals": "public manuals up to date (tools/docs/check.mjs)",
+    "site": "website npm ci, unit tests, build + check (tools/site)",
+    "fixtures": "fixture generator and backup fixture tools: ruff, mypy, pytest + coverage, generation",
+    "e2e-lint": "E2E suite npm ci, lint, typecheck, list",
+    "cpu-image": "CI only: CPU worker image guard and fonts",
+    "generator-image": "CI only: fake generator image guard",
+    "licences": "CI only: licence report (NuGet, Python, npm)"
+  },
+  "always": ["secret-scan"],
+  "dotnetSubgroups": {
+    "dotnet-agent-floor": "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj",
+    "dotnet-agent-eval-floor": "tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj",
+    "dotnet-perf": "tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj"
+  },
+  "rules": [
+    {
+      "name": ".NET projects (projects resolved by dotnet-affected over the MSBuild graph)",
+      "paths": ["src/StemStudio.*/**", "tests/StemStudio.*/**", "tools/agent-eval/**"],
+      "groups": ["dotnet", "quality-gate"]
+    },
+    {
+      "name": "Shared test sources linked into several test projects",
+      "paths": ["tests/Shared/**"],
+      "groups": ["dotnet", "quality-gate"],
+      "dotnetProjects": [
+        "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj",
+        "tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj",
+        "tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj"
+      ]
+    },
+    {
+      "name": ".NET package references feed the licence report",
+      "paths": ["src/**/*.csproj", "tests/**/*.csproj", "tools/agent-eval/*.csproj"],
+      "groups": ["licences"]
+    },
+    {
+      "name": "Contracts project: contract tests on the .NET and the worker side",
+      "paths": ["src/StemStudio.Contracts/**"],
+      "groups": ["worker"]
+    },
+    {
+      "name": "Style presets embedded in Domain, read by the agent-eval harness tests",
+      "paths": ["src/StemStudio.Domain/Styles/**"],
+      "groups": ["dotnet"],
+      "dotnetProjects": ["tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj"]
+    },
+    {
+      "name": "App tokens, font and logo are inputs of the manuals and the website",
+      "paths": [
+        "src/StemStudio.Web/wwwroot/css/tokens.css",
+        "src/StemStudio.Web/wwwroot/fonts/archivo/**",
+        "src/StemStudio.Web/wwwroot/favicon.svg"
+      ],
+      "groups": ["docs-manuals", "site"]
+    },
+    {
+      "name": "Spec contracts: OpenAPI documents, deltas, vectors, schemas, test ids",
+      "paths": ["specs/**/contracts/**"],
+      "groups": ["contracts", "dotnet", "worker", "generator", "audio-engine", "e2e-lint", "fixtures"],
+      "dotnetProjects": [
+        "tests/StemStudio.Domain.Tests/StemStudio.Domain.Tests.csproj",
+        "tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj",
+        "tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj",
+        "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj"
+      ]
+    },
+    {
+      "name": "Evaluation sets read by the agent-eval tests",
+      "paths": ["specs/*/evaluation/**"],
+      "groups": ["dotnet"],
+      "dotnetProjects": ["tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj"]
+    },
+    {
+      "name": "Spec Kit documents (spec, plan, tasks, research, checklists): no step reads them",
+      "paths": ["specs/**/*.md"],
+      "groups": []
+    },
+    {
+      "name": "Worker",
+      "paths": ["worker/**"],
+      "groups": ["worker", "quality-gate", "cpu-image"]
+    },
+    {
+      "name": "Worker environment: the fixtures and the render vectors check run in it",
+      "paths": ["worker/pyproject.toml", "worker/uv.lock"],
+      "groups": ["fixtures", "contracts", "licences"]
+    },
+    {
+      "name": "Generator",
+      "paths": ["generator/**"],
+      "groups": ["generator", "quality-gate", "generator-image"]
+    },
+    {
+      "name": "Generator dependencies feed the licence report",
+      "paths": ["generator/pyproject.toml", "generator/uv.lock"],
+      "groups": ["licences"]
+    },
+    {
+      "name": "Audio engine: bundled into the Web app (EngineContractDriftTests reads types.ts), WASM suite, web-interop",
+      "paths": ["src/audio-engine/**"],
+      "groups": ["audio-engine", "soundtouch", "web-interop", "dotnet", "quality-gate"],
+      "dotnetProjects": ["tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj"]
+    },
+    {
+      "name": "Web interop: bundled into the Web app",
+      "paths": ["src/web-interop/**"],
+      "groups": ["web-interop", "dotnet", "quality-gate"],
+      "dotnetProjects": ["tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj"]
+    },
+    {
+      "name": "npm dependencies feed the licence report",
+      "paths": ["src/audio-engine/package*.json", "src/web-interop/package*.json", "e2e/package*.json"],
+      "groups": ["licences"]
+    },
+    {
+      "name": "SoundTouch shim, header and lock",
+      "paths": ["third_party/soundtouch/**", "scripts/build-soundtouch.*"],
+      "groups": ["soundtouch", "audio-engine", "scripts-tests", "quality-gate"]
+    },
+    {
+      "name": "Test fixtures: read by the .NET, worker, generator and E2E tests",
+      "paths": ["tests/fixtures/**"],
+      "groups": ["fixtures", "worker", "generator", "e2e-lint", "dotnet", "quality-gate"],
+      "dotnetProjects": [
+        "tests/StemStudio.Domain.Tests/StemStudio.Domain.Tests.csproj",
+        "tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj",
+        "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj",
+        "tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj"
+      ]
+    },
+    {
+      "name": "E2E suite",
+      "paths": ["e2e/**"],
+      "groups": ["e2e-lint", "quality-gate"]
+    },
+    {
+      "name": "Fake agent and lyric scripts: read by the .NET agent tests and the 023 output schema check",
+      "paths": ["e2e/agent-scripts/**", "e2e/lyric-scripts/**"],
+      "groups": ["dotnet", "contracts"],
+      "dotnetProjects": [
+        "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj",
+        "tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj"
+      ]
+    },
+    {
+      "name": "Quality gate code and its environment (the devops checks run in it too)",
+      "paths": ["tools/quality/**"],
+      "groups": ["quality-tools", "quality-gate", "scripts-tests"]
+    },
+    {
+      "name": "Manual builder (the website uses its library and its npm install)",
+      "paths": ["tools/docs/**"],
+      "groups": ["docs-manuals", "site"]
+    },
+    {
+      "name": "Website",
+      "paths": ["tools/site/**", "site/**"],
+      "groups": ["site"]
+    },
+    {
+      "name": "Public manual sources and PDFs",
+      "paths": ["docs/public/**"],
+      "groups": ["docs-manuals"]
+    },
+    {
+      "name": "Status and roadmap: inputs of the manuals and the website",
+      "paths": ["docs/ROADMAP.md", "docs/STATUS.md"],
+      "groups": ["docs-manuals", "site"]
+    },
+    {
+      "name": "README and licence list: inputs of the website",
+      "paths": ["README.md", "docs/THIRD-PARTY-LICENSES.md"],
+      "groups": ["site"]
+    },
+    {
+      "name": "Documentation that no step reads",
+      "paths": [
+        "docs/handoffs/**", "docs/decisions/**", "docs/refactor/**", "docs/design-review/**", "docs/process/**",
+        "docs/testing/**", "docs/quality/**", "docs/research/**", "docs/AGENT-PROTOCOL.md", "docs/MoSCoW.md",
+        "docs/MVP-REPORT.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "CLAUDE.md", "AGENTS.md", "LICENSE",
+        "scripts/README.md", ".gitignore", ".github/ISSUE_TEMPLATE/**", ".github/CODEOWNERS", ".github/dependabot.yml",
+        ".github/pull_request_template.md", ".claude/**", ".specify/**"
+      ],
+      "groups": []
+    },
+    {
+      "name": "Devops scripts and their tests",
+      "paths": ["scripts/**"],
+      "groups": ["scripts-tests", "quality-gate"]
+    },
+    {
+      "name": "Coverage floor script of the agent components",
+      "paths": ["scripts/coverage_floor.py"],
+      "groups": ["dotnet"],
+      "dotnetProjects": [
+        "tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj",
+        "tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj"
+      ]
+    },
+    {
+      "name": "Key volume and loopback ports checks (compose)",
+      "paths": ["scripts/check-key-volume.*", "scripts/key_volume_checks.py", "scripts/check-loopback-ports.*", "scripts/loopback_ports_checks.py"],
+      "groups": ["compose"]
+    },
+    {
+      "name": "Image guards",
+      "paths": ["scripts/check-cpu-image.*", "scripts/cpu_image_guard.py", "scripts/check-worker-fonts.*"],
+      "groups": ["cpu-image", "generator-image"]
+    },
+    {
+      "name": "Compose files and Dockerfiles",
+      "paths": ["docker/**", "docker-compose*.yml", ".dockerignore", ".env.example"],
+      "groups": ["compose", "cpu-image", "generator-image"]
+    }
+  ],
+  "e2eHints": {
+    "description": "Report only: E2E tags a change probably touches (keyword in the path, case-insensitive). E2E is never selected by path; it stays full at integration.",
+    "keywords": {
+      "agent": ["@agent"],
+      "lyricassist": ["@lyric-assist"],
+      "lyric-assist": ["@lyric-assist"],
+      "recording": ["@recording"],
+      "practice": ["@practice", "@practice-flow"],
+      "instrument": ["@instrument"],
+      "librarycare": ["@library-care"],
+      "library": ["@library"],
+      "backup": ["@backup", "@restore"],
+      "generat": ["@generative"],
+      "karaoke": ["@karaoke"],
+      "lyrics": ["@lyrics", "@karaoke"],
+      "export": ["@export"],
+      "artwork": ["@artwork"],
+      "sheet": ["@sheet-music"],
+      "engraving": ["@sheet-music"],
+      "detail": ["@detail"],
+      "claudekey": ["@claude-key"],
+      "claude-key": ["@claude-key"],
+      "gpu": ["@gpu"],
+      "styles": ["@styles"]
+    }
+  }
+}

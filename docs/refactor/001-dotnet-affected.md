@@ -1,5 +1,5 @@
 # 001 Affected builds and tests for the .NET monorepo
-- Status: proposed · Date: 2026-11-19 · Area: build / CI · Priority: P2
+- Status: done (2026-11-23) · Date: 2026-11-19 · Area: build / CI · Priority: P2
 
 ## Problem statement
 Every build and test run covers the whole solution `StemStudio.slnx` (13 projects, 15 `ProjectReference` edges, per `.claude/tipoca/state/stack.json`), also when a change touches one project.
@@ -11,6 +11,45 @@ change touches one project plus the projects that depend on it; with 13 projects
 project has about 1.2 direct dependants on average. Measure the real gain on the last 20 merged pull requests before
 and after (build + test minutes). Changes to shared build inputs still build everything (always-build list), so the gain is
 largest for leaf projects and smallest for core libraries.
+
+## Measured results (2026-11-23)
+Measured locally on the owner PC with `scripts/test-all.sh` (all steps passed in every run). Wall times are end to end,
+including restore and build.
+
+| Run | Selection | Wall time | vs full |
+|---|---|---|---|
+| Full baseline (`scripts/test-all.sh`) | 86 of 86 steps | 1247 s (20.8 min) | - |
+| Synthetic change in `src/StemStudio.Domain/Artists/Artist.cs` (`--affected --from HEAD`) | dotnet (Domain plus every dependant test project), agent-eval floor, perf, quality gate, secret scan | 514 s (8.6 min) | -59 % |
+| Synthetic change in `worker/src/stemstudio_worker/__init__.py` (`--affected --from HEAD`) | worker, quality gate, secret scan, site (1) | about 208 s (3.5 min) (2) | -83 % |
+
+(1) `site` ran because the uncommitted `docs/refactor/README.md` was part of the diff, not because of the worker change.
+(2) From the log timestamps (first to last line); the wrapper's exit and wall line was lost when the session ended. Every step passed.
+
+The domain case is the worst realistic leaf-to-root case: `StemStudio.Domain` sits under every other project, so
+`StemStudio.Api.Tests` (392 s of the 416 s .NET test step) still runs. The saving there comes from skipping the
+non-.NET groups.
+
+**Replay of the last 20 first-parent commits on `main`** (selection only: per commit the changed files went through
+`scripts/affected_select.py` and `dotnet-affected --assume-changes`, and time was estimated from the baseline step and
+per-test-project durations; the suites were not re-run):
+
+| | Commits | Estimated minutes | Full minutes | Saving |
+|---|---|---|---|---|
+| Full (an always-build file changed) | 9 | 187.2 | 187.2 | 0 % |
+| Affected | 11 | 74.5 | 228.8 | -67 % |
+| All 20 | 20 | 261.7 | 415.7 | **-37 %** |
+
+- .NET test projects: in the 11 affected commits 15 of 66 test-project runs remain (-77 %); over all 20 commits 69 of 120 (-43 %).
+- All 9 full runs were round merges that also touched `.github/workflows/ci.yml` or `.github/actions/**`, which are on
+  the always-build list. For the main merges this is intended (integration and pre-merge stay full); the gain lands in lane
+  checkpoints and in pull requests that do not touch CI.
+- Independent oracle (each skipped group checked against the inputs its `test-all` steps read): no violations.
+- Against the 83 % estimate: per change, the estimate holds for leaf work (worker: -83 %, .NET test projects in affected
+  commits: -77 %). Over the real merge history it is 37 % in time, because round merges touch CI files and
+  `StemStudio.Api.Tests` dominates the .NET time whenever a core project changes.
+
+Still open from the plan: step 5, a week of CI runs with the affected selection next to the full run on `main`. The
+pull-request job selection is in place; `main` and manual runs stay full.
 
 ## Risk
 - Leaving it: CI minutes and feedback time grow with every project added.

@@ -16,6 +16,17 @@
 .PARAMETER ContinueOnError
     Runs all steps even after a failure (default: stop at the first failure).
 
+.PARAMETER Affected
+    Runs only the step groups a change needs (refactor proposal 001): scripts/affected_select.py maps the
+    files changed since -From (default: the merge-base with main), uncommitted and untracked files
+    included, through scripts/affected/components.json and narrows the .NET projects with dotnet-affected;
+    it prints which groups and projects run or are skipped and why. An unmapped file, an always-build file
+    (.claude/tipoca/affected/always-build.txt), a missing base or a tool error runs everything. For lane
+    checkpoints only: integration and pre-merge runs stay FULL (no switch).
+
+.PARAMETER From
+    Base ref for -Affected (default: the merge-base of HEAD with main).
+
 .PARAMETER Gpu
     Also starts a fake stack as compose project stemstudio-e2e twice, with a fake GPU
     (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and runs the Playwright
@@ -38,11 +49,13 @@
     ./scripts/test-all.ps1
 .EXAMPLE
     ./scripts/test-all.ps1 -Gpu
+.EXAMPLE
+    ./scripts/test-all.ps1 -Affected -From origin/main
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive developer script; console output is the UI.')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Private helpers that only change this script''s own throwaway containers or process environment.')]
 [CmdletBinding()]
-param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e, [switch] $RecordingE2e)
+param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e, [switch] $RecordingE2e, [switch] $Affected, [string] $From)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -77,7 +90,7 @@ $PytestPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', '--wit
 $SoundTouchWasm = 'src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm'
 $HasSoundTouchWasm = Test-Path -LiteralPath (Join-Path $RepoRoot $SoundTouchWasm)
 $ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/backup_folder_checks.py', 'scripts/api_image_size_checks.py', 'scripts/loopback_ports_checks.py', 'scripts/tests')
+$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/backup_folder_checks.py', 'scripts/api_image_size_checks.py', 'scripts/affected_select.py', 'scripts/loopback_ports_checks.py', 'scripts/tests')
 $QualityTools = @('uv', 'run', '--project', 'tools/quality', '--frozen')
 # Static key volume check (011 claude-key) for every compose combination CI validates.
 $ComposeCombos = @(
@@ -89,41 +102,100 @@ $ComposeCombos = @(
 $AgentCoverage = 'tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml'
 $AgentEvalCoverage = 'tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml'
 $WorkerPython = @('uv', 'run', '--project', 'worker', '--frozen', 'python')
+if ($From -and -not $Affected) { throw '-From needs -Affected' }
+
+function Add-SelectionLine {
+    <# Applies and prints one line of `affected_select.py --format lines` to the selection. #>
+    param([hashtable] $Selection, [string] $Line)
+    $kind, $key, $verb, $rest = $Line -split ' ', 4
+    switch ($kind) {
+        'mode' { $Selection.Full = $key -ne 'affected'; Write-Host "mode: $key" }
+        'group' {
+            if ($verb -eq 'run') { [void] $Selection.Groups.Add($key) }
+            Write-Host ('  {0,-5} {1,-24} {2}' -f $verb, $key, $rest)
+        }
+        'dotnet' {
+            if ($key -eq 'target') { $Selection.DotnetTarget = "$verb $rest".Trim(); Write-Host "  .NET build input: $($Selection.DotnetTarget)" }
+            else { Write-Host "  .NET project: $verb" }
+        }
+        default { Write-Host "${kind}: $key $verb $rest" }
+    }
+}
+
+function Get-AffectedSelection {
+    <# Runs scripts/affected_select.py; Nothing = no changed file, Full = run every step (also when it fails). #>
+    param([string] $Base)
+    $selection = @{ Full = $true; Nothing = $false; Groups = [System.Collections.Generic.HashSet[string]]::new(); DotnetTarget = 'StemStudio.slnx' }
+    if (-not $Affected) { return $selection }
+    Write-Host "`n=== affected selection ===" -ForegroundColor Cyan
+    $arguments = @('run', '--no-project', 'python', '-I', 'scripts/affected_select.py', '--format', 'lines') + $(if ($Base) { @('--from', $Base) } else { @() })
+    Push-Location $RepoRoot
+    try { $lines = & uv @arguments; $code = $LASTEXITCODE } finally { Pop-Location }
+    $selection.Nothing = $code -eq 166
+    if ($code -notin 0, 166) { Write-Host "affected_select.py failed (exit $code): running everything" -ForegroundColor Yellow; return $selection }
+    foreach ($line in $lines) { Add-SelectionLine $selection $line }
+    $selection
+}
+
+function Resolve-StepGroup {
+    <# Gives every step the group of the last @{ Group = ... } marker above it and drops the markers. #>
+    param([object[]] $Items)
+    $group = ''
+    foreach ($item in $Items) {
+        if ($item.Count -eq 1 -and $item.ContainsKey('Group')) { $group = $item.Group; continue }
+        $item.Group = $group
+        $item
+    }
+}
+
+$Selection = Get-AffectedSelection $From
+if ($Selection.Nothing) { Write-Host 'Nothing changed since the base: no step runs.'; exit 0 }
+$DotnetTarget = $Selection.DotnetTarget
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
 $Fx = 'tests/fixtures/pyproject.toml'
-$Steps = @(
+$Steps = Resolve-StepGroup @(
+    @{ Group = 'dotnet' }
     @{ Name = 'dotnet tool restore'; Dir = '.'; Cmd = @('dotnet', 'tool', 'restore') }
-    @{ Name = 'dotnet build'; Dir = '.'; Cmd = @('dotnet', 'build', 'StemStudio.slnx', '-c', 'Release') }
-    @{ Name = 'dotnet format'; Dir = '.'; Cmd = @('dotnet', 'format', 'StemStudio.slnx', '--verify-no-changes') }
-    @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', 'StemStudio.slnx', '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
+    @{ Name = 'dotnet build'; Dir = '.'; Cmd = @('dotnet', 'build', $DotnetTarget, '-c', 'Release') }
+    @{ Name = 'dotnet format'; Dir = '.'; Cmd = @('dotnet', 'format', $DotnetTarget, '--verify-no-changes') }
+    @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', $DotnetTarget, '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
+    @{ Group = 'dotnet-agent-floor' }
     @{ Name = 'agent coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentCoverage) }
+    @{ Group = 'dotnet-agent-eval-floor' }
     @{ Name = 'agent-eval coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentEvalCoverage) }
     # Timing asserts skip under coverlet: the performance budgets (022 SC-004) run uninstrumented (as in CI).
+    @{ Group = 'dotnet-perf' }
     @{ Name = 'performance budgets, uninstrumented (Category=Perf)'; Dir = '.'; Cmd = @('dotnet', 'test', 'tests/StemStudio.Api.Tests', '-c', 'Release', '--no-build', '--filter', 'Category=Perf', '-p:RunSettingsFilePath=') }
+    @{ Group = 'worker' }
     @{ Name = 'worker uv sync'; Dir = 'worker'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'worker mypy'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'mypy', 'src', 'tests') }
     @{ Name = 'worker pytest + coverage'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term', '--cov-fail-under=90') }
+    @{ Group = 'generator' }
     @{ Name = 'generator uv sync'; Dir = 'generator'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'generator ruff check'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'generator ruff format'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'generator mypy'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'mypy', 'src', 'tests') }
     @{ Name = 'generator pytest + coverage'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term', '--cov-fail-under=90') }
+    @{ Group = 'audio-engine' }
     @{ Name = 'engine npm ci'; Dir = 'src/audio-engine'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'engine lint'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'lint') }
     @{ Name = 'engine typecheck'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'engine test:coverage'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'engine build'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'build') }
+    @{ Group = 'soundtouch' }
     if ($HasSoundTouchWasm) { @{ Name = 'engine test:wasm (012, real soundtouch.wasm)'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'test:wasm') } }
     @{ Name = 'soundtouch emsdk pin (012)'; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/build-soundtouch.ps1', '-CheckPins') }
+    @{ Group = 'web-interop' }
     @{ Name = 'web-interop npm ci'; Dir = 'src/web-interop'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'web-interop lint'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'lint') }
     @{ Name = 'web-interop typecheck'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'web-interop test:coverage'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'web-interop build'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'build') }
+    @{ Group = 'contracts' }
     @{ Name = 'contracts lint (015-play-along-recording)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/backend-api.openapi.yaml", "$Contracts/recording-api.openapi.yaml") }
     @{ Name = 'contracts lint (014-practice-flow)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$PracticeFlowContracts/redocly.yaml", "$PracticeFlowContracts/backend-api.openapi.yaml", "$PracticeFlowContracts/worker-api.openapi.yaml", "$PracticeFlowContracts/practice-api.openapi.yaml", "$PracticeFlowContracts/worker-practice.openapi.yaml") }
     foreach ($dir in $GenerativeContracts) {
@@ -152,29 +224,39 @@ $Steps = @(
     @{ Name = 'contracts merge check (016 full 1.15.0 / 1.9.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$InstrumentContracts/merge_full.py", '--check') }
     @{ Name = 'chord spelling vectors check (016)'; Dir = '.'; Cmd = @('uv', 'run', '--no-project', 'python', '-I', "$InstrumentContracts/generate_chord_spelling_vectors.py", '--check') }
     @{ Name = 'chord spelling vector tests (016)'; Dir = '.'; Cmd = $PytestPython + @($InstrumentContracts) }
+    @{ Group = 'scripts-tests' }
     @{ Name = 'split E2E jobs check (016 T144)'; Dir = '.'; Cmd = $PytestPython + @('-c', 'scripts/pyproject.toml', '-q', 'scripts/tests/test_ci_e2e_split.py') }
+    @{ Group = 'secret-scan' }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
+    @{ Group = 'contracts' }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
+    @{ Group = 'quality-tools' }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'quality mypy'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'mypy') }
     @{ Name = 'quality pytest + coverage'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term') }
+    @{ Group = 'scripts-tests' }
     @{ Name = 'key volume checks ruff check'; Dir = '.'; Cmd = $QualityTools + @('ruff', 'check', '--config', $ScriptsCfg) + $KeyChecks }
     @{ Name = 'key volume checks ruff format'; Dir = '.'; Cmd = $QualityTools + @('ruff', 'format', '--config', $ScriptsCfg, '--check') + $KeyChecks }
     @{ Name = 'key volume checks mypy'; Dir = '.'; Cmd = $QualityTools + @('mypy', '--config-file', $ScriptsCfg) + $KeyChecks }
     @{ Name = 'key volume checks pytest + coverage'; Dir = '.'; Cmd = $QualityTools + @('pytest', '-c', $ScriptsCfg, '--cov', '--cov-branch', "--cov-config=$ScriptsCfg", '--cov-report=term', 'scripts/tests') }
+    @{ Group = 'compose' }
     foreach ($combo in $ComposeCombos) {
         @{ Name = "key volume check ($($combo -join ' + '))"; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-Command', "& ./scripts/check-key-volume.ps1 -File $($combo -join ',')") }
     }
     foreach ($combo in $ComposeCombos + , @('docker-compose.yml', 'docker-compose.e2e.yml')) {
         @{ Name = "loopback ports check ($($combo -join ' + '))"; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-Command', "& ./scripts/check-loopback-ports.ps1 -File $($combo -join ',')") }
     }
+    @{ Group = 'quality-gate' }
     @{ Name = 'quality gate (run_all)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'tools/quality', '--frozen', 'python', 'tools/quality/run_all.py') }
+    @{ Group = 'docs-manuals' }
     @{ Name = 'docs manuals up to date'; Dir = '.'; Cmd = @('node', 'tools/docs/check.mjs') }
+    @{ Group = 'site' }
     @{ Name = 'site npm ci (tools/docs markdown-it)'; Dir = 'tools/docs'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'site unit tests'; Dir = '.'; Cmd = @('node', '--test', 'tools/site/test/site.test.mjs') }
     @{ Name = 'site build + check'; Dir = '.'; Cmd = @('node', 'tools/site/check.mjs') }
+    @{ Group = 'fixtures' }
     @{ Name = 'fixtures ruff check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'check', 'tests/fixtures') }
     @{ Name = 'fixtures ruff format'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--check', 'tests/fixtures') }
     @{ Name = 'fixtures mypy'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $Fx, '--exclude', '^tests/fixtures/backup/', 'tests/fixtures') }
@@ -184,6 +266,7 @@ $Steps = @(
     @{ Name = 'backup fixtures mypy (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $BackupFx, 'tests/fixtures/backup') }
     @{ Name = 'backup fixtures pytest + coverage (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'pytest', '-c', $BackupFx, '--cov', '--cov-branch', "--cov-config=$BackupFx", '--cov-report=term', 'tests/fixtures/backup/tests') }
     @{ Name = 'fixtures generate'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', 'tests/fixtures/generate_fixtures.py') }
+    @{ Group = 'e2e-lint' }
     @{ Name = 'e2e npm ci'; Dir = 'e2e'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'e2e lint'; Dir = 'e2e'; Cmd = @('npm', 'run', 'lint') }
     @{ Name = 'e2e typecheck'; Dir = 'e2e'; Cmd = @('npm', 'run', 'typecheck') }
@@ -254,10 +337,15 @@ function Invoke-Step {
 if (-not $HasSoundTouchWasm) { Write-Host "engine test:wasm skipped: $SoundTouchWasm not built (pwsh scripts/build-soundtouch.ps1)" -ForegroundColor Yellow }
 $summary = [System.Collections.Generic.List[object]]::new()
 foreach ($step in $Steps) {
+    if (-not ($Selection.Full -or -not $step.Group -or $Selection.Groups.Contains($step.Group))) {
+        $summary.Add([pscustomobject]@{ Step = $step.Name; Result = "skipped (affected: $($step.Group) not selected)" })
+        continue
+    }
     $result = Invoke-Step $step
     $summary.Add([pscustomobject]@{ Step = $step.Name; Result = $result })
     if ($result -eq 'failed' -and -not $ContinueOnError) { break }
 }
 if ($Gpu -or $AgentE2e -or $RecordingE2e) { & docker compose -p $E2eProject -f docker-compose.yml -f docker-compose.e2e.yml down -v | Out-Host }
 $summary | Format-Table -AutoSize | Out-String | Write-Host
+if (-not $Selection.Full) { Write-Host 'Affected run (lane checkpoint): integration and pre-merge runs stay full.' -ForegroundColor Yellow }
 exit ([int]($summary.Result -contains 'failed'))

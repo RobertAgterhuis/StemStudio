@@ -42,6 +42,8 @@ What changed for StemStudio users. Technical details are in `docs/STATUS.md` and
 
 ### Changed
 
+- Development: `scripts/test-all.{sh,ps1} --affected` and the pull-request CI run only the checks
+  a change needs (refactor proposal 001); integration, pre-merge and `main` stay full.
 - The *Play along* practice presets now also mute the detail channels of the family, so an expanded drum group no
   longer stays audible.
 
