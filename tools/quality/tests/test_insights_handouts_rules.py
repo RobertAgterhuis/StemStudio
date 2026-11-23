@@ -2,8 +2,8 @@
 
 Worker layering (``dependency_check``): ``insights`` imports only ``ports``, ``schemas`` and
 (third party) numpy, scipy, soxr, soundfile; ``handouts`` only ``ports``, ``schemas`` and jinja2,
-weasyprint, pypdf, fontTools (the missing-glyph check); neither imports the other, ``jobs``,
-``api`` or ``separation``.
+weasyprint, pypdf, fontTools (the missing-glyph check), PIL (the artwork size check); neither
+imports the other, ``jobs``, ``api`` or ``separation``.
 
 ``handout_rules``: the handout style copy equals the app sources
 (``worker/scripts/sync_handout_style.py --check``), no literal colours in
@@ -46,7 +46,7 @@ def test_insights_and_handouts_are_mapped() -> None:
     assert PYTHON_ALLOWED["handouts"] == frozenset({"ports", "schemas"})
     assert PYTHON_EXTERNAL_ALLOWED["insights"] == frozenset({"numpy", "scipy", "soxr", "soundfile"})
     assert PYTHON_EXTERNAL_ALLOWED["handouts"] == frozenset(
-        {"jinja2", "weasyprint", "pypdf", "fontTools"}
+        {"jinja2", "weasyprint", "pypdf", "fontTools", "PIL"}
     )
 
 
@@ -64,7 +64,7 @@ def test_allowed_insights_and_handouts_imports_are_clean(tmp_path: Path) -> None
         tmp_path,
         "handouts/renderer.py",
         "import jinja2\nfrom weasyprint import HTML\nfrom pypdf import PdfReader\n"
-        "from fontTools.ttLib import TTFont\n"
+        "from fontTools.ttLib import TTFont\nfrom PIL import Image\n"
         "from stemstudio_worker.ports import HandoutRenderer\n"
         "from stemstudio_worker.schemas import HandoutJobRequest\n"
         "from .fetcher import LibraryFetcher\n",
