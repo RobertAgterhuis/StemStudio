@@ -62,7 +62,12 @@ pass_gpu() {
 
 pass_instrument() { run "(cd e2e && npm run test:instrument)"; }
 
-pass_fake_mic() { run "(cd e2e && npm run test:fake-mic)"; }
+# The 015 digital loopback (docker-compose.e2e.yml) would feed the song into the input; the fake microphone needs it off.
+pass_fake_mic() {
+  run "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false docker compose up -d ${WAIT[*]} web"
+  run "(cd e2e && npm run test:fake-mic)"
+  run "docker compose up -d ${WAIT[*]} web"
+}
 
 usage() {
   sed -n '17,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
