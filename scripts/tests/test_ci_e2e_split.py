@@ -82,7 +82,7 @@ def test_the_pass_list_is_the_014_015_set_plus_the_016_passes() -> None:
 
 @pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_the_gpu_suite_runs_with_the_device_of_its_stack() -> None:
-    """The @gpu specs read STEMSTUDIO_FAKE_DEVICE themselves (e2e/support/env.ts), as in the 003 job."""
+    """The @gpu specs read STEMSTUDIO_FAKE_DEVICE themselves (e2e/support/env.ts), as in 003."""
     lines = _dry("gpu").stdout.splitlines()
 
     suites = [line for line in lines if "npm run test:gpu" in line]
