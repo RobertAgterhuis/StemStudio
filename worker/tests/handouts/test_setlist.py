@@ -12,6 +12,14 @@ import pypdf
 from stemstudio_worker.handouts.document import SongInputs, build_view, setlist_view
 from stemstudio_worker.handouts.markup import render_html
 from stemstudio_worker.handouts.renderer import WeasyHandoutRenderer
+from stemstudio_worker.jobs.handout_limits import (
+    MAX_HANDOUT_BODY_BYTES,
+    MAX_HANDOUT_CELLS,
+    MAX_HANDOUT_TEXT_CHARS,
+    check_request_limits,
+    layout_cells,
+    text_chars,
+)
 from stemstudio_worker.schemas import HandoutJobRequest
 
 from .documents import body, full_song, library_files, page_texts
@@ -113,3 +121,39 @@ def test_a_20_song_setlist_renders_within_the_budget(tmp_path: Path) -> None:
     assert seconds < BUDGET_SECONDS
     assert result.pages >= 21
     assert result.outline.count("Form") == 20
+
+
+def _at_the_limits() -> HandoutJobRequest:
+    """A 50-song setlist near every job limit, in the costliest shape (chords over lyrics)."""
+    data = _setlist(50).model_dump(by_alias=True, mode="json")
+    for song in data["document"]["songs"]:
+        song.update(practiceNotes="Keep the eighths even. " * 170, lyrics=None)
+    base = HandoutJobRequest.model_validate(data).document
+    rows = (MAX_HANDOUT_CELLS - layout_cells(base)) // (50 * 33)
+    width = min(500, (MAX_HANDOUT_TEXT_CHARS - text_chars(base)) // (50 * rows) - 32 * 4 - 1)
+    words = ("alpha bravo charlie delta echo foxtrot golf hotel " * 20)[:width]
+    chords = [{"symbol": "F#m7", "charIndex": c * (width // 32)} for c in range(32)]
+    line = {"text": words, "section": None, "chords": chords}
+    for song in data["document"]["songs"]:
+        song["lyrics"] = {"chordPlacement": "word", "source": "x", "lines": [line] * rows}
+    return HandoutJobRequest.model_validate(data)
+
+
+def test_the_limit_request_is_just_within_the_job_limits() -> None:
+    limit = _at_the_limits()
+
+    check_request_limits(limit)
+    assert text_chars(limit.document) > 0.95 * MAX_HANDOUT_TEXT_CHARS
+    assert layout_cells(limit.document) > 0.95 * MAX_HANDOUT_CELLS
+    assert len(limit.model_dump_json(by_alias=True)) < MAX_HANDOUT_BODY_BYTES
+
+
+@needs_weasyprint
+def test_a_setlist_at_the_job_limits_renders_within_the_budget(tmp_path: Path) -> None:
+    files = library_files(tmp_path / "library")
+    start = time.perf_counter()
+
+    result = WeasyHandoutRenderer().render(_at_the_limits(), files, lambda _fraction: None)
+
+    assert time.perf_counter() - start < BUDGET_SECONDS
+    assert result.outline.count("Lyrics and chords") == 50
