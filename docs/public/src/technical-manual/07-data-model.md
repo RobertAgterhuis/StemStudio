@@ -117,6 +117,16 @@ that pointed at it; deleting a track deletes its takes in the same unit of work.
 |---|---|
 | `TrackAnalyses` | One analysis per track and kind (`chords`, `drum-hits`, `vocal-pitch`; key track id + kind, cascade with the track): status (indexed), reason, worker job id, progress, options (JSON), the result document (JSON, bounded before storing; chord edits live in it), engine, device (JSON), source fingerprint (marks the result `stale` when the source stems change) and the estimate in seconds |
 
+**Insights and handouts (020)**:
+
+| Table | Content |
+|---|---|
+| `Tracks.QualityReport` | Nullable JSON: status (`queued`, `running`, `ready`, `failed`), progress, error, worker job id, analyzer version, measured at, `StemsVersion` (hash of the stem files' sizes and times; `outdated` is derived on read), the stems' ratings and the previous rating per channel. One active report per track; a failed run keeps the last ready stems |
+| `PracticeNotes` | One note per track and family (key track id + family, cascade with the track): text 1-4,000 characters (trimmed, control characters except line breaks removed), updated at. Empty text deletes the row |
+| `Assets.Handout` | Nullable JSON `HandoutFacts` of a handout item (kind, family, transposition, paper, pages, songs, included and omitted ingredients, warnings, outline); the recipe is `Provenance.handoutRecipe`, the file role `pdf` (`handout.pdf`) |
+
+Library care classifies handout items as exports (regenerable).
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -139,6 +149,8 @@ that pointed at it; deleting a track deletes its takes in the same unit of work.
 | `20261117212542_AddPracticeFlow` | 014 | Tables `TrackSections`, `Sections`, `ScoreViews`, `Setlists`, `SetlistEntries`, `PracticeLogSettings` (seeded), `PracticeSessions`, `PracticeSectionTimes`; the loop `sectionId` lives in the existing mix settings JSON |
 | `20261117215712_AddRecordingTakes` | 015 | `Mixes.TakeChannel` (nullable JSON); tables `InputCalibrations` and `RecordingTakes` with indexes on track and creation time, track and session, unique track and number, unique asset |
 | `20261118055631_AddTrackAnalyses` | 016 | Table `TrackAnalyses` (composite key track id + kind, cascade with the track) with index `IX_TrackAnalyses_Status` |
+| `20261123132159_AddQualityReport` | 020 | `Tracks.QualityReport` (nullable JSON; existing tracks keep `NULL` = never made) |
+| `20261123132211_AddPracticeNotes` | 020 | Table `PracticeNotes` (composite key track id + family, cascade with the track) and `Assets.Handout` (nullable JSON) |
 
 ## File layout
 

@@ -32,6 +32,8 @@ Each protocol is implemented by a different agent and faked in unit tests:
   ``KeyEstimator``, ``PitchAnalyzer``, ``TabFingerer``, ``PartWriter``: beat-analysis
   (``harmony/``, ``analysis/vocal_pitch.py``, ``notation/``), feature 016: the
   ``instrument-analysis`` lane and the score extensions (ADR-031..033)
+* ``QualityAnalyzer``: beat-analysis (``insights/``); ``HandoutRenderer`` and ``NotationReader``:
+  audio-ingest (``handouts/``), feature 020: the ``insights`` lane (ADR-029)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -54,6 +56,8 @@ import numpy.typing as npt
 from stemstudio_worker.schemas import (
     BASIC_PITCH_MODEL_ID,
     DOCUMENT_FAILED_TEXT,
+    HANDOUT_NOTICE_FOOTER,
+    HANDOUT_NOTICE_FULL,
     LIBRARY_UNAVAILABLE_TEXT,
     LYRICS_UNREACHABLE_TEXT,
     LYRICS_UNUSABLE_TEXT,
@@ -72,8 +76,11 @@ from stemstudio_worker.schemas import (
     ChordSegment,
     ChordVocabulary,
     DetailModelId,
+    DetailParentInput,
     DeviceInfo,
     DrumPiece,
+    HandoutJobRequest,
+    HandoutWarning,
     JobDevice,
     KeyInfo,
     KeyName,
@@ -87,6 +94,8 @@ from stemstudio_worker.schemas import (
     PartSummary,
     PitchEngine,
     ProcessingDeviceKind,
+    QualityInputKind,
+    QualityResult,
     RenderJobRequest,
     RenderRange,
     RenderResult,
@@ -1918,4 +1927,172 @@ class PartWriter(Protocol):
 
     def write(self, musicxml: bytes, part: PartSettings, profile: ScoreProfile) -> PartResult:
         """Transpose, respell, set part name, ``<transpose>`` and clef; MIDI is untouched."""
+        ...
+
+
+# ------------------------------------------------- insights lane (1.11.0, feature 020)
+
+InsightsProgress = RenderProgress
+"""Receives 0..1 of a quality or handout job; may raise the job's cancellation error."""
+
+QUALITY_SAMPLE_RATE: Final = 22_050
+"""Rate of the analysis representation (data-model 4.1)."""
+
+QUALITY_MIN_ACTIVE_SECONDS: Final = 10.0
+"""Less active audio than this rates a stem ``unknown`` (reason ``too-short``, spec edge case)."""
+
+HANDOUT_FAILED_TEXT: Final = "The handout could not be written"
+"""Error of a handout job that fails (``HandoutRenderError`` without its own text)."""
+
+NOTICE_FOOTER: Final = HANDOUT_NOTICE_FOOTER
+"""Footer notice of every handout page (data-model 6.6; validated in ``HandoutNotice``)."""
+
+NOTICE_FULL: Final = HANDOUT_NOTICE_FULL
+"""Full notice on the last handout page (data-model 6.6)."""
+
+HANDOUT_PDF_PATTERN: Final = re.compile(rf"assets/{_UUID}/[a-z][a-z0-9-]{{0,31}}\.pdf")
+"""Notation PDFs of score items (008/016) a handout job may read (data-model 2.2)."""
+
+ARTWORK_PATTERN: Final = re.compile(rf"tracks/{_UUID}/artwork/(auto|user)/cover\.jpg")
+"""Cover pictures (005) a handout job may read (data-model 2.2)."""
+
+QUALITY_PATH_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (STEM_PATH_PATTERN, DETAIL_PATH_PATTERN)
+"""A quality job reads only stems and detail stems."""
+
+HANDOUT_PATH_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (HANDOUT_PDF_PATTERN, ARTWORK_PATTERN)
+"""A handout job reads only notation PDFs and artwork; the general allow-list stays unchanged."""
+
+
+def is_quality_input_path(path: str) -> bool:
+    """Return True when ``path`` fully matches one of ``QUALITY_PATH_PATTERNS``."""
+    return any(pattern.fullmatch(path) for pattern in QUALITY_PATH_PATTERNS)
+
+
+def is_handout_input_path(path: str) -> bool:
+    """Return True when ``path`` fully matches one of ``HANDOUT_PATH_PATTERNS``."""
+    return any(pattern.fullmatch(path) for pattern in HANDOUT_PATH_PATTERNS)
+
+
+def notation_unreadable_text(title: str) -> str:
+    """Warning text of a notation PDF that could not be read (its pages become a note)."""
+    return f"A notation file could not be read: {title}"
+
+
+def notation_omitted_text(title: str) -> str:
+    """Warning text of a notation item left out by the per-job render budget (frames or bytes)."""
+    return f"A notation file was left out because the handout reached its size limit: {title}"
+
+
+def artwork_omitted_text(song_title: str) -> str:
+    """Warning text of a cover picture left out (not a JPEG or over 40 megapixels)."""
+    return (
+        "The cover picture was left out because it is not a JPEG or is larger than"
+        f" 40 megapixels: {song_title}"
+    )
+
+
+class QualityAnalysisError(WorkerError):
+    """A quality job failed; the message is shown to the user."""
+
+
+class QualityCancelledError(QualityAnalysisError):
+    """The quality job was deleted while running (raised from the progress callback)."""
+
+
+class HandoutRenderError(WorkerError):
+    """A handout job failed (default text ``HANDOUT_FAILED_TEXT``)."""
+
+
+class HandoutCancelledError(HandoutRenderError):
+    """The handout job was deleted while running (raised from the progress callback)."""
+
+
+class NotationUnreadableError(HandoutRenderError):
+    """A notation PDF cannot be read; the renderer replaces its pages by a note and warns."""
+
+
+@dataclass(frozen=True, slots=True)
+class StemAudio:
+    """One input of a quality job, resolved and checked by the job layer.
+
+    Attributes:
+        channel: ChannelId (``vocals``, ``drums.kick``, ``drums.rest``).
+        kind: ``standard``, ``detail`` or ``rest``.
+        path: Real path inside the library root (FLAC, 44.1 kHz stereo).
+    """
+
+    channel: str
+    kind: QualityInputKind
+    path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class QualityInputs:
+    """What a ``QualityAnalyzer`` needs: the resolved stems and the 002 metrics per parent."""
+
+    stems: tuple[StemAudio, ...]
+    detail_parents: tuple[DetailParentInput, ...]
+
+
+@runtime_checkable
+class QualityAnalyzer(Protocol):
+    """Stems -> reference-free quality estimates (beat-analysis ``insights/``, incl. the fake)."""
+
+    @property
+    def version(self) -> str:
+        """``analyzerVersion`` of the results (``insights/thresholds.py`` ``ANALYZER_VERSION``)."""
+        ...
+
+    def analyze(self, inputs: QualityInputs, progress: InsightsProgress) -> QualityResult:
+        """Estimate bleed and artefacts of every stem (data-model 4; stems in input order).
+
+        Raises:
+            QualityAnalysisError: A stem cannot be read or analysed.
+            QualityCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class RenderedHandout:
+    """Output of a ``HandoutRenderer``: the PDF and the facts the job result reports."""
+
+    pdf: bytes
+    pages: int
+    outline: tuple[str, ...]
+    warnings: tuple[HandoutWarning, ...]
+
+
+@runtime_checkable
+class HandoutRenderer(Protocol):
+    """Handout document -> one PDF (audio-ingest ``handouts/renderer.py``; no network, D7)."""
+
+    def render(
+        self, request: HandoutJobRequest, files: Mapping[str, Path], progress: InsightsProgress
+    ) -> RenderedHandout:
+        """Lay out the document on ``request.paper`` and merge the notation pages.
+
+        Args:
+            request: The validated job request (notice texts already fixed).
+            files: Real path of every library path of ``request.input_paths()``, resolved and
+                checked by the job layer; the renderer reads no other file except its packaged
+                assets.
+            progress: Stage progress (``layout`` 0-0.6, ``notation`` 0.6-0.9, ``writing`` 0.9-1).
+
+        Raises:
+            HandoutRenderError: The PDF cannot be written.
+            HandoutCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+class NotationReader(Protocol):
+    """Page sizes of a notation PDF (audio-ingest ``handouts/notation.py``, pypdf)."""
+
+    def page_sizes(self, path: Path) -> tuple[tuple[float, float], ...]:
+        """Width and height in points of every page.
+
+        Raises:
+            NotationUnreadableError: The file is not a readable PDF.
+        """
         ...

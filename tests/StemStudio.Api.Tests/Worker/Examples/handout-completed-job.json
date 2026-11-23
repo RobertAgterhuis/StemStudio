@@ -1,0 +1,26 @@
+{
+  "handoutJobId": "1e2f3a4b5c6d4e7f8a9b0c1d2e3f4a5b",
+  "status": "completed",
+  "stage": null,
+  "progress": 1,
+  "error": null,
+  "result": {
+    "fileName": "handout.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 184211,
+    "sha256": "9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+    "pages": 5,
+    "outline": [
+      "Example Song",
+      "Form",
+      "Chord chart",
+      "Practice notes",
+      "Notation - Bass - tablature",
+      "Notation - Bass - score",
+      "About this handout"
+    ],
+    "warnings": []
+  },
+  "createdAt": "2026-11-16T10:05:00Z",
+  "updatedAt": "2026-11-16T10:05:04Z"
+}

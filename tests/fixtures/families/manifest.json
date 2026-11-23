@@ -1,0 +1,248 @@
+{
+  "manifestVersion": 1,
+  "licence": "CC0-1.0",
+  "sampleRate": 44100,
+  "song": {
+    "file": "practice-song.wav",
+    "folder": "practice-flow",
+    "bpm": 120,
+    "beatsPerBar": 4,
+    "sections": [
+      "Intro",
+      "Verse",
+      "Chorus 1",
+      "Guitar solo",
+      "Chorus 2",
+      "Outro"
+    ]
+  },
+  "families": {
+    "overview": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Band overview",
+      "scores": [],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chords-over-lyrics",
+        "chord-chart",
+        "practice-notes"
+      ],
+      "practiceNote": "Band overview: practise the chorus at 80 % first (note 1)."
+    },
+    "vocals": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Vocals",
+      "scores": [
+        {
+          "channel": "vocals",
+          "profile": "vocals"
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chords-over-lyrics",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Vocals: practise the chorus at 80 % first (note 2)."
+    },
+    "guitar": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Guitar",
+      "scores": [
+        {
+          "channel": "guitar",
+          "profile": "guitar"
+        },
+        {
+          "channel": "guitar",
+          "profile": "guitar",
+          "tablature": {
+            "tuning": "guitar-standard"
+          }
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chords-over-lyrics",
+        "chord-chart",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Guitar: practise the chorus at 80 % first (note 3)."
+    },
+    "bass": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Bass",
+      "scores": [
+        {
+          "channel": "bass",
+          "profile": "bass"
+        },
+        {
+          "channel": "bass",
+          "profile": "bass",
+          "tablature": {
+            "tuning": "bass-4-standard"
+          }
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chord-chart",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Bass: practise the chorus at 80 % first (note 4)."
+    },
+    "keys": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Keys",
+      "scores": [
+        {
+          "channel": "piano",
+          "profile": "piano"
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chords-over-lyrics",
+        "chord-chart",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Keys: practise the chorus at 80 % first (note 5)."
+    },
+    "drums": {
+      "transposition": null,
+      "needsDetail": false,
+      "transpositionNote": null,
+      "label": "Drums",
+      "scores": [
+        {
+          "channel": "drums",
+          "profile": "drums"
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Drums: practise the chorus at 80 % first (note 6)."
+    },
+    "melodic": {
+      "transposition": "b-flat",
+      "needsDetail": true,
+      "transpositionNote": "Part in B-flat (sounds a major second lower)",
+      "label": "Melodic instruments",
+      "scores": [
+        {
+          "channel": "other.woodwinds",
+          "profile": "woodwinds",
+          "part": {
+            "instrument": "clarinet-bb",
+            "clef": "auto"
+          }
+        }
+      ],
+      "expectedIncluded": [
+        "facts",
+        "form-chart",
+        "chord-chart",
+        "notation",
+        "practice-notes"
+      ],
+      "practiceNote": "Melodic instruments: practise the chorus at 80 % first (note 7)."
+    }
+  },
+  "fakeQuality": {
+    "analyzerVersion": "fake-1",
+    "stems": {
+      "vocals": {
+        "rating": "fair",
+        "bleedSource": "drums",
+        "artefactKinds": []
+      },
+      "drums": {
+        "rating": "good",
+        "bleedSource": null,
+        "artefactKinds": []
+      },
+      "bass": {
+        "rating": "good",
+        "bleedSource": null,
+        "artefactKinds": []
+      },
+      "guitar": {
+        "rating": "poor",
+        "bleedSource": null,
+        "artefactKinds": [
+          "flicker"
+        ]
+      },
+      "piano": {
+        "rating": "not-present",
+        "bleedSource": null,
+        "artefactKinds": []
+      },
+      "other": {
+        "rating": "fair",
+        "bleedSource": "guitar",
+        "artefactKinds": []
+      }
+    },
+    "detail": {
+      "rating": "good",
+      "rest": "fair",
+      "restKind": "rest-share"
+    }
+  },
+  "setlist": {
+    "name": "E2E 020 setlist",
+    "note": "Three songs for the setlist handout.",
+    "entries": [
+      {
+        "file": "practice-song.wav",
+        "folder": "practice-flow",
+        "note": "Open the set"
+      },
+      {
+        "file": "setlist-b.wav",
+        "folder": "families",
+        "note": "Capo 2",
+        "bpm": 100,
+        "beatsPerBar": 4,
+        "seconds": 24.0,
+        "firstDownbeatSeconds": 0.5,
+        "sha256": "05b53786ed1e95a21fc3210179272bc59fd57df37b025b3bd9e238b473e2ac01"
+      },
+      {
+        "file": "setlist-c.wav",
+        "folder": "families",
+        "note": "",
+        "bpm": 90,
+        "beatsPerBar": 3,
+        "seconds": 24.0,
+        "firstDownbeatSeconds": 0.5,
+        "sha256": "c39152f592e64e4164a48cc0521964ffbefae729415e1b056cdb347bccadea80"
+      }
+    ]
+  }
+}

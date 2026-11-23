@@ -1,6 +1,7 @@
 """Tests of the split CI E2E jobs (feature 016 T144, LESSONS 014/015; T011 fake-mic outline).
 
-The default Playwright suite runs per browser (``e2e``, matrix ``chromium``/``firefox``) and the
+The default Playwright suite runs on Chromium (``e2e``, matrix ``chromium``; Firefox dropped by the
+owner on 2026-11-23) and the
 feature passes run in parallel (``e2e-passes``, one matrix entry per pass, each on its own fake
 stack): recording, practice-flow, restart, agent, lyric, gpu, instrument and fake-mic. Each job
 has a timeout of at most 90 minutes; ``scripts/ci-e2e-pass.sh`` holds the commands of every pass
@@ -36,6 +37,7 @@ PASSES = {
         "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false docker compose up",
         "npm run test:fake-mic",
     ],
+    "insights": ["npm run test:insights"],
 }
 """Every feature pass and what its dry run must show (014/015 set + instrument, fake-mic)."""
 
@@ -123,15 +125,33 @@ def test_an_unknown_pass_is_a_usage_error() -> None:
 # ------------------------------------------------------------------ e2e/package.json selections
 
 
-def test_the_default_suite_runs_per_browser_with_the_same_exclusions() -> None:
+def test_the_default_suite_runs_on_chromium_with_the_same_exclusions() -> None:
     scripts = _scripts()
     excluded = _grep_invert(scripts["test"])
 
-    assert "--project=chromium --project=firefox" in scripts["test"]
-    for browser in ("chromium", "firefox"):
-        assert f"--project={browser}" in scripts[f"test:{browser}"]
-        assert _grep_invert(scripts[f"test:{browser}"]) == excluded
+    assert "--project=chromium" in scripts["test"]
+    assert "--project=chromium" in scripts["test:chromium"]
+    assert _grep_invert(scripts["test:chromium"]) == excluded
     assert {"@instrument", "@fake-mic", "@recording", "@restart", "@gpu", "@agent"} <= excluded
+    assert "@insights" in excluded
+
+
+def test_the_insights_script_selects_the_020_specs_on_chromium() -> None:
+    """Feature 020: the @insights specs run in their own pass (seeding nine score items)."""
+    script = _scripts()["test:insights"]
+
+    assert "--grep @insights" in script
+    assert "--project=chromium" in script
+
+
+def test_no_e2e_script_or_project_selects_firefox() -> None:
+    """Owner decision 2026-11-23: no Firefox project, script or CI browser in the E2E suite."""
+    assert not [
+        name
+        for name, script in _scripts().items()
+        if "firefox" in name.lower() or "firefox" in script.lower()
+    ]
+    assert "Desktop Firefox" not in PLAYWRIGHT.read_text(encoding="utf-8")
 
 
 def test_the_instrument_and_fake_mic_scripts_select_the_016_specs() -> None:
@@ -169,7 +189,7 @@ def _runs(job: dict[str, Any]) -> str:
 def test_the_default_suite_job_is_a_browser_matrix_under_90_minutes() -> None:
     job = _jobs()["e2e"]
 
-    assert job["strategy"]["matrix"]["browser"] == ["chromium", "firefox"]
+    assert job["strategy"]["matrix"]["browser"] == ["chromium"]
     assert job["strategy"]["fail-fast"] is False
     assert job["timeout-minutes"] <= 90
     assert "npm run test:${{ matrix.browser }}" in _runs(job)

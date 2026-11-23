@@ -63,6 +63,9 @@ Worker third-party imports (feature 008; the standard library is always allowed)
     ImageNormalizer injected); no module imports render (feature 007: jobs gets the
     RenderExecutor injected); main.py is the composition root and may import every module.
     documents -> ports, schemas and (third party) reportlab only (feature 014)
+    insights -> ports, schemas and numpy, scipy, soxr, soundfile only; handouts -> ports, schemas
+    and jinja2, weasyprint, pypdf, fontTools (missing-glyph check), PIL (artwork size check)
+    only; neither imports the other, jobs, api, separation or config (feature 020)
 
 Worker scopes (feature 014 T015, feature 016 T009; file level, stricter than their module)::
 
@@ -312,6 +315,8 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "notation": frozenset({"ports", "schemas"}),
     "engraving": frozenset({"ports", "schemas"}),
     "documents": frozenset({"ports", "schemas"}),
+    "insights": frozenset({"ports", "schemas"}),
+    "handouts": frozenset({"ports", "schemas"}),
     "harmony": _ADAPTER,
     "analysis_inputs": _ADAPTER,
     "views_fake": _ADAPTER,
@@ -341,6 +346,8 @@ PYTHON_EXTERNAL_ALLOWED: Mapping[str, frozenset[str]] = {
     "notation": frozenset({"music21"}),
     "engraving": frozenset({"verovio", "cairosvg", "pypdf"}),
     "documents": frozenset({"reportlab"}),
+    "insights": frozenset({"numpy", "scipy", "soxr", "soundfile"}),
+    "handouts": frozenset({"jinja2", "weasyprint", "pypdf", "fontTools", "PIL"}),
 }
 """Third-party top-level packages a worker module may import (only modules listed here are
 restricted; the standard library and ``stemstudio_worker`` itself are never third party)."""

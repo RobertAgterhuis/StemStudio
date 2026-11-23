@@ -1,0 +1,180 @@
+/*
+ * Stem quality (feature 020): the quality card of the track page and the rating badge of the mixer strips. Ratings
+ * always show a word and an icon (R20-1); the tint only repeats them. Tokens only (004), no literal colours.
+ */
+
+.ss-quality {
+  display: grid;
+  gap: var(--ss-space-3);
+}
+
+.ss-quality > * {
+  min-width: 0;
+}
+
+.ss-quality-progress {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.ss-quality-rows {
+  display: grid;
+  gap: var(--ss-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-quality-children {
+  margin-block-start: var(--ss-space-2);
+  padding-inline-start: var(--ss-space-4);
+  border-inline-start: 2px solid var(--ss-color-divider);
+}
+
+.ss-quality-row {
+  display: grid;
+  gap: var(--ss-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ss-quality-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-quality-channel {
+  font-weight: 600;
+}
+
+.ss-quality-rating,
+.ss-quality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  padding-inline: var(--ss-space-2);
+  border: 1px solid currentColor;
+  /* Not the pill radius: a long word ("Probably not in this song") wraps in a narrow strip and a pill turns round. */
+  border-radius: var(--ss-radius-control);
+  max-inline-size: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+  color: var(--ss-color-ink);
+}
+
+/* Target size (WCAG 2.5.8): the badge is a link, at least --ss-target-min (24 px) high. */
+.ss-quality-badge {
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.ss-quality-badge:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+[data-rating="good"] > .rzi {
+  color: var(--ss-color-success);
+}
+
+[data-rating="fair"] > .rzi,
+[data-rating="poor"] > .rzi {
+  color: var(--ss-color-warning);
+}
+
+[data-rating="not-present"] > .rzi,
+[data-rating="unknown"] > .rzi {
+  color: var(--ss-color-muted);
+}
+
+.ss-quality-tips {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-quality-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+/* Lesson handouts (feature 020 US3/US4): menu status lines, the dialog fields and the library item. */
+
+.ss-handouts,
+.ss-practice-notes {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-handout-saved,
+.ss-handout-missing {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin-block-start: var(--ss-space-2);
+}
+
+.ss-handout-missing ul {
+  margin: 0;
+  padding-inline-start: var(--ss-space-4);
+}
+
+.ss-handout-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+}
+
+.ss-handout-fields .ss-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ss-handout-fieldset {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: var(--ss-space-2) 0;
+  border: 0;
+}
+
+.ss-handout-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-handout-part .ss-text-button {
+  min-height: var(--ss-target-min);
+}
+
+.ss-handout-item {
+  display: grid;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
+
+.ss-practice-notes-text {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.ss-setlist-handout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}

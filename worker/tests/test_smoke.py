@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from stemstudio_worker.config import RenderSettings, WorkerSettings
-from stemstudio_worker.main import create_app
+from stemstudio_worker.handouts.health import fonts_health, renderer_health
+from stemstudio_worker.main import create_app, create_quality_analyzer
 
 
 @pytest.mark.parametrize(
@@ -48,6 +49,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "transcribe": {"queued": 0, "running": False},
             "practice": {"queued": 0, "running": False},
             "instrumentAnalysis": {"queued": 0, "running": False},
+            "insights": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
             "available": True,
@@ -71,7 +73,15 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "chordEngine": "btc",
             "pitchEngine": "pyin",
         },
-        "contractVersion": "1.9.0",
+        # 1.11.0 (020): the configured analyzer (real unless STEMSTUDIO_QUALITY_ANALYZER=fake)
+        # and what this machine has of WeasyPrint, Pango and the fonts.
+        "insights": {
+            "analyzer": "real",
+            "analyzerVersion": create_quality_analyzer(settings).version,
+            "renderer": renderer_health().model_dump(by_alias=True),
+            "fonts": fonts_health().model_dump(by_alias=True),
+        },
+        "contractVersion": "1.11.0",
     }
 
 

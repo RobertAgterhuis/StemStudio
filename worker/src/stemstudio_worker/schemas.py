@@ -1,6 +1,6 @@
 """Pydantic v2 models of the worker HTTP contract.
 
-These models mirror ``specs/016-instrument-views/contracts/worker-api.openapi.yaml`` (1.9.0) and
+These models mirror ``specs/020-insights-handouts/contracts/worker-api.openapi.yaml`` (1.11.0) and
 are the single source of truth for JSON on the wire (camelCase aliases) and for ``result.json``
 on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive new states.
 1.3.0 (feature 005, ``specs/005-artwork-band-info/contracts``) added artwork and metadata jobs;
@@ -12,13 +12,15 @@ and the rehydration of a completed standard job from library stems; 1.8.0 (featu
 ``specs/014-practice-flow/contracts``) section, score-view and setlist document jobs on the
 ``practice`` lane, ``Health.lanes.practice`` and ``Health.structure``; 1.9.0 (feature 016,
 ``specs/016-instrument-views/contracts``) instrument analysis jobs (chords with the key, drum hits,
-reference melody) on the ``instrument-analysis`` lane, tablature, parts and chord symbols in scores.
+reference melody) on the ``instrument-analysis`` lane, tablature, parts and chord symbols in scores;
+1.11.0 (feature 020, ``specs/020-insights-handouts/contracts``) quality and handout jobs on the
+``insights`` lane, ``Health.insights`` and ``Health.lanes.insights``.
 """
 
 import itertools
 import re
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
 from uuid import UUID
@@ -34,7 +36,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.9.0"
+CONTRACT_VERSION = "1.11.0"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -1451,12 +1453,13 @@ class LaneHealth(ContractModel):
 
 
 class LanesHealth(ContractModel):
-    """Lanes beside the separation queue (1.4.0, 1.6.0, 1.8.0, instrument-analysis 1.9.0)."""
+    """Lanes beside the separation queue (1.4.0, 1.6.0, 1.8.0, 1.9.0, insights 1.11.0)."""
 
     render: LaneHealth = LaneHealth()
     transcribe: LaneHealth = LaneHealth()
     practice: LaneHealth = LaneHealth()
     instrument_analysis: LaneHealth = LaneHealth()
+    insights: LaneHealth = LaneHealth()
 
 
 # ------------------------------------------------------------ practice lane (1.8.0, feature 014)
@@ -2008,6 +2011,437 @@ class InstrumentAnalysisHealth(ContractModel):
     pitch_engine: PitchEngine = "pyin"
 
 
+# ------------------------------------------------- insights lane (1.11.0, feature 020)
+
+QualityInputKind = Literal["standard", "detail", "rest"]
+"""Kind of a quality input: a standard stem, a kept detail stem or a parent's ``rest`` stem."""
+
+QualityStage = Literal["loading", "analysing", "rating"]
+"""Stages of a quality job (``loading`` 0-0.2, ``analysing`` 0.2-0.9, ``rating`` 0.9-1.0)."""
+
+QualityLevel = Literal["low", "medium", "high", "unknown"]
+"""Level of one quality dimension (data-model 4.5)."""
+
+Reliability = Literal["validated", "indicative"]
+"""``validated`` only for stem types and dimensions that passed gate G1 (research.md R-04)."""
+
+QualityRating = Literal["good", "fair", "poor", "not-present", "unknown"]
+"""Rating of a stem (data-model 4.5)."""
+
+QualityReasonCode = Literal[
+    "clean", "bleed", "bleed-together", "artefacts", "bleed-and-artefacts", "not-present",
+    "too-short",
+]  # fmt: skip
+"""Reason of a rating; the texts are in data-model 4.6 (made by the API)."""
+
+ArtefactKind = Literal["flicker", "dropouts", "model-residual", "rest-share"]
+"""Artefact kinds of a stem (data-model 4.4)."""
+
+Fraction = Annotated[float, Field(ge=0, le=1)]
+"""A number from 0 to 1."""
+
+MAX_QUALITY_STEMS: Final = 64
+"""Most stems of one quality job (six standard stems plus detail and rest stems)."""
+
+STANDARD_STEMS: Final[tuple[StemName, ...]] = (
+    "vocals",
+    "drums",
+    "bass",
+    "guitar",
+    "piano",
+    "other",
+)
+"""The six standard stems; a quality job needs each exactly once (their sum is the mix)."""
+
+
+class QualityInput(ContractModel):
+    """One stem of a quality job."""
+
+    channel: ChannelPath
+    path: LibraryPath
+    kind: QualityInputKind
+
+    @model_validator(mode="after")
+    def _kind_matches_channel(self) -> Self:
+        """``standard`` = no dot, ``rest`` = ``<parent>.rest``, ``detail`` = any other detail."""
+        expected = (
+            "standard" if "." not in self.channel
+            else "rest" if self.channel.endswith(".rest")
+            else "detail"
+        )  # fmt: skip
+        if self.kind != expected:
+            msg = f"{self.channel} must have kind {expected}"
+            raise ValueError(msg)
+        return self
+
+
+class DetailParentInput(ContractModel):
+    """The 002 metrics of a split parent (``DetailOutcome``)."""
+
+    parent: ParentStemName
+    model_residual_db: float | None
+    reconstruction_error_db: float | None
+
+
+class QualityTitles(ContractModel):
+    """Song title and artist of a quality job (logs only)."""
+
+    title: Annotated[str, Field(max_length=200)]
+    artist: Annotated[str | None, Field(max_length=200)] = None
+
+
+class QualityJobRequest(ContractModel):
+    """Body of ``POST /v1/quality-jobs`` (data-model 2.3)."""
+
+    stems: Annotated[list[QualityInput], Field(min_length=6, max_length=MAX_QUALITY_STEMS)]
+    detail_parents: Annotated[list[DetailParentInput], Field(max_length=5)]
+    titles: QualityTitles
+
+    @model_validator(mode="after")
+    def _six_standard_stems(self) -> Self:
+        """Every channel once; the six standard stems present."""
+        channels = [stem.channel for stem in self.stems]
+        if len(set(channels)) != len(channels):
+            msg = "a channel is given more than once"
+            raise ValueError(msg)
+        if not set(STANDARD_STEMS) <= set(channels):
+            msg = "all six standard stems are needed (their sum is the mix)"
+            raise ValueError(msg)
+        return self
+
+    def input_paths(self) -> tuple[str, ...]:
+        """Library paths the job reads, in request order."""
+        return tuple(stem.path for stem in self.stems)
+
+
+class BleedEstimate(ContractModel):
+    """Bleed of a stem (data-model 4.2/4.3)."""
+
+    level: QualityLevel
+    index: Fraction
+    main_source: StemName | None
+    co_occurrence: bool
+    reliability: Reliability
+
+
+class ArtefactEstimate(ContractModel):
+    """Artefacts of a stem (data-model 4.4)."""
+
+    level: QualityLevel
+    index: Fraction
+    kinds: Annotated[list[ArtefactKind], Field(max_length=4)]
+    reliability: Reliability
+
+    @model_validator(mode="after")
+    def _unique_kinds(self) -> Self:
+        """``kinds`` has no duplicates (``uniqueItems``)."""
+        if len(set(self.kinds)) != len(self.kinds):
+            msg = "artefact kinds must be unique"
+            raise ValueError(msg)
+        return self
+
+
+class StemQuality(ContractModel):
+    """Estimate of one stem (data-model 2.4)."""
+
+    channel: ChannelPath
+    rating: QualityRating
+    rating_reason: QualityReasonCode
+    active_seconds: Annotated[float, Field(ge=0)]
+    active_share: Fraction
+    level_db: Annotated[float, Field(ge=-120, le=20)]
+    bleed: BleedEstimate
+    artefacts: ArtefactEstimate
+
+
+class QualityResult(ContractModel):
+    """Result of a completed quality job (stems in request order)."""
+
+    analyzer_version: Annotated[str, Field(max_length=20)]
+    duration_seconds: Annotated[float, Field(ge=0)]
+    stems: Annotated[list[StemQuality], Field(max_length=MAX_QUALITY_STEMS)]
+
+
+class QualityJob(ContractModel):
+    """Status of a quality job: ``POST /v1/quality-jobs`` and ``GET``."""
+
+    quality_job_id: JobId
+    status: RenderJobStatus
+    stage: QualityStage | None = None
+    progress: Fraction
+    error: Annotated[str | None, Field(max_length=500)] = None
+    result: QualityResult | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# ------------------------------------------------- handout jobs (1.11.0, feature 020)
+
+HandoutKind = Literal["song", "setlist"]
+"""A handout of one song or of a setlist."""
+
+HandoutFamily = Literal["overview", "vocals", "guitar", "bass", "keys", "drums", "melodic"]
+"""The seven equal handout families (data-model 6.1)."""
+
+IngredientCode = Literal[
+    "facts", "form-chart", "chords-over-lyrics", "lyrics", "chord-chart", "notation",
+    "practice-notes", "practice-progress", "setlist-notes",
+]  # fmt: skip
+"""Handout ingredients (data-model 6.2)."""
+
+Paper = Literal["a4", "letter"]
+"""Paper size of a handout."""
+
+NotationKind = Literal["score", "tab", "drums", "transposed"]
+"""Kind of a notation item (008 score, 016 tablature, drum notation, transposed part)."""
+
+HandoutStage = Literal["layout", "notation", "writing"]
+"""Stages of a handout job (``layout`` 0-0.6, ``notation`` 0.6-0.9, ``writing`` 0.9-1.0)."""
+
+HandoutWarningCode = Literal[
+    "missing-glyphs",
+    "notation-scaled",
+    "notation-unreadable",
+    "notation-omitted",
+    "artwork-omitted",
+]
+"""Warnings of a finished handout."""
+
+HANDOUT_NOTICE_FOOTER: Final = "For personal practice and teaching only"
+"""Fixed footer notice of every handout page (data-model 6.6)."""
+
+HANDOUT_NOTICE_FULL: Final = (
+    "This handout was made with StemStudio for your own practice and lessons. The song, its lyrics"
+    " and its music belong to their rights holders. Do not publish, sell or share it beyond your"
+    " lesson. Chords, notation and timings were made automatically and may contain errors."
+)
+"""Fixed full notice of the last handout page (data-model 6.6)."""
+
+MAX_HANDOUT_SONGS: Final = 50
+"""Most songs of one handout (FR-009)."""
+
+ChordSymbolText = Annotated[
+    str,
+    Field(
+        max_length=20,
+        pattern=r"^[A-G](#|b)?[A-Za-z0-9+#b()-]{0,12}(/[A-G](#|b)?)?$|^N\.C\.$",
+    ),
+]
+"""Chord symbol with ASCII accidentals (``Bb``, ``F#m7``, ``C/G``, ``N.C.``; research.md R-08)."""
+
+HandoutText = Annotated[str | None, Field(max_length=4000)]
+"""Optional plain text of up to 4,000 characters (notes)."""
+
+
+class HandoutNotice(ContractModel):
+    """Notice texts; they must equal the fixed texts (else 422)."""
+
+    footer: Annotated[str, Field(max_length=80)]
+    full: Annotated[str, Field(max_length=1000)]
+
+    @model_validator(mode="after")
+    def _fixed_texts(self) -> Self:
+        """Reject any notice text that differs from data-model 6.6."""
+        if (self.footer, self.full) != (HANDOUT_NOTICE_FOOTER, HANDOUT_NOTICE_FULL):
+            msg = "notice texts must be the fixed notice text"
+            raise ValueError(msg)
+        return self
+
+
+class SetlistEntryBlock(ContractModel):
+    """One running-order line of a setlist handout."""
+
+    position: Annotated[int, Field(ge=1, le=500)]
+    title: Annotated[str, Field(max_length=300)]
+    artist: Annotated[str | None, Field(max_length=500)]
+    key: Annotated[str | None, Field(max_length=40)]
+    tempo_bpm: Annotated[int | None, Field(ge=20, le=400)]
+    duration_seconds: Annotated[float | None, Field(ge=0)]
+    notes: HandoutText
+
+
+class SetlistBlock(ContractModel):
+    """Cover and running order of a setlist handout."""
+
+    name: Annotated[str, Field(min_length=1, max_length=200)]
+    notes: HandoutText
+    entries: Annotated[list[SetlistEntryBlock], Field(max_length=500)]
+
+
+class SongFacts(ContractModel):
+    """Facts row of a song (data-model 2.5)."""
+
+    tempo_bpm: Annotated[int | None, Field(ge=20, le=400)]
+    time_signature: Annotated[str | None, Field(pattern=r"^[1-9][0-9]?/(2|4|8)$")]
+    key: Annotated[str | None, Field(max_length=40)]
+    key_source: Literal["chords", "score"] | None
+    duration_seconds: Annotated[float, Field(ge=0)]
+    transposition_note: Annotated[str | None, Field(max_length=120)]
+
+
+class HandoutSection(ContractModel):
+    """One form-chart row: a section with bars and chords per bar."""
+
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    start_seconds: Annotated[float, Field(ge=0)]
+    end_seconds: Annotated[float, Field(ge=0)]
+    start_bar: Annotated[int | None, Field(ge=0)]
+    bars: Annotated[int | None, Field(ge=0, le=999)]
+    chord_bars: Annotated[
+        list[Annotated[list[ChordSymbolText], Field(max_length=8)]] | None, Field(max_length=999)
+    ]
+    practice_tempo_percent: Annotated[int | None, Field(ge=25, le=200)]
+
+
+class LyricChord(ContractModel):
+    """A chord above a lyric line at a character index."""
+
+    symbol: ChordSymbolText
+    char_index: Annotated[int, Field(ge=0, le=500)]
+
+
+class LyricLine(ContractModel):
+    """A lyric line (empty for an instrumental chord row) with its chords."""
+
+    text: Annotated[str, Field(max_length=500)]
+    section: Annotated[int | None, Field(ge=0)]
+    chords: Annotated[list[LyricChord], Field(max_length=32)]
+
+
+class HandoutLyrics(ContractModel):
+    """Lyrics with chords (the 016 chord sheet rule; ``chordPlacement`` says how)."""
+
+    lines: Annotated[list[LyricLine], Field(max_length=1000)]
+    chord_placement: Literal["word", "line", "none"]
+    source: Annotated[str, Field(max_length=200)]
+
+
+class HandoutNotation(ContractModel):
+    """A notation PDF to merge (one frame page per PDF page)."""
+
+    title: Annotated[str, Field(min_length=1, max_length=120)]
+    kind: NotationKind
+    pdf_path: LibraryPath
+
+
+class HandoutSong(ContractModel):
+    """One song of a handout, fully resolved by the API (data-model 2.5)."""
+
+    title: Annotated[str, Field(min_length=1, max_length=300)]
+    artist: Annotated[str | None, Field(max_length=500)]
+    artwork_path: LibraryPath | None
+    facts: SongFacts
+    sections: Annotated[list[HandoutSection], Field(max_length=64)]
+    lyrics: HandoutLyrics | None
+    chord_symbols: Annotated[list[ChordSymbolText], Field(max_length=64)]
+    notation: Annotated[list[HandoutNotation], Field(max_length=8)]
+    practice_notes: HandoutText
+    entry_notes: HandoutText
+    include: list[IngredientCode]
+
+    def input_paths(self) -> tuple[str, ...]:
+        """Artwork first, then the notation PDFs in order."""
+        artwork = (self.artwork_path,) if self.artwork_path else ()
+        return (*artwork, *(item.pdf_path for item in self.notation))
+
+
+class HandoutDocument(ContractModel):
+    """The resolved handout (data-model 2.5); the worker performs no lookups."""
+
+    kind: HandoutKind
+    family: HandoutFamily
+    family_label: Annotated[str, Field(min_length=1, max_length=60)]
+    title: Annotated[str, Field(min_length=1, max_length=300)]
+    subtitle: Annotated[str | None, Field(max_length=300)]
+    generated_on: date
+    notice: HandoutNotice
+    setlist: SetlistBlock | None
+    songs: Annotated[list[HandoutSong], Field(min_length=1, max_length=MAX_HANDOUT_SONGS)]
+    attributions: Annotated[list[Annotated[str, Field(max_length=300)]], Field(max_length=20)]
+    app_version: Annotated[str, Field(max_length=40)]
+
+    @model_validator(mode="after")
+    def _kind_rules(self) -> Self:
+        """``setlist`` iff kind ``setlist``; a song handout has exactly one song."""
+        if (self.setlist is not None) != (self.kind == "setlist"):
+            msg = "setlist must be set exactly when kind is setlist"
+            raise ValueError(msg)
+        if self.kind == "song" and len(self.songs) != 1:
+            msg = "a song handout has exactly one song"
+            raise ValueError(msg)
+        return self
+
+
+class HandoutJobRequest(ContractModel):
+    """Body of ``POST /v1/handout-jobs``."""
+
+    document: HandoutDocument
+    paper: Paper
+
+    def input_paths(self) -> tuple[str, ...]:
+        """Every library path the renderer may read (checked when the job is created)."""
+        return tuple(itertools.chain.from_iterable(s.input_paths() for s in self.document.songs))
+
+
+class HandoutWarning(ContractModel):
+    """A warning of a finished handout."""
+
+    code: HandoutWarningCode
+    text: Annotated[str, Field(max_length=300)]
+
+
+class HandoutResult(ContractModel):
+    """Result of a completed handout job; the file is ``GET /v1/handout-jobs/{id}/file``."""
+
+    file_name: Literal["handout.pdf"] = "handout.pdf"
+    content_type: Literal["application/pdf"] = "application/pdf"
+    size_bytes: Annotated[int, Field(ge=1)]
+    sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    pages: Annotated[int, Field(ge=1)]
+    outline: Annotated[list[Annotated[str, Field(max_length=200)]], Field(max_length=1000)]
+    warnings: Annotated[list[HandoutWarning], Field(max_length=50)]
+
+
+class HandoutJob(ContractModel):
+    """Status of a handout job: ``POST /v1/handout-jobs`` and ``GET``."""
+
+    handout_job_id: JobId
+    status: RenderJobStatus
+    stage: HandoutStage | None = None
+    progress: Fraction
+    error: Annotated[str | None, Field(max_length=500)] = None
+    result: HandoutResult | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class RendererHealth(ContractModel):
+    """``Health.insights.renderer``: versions of WeasyPrint and Pango (None = not importable)."""
+
+    weasyprint: str | None = None
+    pango: str | None = None
+
+
+class HandoutFontsHealth(ContractModel):
+    """``Health.insights.fonts``: Archivo packaged, DejaVu Sans fallback installed."""
+
+    archivo: bool = False
+    fallback: bool = False
+
+
+class InsightsHealth(ContractModel):
+    """``Health.insights`` (1.11.0)."""
+
+    analyzer: Literal["real", "fake"]
+    analyzer_version: Annotated[str, Field(max_length=20)]
+    renderer: RendererHealth = RendererHealth()
+    fonts: HandoutFontsHealth = HandoutFontsHealth()
+
+
+INSIGHTS_NOT_CHECKED: Final = InsightsHealth(analyzer="real", analyzer_version="0.0.0")
+"""Default ``Health.insights`` until the composition root reports the configured analyzer."""
+
+
 class StructureHealth(ContractModel):
     """``Health.structure``: the configured section analyser (1.8.0)."""
 
@@ -2044,6 +2478,9 @@ class Health(ContractModel):
     )
     instrument_analysis: InstrumentAnalysisHealth = Field(
         default=InstrumentAnalysisHealth(), description="Chord and pitch engines (1.9.0)."
+    )
+    insights: InsightsHealth = Field(
+        default=INSIGHTS_NOT_CHECKED, description="Quality analyzer and handout renderer (1.11.0)."
     )
     contract_version: str = CONTRACT_VERSION
 

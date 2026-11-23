@@ -5,8 +5,8 @@ import { present, readEthicsCases, requireGeneratorMode, uniqueName, voiceFixtur
 import { expect, test } from '../support/generative-test';
 
 // Feature 010 US3-1 with the browser microphone (010:T052; FR-005; quickstart V2): Chromium
-// records the own-voice fixture through its fake capture device; Firefox records its built-in
-// fake tone. Launch options are worker-scoped, so they are set for the whole file.
+// records the own-voice fixture through its fake capture device (the E2E suite is Chromium only).
+// Launch options are worker-scoped, so they are set for the whole file.
 const consent = readEthicsCases().consent;
 
 test.use({

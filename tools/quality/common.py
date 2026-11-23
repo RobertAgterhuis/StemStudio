@@ -128,6 +128,10 @@ OWNERS = (
     ("worker/src/stemstudio_worker/engraving/", "audio-ingest"),
     ("worker/tests/engraving/", "audio-ingest"),
     ("worker/tests/lyrics/", "audio-ingest"),
+    ("worker/src/stemstudio_worker/handouts/", "audio-ingest"),
+    ("worker/tests/handouts/", "audio-ingest"),
+    ("worker/src/stemstudio_worker/insights/", "beat-analysis"),
+    ("worker/tests/insights/", "beat-analysis"),
     ("worker/src/stemstudio_worker/analysis/", "beat-analysis"),
     ("worker/tests/analysis/", "beat-analysis"),
     ("worker/src/stemstudio_worker/notation/", "beat-analysis"),
@@ -142,6 +146,7 @@ OWNERS = (
     ("worker/src/stemstudio_worker/transcription/", "stem-separation"),
     ("worker/src/stemstudio_worker/main.py", "stem-separation"),
     ("worker/scripts/install_music_font.py", "architect"),
+    ("worker/scripts/sync_handout_style.py", "architect"),
     ("worker/scripts/", "stem-separation"),
     ("worker/tests/separation/", "stem-separation"),
     ("worker/tests/detail/", "stem-separation"),
@@ -220,6 +225,14 @@ def owner_of(path: str) -> str:
         if path.startswith(prefix):
             return owner
     return DEFAULT_OWNER
+
+
+def files_below(folder: Path, suffix: str) -> Iterator[Path]:
+    """Files with ``suffix`` below ``folder`` (sorted), skipping build and package folders."""
+    if folder.is_dir():
+        for path in sorted(folder.rglob(f"*{suffix}")):
+            if not EXCLUDED_DIRS & set(path.relative_to(folder).parts):
+                yield path
 
 
 def relative(path: Path, root: Path) -> str:

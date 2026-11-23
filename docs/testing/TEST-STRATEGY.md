@@ -78,7 +78,7 @@ no worker contract.
 ## 1. Test pyramid
 
 ```text
-                 E2E (Playwright, Chromium + Firefox, retries 0)     e2e/tests/*.spec.ts
+                 E2E (Playwright, Chromium, retries 0)            e2e/tests/*.spec.ts
              ----------------------------------------------------
             Contract tests (OpenAPI shapes, URL vectors, UI test ids)
         ------------------------------------------------------------
@@ -404,11 +404,11 @@ uv run --project worker ruff format --check tests/fixtures
 uv run --project worker mypy --config-file tests/fixtures/pyproject.toml tests/fixtures
 
 # E2E (in e2e/)
-npm ci && npx playwright install --with-deps chromium firefox
+npm ci && npx playwright install --with-deps chromium
 npm run lint && npm run typecheck
 npx playwright test --list
 npm run fixtures         # both generators
-npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium + Firefox, retries 0
+npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium, retries 0
 npm run test:gpu         # (003) only @gpu; stack with STEMSTUDIO_FAKE_DEVICE=gpu, then again with gpu-oom
 
 # (003) the two @gpu runs (from the repository root; the same variable drives stack and suite)
@@ -464,8 +464,12 @@ tour version re-offers the tour and would add an offer chip to the 1.2.0 screens
 another state use `test.use({ storageState: ... })` per file or describe block, or a second context
 or page for cross-tab checks. The record carries a fixed timestamp, so it is deterministic.
 
-The Playwright config has five projects: `chromium` and `firefox` (testDir `tests/`, the E2E suite;
-`npm test` and the other behavioural scripts select exactly these two), `visual` (testDir
+**Owner decision 2026-11-23: Firefox is no longer part of the E2E suite** (no `firefox` project, script, CI matrix
+entry or browser install; the Firefox-only smoke `recording-firefox.spec.ts` and the Firefox skips of
+`library-care-backup.spec.ts` were removed). Older results below that name Firefox are history.
+
+The Playwright config has the project `chromium` (testDir `tests/`, the E2E suite; `npm test` and the other behavioural
+scripts select it; it had a `firefox` twin until 2026-11-23), `visual` (testDir
 `visual/`), `a11y` (testDir `a11y/`) and `lighthouse-setup` (`lighthouse/*.setup.ts`). The new
 behavioural specs in `tests/` are tagged `@ux`, so `npm run test:legacy` still runs exactly the
 1.2.0 set.
@@ -980,7 +984,7 @@ uv run --project worker python tests/fixtures/generate_score_fixtures.py
 STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
 (cd e2e && STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu npm run test:lyrics)
 # (008) sheet music, then the drums case with the detail phase
-(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium --project=firefox tests/sheet-music.spec.ts -g drums)
+(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium tests/sheet-music.spec.ts -g drums)
 # stack-free self-test of the 006/008 helpers (pass without docker)
 (cd e2e && npx playwright test tests/lyrics-score-support.spec.ts)
 ```
@@ -1493,7 +1497,7 @@ CK-SC-005). Every test starts by deleting a left-over key through the UI; `after
 stored key, so `agent.spec.ts` "settings" (Claude without a key) is unaffected.
 
 **Tag `@claude-key`** (no `@agent`, so `scripts/agent-e2e.*` never pick the spec up). `npm test`
-and `test:legacy` exclude it; `npm run test:claude-key` runs it in Chromium and Firefox. It needs
+and `test:legacy` exclude it; `npm run test:claude-key` runs it in Chromium. It needs
 the Docker CLI on the host (api recreated with and without `ANTHROPIC_API_KEY`, key ring files
 removed, logs and database read through `docker compose -f $E2E_COMPOSE_FILE`), a page base URL
 under a loopback host (`localhost`; otherwise the tests skip: key entry is local-only) and a
@@ -2016,8 +2020,8 @@ hash list, and that a rerun is byte-identical and equals the committed manifest.
   the end that every request went to the web or the API origin (20.3).
 - **Waiting.** Uploads are waited on by take id (`rec-take-row-<takeId>` and its `data-status`),
   never on a panel text alone (LESSONS qa).
-- **Firefox.** Only the unsupported and permission states are smoke-tested (T085); recording
-  itself is Chromium/Edge (research R-01).
+- **Firefox.** Recording itself is Chromium/Edge (research R-01); the Firefox smoke (T085) was removed with the
+  Firefox project (owner decision 2026-11-23).
 
 ### 21.4 (015) user story -> tests
 
@@ -2030,7 +2034,7 @@ hash list, and that a rerun is byte-identical and equals the committed manifest.
 | US5 manage takes (FR-014, FR-018) | Api update/delete/cascade, bUnit takes panel and rows | `recording-manage.spec.ts` (rename, star, delete -> asset 404, track delete removes its takes) |
 | US6 export (FR-015) | Domain take export planner, render vectors 1.1.0, bUnit export presets | `recording-export.spec.ts` (take only as WAV 24-bit: length and samples; take + mix MP3 in the Library with contents "Take n") |
 | US7 timing adjustment (FR-016) | engine `setTakeAdjustment`, Api replace-audio, bUnit adjust | `recording-adjust.spec.ts` (Expert: -10.0 ms -> `startSample` 441 lower, revision 1) |
-| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes), `tests/recording-firefox.spec.ts` (Firefox smoke, project `firefox`) |
+| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes) |
 
 SC-002, SC-004, SC-005 and one real input per family need real hardware: CTO owner checks on the
 reference machine (T089), recorded in `docs/STATUS.md`.
@@ -2206,3 +2210,122 @@ E2E names are the spec files of 22.6 without the folder and `.spec.ts`.
 Per family (SC-006): harmony (chords, key), guitar (tab, capo, practise-as, key), bass (tab, practise-as, key), drums
 (drums, MIDI, practise-as, key), vocals (singing, practise-as, key), strings/brass/woodwinds (parts, practise-as
 orchestral, written key): every family has a view, at least one unit suite and at least one E2E case.
+
+## 23. (020) Insights and handouts: stem quality reports, tips, lesson handouts, setlist handouts
+
+Binding: `specs/020-insights-handouts/` (spec US1-US4; **US5, FR-007 and SC-007 are deferred** with gate G2),
+worker API **1.11.0** (tags `insights`, `handouts`), backend API **1.19.0**, UI test ids **1.19.0** (G2 ids not
+merged), help topics of `contracts/help-topics.md`, data-model 2.6 (fake analyzer), 4 (measures), 5.3 (tips), 6
+(handout content). Principle: every instrument family counts equally (SC-006: one E2E case per handout family, the
+same checks for each).
+
+### 23.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Worker (pytest, beat-analysis) | representation, bleed (B2 + guard), co-occurrence cap, artefacts, levels and rating, reason codes, reliability table, fake analyzer | **V1 synthetic validation** (`worker/tests/insights/synthetic.py`: controlled bleed alpha 0/0.03/0.1/0.3 and TF-mask/gating artefacts; Spearman >= 0.8, >= 80 % correct levels, SC-002) |
+| Worker (pytest, audio-ingest) | fetcher (URLFetcher subclass, `allowed_protocols=("file",)`, traversal and remote URLs refused), layout, notation frames, renderer (notice texts, glyph check, deterministic page count and outline) | documents built in the test, generated PDFs read back with pypdf (**PDF inspection**) |
+| Worker (pytest, stem-separation) | insights lane, quality/handout job stores and routes, `/health.insights` | `TestClient`, fake analyzer and renderer |
+| Backend (xUnit) | persistence and migrations, worker clients against the copied 1.11.0 examples, source adapters over 014/016, QualityService/Applier/Trigger, TipRules, view assembly, HandoutChords, chords over lyrics, BarMapper, IngredientPlanner, HandoutAssembler, options/handout/notes endpoints, setlist assembly | stub worker handler, SQLite, contract tests `tests/StemStudio.Api.Tests/Contract/{Insights,Handout}ContractTests.cs` |
+| Frontend (bUnit) | QualityPanel/Row/Badge, TipList actions, HandoutMenu, PracticeNotesEditor, HandoutDialog, HandoutAssetRow, setlist menu, help topics, WCAG 2.2 AA | fake API client |
+| Quality gate | layering of `insights`/`handouts`, style drift, no literal colours in handout CSS, `url_fetcher` rule (`tools/quality/tests/test_insights_handouts_rules.py`) | fake repo trees |
+| Image (devops) | WeasyPrint imports, Pango >= 1.44, DejaVu Sans (`scripts/check-worker-pdf.*`, CI cpu-image-guard) | the built worker image |
+| Fixtures (pytest, qa) | `tests/fixtures/families/generate_family_fixtures.py` (23.2) | worker environment |
+| E2E (qa) | the specs of 23.3 on the fake stack with the **fake analyzer** (`docker-compose.e2e.yml` sets `STEMSTUDIO_QUALITY_ANALYZER=fake`) | fake separator, detail, sections, chords, lyrics (`word`), transcription |
+
+### 23.2 Fixtures (`tests/fixtures/families/`, qa T028/T029)
+
+`uv run --project worker python tests/fixtures/families/generate_family_fixtures.py` writes `setlist-b.wav` (100 BPM,
+4/4) and `setlist-c.wav` (90 BPM, 3/4), 24 s each (git-ignored, CC0 1.0, byte-identical reruns), and the committed
+plan `manifest.json`; `--check` compares the committed plan. The **fixture song** is 014's `practice-song.wav` (120
+BPM, 4/4, six sections); `e2e/support/handout-seed.ts` seeds it through the API: sections, chords, word-timed lyrics,
+the detail split, the notation items of every family and one practice note per family; it also builds the three-song
+setlist "E2E 020 setlist" (entry notes "Open the set", "Capo 2", ""). The fake stack's CI action generates the songs.
+
+| Family | Notation items seeded | One-click `included` (data-model 6.2 D column) |
+|---|---|---|
+| overview | none | facts, form-chart, chords-over-lyrics, chord-chart, practice-notes |
+| vocals | `vocals` score | facts, form-chart, chords-over-lyrics, notation, practice-notes |
+| guitar | `guitar` score + tab `guitar-standard` | facts, form-chart, chords-over-lyrics, chord-chart, notation, practice-notes |
+| bass | `bass` score + tab `bass-4-standard` | facts, form-chart, chord-chart, notation, practice-notes |
+| keys | `piano` score | facts, form-chart, chords-over-lyrics, chord-chart, notation, practice-notes |
+| drums | `drums` score | facts, form-chart, notation, practice-notes |
+| melodic (B-flat) | `other.woodwinds` part `clarinet-bb` (needs the detail split) | facts, form-chart, chord-chart, notation, practice-notes |
+
+`tests/fixtures/tests/test_family_fixtures.py` checks the plan **against the contract texts** (LESSONS 016): the
+defaults against the data-model 6.2 table, families, ingredient codes and ratings against the delta's enums, the fake
+ratings against data-model 2.6, the B-flat part rule of 6.1 and the facts note of US3-5; plus format, tempo, click
+positions and reruns of the songs.
+
+### 23.3 E2E specs (tag `@insights`, own CI pass `insights`: `npm run test:insights`, Chromium)
+
+| Spec | Task | Story | What |
+|---|---|---|---|
+| `e2e/tests/stem-quality.spec.ts` | T048 | US1 | six ratings and reasons (fake 2.6, texts 4.6), disclaimer, detail rows under their parents, Beginner/Advanced/Expert visibility (R20-2), reliability `indicative` (FR-004), "Check again" waits on the new `measuredAt` |
+| `e2e/tests/stem-quality-tips.spec.ts` | T055 | US2 | catalogue tips before/after the fake split, "Split further" starts the detail phase and the report is remade, "Mute this stem", guitar "hard to isolate" without a button, "Use the child detail stem", no GPU tip (SC-003) |
+| `e2e/tests/handouts.spec.ts` | T080 | US3 | one click per family (seven tests): `included` = 6.2 defaults, notice and "Page n of N" on every page, full notice last, bookmarks, title and language metadata, practice note, library row; melodic B-flat (transposed part, facts note), Make again, a missing notation listed |
+| `e2e/tests/setlist-handout.spec.ts` | T087 | US4 | band overview: songs 3, cover name and notes, entry notes, one bookmark per song in setlist order, tempi in the running order; 014's `setlist-pdf` still on the page |
+| `e2e/a11y/insights-handouts.a11y.spec.ts` | T101 | FR-016 | axe (no serious/critical) on the quality panel, badges, handout menu and dialog, practice notes, setlist menu in both themes; keyboard-only Check again, menu button pattern, notes save with a live status |
+
+Shared code: `support/insights-api.ts` (1.19.0 client; waits on the report's `measuredAt` or the item's own id),
+`support/insights-suite.ts` (hooks, expected ratings, reasons and tips), `support/handout-seed.ts`,
+`support/handout-flow.ts` (new item by id, PDF checks), `support/handout-pdf.ts` (pypdf from the worker lock: pages,
+outline, title, `/Lang`, text; no new npm dependency), `pages/quality-panel.ts`, `pages/handout-menu.ts`.
+
+### 23.4 Readings the specs rely on (confirm at the mid-wave checkpoint)
+
+- Tips after the fake split (5.3 applied to 2.6 and the fake outcomes): vocals and other `use-detail-stem`, guitar
+  `hard-to-isolate` (outcome nothing-further), piano `not-in-song`, drums and bass `clean`; before a split vocals,
+  guitar and other `try-detail-separation`. Rest stems `listen-to-rest` (not asserted).
+- "Mute this stem" opens the mixer of the track with the stem muted (`mute-piano` on); "Use the child detail stem"
+  opens the mixer with `strip-other-<child>` visible.
+- Rating accessible names contain the rating words (good, fair, poor, "not in this song", "not rated").
+- The handout item's name contains the family label (data-model 5.4 default name); the PDF footer reads "Page n of N".
+- The fake section analyser labels the fixture song by bars (smoke 2026-11-23: Intro, Verse 1, Chorus 1, Verse 2,
+  Chorus 2, Guitar solo), not by its composed form (`manifest.json` `song.sections`); the form-chart check reads the
+  labels from `GET /api/tracks/{id}/sections`.
+- A one-click handout's item is found as the new handout asset of the track with that family (the browser does not
+  see the Blazor server's API call).
+
+### 23.5 Traceability (FR and SC -> tests)
+
+W = worker pytest, B = backend xUnit, F = frontend bUnit, Q = quality gate, I = image check, X = fixtures (owners in
+23.1); E2E names are the files of 23.3 without folder and `.spec.ts`. FR-007 and SC-007 are deferred (G2).
+
+| Id | Requirement (short) | Unit / component | E2E |
+|---|---|---|---|
+| FR-001 | report after every separation, non-blocking | W lane and stores (T016), B `QualityTrigger` (T042) | stem-quality (detail rows after the split), stem-quality-tips (report remade) |
+| FR-002 | request and repeat; older version marked | B endpoints (T044), F `QualityPanel` outdated (T046) | stem-quality (Check again) |
+| FR-003 | one rating, bleed and artefact estimates | W `test_bleed.py`, `test_artefacts.py`, `test_rating.py` | stem-quality |
+| FR-004 | estimates disclaimer, reliability labels | W reliability table (T038), B disclaimer (T044) | stem-quality (disclaimer, Expert `indicative`) |
+| FR-005 | at most two tips, actions that exist | B `TipRules` (T049), view assembly (T051), F `TipList` (T053) | stem-quality-tips |
+| FR-006 | no "run on the GPU" tip | B `TipRules` (T049) | stem-quality-tips (no GPU text, SC-003) |
+| FR-008 | handout per family, Advanced options | B `IngredientPlanner` (T060), F `HandoutMenu`/`HandoutDialog` (T076/T078) | handouts (seven families, melodic B-flat), insights-handouts.a11y (dialog) |
+| FR-009 | setlist handout up to 50 songs | B setlist assembly (T081), W setlist layout (T083) | setlist-handout |
+| FR-010 | defaults that exist; missing listed | B `IngredientPlanner` (T060), F Beginner "Not included" (T076) | handouts (missing notation) |
+| FR-011 | chords above words, ASCII, transposed | B `HandoutChords` (T056), chords over lyrics (T058), W `test_layout.py` | handouts (melodic B-flat) |
+| FR-012 | app style, header/footer, bookmarks, metadata, real text | W `test_layout.py`, `test_renderer.py`, Q drift and colours, I `check-worker-pdf.*` | handouts, setlist-handout (`expectHandoutPages`) |
+| FR-013 | notice on every page, full notice and attributions last | W `test_renderer.py`, B `HandoutNotice` (T062) | handouts, setlist-handout |
+| FR-014 | library item, preview, download, Make again | B handout endpoints and asset sync (T064), F `HandoutAssetRow` (T078) | handouts (library row, Make again) |
+| FR-015 | practice notes per family (4,000) | B notes endpoints (T066), F `PracticeNotesEditor` (T076) | handouts (note in its family only), insights-handouts.a11y (keyboard save) |
+| FR-016 | help topics, levels, not colour alone, keyboard, screen readers | F help topics (T026), bUnit a11y (T046/T053/T076/T078) | insights-handouts.a11y, stem-quality (levels, rating words) |
+| FR-017 | HTTP API for every operation | B endpoints (T044/T064/T066), contract tests | every spec (set-up and checks through the API) |
+| FR-018 | no network while rendering, allow-listed files only | W `test_fetcher.py` (T018), Q `url_fetcher` rule | - (unit level) |
+| SC-001 | report within 60 s (analysis <= 30 s) | W timing (T103, integration) | stem-quality (60 s wait on the fake) |
+| SC-002 | V1 Spearman >= 0.8, >= 80 % levels; V2 published | W `test_validation_v1.py` (T034); G1 script (T039, pending dataset) | - |
+| SC-003 | every tip action available, no GPU tip | B `TipRules` (T049) | stem-quality-tips |
+| SC-004 | song handout <= 15 s, 20-song setlist <= 90 s | W timing (T104), W setlist budget (T083) | handouts (90 s wait on the fake) |
+| SC-005 | PDFs open, notice every page, bookmarks, no missing glyphs | W `test_renderer.py` (glyph check), `test_layout.py` | handouts, setlist-handout (pypdf) |
+| SC-006 | each family's defaults found in the facts | X `test_family_fixtures.py`, B `IngredientPlanner` | handouts (one test per family) |
+| SC-008 | first-time user finds the bass tip in 2 minutes | - | - (moderated check by the CTO, T107) |
+
+### 23.6 Commands
+
+```bash
+uv run --project worker python tests/fixtures/families/generate_family_fixtures.py
+uv run --project worker python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
+uv run --project worker pytest -c tests/fixtures/pyproject.toml tests/fixtures/tests/test_family_fixtures.py
+scripts/check-worker-pdf.sh --build stemstudio/worker:pdf-check
+(cd e2e && npm run test:insights)   # fake stack with docker-compose.e2e.yml
+(cd e2e && npx playwright test --project=a11y --grep @insights)
+```

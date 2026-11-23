@@ -1,0 +1,112 @@
+using System.Net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StemStudio.Api.Insights;
+using StemStudio.Api.Tests.Contract;
+using StemStudio.Api.Tests.TestSupport;
+using StemStudio.Contracts.Insights;
+using StemStudio.Domain.Insights;
+using StemStudio.Domain.Tracks;
+using StemStudio.Persistence;
+using StemStudio.Persistence.Repositories;
+
+namespace StemStudio.Api.Tests.Insights;
+
+/// <summary>
+/// Security review of the 020 quality report: no orphan worker jobs (finding 5), the automatic run re-reads the report under
+/// the lock (6), the synchroniser filters in SQL and survives a corrupt report (7) and no worker text in the answer (9).
+/// </summary>
+public sealed class QualitySecurityTests : ApiTestBase
+{
+    [Fact]
+    public async Task TheAutomaticRun_ReReadsTheReportUnderTheLock()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var stale = (await scope.ServiceProvider.GetRequiredService<ITrackRepository>().FindAsync(track.Id, CancellationToken.None))!;
+        var submitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Factory.InsightsWorker.AfterSubmit = async () =>
+        {
+            Factory.InsightsWorker.AfterSubmit = null;
+            submitted.SetResult();
+            await release.Task;
+        };
+
+        var request = Client.RequestQualityAsync(track.Id);
+        await submitted.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        var automatic = scope.ServiceProvider.GetRequiredService<QualityService>().StartAutomaticallyAsync(stale, CancellationToken.None);
+        release.SetResult();
+        using var response = await request;
+
+        (response.StatusCode, await automatic).ShouldBe((HttpStatusCode.Accepted, false));
+        Factory.InsightsWorker.QualityRequests.Count.ShouldBe(1);
+        (await Factory.FindTrackAsync(track.Id))!.QualityReport!.WorkerJobId.ShouldBe(Factory.InsightsWorker.OnlyJob());
+        stale.QualityReport.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ACorruptStoredReport_BreaksNeitherTheSyncNorTheReads()
+    {
+        var (active, broken) = (await Factory.SeedAsync(SyncTestData.CompletedTrack()), await Factory.SeedAsync(SyncTestData.CompletedTrack("bbbbbbbbbbb")));
+        (await Client.RequestQualityAsync(active.Id)).Dispose();
+        (await Client.RequestQualityAsync(broken.Id)).Dispose();
+        await Factory.WithScopeAsync(sp => sp.GetRequiredService<StemStudioDbContext>().Database.ExecuteSqlAsync($"UPDATE Tracks SET QualityReport = '{{broken' WHERE SourceKey = 'youtube:bbbbbbbbbbb'", CancellationToken.None));
+        Factory.InsightsWorker.CompleteQuality(Factory.InsightsWorker.QualityJobs.Keys.Order(StringComparer.Ordinal).First(), QualityTestData.SixGood());
+
+        await Factory.SyncQualityAsync();
+        using var list = await Client.GetAsync(new Uri("/api/tracks", UriKind.Relative), Ct);
+        var report = await Client.GetQualityAsync(broken.Id);
+
+        (await Factory.FindTrackAsync(active.Id))!.QualityReport!.Status.ShouldBe(QualityReportStatus.Ready);
+        list.StatusCode.ShouldBe(HttpStatusCode.OK);
+        report.Status.ShouldBe(QualityReportStatusDto.None);
+    }
+
+    [Fact]
+    public async Task AFailedSave_AfterTheSubmit_DeletesTheWorkerJob()
+    {
+        var failure = new SaveFailure();
+        using var factory = new ApiFactory { ConfigureServices = failure.AddTo };
+        using var client = factory.CreateClient();
+        var track = await factory.SeedAsync(SyncTestData.CompletedTrack());
+        failure.When = context => context.ChangeTracker.Entries<Track>().Any(entry => entry.State == EntityState.Modified && entry.Entity.QualityReport?.Status == QualityReportStatus.Queued);
+
+        using var response = await client.RequestQualityAsync(track.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        failure.Failures.ShouldBe(1);
+        factory.InsightsWorker.Deleted.Single().ShouldStartWith("quality:");
+        factory.InsightsWorker.QualityJobs.ShouldBeEmpty();
+        (await factory.FindTrackAsync(track.Id))!.QualityReport.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task AnInvalidWorkerJobId_StoresNothing_AndIsWorkerUnavailable()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        Factory.InsightsWorker.NextJobId = "../not-a-job";
+
+        using var response = await Client.RequestQualityAsync(track.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        await ContractAssert.MatchesAsync(response, "requestQualityReport");
+        Factory.InsightsWorker.Deleted.ShouldBe(["quality:../not-a-job"]);
+        (await Factory.FindTrackAsync(track.Id))!.QualityReport.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ACancelledRequest_AfterTheSubmit_StillStoresTheReport()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        using var cancel = new CancellationTokenSource();
+        Factory.InsightsWorker.AfterSubmit = () => cancel.CancelAsync();
+
+        var result = await Factory.WithScopeAsync(sp => sp.GetRequiredService<QualityService>().RequestAsync(track.Id, cancel.Token));
+
+        result.ShouldBeAssignableTo<IStatusCodeHttpResult>()!.StatusCode.ShouldBe(StatusCodes.Status202Accepted);
+        (await Factory.FindTrackAsync(track.Id))!.QualityReport!.WorkerJobId.ShouldBe(Factory.InsightsWorker.OnlyJob());
+        Factory.InsightsWorker.Deleted.ShouldBeEmpty();
+    }
+}

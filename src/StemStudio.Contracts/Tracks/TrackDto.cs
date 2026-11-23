@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using StemStudio.Contracts.Insights;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Lyrics;
 
@@ -79,6 +80,10 @@ public sealed record TrackDto
     /// <summary>The song key next to the BPM (1.15.0) when chords are ready; null (absent on the wire) otherwise.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TrackKeySummaryDto? Key { get; init; }
+
+    /// <summary>Summary of the stem quality report (1.19.0, feature 020); null (absent on the wire) when no report was ever made.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public QualityBadgeDto? Quality { get; init; }
 
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }

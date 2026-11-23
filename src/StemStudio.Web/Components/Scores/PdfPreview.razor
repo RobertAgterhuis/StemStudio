@@ -3,7 +3,7 @@
 @using StemStudio.Contracts.Assets
 
 <div class="ss-pdf">
-    <iframe class="ss-pdf-preview" src="@Url" title="@($"Sheet music preview: {Asset.Name}")" loading="lazy"
+    <iframe class="ss-pdf-preview" src="@Url" title="@($"{Label}: {Asset.Name}")" loading="lazy"
             data-testid="@($"asset-preview-{Asset.Id}")"></iframe>
     <a class="ss-small ss-pdf-open" href="@Url" target="_blank" rel="noopener">Open the PDF in a new tab</a>
 </div>
@@ -12,6 +12,10 @@
     /// <summary>The score item.</summary>
     [Parameter, EditorRequired]
     public AssetDto Asset { get; set; } = default!;
+
+    /// <summary>The frame title before the item name ("Sheet music preview", "Handout preview").</summary>
+    [Parameter]
+    public string Label { get; set; } = "Sheet music preview";
 
     /// <summary>The PDF URL with <c>inline=true</c>.</summary>
     [Parameter, EditorRequired]

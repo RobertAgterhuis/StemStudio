@@ -91,11 +91,6 @@ export function expectOnlyAppOrigins(origins: readonly string[]): void {
 /** True when the stack runs the web with `StemStudio__Recording__TestLoopback=true` (e2e compose override, devops T010). */
 export const loopbackStack: boolean = process.env.E2E_RECORDING_LOOPBACK === '1';
 
-/** Skips in every browser but Firefox (the 015 Firefox smoke, T085). */
-export function requireFirefox(browserName: string): void {
-  test.skip(browserName !== 'firefox', 'Firefox smoke only');
-}
-
 /** Skips unless the stack is the TestLoopback stack. */
 export function requireLoopbackStack(): void {
   test.skip(!loopbackStack, 'needs the TestLoopback stack (E2E_RECORDING_LOOPBACK=1, e2e compose override)');

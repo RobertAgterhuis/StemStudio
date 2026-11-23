@@ -1,0 +1,6 @@
+{
+  "type": "https://stemstudio.local/problems/handout-not-completed",
+  "title": "Handout not completed",
+  "status": 409,
+  "detail": "Job is in state running."
+}

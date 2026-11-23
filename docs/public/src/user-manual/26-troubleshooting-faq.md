@@ -153,11 +153,24 @@ approval.
 - **The setlist PDF cannot be made**: *"Add songs first"* means the setlist is empty. When the
   processing service is unavailable, restart StemStudio and try again (chapter 9).
 
-## Keys or foot pedals do something unexpected
+## Stem quality or a handout looks wrong
+
+- **A clean-sounding stem is rated Poor for bleed**: instruments that hold notes together on the
+  same beats can read as bleed. Every rating is a rough indication for now (chapter 23); trust your
+  ears.
+- **A watery stem shows few artefacts**: artefacts are estimated from dropouts only; a watery
+  sound is not measured yet.
+- **No quality card on a track**: the quality report is switched off by default (chapter 23 says
+  how to switch it on); when it is on, tracks separated into 4 stems still get no report.
+- **"wait until one is ready"**: at most 3 handouts of one song or setlist are made at a time.
+- **Sheet music is missing from a handout**: open the item in the library at Advanced level; it
+  lists files that could not be read or were left out because the handout reached its size
+  limit (600 pages of sheet music).
+
 
 - **<kbd>R</kbd> or <kbd>C</kbd> no longer change the speed or the count-in**: they are the
   recording keys now. *Original speed and key* is <kbd>0</kbd>, the count-in
-  <kbd>Shift</kbd>+<kbd>K</kbd> (chapter 23).
+  <kbd>Shift</kbd>+<kbd>K</kbd> (chapter 24).
 - **No single-letter key works**: **Single-key shortcuts** is switched off in Preferences.
 - **A key cannot be chosen**: the browser, a screen reader or the lyrics editor needs it, or
   another command uses it; StemStudio names that command.
@@ -225,5 +238,5 @@ are never given to the AI agent and cannot be used as a voice sample (chapters 1
 **Can I record at a slower speed?** No. Recording works at the original speed and key so the
 take lines up with the stems; playing it back works at any speed and key (chapter 11).
 
-**Which browsers are supported?** Chrome, Edge and Firefox are tested; Safari works on a
+**Which browsers are supported?** Chrome and Edge are tested; Firefox and Safari work on a
 best-effort basis. For play-along recording use Chrome or Edge.

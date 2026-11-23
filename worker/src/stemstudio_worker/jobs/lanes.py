@@ -69,3 +69,32 @@ class LaneScheduler(QueueThread):
             _LOG.exception("A job in the %s lane crashed", self._name)
         finally:
             self._finished_unit()
+
+
+def _unknown_kind(job_id: str) -> None:  # pragma: no cover - every job names its process
+    """Default process of a shared lane: jobs are always submitted with their kind's function."""
+    raise LookupError(job_id)
+
+
+class SharedLane:
+    """A lane several job kinds share (014 ``practice``, 020 ``insights``); jobs name a process."""
+
+    def __init__(self, name: str) -> None:
+        """Create a stopped lane named ``name``."""
+        self.scheduler = LaneScheduler(name, _unknown_kind)
+
+    def start(self) -> None:
+        """Start the lane thread."""
+        self.scheduler.start()
+
+    def stop(self, timeout: float | None = None) -> None:
+        """Stop the lane thread; a running job fails at the next start."""
+        self.scheduler.stop(timeout)
+
+    def join(self, timeout: float | None = None) -> bool:
+        """Block until no job waits or runs; False on timeout."""
+        return self.scheduler.join(timeout)
+
+    def health(self) -> LaneHealth:
+        """Waiting jobs and whether one runs (``Health.lanes``)."""
+        return self.scheduler.health()

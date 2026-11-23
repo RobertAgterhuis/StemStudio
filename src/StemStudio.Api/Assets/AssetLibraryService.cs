@@ -10,8 +10,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="assets">Asset repository.</param>
 /// <param name="files">Asset file store.</param>
 /// <param name="reader">Maps items with the availability of their track.</param>
-/// <param name="worker">Worker client (cancels active renders).</param>
-public sealed class AssetLibraryService(IAssetRepository assets, IAssetFileStore files, AssetService reader, IWorkerClient worker)
+/// <param name="jobs">The worker lanes (cancel an active item's job).</param>
+public sealed class AssetLibraryService(IAssetRepository assets, IAssetFileStore files, AssetService reader, AssetJobWorkers jobs)
 {
     /// <summary>One page of items, newest first.</summary>
     /// <param name="request">The query values.</param>
@@ -63,7 +63,7 @@ public sealed class AssetLibraryService(IAssetRepository assets, IAssetFileStore
 
         try
         {
-            await AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken);
+            await jobs.DeleteAsync(asset, jobId, cancellationToken);
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {

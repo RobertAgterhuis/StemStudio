@@ -1,4 +1,5 @@
 using StemStudio.Api.Storage;
+using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 
@@ -7,16 +8,18 @@ namespace StemStudio.Api.Tracks;
 /// <summary>
 /// Deletes a failed or completed track: first the track row and its mixes (one unit of work), then best-effort its stem
 /// files and stored upload. Its recorded takes (feature 015) are deleted in the same unit of work, their files afterwards. The
-/// worker is only called to cancel a take that is still being saved, so its per-source cache stays intact.
+/// worker is only called to cancel a take that is still being saved and (best effort) to remove a quality job that is still
+/// queued or running (feature 020), so its per-source cache stays intact.
 /// </summary>
 /// <param name="tracks">Track repository.</param>
 /// <param name="stems">Stem file store.</param>
 /// <param name="uploads">Upload store.</param>
 /// <param name="generations">Generations (their source track is detached, feature 009).</param>
 /// <param name="takes">Deletes the track's takes (feature 015).</param>
+/// <param name="insights">The worker insights lane (the quality job of the track).</param>
 /// <param name="logger">Logger for file clean-up failures.</param>
 public sealed partial class TrackDeletionService(
-    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, IGenerationRepository generations, ITrackTakesCleanup takes, ILogger<TrackDeletionService> logger)
+    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, IGenerationRepository generations, ITrackTakesCleanup takes, IWorkerInsightsClient insights, ILogger<TrackDeletionService> logger)
 {
     /// <summary>Title of the 409 problem for a track that is still queued or processing.</summary>
     public const string StillProcessingTitle = "Track is still being processed";
@@ -51,8 +54,27 @@ public sealed partial class TrackDeletionService(
         await tracks.RemoveWithMixesAsync(track, cancellationToken);
         await DetachGenerationsAsync(id, cancellationToken);
         await takes.DeleteFilesAsync(takeAssets, cancellationToken);
+        await DeleteQualityJobAsync(track);
         DeleteFiles(track);
         return TypedResults.NoContent();
+    }
+
+    /// <summary>Removes the worker job of a quality report that is still queued or running; a failure is only logged.</summary>
+    private async Task DeleteQualityJobAsync(Track track)
+    {
+        if (!track.IsQualityActive || track.QualityReport!.WorkerJobId is not { } jobId)
+        {
+            return;
+        }
+
+        try
+        {
+            await insights.DeleteQualityJobAsync(jobId, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
+        {
+            LogQualityJobLeft(logger, track.Id, exception.Message);
+        }
     }
 
     private async Task DetachGenerationsAsync(Guid trackId, CancellationToken cancellationToken)
@@ -92,6 +114,9 @@ public sealed partial class TrackDeletionService(
             LogCleanupFailed(logger, trackId, what, exception);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Track {TrackId} deleted, but its quality job could not be removed from the processing service: {Reason}")]
+    private static partial void LogQualityJobLeft(ILogger logger, Guid trackId, string reason);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Track {TrackId} deleted, but its {What} could not be removed from disk")]
     private static partial void LogCleanupFailed(ILogger logger, Guid trackId, string what, Exception exception);

@@ -11,6 +11,11 @@ WeasyPrint with Pango, HarfBuzz, fontconfig, the Archivo font and DejaVu Sans. T
 (`STEMSTUDIO_SEPARATOR=fake`) uses the fake quality analyzer (fixed ratings per stem,
 data-model 2.6) and, if G2 shipped, the fake re-separator; handouts are rendered for real.
 
+The stem quality report is **switched off by default** (owner decision 2026-11-23, G1 failed): set
+`STEMSTUDIO_QUALITY_REPORT_ENABLED=true` (api and web; `docker-compose.e2e.yml` does this for the test stacks)
+before the steps below that use it. While it is off, `POST /api/tracks/<trackId>/quality` answers `503` and the track
+page has no **Stem quality** card.
+
 Check the worker: `curl -s http://localhost:8000/health` shows `insights.analyzerVersion`,
 `insights.renderer.weasyprint`, `insights.fonts.archivo = true` and `lanes.insights`.
 
@@ -27,7 +32,7 @@ Check the worker: `curl -s http://localhost:8000/health` shows `insights.analyze
    paper.
 5. Write **Practice notes** per family on the track page; they appear in that family's handout.
 6. Setlist page -> **Setlist handout** -> family.
-7. (G2) Tip **Re-separate with the high-quality vocal model** -> confirm -> stems are replaced;
+7. (G2, deferred in Phase 0: skip) Tip **Re-separate with the high-quality vocal model** -> confirm -> stems are replaced;
    each rating shows "was ...".
 
 API (what the 011 agent will call):
@@ -58,5 +63,5 @@ curl -s -X POST http://localhost:8081/api/assets/handouts -H "Content-Type: appl
 | V6 | Setlist of 3 (and 20 for timing) | running order, contents with page numbers, one bookmark per song; 20 songs <= 90 s |
 | V7 | Security | a crafted document with `pdfPath: assets/../x.pdf` -> 400; an `<img src="http://...">` in practice notes appears as text, no request leaves the worker (network capture on the compose network) |
 | V8 | Accessibility | axe scan clean on the quality panel and handout dialog; keyboard-only: menu, dialog, tip buttons; screen reader announces ratings with text |
-| V9 | Manuals | user manual chapter "Stem quality and lesson handouts", technical manual (lane, env vars, Pango/fonts, G2 model); `node tools/docs/check.mjs` passes |
-| V10 (G2) | Re-separation on the GPU and the CPU | timing vs estimate; ratings "was ..." shown; failure leaves stems unchanged |
+| V9 | Manuals | user manual chapter "Stem quality and lesson handouts", technical manual (lane, env vars, Pango/fonts); `node tools/docs/check.mjs` passes |
+| V10 (G2, deferred: skip) | Re-separation on the GPU and the CPU | timing vs estimate; ratings "was ..." shown; failure leaves stems unchanged |

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar, Final
 
+from stemstudio_worker.jobs.input_guard import check_input
 from stemstudio_worker.jobs.json_store import new_id
 from stemstudio_worker.jobs.lane_service import LaneJobService, Outcome
 from stemstudio_worker.jobs.practice_lane import PracticeLane, PracticeParts
@@ -32,7 +33,6 @@ from stemstudio_worker.ports import (
     SCORE_MUSICXML_PATTERN,
     STEM_PATH_PATTERN,
     DocumentError,
-    InputNotFoundError,
     InputPathError,
     LibraryReader,
     RenderError,
@@ -131,14 +131,6 @@ class _PracticeService[R: Any](LaneJobService[R]):
         record = self._store.get(job_id)
         return None if record is None else wire_job(record.job, self.WIRE)
 
-    def process(self, job_id: str) -> None:
-        """Run one job to a terminal state (lane thread); skips unknown and finished jobs."""
-        self._run_job(job_id, self.run)
-
-    def run(self, record: R, out_dir: Path) -> Outcome:
-        """Do the work of ``record`` into ``out_dir``; return the completed job's changes."""
-        raise NotImplementedError
-
     def _stamp(self) -> dict[str, Any]:
         now = self._clock()
         return {"job_id": new_id(), "status": _S.QUEUED, "progress": 0, "created_at": now,
@@ -164,25 +156,6 @@ class _PracticeService[R: Any](LaneJobService[R]):
         return self._library.resolve(path)
 
 
-def check_input(library: LibraryReader, path: str, pattern: re.Pattern[str]) -> None:
-    """Require ``pattern`` and pass the library's path guard.
-
-    Raises:
-        InputPathError: Not the pattern, not on the allow-list or outside the root (400).
-        InputNotFoundError: The file does not exist (404).
-
-    A library that is not readable now is not an error here: the job fails when it runs.
-    """
-    if not pattern.fullmatch(path):
-        raise InputPathError(f"Input path is not allowed: {path}")
-    try:
-        library.resolve(path)
-    except (InputPathError, InputNotFoundError):
-        raise
-    except RenderError:
-        return
-
-
 class SectionService(_PracticeService[StoredSectionJob]):
     """Section jobs (``POST /v1/section-jobs``)."""
 
@@ -197,7 +170,7 @@ class SectionService(_PracticeService[StoredSectionJob]):
     def create(self, request: SectionJobRequest) -> SectionJob:
         """Check the stem and detail paths and queue the job (400 / 404 as ``check_input``)."""
         for path in section_inputs(request).values():
-            check_input(self._library, path, _pattern_of(path))
+            check_input(self._library.resolve, path, _pattern_of(path).fullmatch)
         job = StampedSectionJob(**self._stamp())
         created: SectionJob = self._queue(StoredSectionJob(job=job, request=request))
         return created
@@ -246,7 +219,7 @@ class ScoreViewService(_PracticeService[StoredScoreViewJob]):
 
     def create(self, request: ScoreViewJobRequest) -> ScoreViewJob:
         """Check the MusicXML path (``assets/<uuid>/score.musicxml`` only) and queue the job."""
-        check_input(self._library, request.musicxml, SCORE_MUSICXML_PATTERN)
+        check_input(self._library.resolve, request.musicxml, SCORE_MUSICXML_PATTERN.fullmatch)
         job = StampedScoreViewJob(**self._stamp())
         created: ScoreViewJob = self._queue(StoredScoreViewJob(job=job, request=request))
         return created

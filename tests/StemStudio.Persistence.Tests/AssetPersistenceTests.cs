@@ -74,6 +74,23 @@ public sealed class AssetPersistenceTests
     }
 
     [Fact]
+    public async Task StoredStatus_ReadsPastTheTrackedCopy()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var asset = RawAsset(TrackA, "Retried", T0);
+        await AddAsync(db, asset);
+
+        await using var read = db.NewContext();
+        var assets = new AssetRepository(read);
+        var tracked = (await assets.FindAsync(asset.Id, Ct))!;
+        tracked.AssignJob(JobId, T0);
+        tracked.Fail("boom", T0);
+
+        (await assets.StoredStatusAsync(asset.Id, Ct)).ShouldBe(AssetStatus.Queued);
+        (await assets.StoredStatusAsync(Guid.NewGuid(), Ct)).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task ChangesAndRemoval_AreSaved()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();

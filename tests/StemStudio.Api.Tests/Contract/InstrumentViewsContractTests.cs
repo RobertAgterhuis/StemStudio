@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Contracts;
 using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Scores;
@@ -61,24 +60,24 @@ public sealed class InstrumentViewsContractTests
     [Fact]
     public void Backend_IsLabelled1150AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        // Since the 020 Phase 0 the current document is 020's 1.19.0; 016's 1.15.0 is linked as Contract/016.
+        var info = Backend016.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.15.0");
         Strings(info["x-stemstudio-contains"]!).TakeLast(3).ShouldBe(["1.13.0", "1.14.0", "1.15.0"]);
-        ManifestBuilder.BackendApiVersion.ShouldBe("1.15.0");
     }
 
     [Theory]
     [MemberData(nameof(Changed1140Entries))]
     public void Backend1150_Contains1140UnchangedExceptTheAdditions(string section, string[] changed)
     {
-        ChangedEntries(Backend015, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend015, Backend016, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Fact]
     public void Backend1150_AddsExactlyTheFifteenOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(OperationOf).Except(Backend015.Operations.Select(OperationOf)).ToList();
+        var added = Backend016.Operations.Select(OperationOf).Except(Backend015.Operations.Select(OperationOf)).ToList();
 
         added.ShouldBe(Operations, ignoreOrder: true);
         Backend016Delta.Operations.Select(OperationOf).ShouldBe(Operations, ignoreOrder: true);
@@ -87,7 +86,7 @@ public sealed class InstrumentViewsContractTests
     [Fact]
     public void DeltaSchemas_AreMergedUnchanged()
     {
-        var merged = Section(OpenApiContract.Backend.Root, "components/schemas");
+        var merged = Section(Backend016.Root, "components/schemas");
         var changed = Section(Backend016Delta.Root, "components/schemas")
             .Where(s => !s.Key.EndsWith("Extension", StringComparison.Ordinal))
             .Where(s => s.Value!.ToJsonString().Replace(ExternalRef, "#", StringComparison.Ordinal) != merged[s.Key]?.ToJsonString())
@@ -99,7 +98,7 @@ public sealed class InstrumentViewsContractTests
     [Fact]
     public void Extensions_AreOptionalPropertiesOfTheBaseSchemas()
     {
-        var merged = Section(OpenApiContract.Backend.Root, "components/schemas");
+        var merged = Section(Backend016.Root, "components/schemas");
         var expected = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["Track"] = ["instrumentViews", "key"],

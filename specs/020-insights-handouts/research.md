@@ -1,6 +1,6 @@
 # Research: Insights and Handouts (feature 020)
 
-Architect, 2026-11-16. Decisions are binding through
+Architect, 2026-11-16; Phase 0 results 2026-11-23 (last section). Decisions are binding through
 [ADR-029](../../docs/decisions/ADR-029-stem-quality-report-and-handouts.md). Items marked
 **(P0)** are measurements of Phase 0 (tasks T005-T008). They run when 014 and 016 are merged and
 their results are written into this file under "Phase 0 measurements". No number below is claimed
@@ -54,6 +54,18 @@ Edge Cases).
 in this song"; B1 is computed in the Phase 0 validation as a challenger and replaces B2 only if
 it ranks better on V1 and V2 (recorded in research).
 
+**Wave outcome (2026-11-23, beat-analysis us1 hand-off; orchestrator 14:40 and 15:33)**: the
+quiet-frame fit is replaced by a **ratio floor**: per band, the 5th percentile of `P_i / P_j`
+over the source's loud cells (j active and within 20 dB of its band peak); the guarded gain is
+`g* = min(g, floor, 1)`, so the gain is also capped at 1 (`thresholds.MAX_GAIN`). Same idea (bleed
+is a constant-ratio copy, present in every loud cell of the source), same cost, better ranking on
+V1 (Spearman 0.95 against 0.81). The co-occurrence cap compares the full and the guarded share
+(ratio above 2). Thresholds from V1: T1 0.0065, T2 0.053 (an energy share, so far below the plan's
+guesses 0.10/0.30). Known limit: instruments that sustain together on one grid (the dense control
+song) can read as bleed (1 of 6 stems falsely High); the control stays a strict `xfail` and the
+labels stay `indicative` until G1 runs on real music. B1 was not needed as a challenger. Binding
+formulas: data-model 4.2-4.3.
+
 ## R-03 Artefact measures (candidates and choice)
 
 | Id | Measure | Idea |
@@ -66,6 +78,17 @@ it ranks better on V1 and V2 (recorded in research).
 **Decision**: artefact index = max(normalised A1, normalised A2), plus A3 as artefact *kinds* for
 detail stems. Normalisation constants and level thresholds are calibrated in Phase 0 on V1 and
 become constants in the worker's `insights/thresholds.py`; any change bumps `analyzerVersion`.
+
+**Wave outcome (2026-11-23, orchestrator 14:40 and 15:33)**: **A1 flicker is not shipped.** The
+fixed musical-noise injection still left it flat, and the 1 h redesign (a stem-only dip statistic)
+rose for 5 of 6 families but with scales about tenfold apart per family (clean vocals already
+1.5-1.8 per mille), so no family-neutral threshold exists. The artefact level is **A2 dropouts
+only**, and the labels stay `indicative`. A2 judges every family against its own envelope: a hole
+lies more than 30 dB below the +-0.5 s median, lasts at most 0.3 s, and both falls and recovers by
+at least 25 dB within two 23 ms blocks (natural decays are slow, so they are not holes);
+`index = x / (x + 50)` with `x` the stem's share over the mix's share (floor 1e-3). Thresholds from
+V1: T1 0.35, T2 0.62 (Spearman 0.96, 100 % of the levels correct, clean stems of every family 0).
+A3 unchanged. Binding formulas: data-model 4.4.
 
 ## R-04 Validation protocol and gate G1 (P0)
 
@@ -90,8 +113,9 @@ summed into `other` for scoring), compute BSS Eval v4 SIR and SAR per song and s
 index with -SIR and our artefact index with -SAR per stem type.
 
 **Gate G1** (per stem type and dimension): rho >= 0.5 (bleed vs SIR) and rho >= 0.4 (artefacts
-vs SAR) -> label "validated"; otherwise "rough indication" and only the High level is shown for
-that dimension (Low/Medium become "unknown"). Guitar, piano and all detail stems are not covered
+vs SAR) -> label "validated"; a dimension that is measured and fails -> "rough indication" and
+only the High level is shown for it (Low/Medium become "unknown"). A dimension that was not
+measured (no V2 run yet, Phase 0 2026-11-23) is "rough indication" with all levels shown. Guitar, piano and all detail stems are not covered
 by V2 and are always "rough indication". The results table is published under "Phase 0
 measurements" and summarised in the help topic `stem-quality-reliability`.
 
@@ -183,6 +207,14 @@ Expanded Bold) generated with the fontTools instancer at build (OFL allows).
 The alignment and transposition are pure functions in the backend domain (the API assembles the
 handout document; the worker only lays it out), so they are unit-tested without PDFs.
 
+**Phase 0 (2026-11-23, 016 merged)**: feature 016 already ships these rules in the backend domain:
+`ChordSpeller` (spelling by key, transposition via `ChordDisplay`), `ChordSheetBuilder` (chords over
+lyric words for word-synced lyrics, nearest-word placement for line-synced lyrics, instrumental
+rows) and `KeyFormatter.WrittenKey` (written key of a transposing instrument). The handout
+**reuses them**, so the app's chord sheet and the handout agree; the line-timing rule above is
+replaced by 016's nearest-word rule and no own chord-symbol parser is written (016 chords are
+structured `{root, quality, bass}`).
+
 ## R-09 Style consistency
 
 The app's light-theme tokens (`src/StemStudio.Web/wwwroot/css/tokens.css`) and the Archivo font
@@ -202,5 +234,139 @@ topic says so.
 
 ## Phase 0 measurements
 
-To be filled by T005-T008 (G1 table, G2 result, P0-4 rendering checks, analysis timing for
-SC-001, the sum-of-stems difference, model facts for `vocals-hq`).
+Architect, 2026-11-23 (T005, T006). Measured on the owner's machine (RTX 5070 Ti 16 GB; the worker
+image `stemstudio/worker:local-gpu`, Debian 13, run in throw-away containers with only a scratch
+mount; the running stack was not touched). Scripts and logs stay in the git-ignored scratch folder
+`.claude/scratchpad/020-round/{g2,p04}/` (not committed).
+
+### Gate G2 (T005): **pending owner, dataset needed** (measured later: failed, see "Gates G1 and G2 on MUSDB18-HQ")
+
+MUSDB18-HQ is not on this machine, so the G2 criteria (median vocals SDR gain >= 1.0 dB and median
+SIR gain >= 0.5 dB of the other stems, measured by us on V2) **could not be measured**. What was
+measured or collected:
+
+| | BS-RoFormer viperx `model_bs_roformer_ep_317_sdr_12.9755` | Mel-Band RoFormer KimberleyJensen (vocals) |
+|---|---|---|
+| Weights | `https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_317_sdr_12.9755.ckpt` | `https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt` |
+| Size, SHA-256 | 639,331,213 B, `5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa` (source publishes no hash) | 913,106,900 B, `87201f4d31afb5bc79993230fc49446918425574db48c01c405e44f365c7559e` (equals the Hugging Face ETag) |
+| Config (ZFTurbo MSST) | `configs/viperx/model_bs_roformer_ep_317_sdr_12.9755.yaml` (SHA-256 `42e5635c...5f2c`) | `configs/KimberleyJensen/config_vocals_mel_band_roformer_kj.yaml` (SHA-256 `f63f38eb...1926`) |
+| Licence status (ADR-009) | **none stated** at the source (unclear: inside the weights exception) | **MIT** (Hugging Face metadata; README empty) |
+| Loads with the vendored MSST code (002) | yes, strict `load_state_dict`, `weights_only=True`; needs a `[:, None]` adapter (one stem returns `(b, c, t)`) | **no**: the vendored code has no `MelBandRoformer`; the spike used MSST `mel_band_roformer.py` (SHA-256 `a28fce62...9fc5`) with a no-op `beartype` shim (would be a new vendored file) |
+| Peak VRAM (`max_memory_allocated`, fp32, batch 1) | 1,612 MiB (NVML incl. CUDA context 2,914 MiB) | 1,710 MiB (NVML 2,667 MiB) |
+| GPU time per minute of audio | 11.6 s (5-min song about 53 s) | 5.2 s (about 24 s) |
+| CPU time per minute (8 threads) | about 373 s (5-min song about 28 min) | about 152 s (about 11.5 min) |
+| Published vocals SDR (MSST Multisong) | 10.87 dB | 10.98 dB |
+| Public paired comparison vs `htdemucs_6s` (python-audio-separator `models-scores.json`, median, shared tracks) | vocals SDR +3.39 dB, vocals SIR +8.2 dB (12 tracks) | vocals SDR +2.95 dB, vocals SIR +8.4 dB (11 tracks) |
+
+- **Sum of stems vs original** (`htdemucs_6s` through the worker's `apply_pretrained`, synthetic
+  60 s mix): **-27.1 dB** (expected below -30 dB). Demucs does not close the sum exactly; the full
+  `vocals-hq` chain (RoFormer vocals + `htdemucs_6s` on the rest) gave -26.9 dB. Re-measure on real
+  music before the "input = sum of the stems" assumption is accepted.
+- Separation quality on synthetic signals is meaningless (a vibrato sine is ignored as "voice");
+  only V2 can decide G2.
+- **Recommendation** (if the owner provides MUSDB18-HQ and G2 passes): the Mel-Band RoFormer KJ
+  checkpoint (MIT, twice as fast, 1.7 GiB peak) with `GpuNeed("Mel-Band RoFormer vocals", 3000)`;
+  it needs one new vendored MSST file. Public numbers suggest the vocals criterion of G2 is likely
+  met; the "other stems SIR" criterion has no public evidence.
+- **Decision for this round**: User Story 5 is deferred; the G2 contract parts are not merged
+  (DELTA.md "Phase 0 outcome"); no G2 task runs in the wave.
+
+### Gate G1 (V2 real validation): **not run, labels `indicative`** (measured later: failed, see "Gates G1 and G2 on MUSDB18-HQ")
+
+Same dataset gap. T039 (beat-analysis) runs the protocol of R-04 when MUSDB18-HQ is available.
+Until then every reliability label is `indicative` ("rough indication") and **no level is masked**:
+a dimension reports `unknown` instead of low/medium only after it has been measured and *failed*
+G1 (data-model 4.5). V1 (synthetic, committed) still gates the thresholds (SC-002).
+
+### P0-4 WeasyPrint in the worker image (T006): **passed**
+
+| Check | Result |
+|---|---|
+| Versions | WeasyPrint 70.0 (2026-09-08) with Pango **1.56.3**, HarfBuzz 10.2.0, fontconfig 2.15.0, libcairo2 1.18.4: Pango and HarfBuzz are **already in the image** (Debian 13 packages pulled in by other libraries); both variants share `python:3.12-slim`. devops lists `libpango-1.0-0` and `libpangoft2-1.0-0` explicitly so they are not lost when another package changes. |
+| Fonts | Archivo variable WOFF2 via `@font-face` (`file:` URL of the packaged copy) embeds as subset `Archivo`/`Archivo-Bold`; characters the Latin subset lacks (e.g. the `ij` ligature U+0133) fall back to DejaVu Sans automatically (fontconfig). `font-stretch: 125%` renders without error, but the expanded width was **not visibly confirmed** at preview resolution: audio-ingest checks it in T069 and falls back to static instances (fontTools instancer, OFL allows) or drops the stretch. |
+| Text | Latin-1 + Latin Extended-A text extracts correctly (pypdf); autoescaped notes show `<b>` as text; the chord row (an absolutely positioned chord over an inline-block word) stays aligned over 24 lines and across a page break. |
+| Paged media | Footer "For personal practice and teaching only" and "Page n of N" on every page; running header via `string-set`; contents with `target-counter()`; bookmarks from headings (one top-level entry per song); PDF title metadata and `/Lang en`. |
+| Timing | Song handout (3-4 pages) 0.7-0.9 s; **20-song setlist (61 pages) 8.0 s** (SC-004 budget 90 s); pypdf notation merge 5 ms per page; page count deterministic. |
+| No network | **WeasyPrint 70 changed the fetcher API**: `url_fetcher` must be an instance of a subclass of `weasyprint.urls.URLFetcher` overriding `fetch(url, headers=None)` and returning `URLFetcherResponse` (a plain function fails with `AttributeError: _fail_on_errors`). The spike's subclass served only packaged files and refused `https://example.com/x.png` (recorded, rendering continued). Use `allowed_protocols=("file",)` as a second guard. |
+
+Typst stays the recorded fallback; it is not needed.
+
+### Wave measurements (2026-11-23)
+
+| What | Result | Source |
+|---|---|---|
+| V1 bleed (30 ordered pairs x 4 amounts, index = max over sources), `arranged_song` seeds 7/11/23 | Spearman 0.94/0.97/0.91; levels correct 93/87/87 %; `mainSource` correct 100 % at amount >= 0.1 | beat-analysis us1 hand-off, `test_validation_v1.py` |
+| V1 playing-together control (kick and bass on the same onsets) | never High (co-occurrence cap) | same |
+| V1 dense same-grid control (every family all the time) | 1 of 6 stems falsely High (guitar 0.080 from bass); strict `xfail`, known limit | same |
+| V1 dropouts, 6 families x 3 amounts | Spearman 0.96, 100 % correct; clean stems 0 | same |
+| G1 (T039) | **failed** on all 8 cells (MUSDB18-HQ, 25 tracks; next section); harness `tests/insights/g1.py`, skips without `STEMSTUDIO_MUSDB_DIR` | beat-analysis G1/G2 run |
+| SC-001 analysis time (T103), 5-min song, 6 standard + 12 detail stems, CPU only (Core Ultra 9 285K) | 14.7 s with default BLAS threads, **12.8 s** with 4 threads (budget 30 s) | beat-analysis polish hand-off |
+| SC-004 render time (T104), worker image | song handout 7 pages **0.67 s** (budget 15 s); 20-song setlist 123 pages **2.98 s** (budget 90 s); a 50-song request at 96 % of the text and cell limits 35 s | audio-ingest polish hand-off |
+| Notation PDF bomb (security fix) | 10 pages x 1.8 M tokens: 373 s before, unreadable after 0.26 s with the parse limits | audio-ingest polish hand-off |
+
+### Gates G1 and G2 on MUSDB18-HQ (2026-11-23)
+
+Beat-analysis lane, research use only: the dataset was mounted read-only, separated audio lived only in a git-ignored
+scratch folder and was deleted per track; only numbers, scripts and logs are kept
+(`.claude/scratchpad/020-round/g12/`, not committed). Protocol: MUSDB18-HQ `test` split, **fixed seeded subset of
+25 tracks** (`sorted(random.Random(20261123).sample(sorted(test), 25))`, 104.9 min of audio; the full 50 tracks
+would have taken more than 3 h on the shared machine). Production separation `htdemucs_6s` through the worker's own
+`demucs_runtime` (guitar + piano + other summed into `other` for scoring); museval **0.4.1**
+`bss_eval(window=44100, hop=44100)`, per track the nanmedian over 1-s frames; Spearman of our bleed index against
+-SIR and of our artefact index against -SAR, 95 % CI by bootstrap (2000 resamples, seed 20261123). Analyzer
+`SignalQualityAnalyzer` 1.0.0.
+
+**G1: failed on every stem type and dimension (8 of 8).**
+
+| Stem type | Bleed vs -SIR rho (95 % CI) | Gate 0.5 | Artefacts vs -SAR rho (95 % CI) | Gate 0.4 |
+|---|---|---|---|---|
+| vocals | 0.05 (-0.38 .. 0.49) | failed | -0.07 (-0.46 .. 0.34) | failed |
+| drums | 0.49 (0.10 .. 0.76) | failed (just) | **-0.60** (-0.79 .. -0.30) | failed (inverse) |
+| bass | 0.14 (-0.32 .. 0.55) | failed | -0.16 (-0.56 .. 0.30) | failed |
+| other | -0.12 (-0.53 .. 0.29) | failed | 0.02 (-0.35 .. 0.39) | failed |
+
+- Pooled over the four stem types: bleed rho 0.23, artefacts rho -0.22: no signal either.
+- The artefact index is 0 on most tracks (non-zero on 9 / 8 / 16 / 6 of 25 for vocals / drums / bass / other), so
+  most artefact rhos are driven by ties. Drums artefacts run the wrong way significantly: the dropout detector
+  plausibly fires on genuinely sparse drum parts, which score well in BSS Eval.
+- Levels on real separations are almost all Low (vocals and drums Low on 25/25 tracks in both dimensions).
+- Caveat: per-track SIR measures all interference after 512-tap filtering, not only the constant-ratio copy that
+  the bleed measure models; the gate asks the index to rank songs by that, and it does not.
+- **Code change** (R-04, label table only): `G1_RESULTS` = `failed` for all 8 cells, `ANALYZER_VERSION` 1.0.0 ->
+  1.0.1. Low/Medium are shown as `unknown` for vocals, drums, bass and other; guitar, piano, detail and rest stems
+  stay rough indications with every level. No contract change.
+- **Owner decision 2026-11-23:** the quality report ships **switched off** (`StemStudio:QualityReport:Enabled`,
+  default false; ADR-029 D8). The applied R-04 masking makes the four validated-and-failed stem types less
+  informative than guitar/piano; the remedy is a redesign of the measures (backlog), not a change of R-04.
+
+**G2 (SC-007): failed as specified - User Story 5 stays removed.** Museval medians over the 25 tracks; gain =
+per-track difference against the production stems on the same references.
+
+| | Variant A (R-06: input = sum of six stems) | Variant B (diagnostic: input = original mix) | Gate |
+|---|---|---|---|
+| vocals SDR, production -> hq (median) | 7.72 -> 10.53 dB | 7.72 -> 11.05 dB | |
+| median vocals SDR gain | **+2.70 dB** (25/25 tracks > 0) | **+3.21 dB** (25/25) | >= +1.0: pass |
+| median SIR gain, other stems pooled (n = 75) | **+0.09 dB** | **+0.24 dB** | >= +0.5: **fail** |
+| per stem drums / bass / other SIR gain | +0.02 / +0.17 / +0.18 | +0.34 / -0.08 / +0.88 | |
+| median over tracks of the mean SIR gain of the three | -1.71 dB | +0.51 dB | (alternative reading) |
+| SAR gain drums / bass / other | -0.11 / -0.48 / -0.39 | +0.28 / +0.02 / +0.67 | |
+
+- The R-06 input assumption does not hold: the six production stems sum to **-20.8 dB** against the mixture
+  (median; min -25.4, max -12.8; planned: better than -30 dB; the spike measured -27 dB on synthetic audio).
+  Variant A degrades the other stems (SAR and, for bass, ISR drop); on 4 tracks its stems sum to more error than
+  signal (-1.4 to +2.9 dB), all among the 5 tracks whose residual Demucs vocals were folded into `other`.
+- Variant B is uniformly better (other SDR +1.12 dB, 21/25 tracks) but misses the pooled gate; it passes only the
+  per-track-mean reading (+0.51 dB), which is marginal.
+- Runtime (RTX 5070 Ti, uncontended): `htdemucs_6s` 0.9 s per minute of audio (1,468 MiB peak); KJ Mel-Band
+  RoFormer 4.4 s per minute (1,710 MiB); the `vocals-hq` chain 26 s for a 5-min song; our quality analyzer (CPU,
+  10 threads) 4.5 s per minute. `GpuNeed("Mel-Band RoFormer vocals", 3000)` would stay adequate.
+- Per R-06 a fail removes FR-007, SC-007, the `reseparation` contract parts, the `rerun-high-quality` tip and
+  T088-T099. Re-scope options for a later spec decision (backlog): **vocals-only HQ** (replace only the vocals stem,
+  keep the production instrumentals; smoke track vocals +1.9 dB SDR, other stems unchanged, but the stem sum no
+  longer matches the mix) or **variant B** (the original audio as input: the API would have to keep the original,
+  and the gate would need re-wording).
+
+### Not measured in Phase 0
+
+SC-001 analysis timing (needs the real analyzer, T103) and the SC-004 timings in the final image
+(T104) are measured by their owners in the polish phase.

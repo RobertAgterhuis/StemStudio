@@ -238,6 +238,34 @@ Untrusted input: worker results, request bodies and the browser preferences reco
   take assets cannot be renamed, deleted or retried through the generic asset endpoints
   (`409 managed-by-take`).
 
+## Insights and handouts (020)
+
+Untrusted input: request bodies, the library's notation PDFs and artwork, and worker results.
+
+- **No network in the renderer.** WeasyPrint's fetcher is a `URLFetcher` subclass that serves
+  only the packaged assets and the job's allow-listed files (`allowed_protocols=("file",)`); every
+  `data:` URI is refused, and every `HTML()`/`CSS()` call passes that fetcher explicitly (a
+  quality-gate rule). Templates are Jinja2 with autoescape, so notes and lyrics print as text.
+- **Containment.** Each job type has its own allow-list (quality: stems; handouts: notation PDFs
+  and artwork); handout inputs get a separate containment check on top of the path guard. The
+  library is mounted read-only, so the remaining check-then-open window (TOCTOU) is accepted.
+- **Hostile PDFs.** Notation PDFs are parsed with pypdf limits (200,000 tokens per content
+  stream, 16 MiB per decoded stream, 64 MiB decoding work), at most 50,000 resource objects per
+  page, and resources stripped to drawing keys (no actions, files, annotations or metadata). A
+  content-stream bomb that took 373 s before the fix is now refused in 0.26 s; a file over a limit
+  becomes a note page (`notation-unreadable`) instead of failing the handout.
+- **Job limits.** The API refuses before it submits and the worker enforces again: 8 MiB body,
+  500,000 text characters, 30,000 layout cells, 128 MiB of notation; while rendering 600 notation
+  pages, 128 MiB of notation and 240 s per job; artwork JPEG only and at most 40 MP (Pillow pixel
+  cap).
+- **API.** Enums are bound by name only (numbers answer `422`); at most 3 handouts per song or
+  setlist are made at a time and the name is chosen under the start lock; practice-note upserts and
+  the quality start run under a lock; a cancelled or failed start removes its orphan worker job;
+  worker refusals answer fixed texts, never the worker's detail. Stored quality reports are read
+  with a tolerant JSON reader.
+- **Backups.** The three 020 writes are not gated during a backup (they never delete or replace
+  library files, 013 policy); the maintenance `503` covers a restore switch.
+
 ## Privacy
 
 Audio never leaves the machine. Online lookups (005) send only title, artist, duration and

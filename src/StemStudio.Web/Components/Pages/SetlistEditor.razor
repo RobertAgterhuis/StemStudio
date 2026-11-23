@@ -49,12 +49,20 @@
                           data-testid="@($"setlist-play-{Setlist.Id}")" />
             @if (PdfOptions)
             {
-                <RadzenButton Text="PDF for the stand" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Light" Click="() => PdfOpen = true" data-testid="setlist-pdf"
+                <RadzenButton Text="Print setlist" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Light" Click="() => PdfOpen = true" data-testid="setlist-pdf"
                               data-help-id="setlist-pdf" />
             }
             else
             {
-                <a class="rz-button rz-light ss-link-button" href="@PdfUrl" download data-testid="setlist-pdf">PDF for the stand</a>
+                <a class="rz-button rz-light ss-link-button" href="@PdfUrl" download data-testid="setlist-pdf">Print setlist</a>
+            }
+            @if (Setlist.Entries.Count > 0)
+            {
+                @* 020 US4: the lesson handout per family, kept in the library, next to 014's quick stand PDF. *@
+                <div class="ss-setlist-handout">
+                    <HandoutMenu Source="HandoutSourceDto.Setlist(Setlist.Id)" Prefix="setlist-handout" />
+                    <HelpHint HelpId="setlist-handout-menu" />
+                </div>
             }
         </div>
         <ol class="ss-setlist-entries">

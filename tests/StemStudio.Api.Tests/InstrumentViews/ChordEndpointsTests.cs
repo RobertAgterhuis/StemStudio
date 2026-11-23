@@ -277,7 +277,7 @@ public sealed class ChordEndpointsTests : ApiTestBase
         var detailHooks = await Factory.WithScopeAsync(sp => Task.FromResult(sp.GetServices<IDetailCompletionHook>().Select(hook => hook.GetType()).ToList()));
 
         hooks.ShouldContain(typeof(AnalysisAutoStarter));
-        detailHooks.ShouldBe([typeof(AnalysisAutoStarter)]);
+        detailHooks.ShouldContain(typeof(AnalysisAutoStarter), "feature 020 adds the quality trigger as a second detail hook");
     }
 
     [Fact]

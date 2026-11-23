@@ -230,6 +230,29 @@ chord options; profiles `strings`, `brass`, `woodwinds`; `listAssets` query `cha
 `trackId`); typed `422` score problems `tablature-not-allowed`, `capo-not-allowed`,
 `tuning-mismatch`, `clef-not-allowed`, `part-not-allowed` and `409 chords-not-ready`.
 
+### Insights and handouts (020, backend API 1.19.0)
+
+| Method and path | Purpose |
+|---|---|
+| `GET`, `POST /api/tracks/{trackId}/quality` | Read the quality report (status `none` when never made, ratings, reasons, bleed and artefact estimates with reliability labels, up to two tips per stem, `outdated`) and request a new one (`202`). `409 track-not-ready` (not completed, or not a six-stem separation), `quality-running`; `503 worker-unavailable`. While `StemStudio:QualityReport:Enabled` is false (the default): `GET` answers status `none`, `POST` answers `503` with the detail "switched off" (no problem type of its own) and `Track.quality` is absent |
+| `GET /api/handouts/options` | For `trackId` or `setlistId`, `family` and `transposition`: the ingredients with status and create-actions, the notation choices and the estimate. `409 too-many-songs` above `StemStudio:MaxSetlistHandoutSongs` |
+| `POST /api/assets/handouts` | Create a handout (`202`, an `Asset` of kind `handout`). `409 track-not-ready`, `setlist-empty`, `too-many-songs`, `handouts-active` (3 per song or setlist being made; a Retry is not counted), `insufficient-disk-space`; `422` (field errors; the four job limits on the field `document`, checked before submitting); `503` |
+| `GET /api/tracks/{trackId}/practice-notes`, `PUT .../practice-notes/{family}` | Read the notes, set one (1-4,000 characters; empty text deletes, `204`) |
+
+Additions to existing operations (optional on the wire): `Track.quality` (badge), `Asset.handout`
+(`HandoutFacts`: pages, songs, included and omitted ingredients, warnings, outline),
+`Provenance.handoutRecipe` (**Make again** posts it unchanged), `listAssets?kind=handout`,
+`AssetKind`/`AssetOrigin` `handout`. Enums are bound by name only (numbers answer `422`). None of
+the three writes is gated during a backup (013 policy: only deleting or replacing library files
+is); the maintenance `503` during a restore switch still applies. Fixed refusal texts: `409
+handouts-active` *"Up to 3 handouts of a song or setlist are made at a time; wait until one is
+ready."*; `422 document` *"The handout is too large to send to the processing service (over 8
+MiB) ..."*, *"... more than 500,000 characters of text ..."*, *"... more than 30,000 sections,
+bars, chords and lyric lines ..."*, *"The sheet music of the handout is larger than 128 MiB
+together ..."*; a worker refusal never passes the worker's detail through but answers *"The
+processing service could not lay out this handout. Try again, or leave out an ingredient."*
+(handouts) or *"The processing service refused the quality check; try again."* (quality).
+
 ## Worker API (port 8000, internal)
 
 | Method and path | Purpose |
@@ -299,6 +322,23 @@ and the BTC checkpoints load with `torch.load(weights_only=True)` and three allo
 The transcription request gains the tablature, part and chord-symbol options and a single drum
 piece; MIDI files are always at sounding pitch, drums on the General MIDI channel 10 map (kick 36,
 snare 38, toms 47, hi-hat 42, cymbals 49).
+
+### Insights lane (020)
+
+`POST /v1/quality-jobs` and `POST /v1/handout-jobs` (with `GET`, `DELETE` per id and
+`GET /v1/handout-jobs/{id}/file`, `409 handout-not-completed` before completion) share the lane
+`insights` (`Health.lanes.insights`), one job at a time; `Health.insights` reports the analyser
+(`real`/`fake`, version), WeasyPrint and Pango versions and the fonts. Each job type has its own
+path allow-list: quality jobs read only the track's stem and detail-stem files; handout jobs only
+`assets/<uuid>/<name>.pdf` (notation) and `tracks/<uuid>/artwork/(auto|user)/cover.jpg`. The
+handout request carries the complete document inline; the worker validates the fixed notice texts
+(`422` when they differ) and enforces the job limits: body 8 MiB, 500,000 text characters, 30,000
+layout cells, 128 MiB of notation PDFs (`422 ValidationFailed`); while rendering at most 600
+notation pages and 128 MiB of notation per job (further items become a note, warning
+`notation-omitted`), a 240 s deadline (*"The handout could not be written"*), artwork JPEG up to
+40 MP (else left out, warning `artwork-omitted`), and pypdf parse limits per notation file (an
+unreadable file becomes a note, warning `notation-unreadable`). Other warnings:
+`missing-glyphs`, `notation-scaled`.
 
 ## Generator API (port 8010, internal)
 

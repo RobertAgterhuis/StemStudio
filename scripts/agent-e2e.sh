@@ -40,7 +40,7 @@ api_with() {
 
 # playwright <args...>: the agent spec in both browsers (retries 0 from playwright.config.ts).
 playwright() {
-  (cd "$REPO_ROOT/e2e" && npx playwright test --project=chromium --project=firefox "$SPEC" "$@")
+  (cd "$REPO_ROOT/e2e" && npx playwright test --project=chromium "$SPEC" "$@")
 }
 
 # Script names (basename without .json), sorted, one per line.

@@ -19,6 +19,12 @@ public sealed partial class TrackDetail
     [Inject]
     private PageCommands Commands { get; set; } = default!;
 
+    [Inject]
+    private Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> Options { get; set; } = default!;
+
+    /// <summary>True when the stem quality card is shown (<c>StemStudio:QualityReport:Enabled</c>, off by default).</summary>
+    private bool QualityReportEnabled => Options.Value.QualityReport.Enabled;
+
     /// <summary>The track id from the route.</summary>
     [Parameter]
     public Guid Id { get; set; }

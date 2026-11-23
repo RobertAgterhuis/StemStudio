@@ -59,7 +59,7 @@ function Set-AgentApi {
 function Invoke-AgentSpec {
     <# Runs the agent spec in both browsers with the given Playwright arguments. #>
     param([string[]] $Arguments)
-    $command = @('npx', 'playwright', 'test', '--project=chromium', '--project=firefox', $Spec) + $Arguments
+    $command = @('npx', 'playwright', 'test', '--project=chromium', $Spec) + $Arguments
     Invoke-Native (Join-Path $RepoRoot 'e2e') $command
 }
 

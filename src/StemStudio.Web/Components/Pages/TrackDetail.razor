@@ -95,6 +95,18 @@ else
             <TrackSummary Track="Track" OnExport="OpenExport" OnExportAll="OpenStemPack" OnScore="OpenScore" />
             <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" OnExport="OpenExport"
                            OnScore="OpenScore" />
+            @if (QualityReportEnabled)
+            {
+                <QualityPanel Track="Track" Actions="this" />
+            }
+            <section class="ss-panel ss-handouts" aria-labelledby="handouts-heading">
+                <div class="ss-label-row">
+                    <h2 class="ss-heading" id="handouts-heading">Lesson handouts</h2>
+                    <HelpHint HelpId="handout-menu" />
+                </div>
+                <HandoutMenu Source="HandoutSource" OnIngredientAction="OnIngredientAsync" />
+            </section>
+            <PracticeNotesEditor @ref="_notes" TrackId="Track.Id" />
             @if (Guitarist)
             {
                 <StemStudio.Web.Components.InstrumentViews.CapoMode TrackId="Track.Id" OnChanged="OnCapoChanged" />

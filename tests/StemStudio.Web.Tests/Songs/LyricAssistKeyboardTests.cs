@@ -76,7 +76,8 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
         page.Find(Id("lyric-assist-list")).KeyDown(Key("F8", shift: true));
 
         Api.DidNotReceive().AcceptLyricSuggestionsAsync(Arg.Any<Guid>(), Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>());
-        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}");
+        // The key handler renders asynchronously; under full-suite load the read came before the render (020 integration).
+        page.WaitForAssertion(() => ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}"));
     }
 
     [Fact]

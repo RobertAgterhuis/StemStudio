@@ -58,6 +58,17 @@ Backlog from the 016 reviews (later rounds): take scoring ignores the playback r
 `ScoreOptions.tablature` cannot express availability and capo per profile; drum hits carry no warnings (thinning is
 invisible); `instrument-view` has no close control; soft SIG findings in pre-016 engine code (`engine.ts`
 createParts/loadTrack, `capture.ts` isBlock); `js/singing-raw.js` has no unit test (covered by E2E).
+**020 Insights and handouts is integrating** (round branch `020-insights-handouts`, 2026-11-23; 017-019 are not built,
+so 020's contracts were merged onto 016's documents and keep their allocated labels: backend API 1.19.0, worker API
+1.11.0, UI test ids 1.19.0, help content 1.2.0; MoSCoW C7, C8). Delivered: lesson handouts per family for songs and setlists, practice notes, and the stem quality report
+with tips **switched off by default** (`StemStudio:QualityReport:Enabled`; owner decision 2026-11-23: gate G1 failed
+on MUSDB18-HQ on all 8 cells, so the ratings are a rough indication at best). User Story 5 (high-quality vocal
+re-separation) stays removed: gate G2 failed (other stems' SIR gain +0.09 dB against +0.5 dB). The owner confirmed
+that 014's setlist PDF and 020's setlist handout both stay.
+Backlog from 020 (later rounds): 4-stem tracks get no quality report (`409 track-not-ready`; the worker contract needs
+the six standard stems); the save link goes stale after the band-info lookup moves an item (candidate link
+`library?asset=<id>`); redesign the stem quality measures with MUSDB18-HQ as the development set and the R-04 protocol (gate G1: Spearman >= 0.5 bleed vs SIR, >= 0.4 artefacts vs SAR per stem type) as the acceptance test; the report is switched on by default only after a G1 pass; G2 re-scope options for a new spec decision: replace only the vocals stem ("vocals-only HQ", keep the production instrumentals; the stem sum then no longer matches the mix) or run the chain on the original audio (the API would have to keep the original; the gate needs re-wording); a flicker ("watery") artefact measure that works for every
+family (part of the redesign).
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.

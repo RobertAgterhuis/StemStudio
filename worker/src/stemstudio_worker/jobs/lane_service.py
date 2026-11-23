@@ -51,7 +51,14 @@ class LaneJobService[R: BaseModel]:
         self._lane = LaneScheduler(lane, self.process) if isinstance(lane, str) else lane
 
     def process(self, job_id: str) -> None:
-        """Run one job to a terminal state (lane thread)."""
+        """Run one job to a terminal state (lane thread); skips unknown and finished jobs."""
+        self._run_job(job_id, self.run)
+
+    def run(self, record: R, out_dir: Path) -> Outcome:
+        """Do the work of ``record`` into ``out_dir``; return the completed job's changes.
+
+        Services that override :meth:`process` need not implement it.
+        """
         raise NotImplementedError
 
     def job_of(self, job_id: str) -> Any:

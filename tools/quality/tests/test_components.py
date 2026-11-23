@@ -78,6 +78,8 @@ REQUESTED = [
     "worker/metadata",
     "worker/lyrics",
     "worker/engraving",
+    "worker/handouts",
+    "worker/insights",
     "worker/render",
     "worker/separation",
     "worker/detail",

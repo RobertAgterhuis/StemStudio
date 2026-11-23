@@ -39,16 +39,16 @@ the song.
 
 | Action | How |
 |---|---|
-| Next song | **Next song**, <kbd>Mod</kbd>+<kbd>→</kbd>, or the right pedal with the pedal preset *Next / previous song* (chapter 23) |
+| Next song | **Next song**, <kbd>Mod</kbd>+<kbd>→</kbd>, or the right pedal with the pedal preset *Next / previous song* (chapter 24) |
 | Previous song | **Previous song**, <kbd>Mod</kbd>+<kbd>←</kbd>, or the left pedal with that preset |
 | Leave play mode | **Exit setlist** goes back to the setlist |
 
 When you changed the mix of a song and did not save it, StemStudio asks before it moves on, as it
 does when you leave the mixer.
 
-## PDF for the stand
+## Print setlist
 
-**PDF for the stand** makes an A4 PDF:
+**Print setlist** makes an A4 PDF:
 
 - first an **overview** of all songs with their artist, tempo, length and the start of your note,
   and the total length;
@@ -66,6 +66,9 @@ says *Some characters could not be shown*. A setlist without songs cannot be pri
 first: an empty setlist has nothing to print."*
 
 The PDF is made on your own computer; nothing is sent anywhere.
+
+For a lesson or a rehearsal, **Lesson handout per instrument** makes a stored lesson PDF of the set for one
+instrument family, with chords, sheet music and practice notes per song (chapter 23).
 
 ## Levels
 

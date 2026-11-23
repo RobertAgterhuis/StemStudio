@@ -63,6 +63,9 @@ public sealed record WorkerHealth
 
     /// <summary>Engines and model readiness of the instrument-analysis lane (worker 1.9.0, feature 016); null before 1.9.0.</summary>
     public WorkerInstrumentAnalysisHealth? InstrumentAnalysis { get; init; }
+
+    /// <summary>Analyzer and handout renderer of the insights lane (worker 1.11.0, feature 020); null before 1.11.0.</summary>
+    public WorkerInsightsHealth? Insights { get; init; }
 }
 
 /// <summary>Readiness of the transcription models (worker 1.6.0 <c>TranscriptionHealth</c>).</summary>

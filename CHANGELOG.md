@@ -4,6 +4,33 @@ What changed for StemStudio users. Technical details are in `docs/STATUS.md` and
 
 ## [Unreleased]
 
+### Added (feature 020, insights and handouts)
+
+- **Stem quality** (switched off by default, setting `StemStudio:QualityReport:Enabled` /
+  `STEMSTUDIO_QUALITY_REPORT_ENABLED`): when switched on, after every six-stem separation and detail split the track
+  page rates every stem (Good, Fair, Poor, Probably not in this song, Not rated) with a short reason; the mixer shows
+  the rating as a badge per strip. From Advanced you see the bleed (with its main source) and the artefacts behind a
+  rating, at Expert the index values and the analyzer version. The ratings are estimates and labelled a *rough
+  indication*: the check on real multitrack music (MUSDB18-HQ) failed, which is why the report is off by default.
+- **Quality tips**: up to two tips per stem, with a button where it helps: **Split further**, **Open detail stem** or
+  **Mute** (opens the mixer with the stem muted, nothing saved). There is no GPU tip: the GPU gives the same stems.
+- **Lesson handouts**: one click on the track page makes a PDF for Band overview, Vocals, Guitar, Bass, Keys, Drums or
+  Melodic instruments (C, B-flat, E-flat or F) with the song facts, the form chart with bars, chords over the lyrics,
+  the chord chart, the family's sheet music or tablature and your practice notes. Missing parts are listed with a link
+  to make them. From Advanced, **Customise...** chooses the parts, the sheet music, the transposition and the paper.
+- **Setlist handouts**: one lesson PDF for a whole set (up to 50 songs) and one family, with a cover, the running order
+  and contents. The 014 **PDF for the stand** stays the quick print of a set.
+- **Handouts in the library**: a new kind *Handouts* with preview, download, **Make again** and **Retry**; notes about
+  sheet music that was left out or could not be read.
+- **Practice notes**: one note per family per song on the track page, printed in that family's handout.
+
+### Known limits (feature 020)
+
+- Every quality rating is a rough indication until it is validated on real multitrack music. Artefacts are estimated
+  from dropouts only, and instruments that hold notes together on the same beats can read as bleed. Tracks separated
+  into 4 stems get no report.
+- At most 3 handouts of one song or setlist are made at a time; a handout holds at most 600 pages of sheet music.
+
 ### Added (feature 016, instrument views)
 
 - **Practise as ...**: choose the instrument you play in the mixer; StemStudio mutes it in the song (including its

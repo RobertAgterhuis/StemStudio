@@ -1,0 +1,24 @@
+{
+  "handoutJobId": "1e2f3a4b5c6d4e7f8a9b0c1d2e3f4a5b",
+  "status": "completed",
+  "stage": null,
+  "progress": 1,
+  "error": null,
+  "result": {
+    "fileName": "handout.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 9,
+    "sha256": "9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+    "pages": 3,
+    "outline": ["Example Song", "Notation - Bass - score", "About this handout"],
+    "warnings": [
+      { "code": "notation-scaled", "text": "Bass - score was scaled from A4 to Letter." },
+      { "code": "notation-unreadable", "text": "A notation file could not be read: Bass - tablature" },
+      { "code": "missing-glyphs", "text": "Some characters could not be printed." },
+      { "code": "notation-omitted", "text": "A notation file was left out because the handout reached its size limit: Bass - score" },
+      { "code": "artwork-omitted", "text": "The cover picture was left out because it is not a JPEG or is larger than 40 megapixels: Example Song" }
+    ]
+  },
+  "createdAt": "2026-11-16T10:05:00Z",
+  "updatedAt": "2026-11-16T10:05:04Z"
+}

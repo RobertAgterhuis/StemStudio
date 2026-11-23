@@ -93,6 +93,13 @@ public sealed partial class AssetTable
         }
     }
 
+    // "Make again" posts the recipe unchanged (FR-014); the new item appears after the reload.
+    private Task MakeAgainAsync(AssetDto asset) => RunAsync(async () =>
+    {
+        await Api.CreateHandoutAsync(StemStudio.Web.Handouts.HandoutRecipes.Request(asset.Provenance.HandoutRecipe!));
+        await OnReload.InvokeAsync();
+    });
+
     private Task RetryAsync(AssetDto asset) => RunAsync(async () => await OnReplaced.InvokeAsync(await Api.RetryAssetAsync(asset.Id)));
 
     private async Task RunAsync(Func<Task> action) => ActionError = await ApiCall.RunAsync(action);

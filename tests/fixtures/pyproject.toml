@@ -15,6 +15,7 @@ source = [
     "generate_voice_fixtures", "recording.generate_recording_fixtures",
     "generate_instrument_fixtures",
     "tests/fixtures/practice-flow",  # 014 T018: a folder (its name is no module name)
+    "tests/fixtures/families",  # 020 T029: the per-family handout plan and setlist songs
 ]
 branch = true
 

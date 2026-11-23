@@ -46,6 +46,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>The worker instrument-analysis lane (feature 016).</summary>
     public StemStudio.Api.Tests.Worker.FakeWorkerAnalysisClient AnalysisWorker { get; } = new();
 
+    /// <summary>The fake worker insights lane (feature 020).</summary>
+    public StemStudio.Api.Tests.Worker.FakeWorkerInsightsClient InsightsWorker { get; } = new();
+
     public FakeTimeProvider Clock { get; } = new(Start);
 
     /// <summary>The fake generator service behind the real generator client (feature 009).</summary>
@@ -135,6 +138,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("StemStudio:DataProtection:KeyRingDir", KeyRingDir);
         builder.UseSetting("StemStudio:BackupDir", BackupDir);
         builder.UseSetting("StemStudio:BackupHostDirHint", "./backups");
+        // The stem quality report is off by default (owner decision 2026-11-23); the tests run it switched on, as the e2e
+        // override does. QualityReportSwitchTests switch it off through Settings.
+        builder.UseSetting("StemStudio:QualityReport:Enabled", "true");
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
@@ -145,6 +151,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IWorkerClient>(Worker);
             services.AddSingleton<IWorkerPracticeClient>(PracticeWorker);
             services.AddSingleton<IWorkerAnalysisClient>(AnalysisWorker);
+            services.AddSingleton<IWorkerInsightsClient>(InsightsWorker);
             services.AddSingleton<TimeProvider>(Clock);
             services.AddSingleton<IGeneratorClient>(new GeneratorClient(GeneratorHttp(), NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<ISingerClient>(new SingerClient(

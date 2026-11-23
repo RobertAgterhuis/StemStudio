@@ -86,6 +86,8 @@ public sealed partial class Mixer : IAsyncDisposable
             _track = await Api.GetTrackAsync(Id);
             LoadError = _track.Status == TrackStatusDto.Completed ? null : NotReadyMessage;
             State = LoadError is null ? new MixerState(_track) : null;
+            ApplyMuteLink(State, MuteChannel);
+            await LoadQualityAsync();
         }
         catch (ApiException ex)
         {
@@ -107,6 +109,7 @@ public sealed partial class Mixer : IAsyncDisposable
         await StartEngineAsync(State);
         await LoadDrumlessAsync();
         await LoadOfferAsync();
+        await ApplyExpandLinkAsync();
         OnEngineStarted();
         await StartRecorderAsync();
         RegisterAgentTools();

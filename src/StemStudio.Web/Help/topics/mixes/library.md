@@ -6,7 +6,7 @@ summary: "Everything you saved: stems, detail stems, mixes and sheet music. Play
 route: "/library"
 anchors: ["library"]
 keywords: ["library", "export", "saved", "download", "files", "audio", "size", "items", "scores"]
-related: [export-dialog, export-formats, export-clipping, mixes-library, sheet-music]
+related: [export-dialog, export-formats, export-clipping, mixes-library, sheet-music, handouts]
 reviewed: "008"
 ---
 

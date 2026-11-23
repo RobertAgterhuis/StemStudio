@@ -73,3 +73,13 @@ def changed_entries(older: WorkerDocument, newer: WorkerDocument, section: str) 
     """Keys of ``older``'s section whose value differs (or is missing) in ``newer``."""
     later = newer.section(section)
     return {key for key, value in older.section(section).items() if later.get(key) != value}
+
+
+def field_mismatch(document: WorkerDocument, name: str, model: type[BaseModel]) -> list[str]:
+    """Differences between ``components/schemas/<name>`` and ``model`` (fields, required)."""
+    schema = document.schemas[name]
+    fields = {f.alias or key for key, f in model.model_fields.items()}
+    required = {f.alias or key for key, f in model.model_fields.items() if f.is_required()}
+    problems = [] if fields == set(schema["properties"]) else [f"fields {sorted(fields)}"]
+    missing = required - set(schema.get("required", []))
+    return problems + ([f"required not in schema {sorted(missing)}"] if missing else [])

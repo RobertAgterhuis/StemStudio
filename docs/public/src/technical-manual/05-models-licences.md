@@ -66,7 +66,7 @@ used (ADR-037). The British list is the SCOWL build, not the LibreOffice en_GB d
 Used unmodified as libraries or system tools: FFmpeg (LGPL/GPL, Debian), lameenc (LGPL-3,
 via Demucs; direct from 007), soxr (LGPL-2.1, via librosa), the GPL/LGPL transitive
 dependencies of spotDL (mutagen, unidecode, text-unidecode, pykakasi, spotapi; metadata only)
-and, from 008, verovio (LGPL-3.0) and cairosvg (LGPL-3.0+). From 023, WeCantSpell.Hunspell 7.0.1 is used under MPL-1.1 (file-level copyleft, unmodified).
+and, from 008, verovio (LGPL-3.0) and cairosvg (LGPL-3.0+). From 020, Pango (`libpango-1.0-0`, `libpangoft2-1.0-0`, LGPL-2.1-or-later, Debian system libraries loaded unmodified by WeasyPrint) and Pyphen 0.18.1 (used under the MPL-1.1 option of its tri-licence). From 023, WeCantSpell.Hunspell 7.0.1 is used under MPL-1.1 (file-level copyleft, unmodified).
 
 From 012, **SoundTouch 2.4.1 (LGPL-2.1)**, unmodified and pinned by SHA-256, is compiled with
 StemStudio's ABI shim (LGPL-2.1-or-later) into the separate, replaceable
@@ -85,6 +85,9 @@ without extras, so no accelerator, pycairo, bidi or shaping code) and the DejaVu
 Debian `fonts-dejavu-core` in the worker image (Bitstream Vera font licence plus public-domain
 changes). Section detection (014) needs no model: it uses librosa, SciPy and scikit-learn (BSD-3-Clause),
 which were already installed with librosa. Play-along recording (015) adds no dependency.
+From 020: WeasyPrint 70.0, pydyf and Jinja2/MarkupSafe (BSD-3-Clause), tinyhtml5 (MIT),
+fontTools and brotli (MIT), zopfli (Apache-2.0), threadpoolctl (BSD-3-Clause) and HarfBuzz
+(`libharfbuzz-subset0`, MIT); the quality analyser uses no model.
 
 The documentation build (`tools/docs`) uses markdown-it (MIT) with its dependencies
 (argparse PSF-2.0, entities BSD-2-Clause, linkify-it, mdurl, punycode.js and uc.micro MIT),

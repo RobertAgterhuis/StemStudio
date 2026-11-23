@@ -198,6 +198,33 @@ Per-track analyses feed one shared timeline in the browser; the views are drawn 
   channels muted, the rest unmuted and unsoloed) and the family's view; Drumless per data-model
   5.3 (metronome with count-in, previous state restored on the second click).
 
+### Insights and handouts (020, ADR-029)
+
+- **Stem quality** (`Tracks.QualityReport`): switched off by default
+  (`StemStudio:QualityReport:Enabled`, read by api and web; ADR-029 D8, gate G1 failed). While it
+  is on, the API starts a report after every six-stem separation and detail split (setting
+  `StemStudio:AutoQualityReport`) or on request; the worker
+  runs it on its own lane `insights` (one job at a time, never waiting for the other lanes) with
+  `SignalQualityAnalyzer` (or `FakeQualityAnalyzer` in the fake stack) and returns the result
+  inline. The measures are reference-free: bleed is a per-band non-negative fit of each stem on
+  every other stem, guarded by a ratio floor (5th percentile of the power ratio over the source's
+  loud cells) and a gain cap of 1; artefacts are **dropouts only** (flicker is not shipped); the
+  thresholds are calibrated on the synthetic set V1 (`insights/thresholds.py`, analyzer version
+  1.0.0). Gate G1 (real multitrack music, MUSDB18-HQ) has not run, so every label is
+  `indicative` ("rough indication"). Tips (`Insights/TipRules` in Domain) are pure rules; there is
+  no GPU tip. 4-stem tracks get `409 track-not-ready`.
+- **Handouts** (asset kind `handout`): the API assembles a complete `HandoutDocument` (facts, form
+  chart with bars, chords via 016's `ChordSpeller`/`ChordSheetBuilder`, lyrics, notation items,
+  practice notes, 014 practice log) and the worker only lays it out with WeasyPrint 70 (HTML + CSS
+  paged media, Jinja2 with autoescape, Archivo plus DejaVu fallback) on the `insights` lane and
+  merges the notation PDFs with pypdf. The worker has no database, no lookups and no network: the
+  WeasyPrint fetcher is a `URLFetcher` subclass serving only packaged files and the per-job
+  allow-listed library files (`allowed_protocols=("file",)`, every `data:` URI refused).
+- **Practice notes** (`PracticeNotes`, one per track and family) are printed in that family's
+  handouts.
+- 014's setlist PDF (quick print, not stored) and 020's setlist handout (stored lesson PDF) both
+  exist; folding them together is an open owner decision.
+
 ## Dependency rules
 
 - .NET: Web → Contracts ← Api → Domain ← Persistence, and Api → Persistence. Web never
@@ -205,6 +232,10 @@ Per-track analyses feed one shared timeline in the browser; the views are drawn 
 - Worker: adapters implement the `Protocol` ports in `ports.py`; heavy libraries sit behind
   those ports so unit tests use fakes.
 - Generator: `api → jobs → ports ← {engines, devices, audio}`; only `main.py` composes.
+- Worker insights and handouts (020): `insights/` imports only `ports`, `schemas`, numpy, soxr and
+  soundfile; `handouts/` keeps WeasyPrint, Jinja2, pypdf and fontTools behind the
+  `HandoutRenderer` port; handout CSS uses tokens only (copies synced from the app by
+  `worker/scripts/sync_handout_style.py --check`).
 - Audio engine (012): `stretch/processor.ts` imports only `stretch/{constants,params,fifo,abi}`
   (the worklet scope); `transport.ts`, `mixer.ts`, `metronome/**` and `karaoke/**` never import
   `practice/**` or `stretch/**`; `practice/**` never imports `karaoke/**`.
@@ -225,12 +256,12 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.15.0 = 1.14.0 + 016 (chords, key, capo suggestions, drum hits, vocal pitch, instrument catalogue; tablature and part options on scores); 1.14.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0) + 014 (1.13.0: sections, score views, setlists, practice log) + 015 (1.14.0: takes, calibrations, export with `take`); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
-| Worker API (`worker-api.openapi.yaml`) | 1.9.0 = 1.8.0 + 016 (instrument-analysis jobs and lane, tablature, parts, chord symbols, new profiles); 1.8.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration, 014: 1.8.0 practice lane with section, score-view and setlist-document jobs, `Health.structure`, `Health.lanes.practice`) | — |
+| Backend API (`backend-api.openapi.yaml`) | 1.19.0 = 1.15.0 + 020 (quality report, handout options and creation, practice notes; `Asset.handout`, `Provenance.handoutRecipe`, `Track.quality`; 017-019 not built, so 020 merged onto 016's documents); 1.15.0 = 1.14.0 + 016 (chords, key, capo suggestions, drum hits, vocal pitch, instrument catalogue; tablature and part options on scores); 1.14.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0) + 014 (1.13.0: sections, score views, setlists, practice log) + 015 (1.14.0: takes, calibrations, export with `take`); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
+| Worker API (`worker-api.openapi.yaml`) | 1.11.0 = 1.9.0 + 020 (quality and handout jobs, lane `insights`, `Health.insights`, per-job allow-lists, handout job limits); 1.9.0 = 1.8.0 + 016 (instrument-analysis jobs and lane, tablature, parts, chord symbols, new profiles); 1.8.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration, 014: 1.8.0 practice lane with section, score-view and setlist-document jobs, `Health.structure`, `Health.lanes.practice`) | — |
 | Backup archive (`backup-archive.md` + `backup-manifest.schema.json`) | 1.0.0 (013) | a new major only for an incompatible layout |
 | Audio engine (`audio-engine.md`) | 2.6.0 (016: timeline views for chords, drum hits and singing, pitch worklet, singing scores); 2.5.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1; 014: 2.4.0 score follower and `OnLoopPass`; 015: 2.5.0 recording, calibration, take channel and five recording callbacks) | — |
-| UI test ids (`ui-test-ids.md`) | 1.15.0 (016: instrument views); 1.14.0 (014: 1.13.0, 015: 1.14.0, merged after 022: 1.22.0 and 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
-| Help content (`help-content.md` + schemas) | 1.1.0 (016: area `instruments`); 1.0.0 (004) | additive topics per feature |
+| UI test ids (`ui-test-ids.md`) | 1.19.0 (020: quality card and badges, handout menu, dialog and items, practice notes); 1.15.0 (016: instrument views); 1.14.0 (014: 1.13.0, 015: 1.14.0, merged after 022: 1.22.0 and 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
+| Help content (`help-content.md` + schemas) | 1.2.0 (020: areas `insights`, `handouts`); 1.1.0 (016: area `instruments`); 1.0.0 (004) | additive topics per feature |
 | Web interop (`web-interop.md`) | 1.1.0, which contains 1.0.0 (004), 1.2.0 (022: scope `library`, key `/` -> `library.search.focus`) and 1.1.0 (014: data-driven key map `keymap-defaults.json`, scope `setlist`, preferences schema version 2) | - |
 | Chord spelling vectors (`chord-spelling-vectors.json`, generator + `--check`) | 1.0.0 (016; shared by Domain and engine) | - |
 | Render vectors (`render-vectors.json`) | 1.1.0 (007: 1.0.0; 015: 1.1.0 adds eight take cases) | — |

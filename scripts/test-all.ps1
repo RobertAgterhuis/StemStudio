@@ -66,6 +66,9 @@ $Redocly = '@redocly/cli@2.78.0'
 $Contracts = 'specs/015-play-along-recording/contracts'
 # Feature 016: backend 1.15.0, worker 1.9.0, both deltas, merge_full.py and the chord spelling vectors 1.0.0.
 $InstrumentContracts = 'specs/016-instrument-views/contracts'
+# Feature 020: backend 1.19.0 (= 1.15.0 + the insights and handouts delta), worker 1.11.0 (= 1.9.0 + the delta),
+# both deltas and merge_full.py. The 016 checks above stay pinned to 016 (only 016 holds the chord vectors).
+$InsightsContracts = 'specs/020-insights-handouts/contracts'
 $RenderVectors = 'specs/015-play-along-recording/contracts/generate_render_vectors.py'
 $PracticeFlowContracts = 'specs/014-practice-flow/contracts'  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
@@ -173,6 +176,7 @@ $Steps = Resolve-StepGroup @(
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'worker mypy'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'mypy', 'src', 'tests') }
+    @{ Name = 'worker handout style drift (020 sync_handout_style.py --check)'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'python', 'scripts/sync_handout_style.py', '--check') }
     @{ Name = 'worker pytest + coverage'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term', '--cov-fail-under=90') }
     @{ Group = 'generator' }
     @{ Name = 'generator uv sync'; Dir = 'generator'; Cmd = @('uv', 'sync', '--frozen') }
@@ -224,6 +228,8 @@ $Steps = Resolve-StepGroup @(
     @{ Name = 'contracts merge check (016 full 1.15.0 / 1.9.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$InstrumentContracts/merge_full.py", '--check') }
     @{ Name = 'chord spelling vectors check (016)'; Dir = '.'; Cmd = @('uv', 'run', '--no-project', 'python', '-I', "$InstrumentContracts/generate_chord_spelling_vectors.py", '--check') }
     @{ Name = 'chord spelling vector tests (016)'; Dir = '.'; Cmd = $PytestPython + @($InstrumentContracts) }
+    @{ Name = 'contracts lint (020-insights-handouts)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$InsightsContracts/redocly.yaml", "$InsightsContracts/backend-api.openapi.yaml", "$InsightsContracts/worker-api.openapi.yaml", "$InsightsContracts/backend-api.delta.openapi.yaml", "$InsightsContracts/worker-api.delta.openapi.yaml") }
+    @{ Name = 'contracts merge check (020 full 1.19.0 / 1.11.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$InsightsContracts/merge_full.py", '--check') }
     @{ Group = 'scripts-tests' }
     @{ Name = 'split E2E jobs check (016 T144)'; Dir = '.'; Cmd = $PytestPython + @('-c', 'scripts/pyproject.toml', '-q', 'scripts/tests/test_ci_e2e_split.py') }
     @{ Group = 'secret-scan' }

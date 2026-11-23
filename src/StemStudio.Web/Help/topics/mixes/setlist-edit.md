@@ -6,7 +6,7 @@ summary: "Rename the setlist, add, move and remove songs, and choose a mix and a
 route: "/setlists/{setlistid}"
 anchors: ["setlist-edit"]
 keywords: ["edit setlist", "reorder", "move up", "move down", "drag"]
-related: [setlists, setlist-play, setlist-pdf]
+related: [setlists, setlist-play, setlist-pdf, handouts]
 reviewed: "014"
 ---
 

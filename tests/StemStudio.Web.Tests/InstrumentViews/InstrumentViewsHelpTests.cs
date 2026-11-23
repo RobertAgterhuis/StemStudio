@@ -40,7 +40,7 @@ public sealed class InstrumentViewsHelpTests
 
     [Fact]
     public void Area_ComesAfterMixes_BeforeTheGlossary() =>
-        TopicParser.AreaOrder.ShouldBe(["start", "import", "tracks", "detail", "mixer", "mixes", "instruments", "glossary"]);
+        TopicParser.AreaOrder.ShouldBe(["start", "import", "tracks", "detail", "mixer", "mixes", "instruments", "insights", "handouts", "glossary"]);
 
     [Fact]
     public void ChordTopics_NameTheLimits_AndTheBtcCredit()

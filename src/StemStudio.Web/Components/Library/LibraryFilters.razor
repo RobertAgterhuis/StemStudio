@@ -2,6 +2,8 @@
    applied on the client. Native selects, values as in ui-test-ids 1.5.0 (track id, kind). *@
 @using StemStudio.Contracts.Assets
 
+<button type="button" class="ss-chip" aria-pressed="@(Filter.Kind == AssetKindDto.Handout ? "true" : "false")" @onclick="() => ChangeAsync(() => Filter.ToggleKind(AssetKindDto.Handout))"
+        data-testid="library-filter-handout" data-help-id="library-filter-handout">Handouts</button>
 <LevelGate Feature="library.filters">
     <div class="ss-library-tools">
         <label class="ss-sr-only" for="library-filter-track">Track</label>

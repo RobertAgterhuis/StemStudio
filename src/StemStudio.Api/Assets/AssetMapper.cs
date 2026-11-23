@@ -45,6 +45,7 @@ public static class AssetMapper
         Files = asset.Files.Select(file => ToDto(asset.Id, file)).ToList(),
         Audio = asset.Audio is { } audio ? ToDto(audio) : null,
         Score = asset.Score is { } score ? ScoreMapper.ToDto(score) : null,
+        Handout = Handouts.HandoutMapper.ToFactsDto(asset),
     };
 
     /// <summary>Maps a recipe to its DTO.</summary>
@@ -114,6 +115,7 @@ public static class AssetMapper
         ScoreRecipe = provenance.ScoreRecipe is { } scoreRecipe ? ScoreMapper.ToDto(scoreRecipe) : null,
         Generation = provenance.Generation is { } generation ? ToDto(generation) : null,
         Recording = provenance.Recording is { } recording ? new Contracts.Recording.RecordingRecipeDto { TakeId = recording.TakeId } : null,
+        HandoutRecipe = Handouts.HandoutMapper.ToRecipeDto(provenance.HandoutRecipe),
     };
 
     private static GenerationProvenanceDto ToDto(GenerationSource generation) => new()

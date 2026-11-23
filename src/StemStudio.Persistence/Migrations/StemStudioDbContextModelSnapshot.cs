@@ -124,6 +124,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<int>("FiledVersion")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Handout")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -368,6 +371,28 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("VoiceProfileId");
 
                     b.ToTable("Generations", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Handouts.PracticeNote", b =>
+                {
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Family")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TrackId", "Family");
+
+                    b.ToTable("PracticeNotes", (string)null);
                 });
 
             modelBuilder.Entity("StemStudio.Domain.InstrumentViews.TrackAnalysis", b =>
@@ -1573,6 +1598,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<int>("Progress")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("QualityReport")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("SourceType")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -2233,6 +2261,15 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("ConversationId", "Ordinal");
 
                     b.ToTable("UndoEntries", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Handouts.PracticeNote", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("StemStudio.Domain.InstrumentViews.TrackAnalysis", b =>

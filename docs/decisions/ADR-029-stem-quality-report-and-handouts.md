@@ -88,4 +88,46 @@ without touching the rest.
 
 ## Phase 0 outcome
 
-To be written at Phase 0 (G1 table, G2 result, WeasyPrint checks P0-4).
+Architect, 2026-11-23 (details: `specs/020-insights-handouts/research.md` "Phase 0 measurements" and
+`DELTA.md` "Phase 0 outcome"). The ADR stays **Accepted**; D1-D4 and D6-D7 hold unchanged, D5 is
+deferred:
+
+- **D5 (G2): pending owner.** MUSDB18-HQ is not available, so the G2 gain cannot be measured. The
+  `vocals-hq` pipeline, its contract parts, tip, ui ids and help topic are deferred (not merged into
+  backend 1.19.0 / worker 1.11.0). Measured: both candidate checkpoints load and run in about
+  1.6-1.7 GiB on the GPU (5-12 s per minute of audio; 2.5-6 min per minute on the CPU); the
+  recommended checkpoint is the MIT-licensed Mel-Band RoFormer (KimberleyJensen) with a 3,000 MiB
+  `GpuNeed`, which needs one new vendored MSST file. The sum of the `htdemucs_6s` stems differs from
+  the input by -27 dB (planned: below -30 dB): re-measure on real music when G2 is taken up.
+- **D2 (G1): not run.** Every dimension starts `indicative` with all levels shown; masking low/medium
+  as `unknown` applies only to a dimension that was measured and failed.
+- **D7 (WeasyPrint): confirmed (P0-4).** WeasyPrint 70.0 with the image's Pango 1.56.3 renders the
+  app style (Archivo, tokens), footer and "page n of N" on every page, bookmarks, contents with page
+  numbers; a 20-song setlist in 8 s. WeasyPrint 70's fetcher must subclass `URLFetcher`.
+- **014 overlap:** 014's quick setlist PDF (ReportLab, streamed) stays; the setlist handout is the
+  stored lesson PDF. Chords, transposition and chords over lyrics reuse 016's domain rules.
+
+## G1 and G2 outcome (2026-11-23, owner decision)
+
+Measured on MUSDB18-HQ (`test` split, fixed seeded subset of 25 tracks, museval 0.4.1; numbers only, no audio kept;
+details in `specs/020-insights-handouts/research.md` "Gates G1 and G2 on MUSDB18-HQ"):
+
+- **D2 (G1): failed on all 8 cells.** No Spearman reached its gate; the best was drums bleed 0.49 (gate 0.5) and drums
+  artefacts ran significantly the wrong way (-0.60). The worker's label table records `failed` for vocals, drums,
+  bass and other in both dimensions (`analyzerVersion` 1.0.1): every rating is a rough indication and Low/Medium are
+  shown as `unknown` for those four stem types.
+- **D8 - The quality report ships switched off.** Because the measures do not follow the real separation quality,
+  the report (US1/US2) is behind one setting, `StemStudio:QualityReport:Enabled` (env
+  `StemStudio__QualityReport__Enabled`, compose `STEMSTUDIO_QUALITY_REPORT_ENABLED`), **default false**, read by
+  the API and the web. Off: no automatic report, `POST /api/tracks/{id}/quality` answers the contract's 503 with a
+  readable detail (no new problem code), `GET` answers status `none`, `Track.quality` is absent, and the web shows no
+  quality card, badge or tip. `StemStudio:AutoQualityReport` applies only while the report is on. The e2e override
+  switches it on, so the 020 E2E specs and the visual baselines are unchanged. Handouts (US3/US4) and practice notes
+  ship normally. No contract change.
+- **D5 (G2): failed - User Story 5 stays removed.** As specified (input = sum of the six stems) the vocals criterion
+  passes (median vocals SDR +2.70 dB, 25/25 tracks) but the other stems' SIR gain is +0.09 dB (gate +0.5 dB); on
+  the original mixture it is +3.21 dB and +0.24 dB, still below the gate. The sum of the production stems differs
+  from the mixture by -20.8 dB (planned: below -30 dB), so the R-06 input assumption does not hold. Nothing of D5 is
+  built; re-scoping it (vocals-only replacement, or the original audio as input) is a new spec decision (backlog).
+- **Follow-up (backlog):** redesign the quality measures with MUSDB18-HQ as the development set and the R-04 protocol
+  as the acceptance test; switch the report on by default only after a G1 pass.

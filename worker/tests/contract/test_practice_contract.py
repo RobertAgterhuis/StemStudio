@@ -250,7 +250,7 @@ def test_default_health_validates_against_the_document() -> None:
 
     assert health["lanes"]["practice"] == {"queued": 0, "running": False}
     assert health["structure"] == {"analyzer": "stems-novelty", "version": "1.0.0"}
-    assert WorkerDocument("016-instrument-views").errors("Health", health) == []  # 1.9.0 fields
+    assert WorkerDocument("020-insights-handouts").errors("Health", health) == []  # 1.11.0 fields
 
 
 def test_health_examples_validate() -> None:

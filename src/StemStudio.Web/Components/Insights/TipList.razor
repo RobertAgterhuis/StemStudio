@@ -1,0 +1,48 @@
+@* At most two tips per stem (FR-005, ui-test-ids quality-tip-<channel>-<code>); a tip with an action has a button
+   (quality-tip-action-<channel>-<code>) when the page provides the actions. A plain list of focusable buttons, not a
+   listbox (LESSONS 023: nested-interactive). *@
+
+@if (Stem.Tips.Count > 0)
+{
+    <ul class="ss-quality-tips" aria-label="@($"Tips for {QualityText.Channel(Stem.Channel)}")" data-help-id="@($"quality-tip-{Key}")">
+        @foreach (var tip in Stem.Tips.Take(ContractLimits.MaxTipsPerStem))
+        {
+            var code = WireName.Of(tip.Code);
+            <li class="ss-quality-tip" data-testid="@($"quality-tip-{Key}-{code}")">
+                <span>@tip.Text</span>
+                @if (Actions is not null && tip.Action is { } action)
+                {
+                    <RadzenButton Text="@TipText.Button(action.Kind)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="() => RunAsync(action)" Disabled="Busy" data-testid="@($"quality-tip-action-{Key}-{code}")" />
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>The stem with its tips.</summary>
+    [Parameter, EditorRequired]
+    public StemQualityViewDto Stem { get; set; } = default!;
+
+    /// <summary>What the buttons do; null shows the tips without buttons.</summary>
+    [Parameter]
+    public ITipActions? Actions { get; set; }
+
+    private bool Busy { get; set; }
+
+    private string Key => QualityText.Key(Stem.Channel);
+
+    private async Task RunAsync(TipActionDto action)
+    {
+        Busy = true;
+        try
+        {
+            await Actions!.RunAsync(action);
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
+}

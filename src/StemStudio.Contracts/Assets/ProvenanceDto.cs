@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using StemStudio.Contracts.Generation;
+using StemStudio.Contracts.Handouts;
 using StemStudio.Contracts.Recording;
 using StemStudio.Contracts.Scores;
 
@@ -42,4 +43,8 @@ public sealed record ProvenanceDto
     /// <summary>The take of a play-along recording (origin recording, 1.14.0); null (absent on the wire) otherwise.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RecordingRecipeDto? Recording { get; init; }
+
+    /// <summary>Recipe of a handout item (1.19.0, feature 020; <c>recipe</c> and <c>scoreRecipe</c> are null then); null (absent on the wire) otherwise.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HandoutRecipeDto? HandoutRecipe { get; init; }
 }

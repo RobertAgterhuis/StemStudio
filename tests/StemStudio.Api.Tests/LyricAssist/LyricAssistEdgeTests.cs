@@ -135,9 +135,11 @@ public sealed class LyricAssistEdgeTests : AssistTestBase
         var sheet = await SheetAsync(Text);
         using var created = await CreateAsync(sheet.Id, Check());
         var id = (await created.BodyAsync<LyricAssistDto>()).AssistId;
-        var reading = Client.GetStringAsync(new Uri(ApiRoutes.LyricAssistEvents(id), UriKind.Relative), Ct);
-        await Task.Delay(300, Ct);
+        using var stream = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistEvents(id), UriKind.Relative), HttpCompletionOption.ResponseHeadersRead, Ct);
+        using var reader = new StreamReader(await stream.Content.ReadAsStreamAsync(Ct));
 
+        // Wait for the first event instead of a fixed delay (FLAKES: under load 300 ms was not always enough for the stream to start).
+        (await ReadUntilAsync(reader, "event: assist.started")).ShouldBeTrue();
         await Factory.WithScopeAsync(async sp =>
         {
             await sp.GetRequiredService<Persistence.StemStudioDbContext>().LyricAssistEvents.Where(e => e.AssistId == id).ExecuteDeleteAsync(Ct);
@@ -145,8 +147,23 @@ public sealed class LyricAssistEdgeTests : AssistTestBase
         });
         (await Client.DeleteAsync(new Uri(ApiRoutes.LyricsSheet(sheet.Id), UriKind.Relative), Ct)).Dispose();
 
-        var text = await reading.WaitAsync(TimeSpan.FromSeconds(10), Ct);
-        text.ShouldContain("event: assist.started");
+        // The stream ends (the keep-alive tick finds the assist gone) instead of waiting for the idle timeout.
+        // (The rest of the stored events may still arrive first; the point is that the stream ends.)
+        var rest = await reader.ReadToEndAsync(Ct).WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        rest.ShouldNotContain("event: assist.completed");
+    }
+
+    private static async Task<bool> ReadUntilAsync(StreamReader reader, string line)
+    {
+        while (await reader.ReadLineAsync(Ct).AsTask().WaitAsync(TimeSpan.FromSeconds(30), Ct) is { } read)
+        {
+            if (read == line)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     [Fact]

@@ -37,7 +37,9 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<StemStudio.Web.InstrumentViews.InstrumentCatalogueCache>();
         Services.AddSingleton(Confirm);
         Services.AddSingleton<IPollingTimer>(Timer);
-        Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
+        // The stem quality report is off by default (owner decision 2026-11-23); the page tests run it switched on, as the e2e
+        // override does. QualityReportSwitchTests switch it off.
+        Services.AddSingleton(Options.Create(new StemStudioWebOptions { QualityReport = { Enabled = true } }));
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<IWebInterop>(Interop);
         Services.AddSingleton(Recorder);
@@ -66,6 +68,14 @@ public abstract class PageTestContext : BunitContext
         AgentDefaults();
         LibraryCareDefaults();
         InstrumentViewDefaults();
+        InsightsDefaults();
+    }
+
+    /// <summary>No quality report was ever made and no practice notes exist unless a test says otherwise (020).</summary>
+    private void InsightsDefaults()
+    {
+        Api.GetQualityReportAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(InsightsData.NoReport());
+        Api.GetPracticeNotesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(new StemStudio.Contracts.Handouts.PracticeNotesDto { Notes = [] });
     }
 
     /// <summary>No 016 analysis exists and the catalogue is the fake one unless a test says otherwise.</summary>

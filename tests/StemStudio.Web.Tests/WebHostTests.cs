@@ -55,6 +55,15 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
     }
 
     [Fact]
+    public void TheQualityReport_IsOffByDefault_AndReadFromTheSetting()
+    {
+        using var on = factory.WithWebHostBuilder(builder => builder.UseSetting("StemStudio:QualityReport:Enabled", "true"));
+
+        factory.Services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.QualityReport.Enabled.ShouldBeFalse();
+        on.Services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.QualityReport.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Services_RegisterTypedApiClientAndAudioEngine()
     {
         await using var scope = factory.Services.CreateAsyncScope();

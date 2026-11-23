@@ -1,0 +1,61 @@
+@* Stem quality card of the track page (020 US1/US2, ui-test-ids 1.19.0): status, disclaimer, check button, progress,
+   outdated notice, error, one row per stem with its detail stems under it, and (Expert) the analyzer version. *@
+@inherits PollingComponent
+
+<section class="ss-panel ss-quality" aria-labelledby="quality-heading" data-testid="quality-panel" data-status="@WireStatus"
+         data-help-id="quality-panel">
+    <div class="ss-label-row">
+        <h2 class="ss-heading" id="quality-heading">Stem quality</h2>
+        <HelpHint HelpId="quality-panel" />
+    </div>
+
+    @if (Report is { Stems.Count: > 0 } || Report?.Status == QualityReportStatusDto.Ready)
+    {
+        <p class="ss-small ss-muted" data-testid="quality-disclaimer">@Report!.Disclaimer</p>
+    }
+
+    <div class="ss-row">
+        <RadzenButton Text="@CheckText" Icon="fact_check" ButtonStyle="ButtonStyle.Light" Click="CheckAsync" Disabled="CheckDisabled"
+                      data-testid="quality-check" />
+        @if (Active)
+        {
+            <RadzenProgressBar Value="Report!.Progress" Max="100" ShowValue="true" AriaLabel="Stem quality check progress"
+                               aria-valuenow="@Report.Progress" class="ss-quality-progress" data-testid="quality-progress" />
+        }
+    </div>
+    <p class="ss-sr-only" role="status" aria-live="polite" data-testid="quality-status-live">@LiveText</p>
+
+    @if (Report is { Outdated: true })
+    {
+        <p class="ss-notice" role="note" data-testid="quality-outdated">
+            Made with an older version, or the stems changed since. Check again to update the ratings.
+        </p>
+    }
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="quality-error" Message="@Error" />
+    }
+    else if (Report is { Status: QualityReportStatusDto.Failed })
+    {
+        <ErrorState TestId="quality-error" Message="@(Report.Error ?? "The quality check failed.")" />
+    }
+
+    @if (Report is { Stems.Count: > 0 })
+    {
+        <ul class="ss-quality-rows" aria-label="Ratings per stem">
+            @foreach (var group in Groups)
+            {
+                <QualityRow Stem="group.Stem" Children="group.Children" Actions="Actions" />
+            }
+        </ul>
+        <LevelGate Feature="quality.indices">
+            @if (QualityText.Analyzer(Report) is { } analyzer)
+            {
+                <p class="ss-small ss-muted" data-testid="quality-analyzer-version" data-help-id="quality-analyzer-version">@analyzer</p>
+            }
+        </LevelGate>
+    }
+
+    <InlineHint TopicId="stem-quality" />
+</section>

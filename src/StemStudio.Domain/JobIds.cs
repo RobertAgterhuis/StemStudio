@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace StemStudio.Domain;
 
 /// <summary>Worker job identifiers: 32 lower-case hex characters.</summary>
-internal static partial class JobIds
+public static partial class JobIds
 {
     /// <summary>Returns the ID when it is a worker job ID.</summary>
     /// <param name="jobId">The ID.</param>
