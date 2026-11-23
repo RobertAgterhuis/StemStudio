@@ -12,7 +12,6 @@ public sealed class KeyEntryPolicy
     /// <summary>Configuration key of the internal caller (environment <c>StemStudio__Agent__KeyEntry__InternalCaller</c>).</summary>
     public const string InternalCallerKey = "StemStudio:Agent:KeyEntry:InternalCaller";
 
-    private static readonly string[] AllowedHosts = ["localhost", "127.0.0.1", "[::1]", "api"];
     private readonly string _webOrigin;
 
     /// <summary>Creates the policy.</summary>
@@ -24,13 +23,19 @@ public sealed class KeyEntryPolicy
         _webOrigin = (webOrigin ?? string.Empty).TrimEnd('/');
     }
 
+    /// <summary>
+    /// The local host names: <c>localhost</c>, <c>127.0.0.1</c>, <c>[::1]</c> and <c>api</c> (the compose service name). The only
+    /// names key entry accepts, and the default of the API's host allow-list (refactor 003, <c>ApiExposure</c>).
+    /// </summary>
+    public static IReadOnlyList<string> LocalHosts { get; } = ["localhost", "127.0.0.1", "[::1]", "api"];
+
     /// <summary>Host name of the trusted internal caller, or null.</summary>
     public string? InternalCaller { get; }
 
     /// <summary>True for <c>localhost</c>, <c>127.0.0.1</c>, <c>[::1]</c> and <c>api</c> (port ignored, any case).</summary>
     /// <param name="host">The host part of the <c>Host</c> header.</param>
     /// <returns>True when allowed.</returns>
-    public static bool IsAllowedHost(string host) => AllowedHosts.Contains(host, StringComparer.OrdinalIgnoreCase);
+    public static bool IsAllowedHost(string host) => LocalHosts.Contains(host, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>True when the origin equals the Web app's origin (trailing slash and case ignored).</summary>
     /// <param name="origin">The <c>Origin</c> header value.</param>

@@ -308,6 +308,7 @@ public static class ApiComposition
         services.Configure<RouteHandlerOptions>(routes => routes.ThrowOnBadRequest = false);
         services.Configure<JsonOptions>(json => json.SerializerOptions.PropertyNameCaseInsensitive = true);
         services.AddOpenApi();
+        services.AddApiExposure();
         services.AddCors(cors => cors.AddPolicy(CorsPolicy, policy => policy
             .WithOrigins(options.WebOrigin)
             .WithMethods("GET")
