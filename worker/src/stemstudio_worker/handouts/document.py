@@ -8,7 +8,7 @@ only print what this module prepared; every text stays text (Jinja2 autoescape, 
 
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 from stemstudio_worker.ports import NOTICE_FOOTER, NOTICE_FULL, HandoutRenderError
 from stemstudio_worker.schemas import (
@@ -170,18 +170,33 @@ def song_view(document: HandoutDocument, index: int, song: HandoutSong,
     return SongView(
         anchor=f"song-{index}", title=song.title, artist=song.artist,
         family=document.family_label, running=f"{song.title} - {document.family_label}",
-        artwork=prepared.artwork if has("facts") else None,
-        facts=fact_rows(song.facts) if has("facts") else (),
-        form=form_rows(song.sections, has("practice-progress"))
-        if has("form-chart") or has("practice-progress") else (),
-        show_tempo=has("practice-progress"),
-        chord_chart=chord_rows(song.sections) if has("chord-chart") else (),
-        lyrics_heading=heading, lyrics=lyrics,
-        legend=" ".join(song.chord_symbols) if has("chord-chart", "chords-over-lyrics") else "",
-        notation=prepared.notation if has("notation") else (),
-        practice_notes=song.practice_notes if has("practice-notes") else None,
+        lyrics_heading=heading, lyrics=lyrics, show_tempo=has("practice-progress"),
         entry_notes=song.entry_notes if document.kind == "setlist" else None,
+        **_header(song, prepared, has), **_charts(song, has), **_extras(song, prepared, has),
     )  # fmt: skip
+
+
+def _header(song: HandoutSong, prepared: SongInputs, has: "_Includes") -> dict[str, Any]:
+    """Artwork and facts row (ingredient ``facts``)."""
+    facts = has("facts")
+    return {"artwork": prepared.artwork if facts else None,
+            "facts": fact_rows(song.facts) if facts else ()}  # fmt: skip
+
+
+def _charts(song: HandoutSong, has: "_Includes") -> dict[str, Any]:
+    """Form chart (or practice progress alone), chord chart and chord legend."""
+    form = has("form-chart", "practice-progress")
+    return {
+        "form": form_rows(song.sections, has("practice-progress")) if form else (),
+        "chord_chart": chord_rows(song.sections) if has("chord-chart") else (),
+        "legend": " ".join(song.chord_symbols) if has("chord-chart", "chords-over-lyrics") else "",
+    }
+
+
+def _extras(song: HandoutSong, prepared: SongInputs, has: "_Includes") -> dict[str, Any]:
+    """Notation blocks and practice notes."""
+    return {"notation": prepared.notation if has("notation") else (),
+            "practice_notes": song.practice_notes if has("practice-notes") else None}  # fmt: skip
 
 
 class _Includes:
@@ -255,14 +270,11 @@ def bar_cells(bars: Sequence[Sequence[str]]) -> tuple[str, ...]:
 def lyric_rows(lyrics: HandoutLyrics | None, has: Callable[..., bool]
                ) -> tuple[str, tuple[LyricRow, ...]]:  # fmt: skip
     """Heading and rows of the lyrics block: with chords, plain, or none."""
-    if lyrics is None:
+    if lyrics is None or not has("lyrics", "chords-over-lyrics"):
         return "", ()
-    chords = has("chords-over-lyrics") and lyrics.chord_placement != "none"
-    if chords:
+    if has("chords-over-lyrics") and lyrics.chord_placement != "none":
         return "Lyrics and chords", tuple(_chord_row(line) for line in lyrics.lines)
-    if has("lyrics", "chords-over-lyrics"):
-        return "Lyrics", tuple(LyricRow((), line.text) for line in lyrics.lines if line.text)
-    return "", ()
+    return "Lyrics", tuple(LyricRow((), line.text) for line in lyrics.lines if line.text)
 
 
 def _chord_row(line: LyricLine) -> LyricRow:

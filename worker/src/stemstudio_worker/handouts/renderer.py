@@ -99,19 +99,24 @@ class _Job:
         """One frame per page of ``item``, or a note when the file cannot be read."""
         heading = f"Notation - {item.title}"
         source = self.files.get(item.pdf_path)
-        try:
-            if source is None:
-                raise NotationUnreadableError(item.pdf_path)
-            sizes = self.reader.page_sizes(source)
-        except NotationUnreadableError:
+        sizes = self.sizes(source, item.title)
+        if source is None or sizes is None:
             text = notation_unreadable_text(item.title)
             self.warn("notation-unreadable", text)
             return NotationBlock(heading, item.title, (), text)
-        if not all(fits_paper(size, self.request.paper) for size in sizes):
-            self.warn("notation-scaled", scaled_text(item.title))
         frames = tuple(f"{anchor}-{page}" for page in range(len(sizes)))
         self.sources.extend((frame, source, page) for page, frame in enumerate(frames))
         return NotationBlock(heading, item.title, frames, None)
+
+    def sizes(self, source: Path | None, title: str) -> tuple[tuple[float, float], ...] | None:
+        """Page sizes of ``source`` (None when it cannot be read); warns when scaled."""
+        try:
+            sizes = self.reader.page_sizes(source) if source is not None else None
+        except NotationUnreadableError:
+            return None
+        if sizes is not None and not all(fits_paper(s, self.request.paper) for s in sizes):
+            self.warn("notation-scaled", scaled_text(title))
+        return sizes
 
 
 def _frame(placed: tuple[int, tuple[float, float, float, float]], source: Path, page: int) -> Frame:
