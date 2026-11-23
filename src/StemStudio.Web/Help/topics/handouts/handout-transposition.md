@@ -5,6 +5,7 @@ area: handouts
 summary: "Which melodic instruments read in which key, and what the transposition changes in a handout."
 feature: handout.transposition
 levels: [advanced, expert]
+anchors: ["handout-transposition"]
 keywords: ["transposition", "b-flat", "e-flat", "f", "trumpet", "clarinet", "saxophone", "horn"]
 related: [handout-families, transposed-parts]
 reviewed: "020"

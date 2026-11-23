@@ -4,6 +4,7 @@ title: "Copyright and handouts"
 area: handouts
 summary: "Handouts are for personal practice and teaching only; the notice on every page cannot be removed."
 levels: [beginner, advanced, expert]
+anchors: ["handout-notice"]
 keywords: ["licence", "notice", "share", "publish", "accessibility", "attribution"]
 related: [handouts, legal-notice]
 reviewed: "020"

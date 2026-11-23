@@ -19,7 +19,7 @@
         @foreach (var asset in Items)
         {
             <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" ShowPath="ShowPath" Hit="HitOf(asset)" OnRename="OpenRename" OnDelete="DeleteAsync"
-                      OnRetry="RetryAsync" OnScore="OpenScore" OnLibraryInfo="OpenLibraryInfo" />
+                      OnRetry="RetryAsync" OnScore="OpenScore" OnLibraryInfo="OpenLibraryInfo" OnMakeAgain="MakeAgainAsync" />
         }
     </tbody>
 </table>

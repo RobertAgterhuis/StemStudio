@@ -5,6 +5,7 @@ area: handouts
 summary: "Write one note per instrument family for a song; it is printed in that family's handout."
 feature: practice.notes-edit
 levels: [beginner, advanced, expert]
+anchors: ["practice-notes"]
 keywords: ["notes", "practice", "lesson", "homework", "teacher"]
 related: [handouts, handout-families]
 reviewed: "020"

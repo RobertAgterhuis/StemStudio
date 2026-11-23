@@ -1,0 +1,63 @@
+@* "Customise the handout" (020 US3/US4, Advanced+, FR-008, FR-010, FR-013; ui-test-ids handout-*): family, transposition
+   (melodic only), paper, parts with their status and create links, sheet music items, the estimate and the fixed
+   notice. Missing parts are listed and cannot be ticked. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-handout-dialog" role="dialog" aria-modal="true" aria-labelledby="handout-dialog-title" data-wip-testid="handout-dialog"
+         data-help-id="handout-dialog" @onkeydown="OnKeyAsync">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <div class="ss-label-row">
+                <h2 id="handout-dialog-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Customise the handout</h2>
+                <HelpHint HelpId="handout-dialog" />
+            </div>
+
+            <div class="ss-handout-fields">
+                <label class="ss-label" for="handout-family">Family</label>
+                <select id="handout-family" class="ss-select" value="@HandoutText.Wire(Chosen)" @onchange="OnFamilyAsync" data-wip-testid="handout-family">
+                    @foreach (var family in HandoutText.Families)
+                    {
+                        <option value="@HandoutText.Wire(family)">@HandoutText.Family(family)</option>
+                    }
+                </select>
+                @if (Choices.Options is { Transpositions.Count: > 0 } offered)
+                {
+                    <label class="ss-label" for="handout-transposition">Transposition</label>
+                    <select id="handout-transposition" class="ss-select" value="@WireName.Of(Choices.Transposition ?? TranspositionDto.C)"
+                            @onchange="OnTranspositionAsync" data-wip-testid="handout-transposition" data-help-id="handout-transposition">
+                        @foreach (var transposition in offered.Transpositions)
+                        {
+                            <option value="@WireName.Of(transposition)">@HandoutText.Transposition(transposition)</option>
+                        }
+                    </select>
+                }
+                <label class="ss-label" for="handout-paper">Paper</label>
+                <select id="handout-paper" class="ss-select" value="@WireName.Of(Choices.Paper)" @onchange="OnPaper" data-wip-testid="handout-paper">
+                    <option value="a4">A4</option>
+                    <option value="letter">Letter</option>
+                </select>
+            </div>
+
+            @if (Choices.Options is { } options)
+            {
+                <HandoutParts Options="options" Choices="Choices" OnAction="ActionHandler" />
+                <p class="ss-small ss-muted" data-wip-testid="handout-estimate">@HandoutText.Estimate(options.EstimateSeconds)</p>
+            }
+
+            <p class="ss-notice" data-wip-testid="handout-notice" data-help-id="handout-notice">
+                Every page says "@ContractLimits.HandoutNoticeFooter". This notice and the copyright page cannot be removed.
+            </p>
+
+            @if (Error is { } error)
+            {
+                <div class="ss-error" role="alert" data-wip-testid="handout-error">@error</div>
+            }
+
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-wip-testid="handout-cancel" />
+                <RadzenButton Text="Make handout" Icon="picture_as_pdf" Disabled="@(Choices.Options is null || Busy)" IsBusy="Busy" BusyText="Making..."
+                              Click="SubmitAsync" data-wip-testid="handout-submit" />
+            </div>
+        </FocusTrap>
+    </div>
+</div>

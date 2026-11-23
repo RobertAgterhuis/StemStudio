@@ -5,6 +5,7 @@ area: handouts
 summary: "Make a lesson PDF for one song or a setlist and one instrument family in one click."
 feature: handout.one-click
 levels: [beginner, advanced, expert]
+anchors: ["handout-menu", "asset-handout-*", "library-filter-handout"]
 keywords: ["handout", "lesson", "pdf", "teacher", "print", "worksheet", "setlist"]
 related: [handout-families, handout-licence, practice-notes, library]
 reviewed: "020"

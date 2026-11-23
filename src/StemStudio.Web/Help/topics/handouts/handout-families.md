@@ -5,6 +5,7 @@ area: handouts
 summary: "The parts each of the seven handout families includes, and what happens when a part is missing."
 feature: handout.customise
 levels: [beginner, advanced, expert]
+anchors: ["handout-dialog", "handout-family-*", "handout-ingredient-*"]
 keywords: ["family", "ingredients", "vocals", "guitar", "bass", "keys", "drums", "melodic", "overview"]
 related: [handouts, handout-transposition, practice-notes]
 reviewed: "020"

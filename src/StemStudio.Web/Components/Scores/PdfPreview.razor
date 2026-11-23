@@ -13,6 +13,10 @@
     [Parameter, EditorRequired]
     public AssetDto Asset { get; set; } = default!;
 
+    /// <summary>The frame title before the item name ("Sheet music preview", "Handout preview").</summary>
+    [Parameter]
+    public string Label { get; set; } = "Sheet music preview";
+
     /// <summary>The PDF URL with <c>inline=true</c>.</summary>
     [Parameter, EditorRequired]
     public string Url { get; set; } = string.Empty;

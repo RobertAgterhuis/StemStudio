@@ -1,0 +1,54 @@
+@* The parts and sheet music choices of the handout dialog (ui-test-ids handout-ingredient-<code>,
+   handout-ingredient-action-<code>, handout-notation-<assetId>). A part that is not available is shown, unticked
+   and disabled, with its create link. *@
+
+<fieldset class="ss-handout-fieldset">
+    <legend class="ss-label">Parts</legend>
+    @foreach (var ingredient in Options.Ingredients.Where(i => i.Status != IngredientStatusDto.NotApplicable))
+    {
+        var code = WireName.Of(ingredient.Code);
+        var available = ingredient.Status == IngredientStatusDto.Available;
+        <div class="ss-handout-part">
+            <label class="ss-check">
+                <input type="checkbox" checked="@(available && Choices.Includes(ingredient.Code))" disabled="@(!available)"
+                       data-status="@WireName.Of(ingredient.Status)" @onchange="e => Choices.SetIngredient(ingredient.Code, e.Value is true)"
+                       data-wip-testid="@($"handout-ingredient-{code}")" />
+                @HandoutText.Ingredient(ingredient.Code)<span class="ss-small ss-muted"> - @ingredient.Text</span>
+            </label>
+            @if (OnAction is { } follow && ingredient.Action is { } action)
+            {
+                <button type="button" class="ss-text-button" @onclick="() => follow.InvokeAsync(action)"
+                        data-wip-testid="@($"handout-ingredient-action-{code}")">@HandoutText.Action(action)</button>
+            }
+        </div>
+    }
+</fieldset>
+
+@if (Options.Notation.Count > 0)
+{
+    <fieldset class="ss-handout-fieldset">
+        <legend class="ss-label">Sheet music</legend>
+        @foreach (var item in Options.Notation)
+        {
+            <label class="ss-check">
+                <input type="checkbox" checked="@Choices.Selects(item.AssetId)" @onchange="e => Choices.SetNotation(item.AssetId, e.Value is true)"
+                       data-wip-testid="@($"handout-notation-{item.AssetId}")" />
+                @item.Title<span class="ss-small ss-muted"> - @item.SongTitle</span>
+            </label>
+        }
+    </fieldset>
+}
+
+@code {
+    /// <summary>The options of the family.</summary>
+    [Parameter, EditorRequired]
+    public HandoutOptionsDto Options { get; set; } = default!;
+
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public HandoutChoices Choices { get; set; } = default!;
+
+    /// <summary>A create link was chosen; null hides the links.</summary>
+    [Parameter]
+    public EventCallback<IngredientActionDto>? OnAction { get; set; }
+}

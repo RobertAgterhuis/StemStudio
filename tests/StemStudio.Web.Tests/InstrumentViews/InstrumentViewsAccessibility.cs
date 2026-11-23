@@ -13,7 +13,7 @@ internal static class InstrumentViewsAccessibility
         {
             var id = control.GetAttribute("data-testid") ?? control.OuterHtml[..Math.Min(80, control.OuterHtml.Length)];
             var visible = Visible(control);
-            var name = control.GetAttribute("aria-label") ?? LabelText(control) ?? visible;
+            var name = control.GetAttribute("aria-label") ?? LabelText(root, control) ?? visible;
             name.ShouldNotBeNullOrWhiteSpace($"{id} has no accessible name");
             if (control.GetAttribute("aria-label") is { } label && visible.Length > 0)
             {
@@ -32,6 +32,10 @@ internal static class InstrumentViewsAccessibility
         _ => node.TextContent,
     };
 
-    private static string? LabelText(IElement control) =>
-        control.Closest("label") is { } label ? label.TextContent.Trim() : null;
+    private static string? LabelText(IElement root, IElement control) =>
+        (control.Closest("label") ?? ForLabel(root, control)) is { } label ? label.TextContent.Trim() : null;
+
+    // A <label for="id"> inside the checked markup (020: labels next to selects and text areas).
+    private static IElement? ForLabel(IElement root, IElement control) =>
+        control.Id is { Length: > 0 } id ? root.QuerySelector($"label[for='{id}']") : null;
 }

@@ -83,6 +83,14 @@
         </div>
     </td>
 </tr>
+@if (Asset.Kind == AssetKindDto.Handout)
+{
+    <tr class="ss-score-row">
+        <td colspan="5">
+            <HandoutAssetPanel Asset="Asset" FileUrl="FileUrl" OnMakeAgain="OnMakeAgain" />
+        </td>
+    </tr>
+}
 @if (Asset is { Kind: AssetKindDto.Score, Status: AssetStatusDto.Ready, Score: { } facts })
 {
     <tr class="ss-score-row">

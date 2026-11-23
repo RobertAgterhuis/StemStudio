@@ -44,6 +44,10 @@ public sealed partial class AssetRow
     [Parameter]
     public EventCallback<AssetDto> OnScore { get; set; }
 
+    /// <summary>"Make again" pressed (handout items, feature 020: posts the recipe).</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnMakeAgain { get; set; }
+
     /// <summary>Retry pressed (failed items only).</summary>
     [Parameter]
     public EventCallback<AssetDto> OnRetry { get; set; }

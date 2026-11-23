@@ -101,3 +101,67 @@
   align-items: center;
   gap: var(--ss-space-2);
 }
+
+/* Lesson handouts (feature 020 US3/US4): menu status lines, the dialog fields and the library item. */
+
+.ss-handouts,
+.ss-practice-notes {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-handout-saved,
+.ss-handout-missing {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin-block-start: var(--ss-space-2);
+}
+
+.ss-handout-missing ul {
+  margin: 0;
+  padding-inline-start: var(--ss-space-4);
+}
+
+.ss-handout-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+}
+
+.ss-handout-fields .ss-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ss-handout-fieldset {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: var(--ss-space-2) 0;
+  border: 0;
+}
+
+.ss-handout-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-handout-part .ss-text-button {
+  min-height: var(--ss-target-min);
+}
+
+.ss-handout-item {
+  display: grid;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
+
+.ss-practice-notes-text {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
