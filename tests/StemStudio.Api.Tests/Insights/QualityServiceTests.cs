@@ -123,6 +123,7 @@ public sealed class QualityServiceTests : ApiTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var report = await response.BodyAsync<QualityReportDto>();
         (report.Status, report.Error).ShouldBe((QualityReportStatusDto.Failed, QualityService.WorkerRefused));
+        QualityService.WorkerRefused.ShouldBe("The processing service could not make the quality report of this track.");
         Factory.Logs.For(nameof(QualityService)).ShouldContain(entry => entry.Message.Contains("piano.flac", StringComparison.Ordinal));
     }
 

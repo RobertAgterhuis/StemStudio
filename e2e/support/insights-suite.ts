@@ -47,7 +47,7 @@ export const fakeReasons: Readonly<Record<string, string>> = {
   vocals: 'Some sound of drums is in this stem.',
   drums: 'Little bleed and few artefacts.',
   bass: 'Little bleed and few artefacts.',
-  guitar: 'The stem has separation artefacts (a watery or choppy sound).',
+  guitar: 'The stem has separation artefacts (short dropouts in the sound).',
   piano: 'This instrument is probably not in this song; what you hear is spill from other instruments.',
   other: 'Some sound of guitar is in this stem.',
 };

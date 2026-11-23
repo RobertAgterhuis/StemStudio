@@ -11,7 +11,7 @@ public sealed class QualityTextsTests
     [InlineData(QualityReason.Bleed, QualityLevel.High, "guitar", "Much of guitar is in this stem.")]
     [InlineData(QualityReason.Bleed, QualityLevel.Medium, null, "Some sound of another instrument is in this stem.")]
     [InlineData(QualityReason.BleedTogether, QualityLevel.Medium, "bass", "May be bleed of bass, or the two instruments playing together.")]
-    [InlineData(QualityReason.Artefacts, QualityLevel.Low, null, "The stem has separation artefacts (a watery or choppy sound).")]
+    [InlineData(QualityReason.Artefacts, QualityLevel.Low, null, "The stem has separation artefacts (short dropouts in the sound).")]
     [InlineData(QualityReason.BleedAndArtefacts, QualityLevel.High, "piano", "Bleed of piano and separation artefacts.")]
     [InlineData(QualityReason.NotPresent, QualityLevel.High, "guitar", "This instrument is probably not in this song; what you hear is spill from other instruments.")]
     [InlineData(QualityReason.TooShort, QualityLevel.Unknown, null, "Too little audio to rate.")]

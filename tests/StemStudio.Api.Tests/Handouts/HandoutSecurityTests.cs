@@ -164,6 +164,7 @@ public sealed class HandoutSecurityTests : ApiTestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
         await ContractAssert.MatchesAsync(response, "createHandout");
+        (await response.JsonAsync()).GetProperty("detail").GetString().ShouldBe("The processing service is not reachable. Try again in a moment.");
         Factory.InsightsWorker.Deleted.ShouldBe(["handout:../not-a-job"]);
         (await HandoutsAsync(Factory)).ShouldBeEmpty();
     }
