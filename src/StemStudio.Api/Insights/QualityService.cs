@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
-using StemStudio.Domain;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 
@@ -111,18 +110,18 @@ public sealed partial class QualityService(
             return null;
         }
 
-        return await SubmittedJob.KeepAsync(
-            async () =>
-            {
-                // The id is checked before the track changes, so a refused id leaves no queued report behind.
-                var jobId = JobIds.Require(job.QualityJobId, nameof(job));
-                track.RequestQuality(plan.StemsVersion, Now);
-                track.AssignQualityJob(jobId, Now);
-                await tracks.SaveAsync(CancellationToken.None);
-                return null;
-            },
-            () => worker.DeleteQualityJobAsync(job.QualityJobId, CancellationToken.None),
-            logger);
+        return await SubmittedJob.KeepAsync(() => StoreQueuedAsync(track, plan.StemsVersion, job.QualityJobId), () => worker.DeleteQualityJobAsync(job.QualityJobId, CancellationToken.None), logger);
+    }
+
+    /// <summary>Stores the queued report of an accepted job; no cancellation from here on (the job exists).</summary>
+    private async Task<IResult?> StoreQueuedAsync(Track track, string stemsVersion, string workerJobId)
+    {
+        // The id is checked before the track changes, so a refused id leaves no queued report behind.
+        var jobId = Domain.JobIds.Require(workerJobId, nameof(workerJobId));
+        track.RequestQuality(stemsVersion, Now);
+        track.AssignQualityJob(jobId, Now);
+        await tracks.SaveAsync(CancellationToken.None);
+        return null;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Quality report of track {TrackId}: the processing service refused the job: {Reason}")]

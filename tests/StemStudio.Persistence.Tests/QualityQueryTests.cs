@@ -16,11 +16,7 @@ public sealed class QualityQueryTests
     public async Task IsQualityActiveStored_ReadsTheDatabase_NotTheTrackedTrack()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        var (queued, failed, none) = (TestData.CompletedTrack("aaaaaaaaaaa"), TestData.CompletedTrack("bbbbbbbbbbb"), TestData.CompletedTrack("ccccccccccc"));
-        Queue(queued);
-        Queue(failed);
-        failed.FailQuality("broken", T0.AddMinutes(11));
-        await db.SeedAsync(queued, failed, none);
+        var (queued, failed, none) = await SeedQueuedFailedAndNoneAsync(db);
 
         await using var context = db.NewContext();
         var tracks = new TrackRepository(context);
@@ -43,11 +39,7 @@ public sealed class QualityQueryTests
     public async Task ListQualityActive_LoadsOnlyTheActiveTracks()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        var (queued, failed, none) = (TestData.CompletedTrack("aaaaaaaaaaa"), TestData.CompletedTrack("bbbbbbbbbbb"), TestData.CompletedTrack("ccccccccccc"));
-        Queue(queued);
-        Queue(failed);
-        failed.FailQuality("broken", T0.AddMinutes(11));
-        await db.SeedAsync(queued, failed, none);
+        var (queued, failed, none) = await SeedQueuedFailedAndNoneAsync(db);
 
         await using var context = db.NewContext();
         var active = await new TrackRepository(context).ListQualityActiveAsync(Ct);
@@ -90,6 +82,16 @@ public sealed class QualityQueryTests
         claims.Count.ShouldBeLessThanOrEqualTo(1, "another test may have claimed the report first");
         StoredJsonFaults.TryClaimReport(out var name).ShouldBeFalse();
         name.ShouldNotBeEmpty();
+    }
+
+    private static async Task<(Track Queued, Track Failed, Track None)> SeedQueuedFailedAndNoneAsync(SqliteTestDatabase db)
+    {
+        var (queued, failed, none) = (TestData.CompletedTrack("aaaaaaaaaaa"), TestData.CompletedTrack("bbbbbbbbbbb"), TestData.CompletedTrack("ccccccccccc"));
+        Queue(queued);
+        Queue(failed);
+        failed.FailQuality("broken", T0.AddMinutes(11));
+        await db.SeedAsync(queued, failed, none);
+        return (queued, failed, none);
     }
 
     private static void Queue(Track track)
