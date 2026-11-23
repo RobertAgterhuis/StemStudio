@@ -3,7 +3,9 @@
 Builds on the 001-019 data models. Wire shapes: [contracts/](contracts/) (standalone additive
 deltas; on any difference the OpenAPI documents win). Design:
 [ADR-029](../../docs/decisions/ADR-029-stem-quality-report-and-handouts.md). Sections marked
-**(G2)** exist only if gate G2 passes (research.md R-06).
+**(G2)** exist only if gate G2 passes (research.md R-06); **Phase 0 (2026-11-23): G2 is pending
+(no dataset), so every (G2) part is deferred and not in the 1.11.0/1.19.0 contracts** (DELTA.md
+"Phase 0 outcome").
 
 ## 1. Configuration
 
@@ -11,7 +13,7 @@ deltas; on any difference the OpenAPI documents win). Design:
 |---|---|---|---|
 | worker | `STEMSTUDIO_QUALITY_ANALYZER` | unset = `fake` when `STEMSTUDIO_SEPARATOR=fake`, else `real` | `real` (signal measures) or `fake` (deterministic per channel, 2.6) |
 | worker | `STEMSTUDIO_INSIGHTS_THREADS` | `4` (1..16) | intra-op thread cap of the `insights` lane (numpy/scipy BLAS threads) |
-| worker | `STEMSTUDIO_RESEPARATOR` **(G2)** | as the analyzer | `real` (`vocals-hq` pipeline) or `fake` (copies the inputs, applies -1 dB, 2 s) |
+| worker | `STEMSTUDIO_RESEPARATOR` **(G2, deferred)** | as the analyzer | `real` (`vocals-hq` pipeline) or `fake` (copies the inputs, applies -1 dB, 2 s) |
 | API | `StemStudio:AutoQualityReport` | `true` | start a report after every standard, detail and high-quality separation |
 | API | `StemStudio:MaxSetlistHandoutSongs` | `50` | FR-009 limit |
 
@@ -27,14 +29,18 @@ their 15-second target and handouts never wait behind a separation. `Health.lane
 {queued, running}`. Re-separation jobs **(G2)** run in the separation queue (they are
 separations and use the 003 device policy).
 
-### 2.2 Library paths (allow-list extension of 007 2.1)
+### 2.2 Library paths (per-job allow-lists, 007 2.1)
 
-Existing patterns plus:
+Quality jobs accept only the stem and detail stem patterns of 007 (`ports.QUALITY_PATH_PATTERNS`).
+Handout jobs accept only (`ports.HANDOUT_PATH_PATTERNS`):
 
 ```text
 assets/<uuid>/[a-z][a-z0-9-]{0,31}\.pdf                 # score/tab/drum/transposed PDFs (008/016)
 tracks/<uuid>/artwork/(auto|user)/cover\.jpg            # 005 artwork
 ```
+
+The general allow-list of render and transcription jobs (`ports.LIBRARY_PATH_PATTERNS`) is
+unchanged, so a PDF or JPEG can never reach a render job (Phase 0 refinement).
 
 Same resolution rule: `Path(root, path).resolve(strict=True)` inside `root.resolve()`, else
 `400 invalid-input-path`; missing -> `404 input-not-found` (checked at job creation).
@@ -43,7 +49,7 @@ Same resolution rule: `Path(root, path).resolve(strict=True)` inside `root.resol
 
 | Field | Type | Rule |
 |---|---|---|
-| `stems` | `QualityInput[]` | 1..64; exactly the six standard stems must be present (they form the mix) |
+| `stems` | `QualityInput[]` | 6..64; each of the six standard stems exactly once (they form the mix); every channel once; `kind` matches the channel (`standard` = no dot, `rest` = `<parent>.rest`, else `detail`) |
 | `detailParents` | `DetailParentInput[]` | 0..5; per split parent the 002 metrics |
 | `titles` | `{title, artist?}` | for logs only, <= 200 chars each |
 
@@ -76,7 +82,7 @@ restart" at start-up; `DELETE` cancels and removes (idempotent `204`).
 | `artefacts` | `ArtefactEstimate` | |
 
 **BleedEstimate**: `level` (`low` \| `medium` \| `high` \| `unknown`), `index` 0..1 (leakage
-share after the guard), `mainSource` (ChannelId \| null, a standard stem), `coOccurrence` (bool:
+share after the guard), `mainSource` (StemName \| null: always a standard stem), `coOccurrence` (bool:
 the guard capped the level), `reliability` (`validated` \| `indicative`).
 **ArtefactEstimate**: `level` (as bleed), `index` 0..1, `kinds` (subset of `flicker`,
 `dropouts`, `model-residual`, `rest-share`), `reliability`.
@@ -105,7 +111,8 @@ renders it. No database, no lookups, no network in the worker.
 | `appVersion` | string <= 40 | last page |
 
 **SetlistBlock**: `name`, `notes` (<= 4,000 \| null), `entries[]` (`position`, `title`,
-`artist`, `key`, `tempoBpm`, `durationSeconds`, `notes`, `available` (false = track deleted)).
+`artist`, `key`, `tempoBpm`, `durationSeconds`, `notes`). 014 removes the entries of deleted
+tracks, so every entry has a song (Phase 0; the planned `available` flag is dropped).
 
 **HandoutSong**
 
@@ -115,7 +122,7 @@ renders it. No database, no lookups, no network in the worker.
 | `artworkPath` | library path \| null | 2.2 |
 | `facts` | `SongFacts` | `tempoBpm` (int \| null), `timeSignature` (`"4/4"` \| null), `key` (text \| null, e.g. "A minor"), `keySource` (`chords` \| `score` \| null), `durationSeconds`, `transpositionNote` (text \| null) |
 | `sections` | `HandoutSection[]` (<= 64) | `name` (e.g. "Chorus 2"), `startSeconds`, `endSeconds`, `startBar` (int \| null), `bars` (int \| null), `chordBars` (string[][] \| null: per bar the chord symbols), `practiceTempoPercent` (int \| null, from 014's log) |
-| `lyrics` | `HandoutLyrics` \| null | `lines[]` (`text` <= 500, `section` (index \| null), `chords[]` (`symbol`, `charIndex`)), `chordPlacement` (`word` \| `line` \| `none`), `source` (text) |
+| `lyrics` | `HandoutLyrics` \| null | `lines[]` (`text` <= 500, empty = instrumental chord row; `section` (index \| null), `chords[]` (`symbol`, `charIndex`)), `chordPlacement` (`word` \| `line` \| `none`; the 016 chord sheet rule), `source` (text) |
 | `chordSymbols` | string[] (<= 64) | distinct symbols in order of appearance (legend line) |
 | `notation` | `HandoutNotation[]` (<= 8) | `title` (e.g. "Bass - tablature"), `kind` (`score` \| `tab` \| `drums` \| `transposed`), `pdfPath` (library path) |
 | `practiceNotes` | string <= 4,000 \| null | plain text, line breaks kept |
@@ -139,7 +146,7 @@ Error texts: "A notation file could not be read: <title>" (the page is replaced 
 high, flicker), `piano` not-present, `other` fair (bleed medium from `guitar`); detail stems
 good, `rest` fair (`rest-share`). `analyzerVersion = "fake-1"`. Duration 0.5 s per job.
 
-### 2.7 Re-separation jobs **(G2)** (`POST /v1/reseparation-jobs`)
+### 2.7 Re-separation jobs **(G2, deferred)** (`POST /v1/reseparation-jobs`)
 
 Request: `pipeline` (`vocals-hq`), `inputs` (the six standard stem paths by StemName). Job:
 `reseparationJobId`, `status`, `stage` (`loading-model` \| `vocals` \| `instruments` \|
@@ -194,9 +201,11 @@ A1 flicker ratio and A2 dropout ratio as research.md R-03, each divided by the m
 
 ### 4.5 Levels and rating
 
-`low` < T1 <= `medium` < T2 <= `high` per dimension (T1/T2 from Phase 0, initial guesses: bleed
-0.10/0.30, artefacts 0.35/0.65). A dimension whose reliability is `indicative` *and* failed G1
-reports `unknown` instead of `low`/`medium`. Rating, in order: `activeSeconds < 10` -> `unknown`;
+`low` < T1 <= `medium` < T2 <= `high` per dimension (T1/T2 calibrated on V1, initial guesses: bleed
+0.10/0.30, artefacts 0.35/0.65). A dimension that was **measured and failed** G1 reports `unknown`
+instead of `low`/`medium` (only `high` is shown). A dimension not measured yet (Phase 0: G1 not
+run) is `indicative` and reports all levels; guitar, piano, detail and rest stems are always
+`indicative`. Rating, in order: `activeSeconds < 10` -> `unknown`;
 B3 (`activeShare < 0.08` or `levelDb < -30`) **and** bleed index >= 0.5 -> `not-present`; else
 the worse dimension (`high` -> `poor`, `medium` -> `fair`, `low` -> `good`, both `unknown` ->
 `unknown`).
@@ -222,8 +231,8 @@ the worse dimension (`high` -> `poor`, `medium` -> `fair`, `low` -> `good`, both
 | Field | Type | Rule |
 |---|---|---|
 | `QualityReport` | JSON `QualityReport` \| null | null = never made; migration `AddQualityReport` |
-| `StemSet` **(G2)** | JSON `{Pipeline, Models[], SeparatedAt}` | null = `standard` with the 001 model; migration `AddStemSet` |
-| `Reseparation` **(G2)** | JSON phase `{Status, Stage, Progress, Error, WorkerJobId, Pipeline, RequestedAt, UpdatedAt}` \| null | like `DetailPhase` (002 3.1) |
+| `StemSet` **(G2, deferred)** | JSON `{Pipeline, Models[], SeparatedAt}` | null = `standard` with the 001 model; migration `AddStemSet` |
+| `Reseparation` **(G2, deferred)** | JSON phase `{Status, Stage, Progress, Error, WorkerJobId, Pipeline, RequestedAt, UpdatedAt}` \| null | like `DetailPhase` (002 3.1) |
 
 **QualityReport**: `Status` (`queued` \| `running` \| `ready` \| `failed`), `Progress` 0..100,
 `Error`, `WorkerJobId`, `AnalyzerVersion`, `MeasuredAt`, `StemsVersion` (hash of the stem files'
@@ -252,7 +261,7 @@ device estimate. Rules are evaluated in this order; the first two that apply are
 |---|---|---|---|---|
 | 1 | `not-in-song` | rating `not-present` | "Mute this stem; the instrument is probably not in this song." | `mute` (channel) |
 | 2 | `use-detail-stem` | parent with outcome `split` and a kept child rated better than the parent | "Use the {child} detail stem instead." | `open-detail` (parent, child) |
-| 3 | `rerun-high-quality` **(G2)** | (channel `vocals` with rating `fair`/`poor`) or (`bleed.mainSource = vocals` and bleed `medium`/`high`); pipeline `standard`; pipeline available | "Re-separate with the high-quality vocal model ({estimate} on this computer)." | `reseparate` (`vocals-hq`) |
+| 3 | `rerun-high-quality` **(G2, deferred: never produced in 1.19.0)** | (channel `vocals` with rating `fair`/`poor`) or (`bleed.mainSource = vocals` and bleed `medium`/`high`); pipeline `standard`; pipeline available | "Re-separate with the high-quality vocal model ({estimate} on this computer)." | `reseparate` (`vocals-hq`) |
 | 4 | `try-detail-separation` | channel in {vocals, drums, guitar, piano, other}; detail phase none, failed or cancelled; rating `fair`/`poor` | "Split further (detail separation) may pull apart the instruments mixed into this stem." | `split-detail` |
 | 5 | `listen-to-rest` | detail stem with artefact kind `rest-share` | "Part of this sound went to the 'rest' stem; listen to it too." | `open-detail` (parent, `rest`) |
 | 6 | `hard-to-isolate` | rating `poor` (or `fair` for guitar, piano, other and their detail stems) and none of 2-4 applied | "{Instrument} is hard to isolate with today's models; this is close to the best StemStudio can do." | none |
@@ -286,11 +295,13 @@ Default name: "<Title> - <Family label> handout" (song), "<Setlist> - <Family la
 `overview` (Band overview), `vocals`, `guitar`, `bass`, `keys`, `drums`, `melodic` (Melodic
 instruments; transposition `c` default, `b-flat`, `e-flat`, `f`).
 
-Notation per family (newest ready item of the track whose facts match; 016 reconciliation in
-DELTA.md 6): vocals -> score profile `vocals`; guitar -> tab of `guitar*` + score `guitar`; bass
--> tab of `bass` + score `bass`; keys -> score `piano` or `keys`; drums -> drum notation (008
-`drums` profile / 016 drum notation); melodic -> 016 transposed part for the chosen
-transposition, else the C score of the stem the user picks (`other` or a melodic detail stem).
+Notation per family (newest ready `score` item of the track whose `ScoreFacts` match; shapes
+reconciled in DELTA.md "Phase 0 outcome" P0-4): vocals -> profile `vocals`; guitar -> profile
+`guitar` with `tablature` (tab) and without (score); bass -> profile `bass` with and without
+`tablature`; keys -> profile `piano` or `keys`; drums -> profile `drums` (008/016 drum notation);
+melodic -> a part whose `part.instrument` matches the transposition (`b-flat` = `*-bb`, `e-flat` =
+`*-eb`, `f` = `*-f`), for `c` a profile `strings`/`brass`/`woodwinds` item or a `concert` part,
+else the C score of the stem the user picks (`other` or a melodic detail stem).
 
 ### 6.2 Ingredients (IngredientCode) and defaults per family
 
@@ -311,15 +322,17 @@ principle). `setlist-notes` is always included in setlist handouts.
 
 ### 6.3 Assembly (API, `Handouts/HandoutAssembler`, pure parts)
 
-1. Load track facts (beat grid -> tempo rounded, `beatsPerBar/4`), key (016 chord key, else the
-   newest score's key, else null), sections (014), chords (016), lyrics (006), notation items,
-   practice notes, practice log (014), artwork (005).
-2. Transpose (melodic, not `c`): chord symbols up 2 (B-flat), 9 (E-flat), 7 (F) semitones, key
-   spelled for the transposed key; `transpositionNote` e.g. "Part in B-flat (sounds a major
-   second lower)".
+1. Load track facts (beat grid -> tempo rounded, `beatsPerBar/4`), key (016 `Track.key` /
+   chord chart key, else the newest score's key, else null), sections (014 `SectionSet`), chords
+   (016 chord chart), lyrics (006), notation items, practice notes, practice log (014
+   `PracticeSummary.sections[].bestTrainerPercent`), artwork (005).
+2. Transpose (melodic, not `c`): spell with 016's `ChordSpeller` and `ChordDisplay(transpose, 0)`
+   with transpose +2 (B-flat), +9 (E-flat), +7 (F); key via `KeyFormatter`; `transpositionNote`
+   e.g. "Part in B-flat (sounds a major second lower)".
 3. Bars: section `startBar` = index of the first downbeat at/after its start (1-based, pickup =
    0); `bars` = downbeats inside; `chordBars` per bar from chords active at the bar's beats.
-4. Chords over lyrics: research.md R-08 (`word`, `line`, `none`).
+4. Chords over lyrics: 016's `ChordSheetBuilder` (research.md R-08 Phase 0 note): rows map to
+   `LyricLine` (`text`, chords with `charIndex`), instrumental rows have empty text.
 5. Filter by the effective `include` list; record omissions with reasons.
 6. Notice and attributions (6.6); `generatedOn` from `TimeProvider`.
 
@@ -362,7 +375,7 @@ new stems (temp + rename per file), removes `detail/` and sets `DetailPhase = nu
 request had `discardDetail`, prunes `Expanded`/`DetailChannels` of the track's mixes, sets
 `StemSet`, and triggers a quality report (FR-007). On failure or cancel nothing changes.
 
-## 8. Assumed shapes of 014 and 016 (reconciled in Phase 0, DELTA.md 6)
+## 8. Assumed shapes of 014 and 016 (reconciled in Phase 0: DELTA.md "Phase 0 outcome" P0-4 has the merged shapes)
 
 | Id | Assumption | Used for |
 |---|---|---|

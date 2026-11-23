@@ -4,7 +4,8 @@
 
 **Created**: 2026-11-16
 
-**Status**: Draft (design complete; Phase 0 runs when 014 and 016 are merged)
+**Status**: Ready for the wave (Phase 0 done 2026-11-23; User Story 5 deferred: gate G2 pending
+the owner's MUSDB18-HQ dataset)
 
 **Input**: MoSCoW backlog (`docs/MoSCoW.md`) items **C7** "Stem quality report: a bleed and
 artefact score per stem with a tip ("try the detail model", "use the GPU model")" and **C8**
@@ -65,6 +66,25 @@ measurements: [research.md](research.md).
   only"; the last page has the full notice (song and lyrics belong to their rights holders;
   transcriptions and chords are automatic and may contain errors; do not publish or sell) and the
   attributions of the models and data sources used.
+
+### Session 2026-11-23 (Phase 0)
+
+Decided by the architect in Phase 0 (DELTA.md "Phase 0 outcome"); open for the owner's review.
+
+- Q: The build order changed (020 before 017-019). Does 020 need anything from them? -> A: No. The
+  contracts are merged onto 016's documents and keep the allocated labels.
+- Q: Gate G2 cannot be measured (no MUSDB18-HQ on the machine). -> A: User Story 5, FR-007 and
+  SC-007 are **deferred**; their contract parts are not merged. They come back as a later contract
+  minor when the owner provides the dataset and G2 passes.
+- Q: Gate G1 cannot be run either. What do users see? -> A: every dimension is labelled "rough
+  indication" and all levels (Low/Medium/High) are shown; a level is hidden as "unknown" only after
+  a dimension was measured and failed G1.
+- Q: A setlist entry whose track was deleted? -> A: 014 already removes such entries from the
+  setlist (with its own notice), so a setlist handout lists only the remaining songs.
+- Q: Chords over lyrics and transposition: own rules or 016's? -> A: 016's chord sheet rules and
+  chord spelling are reused, so the handout and the app's chord sheet always agree.
+- Q: 014 already makes a setlist PDF. One or two? -> A: Both stay with different jobs: 014's quick
+  "print the set" PDF (not stored) and 020's lesson handout per family (stored in the library).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -180,12 +200,13 @@ song and page numbers in the contents.
    each starting on a new page.
 2. **Given** a setlist of 20 songs, **Then** the handout is ready within 90 seconds (reference
    CPU) and progress is shown.
-3. **Given** a setlist entry whose track was deleted, **Then** it appears in the running order as
-   "(track no longer in the library)" and has no song section.
+3. **Given** a setlist from which 014 removed an entry because its track was deleted, **When** the
+   setlist handout is made, **Then** the running order and the song sections contain exactly the
+   remaining entries, in order (Phase 0: 014 removes such entries, data-model 2.5).
 
 ---
 
-### User Story 5 - High-quality vocal re-separation (Priority: P3, gated by G2)
+### User Story 5 - High-quality vocal re-separation (Priority: P3, gated by G2; **deferred** in Phase 0: G2 pending the dataset)
 
 For a song with poor vocals or vocal bleed in the other stems, the user re-separates the track
 with the high-quality vocal model and sees the ratings before and after.
@@ -245,13 +266,14 @@ the new one.
   kinds), computed only from StemStudio's own stems (no reference multitrack).
 - **FR-004**: Every report MUST state that the ratings are estimates; each dimension MUST carry a
   reliability label ("validated" only for stem types that passed gate G1, otherwise "rough
-  indication"); the report MUST NOT present indices as measured truth.
+  indication"; until G1 is run every label is "rough indication"); the report MUST NOT present
+  indices as measured truth.
 - **FR-005**: The system MUST derive at most two tips per stem from the catalogue in data-model
   5.3; a tip MUST only suggest an action that exists for this track and device, and actionable
   tips MUST offer a button that starts the action.
 - **FR-006**: The system MUST NOT offer "re-run on the GPU" as a quality improvement, because the
   GPU runs the same models (003).
-- **FR-007** *(gated, G2)*: Users MUST be able to re-separate a completed track with the
+- **FR-007** *(gated, G2; deferred in Phase 0)*: Users MUST be able to re-separate a completed track with the
   high-quality vocal pipeline, see the time estimate and the consequences first, and keep the
   original stems if it fails or is cancelled; afterwards the report MUST show the previous rating
   per stem.
@@ -263,8 +285,9 @@ the new one.
 - **FR-010**: A handout MUST include the family's default ingredients that exist (data-model 6.2)
   and MUST NOT fail because an optional ingredient is missing; missing ingredients MUST be listed
   before generating and on the finished item.
-- **FR-011**: Chords MUST appear above the lyric words when word timings exist, at the start of
-  the line when only line timings exist, and as a separate chord chart per section otherwise;
+- **FR-011**: Chords MUST appear above the lyric words when word timings exist, above the word
+  nearest their share of the line when only line timings exist (016's chord sheet rule), and as a
+  separate chord chart per section otherwise;
   chord symbols MUST use ASCII accidentals (`Bb`, `F#m`) and be transposed with the part.
 - **FR-012**: Handouts MUST be rendered by the worker in the app's visual style (light-theme
   design tokens, Archivo font), with a header and footer on every page (title, family, page n of
@@ -322,7 +345,7 @@ the new one.
 - **SC-006**: For each of the seven families the E2E suite creates a handout from the fixture song
   and finds the family's default ingredients in its facts (at least one case per instrument
   family, MoSCoW principle).
-- **SC-007** *(gated, G2)*: On the real validation set the high-quality vocal pipeline improves
+- **SC-007** *(gated, G2; deferred in Phase 0)*: On the real validation set the high-quality vocal pipeline improves
   the median vocals SDR by >= 1.0 dB and the median SIR of the other stems by >= 0.5 dB.
 - **SC-008**: A first-time user creates a bass handout and finds the bass stem's quality tip in
   under two minutes without help (moderated check by the CTO).
@@ -336,7 +359,8 @@ the new one.
   items with a PDF file. The exact shapes are reconciled in Phase 0 (DELTA.md section 6).
 - 006 lyrics (lines, optional word timings), 008 score items, 005 artwork, 007 library and lanes,
   002 detail metrics and 003 device policy exist as merged.
-- Features 017-019 add nothing 020 needs; their contract minors land before 020 and 020's
-  additions are additive on top.
+- Features 017-019 add nothing 020 needs. The owner changed the build order: 020 is built before
+  017-019 and 021, so 020's contract minors are merged onto 016's documents and keep their
+  allocated labels; 017-019 merge onto 020's later (DELTA.md "Phase 0 outcome").
 - The owner accepts estimate-quality ratings with honest labels (constitution V).
 - Handouts are for the user's own lessons and practice; StemStudio does not share or publish them.

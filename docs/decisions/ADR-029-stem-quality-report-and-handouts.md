@@ -88,4 +88,21 @@ without touching the rest.
 
 ## Phase 0 outcome
 
-To be written at Phase 0 (G1 table, G2 result, WeasyPrint checks P0-4).
+Architect, 2026-11-23 (details: `specs/020-insights-handouts/research.md` "Phase 0 measurements" and
+`DELTA.md` "Phase 0 outcome"). The ADR stays **Accepted**; D1-D4 and D6-D7 hold unchanged, D5 is
+deferred:
+
+- **D5 (G2): pending owner.** MUSDB18-HQ is not available, so the G2 gain cannot be measured. The
+  `vocals-hq` pipeline, its contract parts, tip, ui ids and help topic are deferred (not merged into
+  backend 1.19.0 / worker 1.11.0). Measured: both candidate checkpoints load and run in about
+  1.6-1.7 GiB on the GPU (5-12 s per minute of audio; 2.5-6 min per minute on the CPU); the
+  recommended checkpoint is the MIT-licensed Mel-Band RoFormer (KimberleyJensen) with a 3,000 MiB
+  `GpuNeed`, which needs one new vendored MSST file. The sum of the `htdemucs_6s` stems differs from
+  the input by -27 dB (planned: below -30 dB): re-measure on real music when G2 is taken up.
+- **D2 (G1): not run.** Every dimension starts `indicative` with all levels shown; masking low/medium
+  as `unknown` applies only to a dimension that was measured and failed.
+- **D7 (WeasyPrint): confirmed (P0-4).** WeasyPrint 70.0 with the image's Pango 1.56.3 renders the
+  app style (Archivo, tokens), footer and "page n of N" on every page, bookmarks, contents with page
+  numbers; a 20-song setlist in 8 s. WeasyPrint 70's fetcher must subclass `URLFetcher`.
+- **014 overlap:** 014's quick setlist PDF (ReportLab, streamed) stays; the setlist handout is the
+  stored lesson PDF. Chords, transposition and chords over lyrics reuse 016's domain rules.

@@ -1,6 +1,6 @@
 # Research: Insights and Handouts (feature 020)
 
-Architect, 2026-11-16. Decisions are binding through
+Architect, 2026-11-16; Phase 0 results 2026-11-23 (last section). Decisions are binding through
 [ADR-029](../../docs/decisions/ADR-029-stem-quality-report-and-handouts.md). Items marked
 **(P0)** are measurements of Phase 0 (tasks T005-T008). They run when 014 and 016 are merged and
 their results are written into this file under "Phase 0 measurements". No number below is claimed
@@ -90,8 +90,9 @@ summed into `other` for scoring), compute BSS Eval v4 SIR and SAR per song and s
 index with -SIR and our artefact index with -SAR per stem type.
 
 **Gate G1** (per stem type and dimension): rho >= 0.5 (bleed vs SIR) and rho >= 0.4 (artefacts
-vs SAR) -> label "validated"; otherwise "rough indication" and only the High level is shown for
-that dimension (Low/Medium become "unknown"). Guitar, piano and all detail stems are not covered
+vs SAR) -> label "validated"; a dimension that is measured and fails -> "rough indication" and
+only the High level is shown for it (Low/Medium become "unknown"). A dimension that was not
+measured (no V2 run yet, Phase 0 2026-11-23) is "rough indication" with all levels shown. Guitar, piano and all detail stems are not covered
 by V2 and are always "rough indication". The results table is published under "Phase 0
 measurements" and summarised in the help topic `stem-quality-reliability`.
 
@@ -183,6 +184,14 @@ Expanded Bold) generated with the fontTools instancer at build (OFL allows).
 The alignment and transposition are pure functions in the backend domain (the API assembles the
 handout document; the worker only lays it out), so they are unit-tested without PDFs.
 
+**Phase 0 (2026-11-23, 016 merged)**: feature 016 already ships these rules in the backend domain:
+`ChordSpeller` (spelling by key, transposition via `ChordDisplay`), `ChordSheetBuilder` (chords over
+lyric words for word-synced lyrics, nearest-word placement for line-synced lyrics, instrumental
+rows) and `KeyFormatter.WrittenKey` (written key of a transposing instrument). The handout
+**reuses them**, so the app's chord sheet and the handout agree; the line-timing rule above is
+replaced by 016's nearest-word rule and no own chord-symbol parser is written (016 chords are
+structured `{root, quality, bass}`).
+
 ## R-09 Style consistency
 
 The app's light-theme tokens (`src/StemStudio.Web/wwwroot/css/tokens.css`) and the Archivo font
@@ -202,5 +211,64 @@ topic says so.
 
 ## Phase 0 measurements
 
-To be filled by T005-T008 (G1 table, G2 result, P0-4 rendering checks, analysis timing for
-SC-001, the sum-of-stems difference, model facts for `vocals-hq`).
+Architect, 2026-11-23 (T005, T006). Measured on the owner's machine (RTX 5070 Ti 16 GB; the worker
+image `stemstudio/worker:local-gpu`, Debian 13, run in throw-away containers with only a scratch
+mount; the running stack was not touched). Scripts and logs stay in the git-ignored scratch folder
+`.claude/scratchpad/020-round/{g2,p04}/` (not committed).
+
+### Gate G2 (T005): **pending owner, dataset needed**
+
+MUSDB18-HQ is not on this machine, so the G2 criteria (median vocals SDR gain >= 1.0 dB and median
+SIR gain >= 0.5 dB of the other stems, measured by us on V2) **could not be measured**. What was
+measured or collected:
+
+| | BS-RoFormer viperx `model_bs_roformer_ep_317_sdr_12.9755` | Mel-Band RoFormer KimberleyJensen (vocals) |
+|---|---|---|
+| Weights | `https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_317_sdr_12.9755.ckpt` | `https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt` |
+| Size, SHA-256 | 639,331,213 B, `5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa` (source publishes no hash) | 913,106,900 B, `87201f4d31afb5bc79993230fc49446918425574db48c01c405e44f365c7559e` (equals the Hugging Face ETag) |
+| Config (ZFTurbo MSST) | `configs/viperx/model_bs_roformer_ep_317_sdr_12.9755.yaml` (SHA-256 `42e5635c...5f2c`) | `configs/KimberleyJensen/config_vocals_mel_band_roformer_kj.yaml` (SHA-256 `f63f38eb...1926`) |
+| Licence status (ADR-009) | **none stated** at the source (unclear: inside the weights exception) | **MIT** (Hugging Face metadata; README empty) |
+| Loads with the vendored MSST code (002) | yes, strict `load_state_dict`, `weights_only=True`; needs a `[:, None]` adapter (one stem returns `(b, c, t)`) | **no**: the vendored code has no `MelBandRoformer`; the spike used MSST `mel_band_roformer.py` (SHA-256 `a28fce62...9fc5`) with a no-op `beartype` shim (would be a new vendored file) |
+| Peak VRAM (`max_memory_allocated`, fp32, batch 1) | 1,612 MiB (NVML incl. CUDA context 2,914 MiB) | 1,710 MiB (NVML 2,667 MiB) |
+| GPU time per minute of audio | 11.6 s (5-min song about 53 s) | 5.2 s (about 24 s) |
+| CPU time per minute (8 threads) | about 373 s (5-min song about 28 min) | about 152 s (about 11.5 min) |
+| Published vocals SDR (MSST Multisong) | 10.87 dB | 10.98 dB |
+| Public paired comparison vs `htdemucs_6s` (python-audio-separator `models-scores.json`, median, shared tracks) | vocals SDR +3.39 dB, vocals SIR +8.2 dB (12 tracks) | vocals SDR +2.95 dB, vocals SIR +8.4 dB (11 tracks) |
+
+- **Sum of stems vs original** (`htdemucs_6s` through the worker's `apply_pretrained`, synthetic
+  60 s mix): **-27.1 dB** (expected below -30 dB). Demucs does not close the sum exactly; the full
+  `vocals-hq` chain (RoFormer vocals + `htdemucs_6s` on the rest) gave -26.9 dB. Re-measure on real
+  music before the "input = sum of the stems" assumption is accepted.
+- Separation quality on synthetic signals is meaningless (a vibrato sine is ignored as "voice");
+  only V2 can decide G2.
+- **Recommendation** (if the owner provides MUSDB18-HQ and G2 passes): the Mel-Band RoFormer KJ
+  checkpoint (MIT, twice as fast, 1.7 GiB peak) with `GpuNeed("Mel-Band RoFormer vocals", 3000)`;
+  it needs one new vendored MSST file. Public numbers suggest the vocals criterion of G2 is likely
+  met; the "other stems SIR" criterion has no public evidence.
+- **Decision for this round**: User Story 5 is deferred; the G2 contract parts are not merged
+  (DELTA.md "Phase 0 outcome"); no G2 task runs in the wave.
+
+### Gate G1 (V2 real validation): **not run, labels `indicative`**
+
+Same dataset gap. T039 (beat-analysis) runs the protocol of R-04 when MUSDB18-HQ is available.
+Until then every reliability label is `indicative` ("rough indication") and **no level is masked**:
+a dimension reports `unknown` instead of low/medium only after it has been measured and *failed*
+G1 (data-model 4.5). V1 (synthetic, committed) still gates the thresholds (SC-002).
+
+### P0-4 WeasyPrint in the worker image (T006): **passed**
+
+| Check | Result |
+|---|---|
+| Versions | WeasyPrint 70.0 (2026-09-08) with Pango **1.56.3**, HarfBuzz 10.2.0, fontconfig 2.15.0, libcairo2 1.18.4: Pango and HarfBuzz are **already in the image** (Debian 13 packages pulled in by other libraries); both variants share `python:3.12-slim`. devops lists `libpango-1.0-0` and `libpangoft2-1.0-0` explicitly so they are not lost when another package changes. |
+| Fonts | Archivo variable WOFF2 via `@font-face` (`file:` URL of the packaged copy) embeds as subset `Archivo`/`Archivo-Bold`; characters the Latin subset lacks (e.g. the `ij` ligature U+0133) fall back to DejaVu Sans automatically (fontconfig). `font-stretch: 125%` renders without error, but the expanded width was **not visibly confirmed** at preview resolution: audio-ingest checks it in T069 and falls back to static instances (fontTools instancer, OFL allows) or drops the stretch. |
+| Text | Latin-1 + Latin Extended-A text extracts correctly (pypdf); autoescaped notes show `<b>` as text; the chord row (an absolutely positioned chord over an inline-block word) stays aligned over 24 lines and across a page break. |
+| Paged media | Footer "For personal practice and teaching only" and "Page n of N" on every page; running header via `string-set`; contents with `target-counter()`; bookmarks from headings (one top-level entry per song); PDF title metadata and `/Lang en`. |
+| Timing | Song handout (3-4 pages) 0.7-0.9 s; **20-song setlist (61 pages) 8.0 s** (SC-004 budget 90 s); pypdf notation merge 5 ms per page; page count deterministic. |
+| No network | **WeasyPrint 70 changed the fetcher API**: `url_fetcher` must be an instance of a subclass of `weasyprint.urls.URLFetcher` overriding `fetch(url, headers=None)` and returning `URLFetcherResponse` (a plain function fails with `AttributeError: _fail_on_errors`). The spike's subclass served only packaged files and refused `https://example.com/x.png` (recorded, rendering continued). Use `allowed_protocols=("file",)` as a second guard. |
+
+Typst stays the recorded fallback; it is not needed.
+
+### Not measured in Phase 0
+
+SC-001 analysis timing (needs the real analyzer, T103) and the SC-004 timings in the final image
+(T104) are measured by their owners in the polish phase.

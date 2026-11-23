@@ -11,8 +11,10 @@
 **Note**: Produced by the architect agent (`/speckit-plan` equivalent). Binding decisions:
 [ADR-029](../../docs/decisions/ADR-029-stem-quality-report-and-handouts.md). Research and the
 Phase 0 measurement plan: [research.md](research.md). Contracts: [DELTA.md](DELTA.md) and
-[contracts/](contracts/). **Phase 0 is not executed yet**: it needs 014 and 016 merged (their
-contract minors are the base of 020's) and runs the G1/G2 measurements.
+[contracts/](contracts/). **Phase 0 done 2026-11-23** (DELTA.md "Phase 0 outcome"): contracts
+merged onto 016's documents (017-019 not built), G2 pending the dataset (User Story 5 deferred), G1
+not run (labels `indicative`), WeasyPrint P0-4 passed, 016's chord domain reused, 014's setlist PDF
+kept beside the setlist handout.
 
 ## Summary
 
@@ -47,7 +49,7 @@ checkpoint (licence status per ADR-009, downloaded at first use). Research-only,
 1.17.1 (MIT, already used by `tools/docs`) for page counts.
 
 **Storage**: `Tracks.QualityReport` JSON (migration `AddQualityReport`), `PracticeNotes` table
-(`AddPracticeNotes`), G2: `Tracks.StemSet`, `Tracks.Reseparation` (`AddStemSet`); asset files
+(`AddPracticeNotes`), G2 (deferred): `Tracks.StemSet`, `Tracks.Reseparation` (`AddStemSet`); asset files
 `assets/<id>/handout.pdf`; worker `quality-jobs/`, `handout-jobs/`, G2 `reseparation-jobs/` and
 `cache/by-audio/<sha>/vocals-hq/`.
 
@@ -121,7 +123,7 @@ worker/src/stemstudio_worker/
 
 src/StemStudio.Contracts/{Insights,Handouts,Separation}/*.cs, additions to AssetDto/ProvenanceDto/TrackDto/ApiRoutes/ContractLimits  (architect)
 src/StemStudio.Domain/Insights/{TipRules,QualityRatingRules,StemsVersion}.cs
-src/StemStudio.Domain/Handouts/{Families,IngredientPlanner,ChordSymbol,Transposer,ChordPlacer,BarMapper,HandoutNotice,HandoutNaming}.cs
+src/StemStudio.Domain/Handouts/{Families,IngredientPlanner,HandoutChords (adapter over 016's ChordSpeller/ChordSheetBuilder/KeyFormatter),BarMapper,HandoutNotice,HandoutNaming}.cs
 src/StemStudio.Persistence (QualityReport column, PracticeNotes table, G2 columns, migrations)
 src/StemStudio.Api/Insights/{QualityEndpoints,QualityService,QualityJobApplier,QualityTrigger}.cs
 src/StemStudio.Api/Handouts/{HandoutEndpoints,HandoutService,HandoutAssembler,HandoutOptionsService,PracticeNoteEndpoints,Sources/*Adapter.cs}.cs
@@ -186,3 +188,4 @@ audio-engine has no work in this feature.
 | Tips derived in the backend, measures in the worker | Tips depend on track state that changes without new audio | Tips in the worker would need re-analysis after each state change |
 | Gated second separation pipeline (G2) | The only honest "better model" action; the backlog's GPU tip is false | Shipping a GPU re-run tip that changes nothing would mislead; shipping an unmeasured model would break principle V |
 | Five source adapters to 014/016 | Those specs are written in parallel; shapes may differ | Coding against assumed shapes directly would spread changes over the assembler |
+| Two setlist PDFs (014 quick PDF, 020 lesson handout) (Phase 0) | Different jobs: a streamed stage sheet vs a stored per-family lesson PDF | Removing 014's PDF is a breaking change of an operation and its ui ids; folding it into `overview` is left to a later major |
