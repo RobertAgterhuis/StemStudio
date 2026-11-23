@@ -81,6 +81,17 @@ def test_the_pass_list_is_the_014_015_set_plus_the_016_passes() -> None:
 
 
 @pytest.mark.skipif(BASH is None, reason="bash not available")
+def test_the_gpu_suite_runs_with_the_device_of_its_stack() -> None:
+    """The @gpu specs read STEMSTUDIO_FAKE_DEVICE themselves (e2e/support/env.ts), as in the 003 job."""
+    lines = _dry("gpu").stdout.splitlines()
+
+    suites = [line for line in lines if "npm run test:gpu" in line]
+    assert len(suites) == 2
+    assert "STEMSTUDIO_FAKE_DEVICE=gpu " in suites[0]
+    assert "STEMSTUDIO_FAKE_DEVICE=gpu-oom " in suites[1]
+
+
+@pytest.mark.skipif(BASH is None, reason="bash not available")
 def test_an_unknown_pass_is_a_usage_error() -> None:
     result = _dry("nope")
 
