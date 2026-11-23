@@ -37,7 +37,9 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<StemStudio.Web.InstrumentViews.InstrumentCatalogueCache>();
         Services.AddSingleton(Confirm);
         Services.AddSingleton<IPollingTimer>(Timer);
-        Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
+        // The stem quality report is off by default (owner decision 2026-11-23); the page tests run it switched on, as the e2e
+        // override does. QualityReportSwitchTests switch it off.
+        Services.AddSingleton(Options.Create(new StemStudioWebOptions { QualityReport = { Enabled = true } }));
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<IWebInterop>(Interop);
         Services.AddSingleton(Recorder);

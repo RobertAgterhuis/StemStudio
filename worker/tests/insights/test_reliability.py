@@ -1,4 +1,8 @@
-"""G1 reliability table (T038, FR-004, data-model 4.5, research R-04, Phase 0 measurements)."""
+"""G1 reliability table (T038, FR-004, data-model 4.5, research R-04, Phase 0 measurements).
+
+G1 ran on MUSDB18-HQ (25-track seeded subset, 2026-11-23) and failed on all 8 cells, so every V2
+stem type is a rough indication that shows only ``high`` (analyzer 1.0.1).
+"""
 
 import pytest
 
@@ -16,17 +20,22 @@ from stemstudio_worker.schemas import STANDARD_STEMS, QualityInputKind, QualityL
 DIMENSIONS: tuple[Dimension, ...] = ("bleed", "artefacts")
 
 
-def test_phase_0_table_has_every_v2_stem_type_not_measured() -> None:
+def test_phase_0_table_has_every_v2_stem_type_failed() -> None:
     assert set(G1_STEM_TYPES) == {"vocals", "drums", "bass", "other"}
     assert set(G1_RESULTS) == {(stem, dim) for stem in G1_STEM_TYPES for dim in DIMENSIONS}
-    assert set(G1_RESULTS.values()) == {"not-measured"}
+    assert set(G1_RESULTS.values()) == {"failed"}
+
+
+def test_the_changed_table_bumps_the_analyzer_version() -> None:
+    assert thresholds.ANALYZER_VERSION == "1.0.1"
 
 
 @pytest.mark.parametrize("stem", STANDARD_STEMS)
 @pytest.mark.parametrize("dimension", DIMENSIONS)
-def test_every_label_starts_indicative(stem: str, dimension: Dimension) -> None:
+def test_every_label_is_indicative(stem: str, dimension: Dimension) -> None:
+    expected = "failed" if stem in G1_STEM_TYPES else "not-measured"
     assert reliability(stem, "standard", dimension) == "indicative"
-    assert g1_status(stem, "standard", dimension) == "not-measured"
+    assert g1_status(stem, "standard", dimension) == expected
 
 
 @pytest.mark.parametrize("level", ["low", "medium", "high"])
@@ -69,7 +78,7 @@ def test_guitar_piano_detail_and_rest_stems_are_always_indicative(
 
 
 def test_a_failed_v2_dimension_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setitem(thresholds.G1_RESULTS, ("bass", "bleed"), "failed")
+    monkeypatch.setitem(thresholds.G1_RESULTS, ("bass", "artefacts"), "not-measured")
     assert g1_status("bass", "standard", "bleed") == "failed"
     assert g1_status("bass", "standard", "artefacts") == "not-measured"
     assert reliability("bass", "standard", "bleed") == "indicative"

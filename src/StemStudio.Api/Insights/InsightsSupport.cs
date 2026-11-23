@@ -10,11 +10,34 @@ public sealed class InsightsOptions
     /// <summary>Configuration section.</summary>
     public const string SectionName = "StemStudio";
 
-    /// <summary>Start a quality report after every standard and detail separation (<c>StemStudio:AutoQualityReport</c>).</summary>
+    /// <summary>
+    /// The stem quality report as a whole (<c>StemStudio:QualityReport</c>, owner decision 2026-11-23): off by default, because
+    /// gate G1 failed on real music.
+    /// </summary>
+    public QualityReportOptions QualityReport { get; set; } = new();
+
+    /// <summary>
+    /// Start a quality report after every standard and detail separation (<c>StemStudio:AutoQualityReport</c>); only used while
+    /// <see cref="QualityReportOptions.Enabled"/> is true.
+    /// </summary>
     public bool AutoQualityReport { get; set; } = true;
+
+    /// <summary>True when a report is started automatically: the report is switched on and <see cref="AutoQualityReport"/> is true.</summary>
+    public bool AutomaticQualityReports => QualityReport.Enabled && AutoQualityReport;
 
     /// <summary>Most songs in a setlist handout (<c>StemStudio:MaxSetlistHandoutSongs</c>, FR-009).</summary>
     public int MaxSetlistHandoutSongs { get; set; } = ContractLimits.MaxSetlistHandoutSongs;
+}
+
+/// <summary>The switch of the stem quality report (<c>StemStudio:QualityReport</c>).</summary>
+public sealed class QualityReportOptions
+{
+    /// <summary>
+    /// True: reports are made, read and shown (<c>StemStudio:QualityReport:Enabled</c>, env
+    /// <c>StemStudio__QualityReport__Enabled</c>). Default false: no automatic report, <c>POST</c> answers 503, <c>GET</c> answers
+    /// status <c>none</c> and <c>Track.quality</c> is absent.
+    /// </summary>
+    public bool Enabled { get; set; }
 }
 
 /// <summary>
@@ -177,6 +200,11 @@ public static partial class SubmittedJob
 /// <summary>Problem responses of the quality and handout endpoints (backend 1.19.0 <c>QualityConflict</c>, <c>HandoutConflict</c>).</summary>
 public static class InsightsProblems
 {
+    /// <summary>Detail of the 503 while the quality report is switched off (<c>StemStudio:QualityReport:Enabled</c> false).</summary>
+    public const string QualityReportOffDetail =
+        "The stem quality report is switched off on this StemStudio, because its measures are not yet reliable on real music. "
+        + "An administrator can switch it on with the setting StemStudio:QualityReport:Enabled.";
+
     /// <summary>409 <c>track-not-ready</c> of a quality request.</summary>
     /// <param name="detail">Why.</param>
     /// <returns>The problem.</returns>

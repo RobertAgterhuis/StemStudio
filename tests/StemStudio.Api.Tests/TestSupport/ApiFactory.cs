@@ -138,6 +138,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("StemStudio:DataProtection:KeyRingDir", KeyRingDir);
         builder.UseSetting("StemStudio:BackupDir", BackupDir);
         builder.UseSetting("StemStudio:BackupHostDirHint", "./backups");
+        // The stem quality report is off by default (owner decision 2026-11-23); the tests run it switched on, as the e2e
+        // override does. QualityReportSwitchTests switch it off through Settings.
+        builder.UseSetting("StemStudio:QualityReport:Enabled", "true");
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
