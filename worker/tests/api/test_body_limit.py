@@ -1,9 +1,11 @@
 """Tests of the per-route request body limit (020 security fixes, ``POST /v1/handout-jobs``)."""
 
+import asyncio
 from collections.abc import Iterator
 
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from starlette.types import Message, Receive, Scope, Send
 
 from stemstudio_worker.api.body_limit import BodyLimit
 
@@ -67,3 +69,24 @@ def test_other_routes_and_methods_are_not_limited() -> None:
 
     assert client.post("/other", content=b"x" * 1000).json() == {"size": 1000}
     assert client.get("/limited").status_code == 405
+
+
+def test_after_the_body_the_route_gets_the_original_messages() -> None:
+    messages: list[Message] = [{"type": "http.request", "body": b"ab", "more_body": False},
+                {"type": "http.disconnect"}]  # fmt: skip
+    seen: list[Message] = []
+
+    async def receive() -> Message:
+        return messages.pop(0)
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        seen.extend([await receive(), await receive()])
+
+    async def send(message: Message) -> None:
+        del message
+
+    scope = {"type": "http", "method": "POST", "path": "/limited", "headers": []}
+    asyncio.run(BodyLimit(app, {"/limited": LIMIT})(scope, receive, send))
+
+    assert seen == [{"type": "http.request", "body": b"ab", "more_body": False},
+                    {"type": "http.disconnect"}]  # fmt: skip

@@ -1,19 +1,23 @@
 """Routes of the handout jobs on the ``insights`` lane (worker API 1.11.0, feature 020).
 
 ``POST`` 202 with ``Location`` (400 / 404 from the path guard, 422 from the schema: notice texts,
-song count, setlist block), ``GET`` 404 for an unknown job, ``DELETE`` 204 (idempotent),
-``GET .../file`` the PDF of a completed job (409 ``handout-not-completed`` before, 404 when gone).
+song count, setlist block; also a body over 8 MiB, ``api.body_limit``, and a document over the
+job limits of ``jobs.handout_limits``), ``GET`` 404 for an unknown job, ``DELETE`` 204
+(idempotent), ``GET .../file`` the PDF of a completed job (409 ``handout-not-completed`` before,
+404 when gone).
 """
 
 from typing import Final
 
 from fastapi import APIRouter, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
 from stemstudio_worker.api.dependencies import Runtime
 from stemstudio_worker.api.insights_routes import created, job_or_404
 from stemstudio_worker.api.problems import ProblemError, ProblemKind, TypedProblemError
 from stemstudio_worker.api.responses import json_response
+from stemstudio_worker.jobs.handout_limits import HandoutLimitError
 from stemstudio_worker.schemas import HandoutJobRequest, RenderJobStatus
 
 router = APIRouter(prefix="/v1")
@@ -25,8 +29,11 @@ PDF_TYPE: Final = "application/pdf"
 
 @router.post(HANDOUT_JOBS)
 async def create_handout_job(body: HandoutJobRequest, runtime: Runtime) -> JSONResponse:
-    """Check the notation and artwork paths and queue a handout job (202)."""
-    return await created(runtime.lanes.insights.handouts, body, HANDOUT_JOBS, "handout_job_id")
+    """Check the job limits and the notation and artwork paths and queue a handout job (202)."""
+    try:
+        return await created(runtime.lanes.insights.handouts, body, HANDOUT_JOBS, "handout_job_id")
+    except HandoutLimitError as exc:
+        raise RequestValidationError(exc.errors()) from exc
 
 
 @router.get(HANDOUT_JOBS + "/{handout_job_id}")

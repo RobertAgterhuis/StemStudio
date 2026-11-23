@@ -370,3 +370,16 @@ def test_a_document_over_a_job_limit_is_422_and_queues_nothing(
     assert list(response.json()["errors"]) == ["document"]
     _wait(api)
     assert renderer.calls == []
+
+
+def test_without_a_library_the_job_is_queued_and_fails_when_it_runs(
+    make_api: ApiFactory, renderer: FakeHandoutRenderer
+) -> None:
+    api = make_api(overrides=AppOverrides(handout_renderer=renderer))
+    _library(api).rmdir()
+
+    job_id = _create(api)
+    _wait(api)
+
+    assert api.client.get(f"{JOBS}/{job_id}").json()["status"] == "failed"
+    assert renderer.calls == []

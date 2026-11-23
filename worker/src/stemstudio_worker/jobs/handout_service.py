@@ -16,6 +16,11 @@ import re
 from pathlib import Path
 from typing import Final, cast
 
+from stemstudio_worker.jobs.handout_limits import (
+    check_notation_bytes,
+    check_request_limits,
+    notation_paths,
+)
 from stemstudio_worker.jobs.handout_store import StoredHandoutJob
 from stemstudio_worker.jobs.input_guard import check_input, resolve_contained
 from stemstudio_worker.jobs.insights_service import InsightsContext, InsightsJobService, stage_in
@@ -84,10 +89,16 @@ class HandoutService(InsightsJobService[StoredHandoutJob]):
         self._handouts = context.lane.stores.handouts
 
     def create(self, request: HandoutJobRequest) -> HandoutJob:
-        """Check every notation and artwork path (400 / 404) and queue the job."""
+        """Check the job limits, every notation and artwork path (400 / 404) and queue the job.
+
+        Raises:
+            HandoutLimitError: The document or its notation files are over a job limit (422).
+        """
+        check_request_limits(request)
         resolve = functools.partial(resolve_contained, self._root)
         for path, pattern in field_paths(request):
             check_input(resolve, path, pattern.fullmatch)
+        check_notation_bytes(self._notation_bytes(request))
         job = HandoutJob(**self._stamp())
         created: HandoutJob = self._queue(StoredHandoutJob(job=job, request=request))
         return created
@@ -109,6 +120,13 @@ class HandoutService(InsightsJobService[StoredHandoutJob]):
                                pages=rendered.pages, outline=list(rendered.outline),
                                warnings=list(rendered.warnings))  # fmt: skip
         return {"status": RenderJobStatus.COMPLETED, "progress": 1.0, "result": result}
+
+    def _notation_bytes(self, request: HandoutJobRequest) -> int:
+        """Size of the distinct notation files (0 without a library: the job fails when it runs)."""
+        try:
+            return sum(self._resolve(path).stat().st_size for path in notation_paths(request))
+        except (RenderError, OSError):
+            return 0
 
     def _resolve(self, path: str) -> Path:
         """The real file of a path checked at creation (the stored request is never changed)."""

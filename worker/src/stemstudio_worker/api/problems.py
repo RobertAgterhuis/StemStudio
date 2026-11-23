@@ -78,9 +78,14 @@ async def _on_http_error(_request: Request, exc: Exception) -> JSONResponse:
 
 async def _on_validation_error(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)  # noqa: S101 - registered for this type only
+    return validation_problem(validation_errors(exc.errors()))
+
+
+def validation_problem(errors: dict[str, list[str]]) -> JSONResponse:
+    """The 422 "Validation failed" problem with the ``errors`` extension (field -> messages)."""
     body = ProblemDetails.model_validate(
         {"title": "Validation failed", "status": 422, "detail": "The request body is not valid.",
-         "errors": validation_errors(exc.errors())}
+         "errors": errors}
     )  # fmt: skip
     return JSONResponse(body.model_dump(), status_code=422, media_type=PROBLEM_JSON)
 

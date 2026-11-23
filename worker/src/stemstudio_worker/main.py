@@ -39,6 +39,7 @@ from stemstudio_worker.api import (
     storage,
     transcription_routes,
 )
+from stemstudio_worker.api.body_limit import BodyLimit
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
@@ -48,10 +49,11 @@ from stemstudio_worker.documents import ReportLabSetlistRenderer
 from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.engraving.score_view import VerovioScoreViewRenderer
 from stemstudio_worker.handouts.health import fonts_health, renderer_health
-from stemstudio_worker.handouts.renderer import WeasyHandoutRenderer
+from stemstudio_worker.handouts.renderer import RenderLimits, WeasyHandoutRenderer
 from stemstudio_worker.harmony.btc import BtcParts, BtcRecognizer, TorchBtcRuntime
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.handout_limits import MAX_HANDOUT_BODY_BYTES, MAX_HANDOUT_NOTATION_BYTES
 from stemstudio_worker.jobs.insights import InsightsParts
 from stemstudio_worker.jobs.instrument_analysis_chords import (
     ChordPipelineParts,
@@ -220,6 +222,7 @@ def create_app(
     app = FastAPI(title="StemStudio Worker API", version=CONTRACT_VERSION, lifespan=lifespan)
     app.state.settings = resolved
     install_problem_handlers(app)
+    app.add_middleware(BodyLimit, limits={"/v1/handout-jobs": MAX_HANDOUT_BODY_BYTES})
     for routes in _ROUTERS:
         app.include_router(routes)
     return app
@@ -561,7 +564,8 @@ def default_insights(
 
 def default_handout_renderer(overrides: AppOverrides) -> HandoutRenderer:
     """The injected renderer, else the WeasyPrint renderer (imports WeasyPrint only when used)."""
-    return overrides.handout_renderer or WeasyHandoutRenderer()
+    limits = RenderLimits(notation_bytes=MAX_HANDOUT_NOTATION_BYTES)
+    return overrides.handout_renderer or WeasyHandoutRenderer(limits=limits)
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn
