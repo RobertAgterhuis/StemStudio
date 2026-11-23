@@ -72,7 +72,7 @@ def test_the_ratio_floor_rejects_instruments_that_play_together() -> None:
     together = source * rng.uniform(0.0, 2.0, size=source.shape)  # loud when the source is loud
     fit = bleed.fit_pair(_spec(together), _spec(source))
     assert fit.full_share > 0.5  # the plain regression would call it bleed
-    assert fit.share < 0.05
+    assert fit.share < 0.15  # the 5th percentile of U(0, 2) is 0.1
     assert fit.guard_ratio > bleed.CO_OCCURRENCE_RATIO
 
 
