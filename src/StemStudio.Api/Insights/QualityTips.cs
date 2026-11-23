@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Contracts.Insights;
 using StemStudio.Domain.Insights;
 using StemStudio.Domain.Tracks;
@@ -17,7 +16,11 @@ public sealed class QualityTips
     /// <returns>ChannelId -> tips.</returns>
     public IReadOnlyDictionary<string, IReadOnlyList<TipDto>> For(Track track)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        var stems = track.QualityReport?.Stems ?? [];
+        var context = new TipContext(stems, track.DetailPhase);
+        return stems.GroupBy(stem => stem.Channel, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<TipDto>)TipRules.For(group.First(), context).Select(ToDto).ToList(), StringComparer.Ordinal);
     }
 
     private static TipDto ToDto(Tip tip) => new()

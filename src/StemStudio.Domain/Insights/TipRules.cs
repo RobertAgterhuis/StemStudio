@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.Tracks.Detail;
 
 namespace StemStudio.Domain.Insights;
@@ -74,7 +73,15 @@ public static class TipRules
     /// <returns>At most two tips, in rule order.</returns>
     public static IReadOnlyList<Tip> For(StemQuality stem, TipContext context)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(stem);
+        ArgumentNullException.ThrowIfNull(context);
+        var tips = new List<Tip>(MaxTips);
+        Add(tips, NotInSong(stem));
+        var actionable = Add(tips, UseDetailStem(stem, context)) | Add(tips, TryDetailSeparation(stem, context));
+        Add(tips, ListenToRest(stem));
+        Add(tips, actionable ? null : HardToIsolate(stem));
+        Add(tips, Clean(stem));
+        return tips.Take(MaxTips).ToList();
     }
 
     private static bool Add(List<Tip> tips, Tip? tip)
