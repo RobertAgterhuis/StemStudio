@@ -45,8 +45,8 @@ CO_OCCURRENCE_PAIRS: Final[frozenset[frozenset[StemName]]] = frozenset(
 )
 """Pairs of instruments that often play together; their level is capped at ``medium``."""
 
-BLEED_LEVELS: Final = Levels(0.0025, 0.02)
-"""Bleed index (an energy share) thresholds, calibrated on V1."""
+BLEED_LEVELS: Final = Levels(0.0053, 0.053)
+"""Bleed index (an energy share) thresholds, calibrated on V1 (2026-11-23: rho 0.91, 86 %)."""
 
 # artefacts (4.4) ---------------------------------------------------------------
 
@@ -72,8 +72,8 @@ MIX_FLOOR: Final = 1e-3
 ARTEFACT_K: Final = 50.0
 """Normalisation ``x / (x + K)`` of the dropout ratio."""
 
-ARTEFACT_LEVELS: Final = Levels(0.35, 0.65)
-"""Artefact index thresholds, calibrated on V1."""
+ARTEFACT_LEVELS: Final = Levels(0.35, 0.62)
+"""Artefact index thresholds, calibrated on V1 (2026-11-23: rho 0.96, 100 %)."""
 
 MODEL_RESIDUAL_DB: Final = -20.0
 """Detail stems get the kind ``model-residual`` when the parent's residual is above this."""
