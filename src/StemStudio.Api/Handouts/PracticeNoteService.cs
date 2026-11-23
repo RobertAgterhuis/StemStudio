@@ -57,30 +57,13 @@ public sealed class PracticeNoteService(ITrackRepository tracks, IPracticeNoteRe
 
     private async Task<IResult> StoreAsync(Guid trackId, HandoutFamily family, string clean, CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow().UtcDateTime;
-        var existing = await notes.FindAsync(trackId, family, cancellationToken);
         if (clean.Length == 0)
         {
-            if (existing is not null)
-            {
-                notes.Remove(existing);
-                await notes.SaveAsync(cancellationToken);
-            }
-
+            await notes.DeleteAsync(trackId, family, cancellationToken);
             return TypedResults.NoContent();
         }
 
-        var note = existing ?? PracticeNote.Create(trackId, family, clean, now);
-        if (existing is null)
-        {
-            notes.Add(note);
-        }
-        else
-        {
-            note.Update(clean, now);
-        }
-
-        await notes.SaveAsync(cancellationToken);
+        var note = await notes.SetAsync(PracticeNote.Create(trackId, family, clean, clock.GetUtcNow().UtcDateTime), cancellationToken);
         return TypedResults.Ok(ToDto(note));
     }
 
