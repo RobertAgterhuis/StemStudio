@@ -99,6 +99,25 @@ public sealed class SingingPanelTests : PageTestContext
     }
 
     [Fact]
+    public async Task PlaybackReachingTheEnd_ShowsTheSummary_LikeAStop()
+    {
+        // FR-046 (decision 4, 2026-11-23): the summary appears at the end of the song as well as on stop.
+        Views.StopSingingFeedbackAsync().Returns(new SingingSummary { UnitsScored = 2, Average = 81, Best = new(1, 90), ToleranceCents = 100, LatencySource = "loopback" });
+        var panel = RenderPanel();
+        await panel.Find("[data-testid=singing-toggle]").ClickAsync(new());
+        panel.Render(p => p.Add(c => c.Playback, PlaybackState.Playing));
+        panel.Render(p => p.Add(c => c.Playback, PlaybackState.Paused));
+        panel.FindAll("[data-testid=singing-summary]").ShouldBeEmpty("a pause is not the end");
+        panel.Render(p => p.Add(c => c.Playback, PlaybackState.Playing));
+
+        panel.Render(p => p.Add(c => c.Playback, PlaybackState.Stopped));
+
+        panel.WaitForAssertion(() => panel.Find("[data-testid=singing-summary]").GetAttribute("data-average").ShouldBe("81"));
+        _running.ShouldBe([true, false]);
+        panel.Find("[data-testid=singing-toggle]").GetAttribute("aria-pressed").ShouldBe("false");
+    }
+
+    [Fact]
     public async Task Start_MutesTheLead_SendsTheRequest_AndStopShowsTheSummary()
     {
         Views.StopSingingFeedbackAsync().Returns(new SingingSummary { UnitsScored = 2, Average = 81, Best = new(1, 90), ToleranceCents = 100, LatencySource = "loopback" });

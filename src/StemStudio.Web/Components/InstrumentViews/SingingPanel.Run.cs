@@ -39,6 +39,10 @@ public sealed partial class SingingPanel : IAsyncDisposable
     [Parameter]
     public EventCallback OnOpenInputSettings { get; set; }
 
+    /// <summary>The mixer's playback state; the end of the song (playing -> stopped) ends the feedback like a stop (FR-046).</summary>
+    [Parameter]
+    public PlaybackState Playback { get; set; }
+
     private bool Running { get; set; }
 
     private string StateName { get; set; } = "idle";
