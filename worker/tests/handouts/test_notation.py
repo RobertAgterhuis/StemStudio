@@ -371,3 +371,15 @@ def test_the_merge_opens_each_notation_file_once(tmp_path: Path, monkeypatch: py
     assert opened == [tab, score]
     assert ["NOTATION tab 1" in texts[0], "NOTATION score 1" in texts[1],
             "NOTATION tab 2" in texts[2]] == [True, True, True]  # fmt: skip
+
+
+def test_outline_titles_over_the_contract_length_are_shortened() -> None:
+    writer = pypdf.PdfWriter(clone_from=io.BytesIO(_blank(1)))
+    writer.add_outline_item("T" * 300, 0)
+    writer.add_outline_item("Form", 0)
+    buffer = io.BytesIO()
+    writer.write(buffer)
+
+    _, outline = pdf_facts(buffer.getvalue())
+
+    assert outline == ("T" * 199 + "…", "Form")

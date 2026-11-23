@@ -32,7 +32,7 @@ from stemstudio_worker.ports import (
     NotationUnreadableError,
     notation_unreadable_text,
 )
-from stemstudio_worker.schemas import HandoutJobRequest
+from stemstudio_worker.schemas import HandoutJobRequest, HandoutResult
 
 from .documents import ARTWORK, SCORE, TAB, full_song, library_files, request
 from .support import FakeLayout, needs_weasyprint
@@ -348,3 +348,14 @@ def test_a_notation_file_gone_since_the_job_started_becomes_a_note(files: dict[s
     result = WeasyHandoutRenderer(layout=FakeLayout()).render(request(), files, lambda _f: None)
 
     assert [w.text for w in result.warnings] == [notation_unreadable_text("Bass - score")]
+
+
+@needs_weasyprint
+def test_a_song_title_of_300_characters_gives_a_valid_result(files: dict[str, Path]) -> None:
+    long = request(title=("Very long title " * 19)[:300])
+
+    result = WeasyHandoutRenderer().render(long, files, lambda _f: None)
+
+    assert max(len(title) for title in result.outline) == 200
+    HandoutResult(size_bytes=len(result.pdf), sha256="0" * 64, pages=result.pages,
+                  outline=list(result.outline), warnings=list(result.warnings))  # fmt: skip
