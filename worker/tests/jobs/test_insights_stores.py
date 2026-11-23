@@ -1,4 +1,4 @@
-"""Tests of the quality and handout job stores of the ``insights`` lane (020 T016, data-model 2.4/2.5)."""
+"""Tests of the quality and handout job stores of the insights lane (020 T016, data-model 2.4+5)."""
 
 import json
 from datetime import timedelta
@@ -26,16 +26,16 @@ Store = QualityJobStore | HandoutJobStore
 
 def _quality(job_id: str, status: S, age: timedelta = timedelta()) -> StoredQualityJob:
     stamp = T0 - age
-    stage = "analysing" if status is S.RUNNING else None
-    job = QualityJob(quality_job_id=job_id, status=status, stage=stage, progress=0.4,
+    job = QualityJob(quality_job_id=job_id, status=status,
+                     stage="analysing" if status is S.RUNNING else None, progress=0.4,
                      created_at=stamp, updated_at=stamp)  # fmt: skip
     return StoredQualityJob(job=job, request=quality_request())
 
 
 def _handout(job_id: str, status: S, age: timedelta = timedelta()) -> StoredHandoutJob:
     stamp = T0 - age
-    stage = "layout" if status is S.RUNNING else None
-    job = HandoutJob(handout_job_id=job_id, status=status, stage=stage, progress=0.4,
+    job = HandoutJob(handout_job_id=job_id, status=status,
+                     stage="layout" if status is S.RUNNING else None, progress=0.4,
                      created_at=stamp, updated_at=stamp)  # fmt: skip
     return StoredHandoutJob(job=job, request=handout_request())
 
@@ -89,14 +89,17 @@ def test_the_handout_pdf_lives_in_the_job_folder(tmp_path: Path) -> None:
 def test_restart_fails_unfinished_jobs_and_clears_the_stage(tmp_path: Path, status: S) -> None:
     stores = _reloaded(tmp_path, _quality("1" * 32, status), _handout("2" * 32, status))
 
-    for store, job_id in zip(stores, ("1" * 32, "2" * 32), strict=True):
-        assert store.reconcile(FakeClock()) == [job_id]
-        record = store.get(job_id)
-        assert record is not None
-        job = record.job
+    quality, handouts = stores
+    assert quality.reconcile(FakeClock()) == ["1" * 32]
+    assert handouts.reconcile(FakeClock()) == ["2" * 32]
+    first, second = quality.get("1" * 32), handouts.get("2" * 32)
+    assert first is not None
+    assert second is not None
+    for job in (first.job, second.job):
         assert (job.status, job.error, job.stage) == (S.FAILED, RESTART_INTERRUPTED_TEXT, None)
         assert job.updated_at > T0
-        assert not store.output_dir(job_id).exists()
+    assert not quality.output_dir("1" * 32).exists()
+    assert not handouts.output_dir("2" * 32).exists()
 
 
 def test_restart_leaves_finished_jobs_alone(tmp_path: Path) -> None:

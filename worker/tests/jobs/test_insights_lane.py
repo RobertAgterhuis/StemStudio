@@ -184,13 +184,22 @@ def test_blas_threads_limits_the_blas_pools(monkeypatch: pytest.MonkeyPatch) -> 
     assert fake.calls == [{"limits": 2, "user_api": "blas"}]
 
 
-def test_blas_threads_without_threadpoolctl_changes_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_blas_threads_without_threadpoolctl_changes_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def missing(name: str) -> object:
         raise ImportError(name)
 
     monkeypatch.setattr(insights_lane, "_import", missing)
 
     with blas_threads(2):
+        ran = True
+
+    assert ran
+
+
+def test_blas_threads_works_with_the_installed_threadpoolctl() -> None:
+    with blas_threads(1):
         ran = True
 
     assert ran
