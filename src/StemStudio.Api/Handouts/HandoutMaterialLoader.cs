@@ -23,7 +23,7 @@ public sealed class HandoutMaterialLoader(ISectionSource sections, IChordSource 
     public async Task<HandoutMaterial> LoadAsync(Track track, HandoutFamily family, string? entryNotes, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        var lyrics = track.Lyrics is { Status: LyricsStatus.Found, Document: { } document } found ? (document, found.OffsetMs) : (null, 0);
+        var lyrics = track.Lyrics is { Status: LyricsStatus.Found or LyricsStatus.AlignPending or LyricsStatus.Aligning, Document: { } document } found ? (document, found.OffsetMs) : (null, 0);
         return new HandoutMaterial
         {
             TrackId = track.Id,

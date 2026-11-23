@@ -25,9 +25,15 @@ internal static class HandoutTestData
     public static async Task<Track> SeedSongAsync(this ApiFactory factory, string videoId = "dQw4w9WgXcQ")
     {
         var track = await factory.SeedAsync(LyricsTestData.Found(videoId));
-        await factory.SeedDetectedAsync(track.Id);
-        await factory.SeedReadyAsync(track.Id, AnalysisTestData.Chart(), new string('f', 64));
+        await factory.SeedSongExtrasAsync(track.Id);
         return track;
+    }
+
+    /// <summary>Detected sections and a ready chord chart for a seeded track.</summary>
+    public static async Task SeedSongExtrasAsync(this ApiFactory factory, Guid trackId)
+    {
+        await factory.SeedDetectedAsync(trackId);
+        await factory.SeedReadyAsync(trackId, AnalysisTestData.Chart(), new string('f', 64));
     }
 
     /// <summary>A ready score item of a track.</summary>
