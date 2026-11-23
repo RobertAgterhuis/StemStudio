@@ -96,6 +96,7 @@ from stemstudio_worker.ports import (
     MetadataLookup,
     Notator,
     PipelineAdapters,
+    QualityAnalyzer,
     RenderExecutor,
     ScoreEngraver,
     ScoreViewRenderer,
@@ -173,6 +174,7 @@ class AppOverrides:
     score_view_renderer: ScoreViewRenderer | None = None
     setlist_renderer: SetlistDocumentRenderer | None = None
     instrument_analysis: InstrumentAnalysisParts | None = None
+    quality_analyzer: QualityAnalyzer | None = None
 
 
 def create_app(
@@ -501,6 +503,23 @@ class ChordModelStore(ModelStore):
         """Keep weights below ``model_dir/harmony``; fetch with ``opener``."""
         super().__init__(model_dir, opener)
         self._root = model_dir / "harmony"
+
+
+QUALITY_ANALYZERS: Final[dict[str, str]] = {}
+
+
+def create_quality_analyzer(
+    settings: WorkerSettings, loader: Loader = importlib.import_module
+) -> Any:
+    """Stub."""
+    raise NotImplementedError
+
+
+def default_insights(
+    settings: WorkerSettings, overrides: AppOverrides, loader: Loader = importlib.import_module
+) -> Any:
+    """Stub."""
+    raise NotImplementedError
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn
