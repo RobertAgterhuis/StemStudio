@@ -9,11 +9,11 @@ Scratch/logs: `.claude/scratchpad/020-round/`.
 - [x] T003 contracts merged (worker 1.11.0, backend 1.19.0, ui-test-ids 1.19.0) via `contracts/merge_full.py` (f9bed136)
 - [x] T004 014/016 reconciliation recorded (DELTA.md "Phase 0 outcome" P0-4/P0-5)
 - [x] T001 worker contract code (2bc0f737; worker suite 3822 passed, 99.43 %)
-- [ ] T002 .NET contract code (fork agent working; files uncommitted in src/StemStudio.Contracts and tests/StemStudio.Api.Tests)
+- [x] T002 .NET contract code (98fa2591)
 - [x] T005 G2 spike: pending owner (dataset); facts in research.md
 - [x] T006 WeasyPrint spike passed (research.md)
 - [x] T007 sync_handout_style.py (1c04d856 red, ace546eb green)
-- [ ] T008 verification + hand-off `architect-020-plan.md`
+- [x] T008 verification + hand-off `architect-020-plan.md` (Phase 0 complete; next: CTO starts the wave)
 
 ## Decisions so far (Phase 0)
 
