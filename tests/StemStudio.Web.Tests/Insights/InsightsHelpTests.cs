@@ -115,35 +115,43 @@ public sealed class InsightsHelpTests
     }
 
     [Fact]
-    public void HandoutTopics_SayWhereThePdfGoes_EveryFamily_TheTranspositions_AndTheNotice()
+    public void HandoutsTopic_SaysWhereThePdfGoes_AndHowItDiffersFromTheStandPdf()
     {
         var handouts = Catalog.Topic("handouts")!.Markdown;
+
         handouts.ShouldContain("library", Case.Insensitive);
         handouts.ShouldContain("Make again");
         handouts.ShouldContain("PDF for the stand");
+        Catalog.Topic("practice-notes")!.Markdown.ShouldContain("one note per family", Case.Insensitive);
+    }
 
+    [Theory]
+    [InlineData("Band overview")]
+    [InlineData("Vocals")]
+    [InlineData("Guitar")]
+    [InlineData("Bass")]
+    [InlineData("Keys")]
+    [InlineData("Drums")]
+    [InlineData("Melodic instruments")]
+    public void FamiliesTopic_HasAParagraphPerFamily_AndNamesMissingParts(string family)
+    {
         var families = Catalog.Topic("handout-families")!.Markdown;
-        foreach (var family in new[] { "Band overview", "Vocals", "Guitar", "Bass", "Keys", "Drums", "Melodic instruments" })
-        {
-            families.ShouldContain($"**{family}**");
-        }
 
+        families.ShouldContain($"**{family}**");
         families.ShouldContain("Not included");
+    }
 
+    [Fact]
+    public void TranspositionAndLicenceTopics_NameTheInstruments_AndTheFixedNotice()
+    {
         var transposition = Catalog.Topic("handout-transposition")!.Markdown;
-        foreach (var instrument in new[] { "trumpet", "clarinet", "tenor sax", "alto sax", "horn" })
-        {
-            transposition.ShouldContain(instrument);
-        }
-
+        new[] { "trumpet", "clarinet", "tenor sax", "alto sax", "horn" }.ShouldAllBe(i => transposition.Contains(i));
         transposition.ShouldContain("chords are transposed", Case.Insensitive);
 
         var licence = Catalog.Topic("handout-licence")!.Markdown;
         licence.ShouldContain(StemStudio.Contracts.ContractLimits.HandoutNoticeFooter);
         licence.ShouldContain("cannot be removed");
         licence.ShouldContain("pictures");
-
-        Catalog.Topic("practice-notes")!.Markdown.ShouldContain("one note per family", Case.Insensitive);
     }
 
     [Theory]
