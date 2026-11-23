@@ -4,6 +4,7 @@ import { fakeJobTimeoutMs } from '../support/env';
 import { clefs, isMidi, staves } from '../support/musicxml';
 import { hasNoteOn, musicXmlOf, soundingPitch, staffTunings, tabNotes, tabStaffLines, tuningPitches } from '../support/instrument-scores';
 import { required, useInstrumentApi } from '../support/instrument-views';
+import { ensureSettledTrack } from '../support/settled-track';
 import { expect, test } from '../support/test';
 
 // Feature 016 US2 (T083; FR-018..FR-023, SC-002, SC-006, quickstart V5/V6): tablature for the guitar and bass families
@@ -37,8 +38,9 @@ function expectPlayableTab(xml: string, tuning: readonly number[]): void {
 }
 
 test.describe('tablature (016 US2)', { tag: '@instrument' }, () => {
-  test('guitar: drop D notation + tab from the sheet music dialog', async ({ api, trackPage, scoreDialog, scoreApi, assetsApi, page }) => {
-    const track = await api.ensureCompleted(fixture, fakeJobTimeoutMs);
+  test('guitar: drop D notation + tab from the sheet music dialog', async ({ api, metadataApi, trackPage, scoreDialog, scoreApi, assetsApi, page }) => {
+    // Settled lookup: a later lookup re-files the saved item and the confirmation link opens an empty folder.
+    const track = await ensureSettledTrack(api, metadataApi, fixture, fakeJobTimeoutMs);
 
     await trackPage.goto(track.id);
     await scoreDialog.openForStem('guitar');

@@ -9,6 +9,7 @@ import { expectHelpMarker } from '../support/help';
 import { expect, test } from '../support/test';
 import { panMatrix } from '../support/render-vectors';
 import { PracticePanel } from '../pages/practice-panel';
+import { ensureSettledTrack } from '../support/settled-track';
 
 // Feature 007 US1, US2, US4, US5 (007:T041, T047, T058, T063; FR-001..FR-006, FR-010, FR-013;
 // SC-003, SC-004; quickstart X2, X5, X7). Fake stack: the fake separator copies the mix into
@@ -58,9 +59,10 @@ async function readyFromConfirmation(id: string, assetsApi: AssetsApi): Promise<
   return assetsApi.waitForReady(id, renderMs);
 }
 
-test.beforeEach(async ({ api }) => {
-  test.setTimeout(fakeJobTimeoutMs + 3 * renderMs);
-  track = await api.ensureCompleted('music_100bpm_20s.flac', fakeJobTimeoutMs);
+test.beforeEach(async ({ api, metadataApi }) => {
+  test.setTimeout(2 * fakeJobTimeoutMs + 3 * renderMs);
+  // Settled lookup: a later lookup re-files the saved item and the confirmation link opens an empty folder.
+  track = await ensureSettledTrack(api, metadataApi, 'music_100bpm_20s.flac', fakeJobTimeoutMs);
 });
 
 test.describe('raw stem', { tag: '@export' }, () => {

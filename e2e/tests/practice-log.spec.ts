@@ -51,7 +51,7 @@ async function playFor(mixer: MixerPage, page: Page, seconds: number): Promise<v
   const start = await heard(page);
   await mixer.play();
   await expect.poll(() => heard(page), { timeout: 30_000 }).toBeGreaterThan(start + seconds);
-  await page.getByTestId('transport-play').click();
+  await mixer.pause();
 }
 
 async function openFresh(api: StemStudioApi, mixer: MixerPage): Promise<TrackDto> {
@@ -60,6 +60,12 @@ async function openFresh(api: StemStudioApi, mixer: MixerPage): Promise<TrackDto
   await mixer.goto(track.id);
   await mixer.waitForReady(fakeStems);
   return track;
+}
+
+/** A heard position at least 1 s into the loop and before its middle: the wrap that ended the previous pass is heard. */
+function insidePassThree(position: number, section: { readonly startSeconds: number; readonly endSeconds: number } | undefined): boolean {
+  const { startSeconds, endSeconds } = section ?? { startSeconds: 0, endSeconds: 0 };
+  return position >= startSeconds + 1 && position < (startSeconds + endSeconds) / 2;
 }
 
 function firstSectionId(sections: readonly { readonly id: string }[]): string {
@@ -79,11 +85,13 @@ test.describe('practice log (014 US6)', { tag: '@practice-flow' }, () => {
 
     await playFor(mixer, page, 3);
     await playFor(mixer, page, 2);
-    await page.goto('/');
 
-    await expect.poll(async () => (await flow.practiceSummary(track.id)).sessions, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+    // Each pause writes the session; wait for the write after the second one (3 s + 2 s heard, so at least 5 s played),
+    // not for the first one (flake list).
+    await expect.poll(async () => (await flow.practiceSummary(track.id)).todaySeconds, { timeout: 15_000 }).toBeGreaterThanOrEqual(5);
+    await page.goto('/');
     const summary = await flow.practiceSummary(track.id);
-    expect(summary.todaySeconds).toBeGreaterThanOrEqual(4);
+    expect(summary.sessions).toBeGreaterThanOrEqual(1);
     expect(summary.todaySeconds).toBeLessThan(15);
   });
 
@@ -99,13 +107,15 @@ test.describe('practice log (014 US6)', { tag: '@practice-flow' }, () => {
     await mixer.play();
     // data-state, not the text: the waiting text "Ready - starts at 80 % (target 100 %)" already contains "100".
     await expect(practice.trainerStatus).toHaveAttribute('data-state', 'target', { timeout: 90_000 });
-    await page.getByTestId('transport-play').click();
-    await page.goto('/');
+    // "target" turns on at the wrap into pass 3; pass 2 (90 %) is reported when that wrap is heard. Pause well inside
+    // pass 3, so the pause write holds pass 2 (flake list: the spec pressed Play instead of Pause and read only what the
+    // 30 s flush or the leave write of the old circuit had written).
+    await expect.poll(async () => insidePassThree(await heard(page), set.sections[0]), { timeout: 15_000 }).toBe(true);
+    await mixer.pause();
 
-    // The pause writes the session (pass 1 at 80 %) and leaving the mixer writes it again (pass 2 at 90 %): wait for the
-    // last write, not for the first tempo point.
     const bestTempo = async (): Promise<number> => Math.max(0, ...(await flow.practiceSummary(track.id)).tempo.map((point) => point.percent));
     await expect.poll(bestTempo, { timeout: 15_000 }).toBeGreaterThanOrEqual(90);
+    await page.goto('/');
     const summary = await flow.practiceSummary(track.id);
     expect(summary.sections.map((total) => total.sectionId)).toContain(sectionId);
   });
