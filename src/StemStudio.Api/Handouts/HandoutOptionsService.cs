@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.Extensions.Options;
-using StemStudio.Api.Insights;
 using StemStudio.Api.Handouts.Sources;
+using StemStudio.Api.Insights;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Handouts;
 using StemStudio.Domain.Handouts;
