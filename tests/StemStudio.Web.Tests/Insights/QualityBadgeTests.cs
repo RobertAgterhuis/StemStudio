@@ -89,4 +89,17 @@ public sealed class QualityBadgeTests : StemStudio.Web.Tests.Mixer.MixerTestCont
         css.ShouldContain(".ss-quality-badge:focus-visible");
         System.Text.RegularExpressions.Regex.IsMatch(css, @"#[0-9a-fA-F]{3,8}\b|rgb\(|hsl\(").ShouldBeFalse();
     }
+
+    [Fact]
+    public void Badge_WrapsInsideANarrowStrip_AsARoundedBox()
+    {
+        // 020 integration (visual run): "Probably not in this song" wraps to four lines in a 6-stem mixer strip; with the
+        // pill radius the border became a circle and the words spilled out of it.
+        var css = RepoPaths.ReadWeb("wwwroot/css/components/insights.css");
+        var badge = System.Text.RegularExpressions.Regex.Match(css, @"\.ss-quality-badge \{[^}]*\}").Value;
+
+        badge.ShouldContain("border-radius: var(--ss-radius-control)");
+        badge.ShouldContain("max-inline-size: 100%");
+        badge.ShouldNotContain("--ss-radius-pill");
+    }
 }
