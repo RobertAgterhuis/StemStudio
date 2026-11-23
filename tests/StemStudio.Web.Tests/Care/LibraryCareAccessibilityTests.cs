@@ -170,7 +170,7 @@ public sealed class LibraryCareAccessibilityTests : PageTestContext
         css.ShouldContain(".ss-care-tab-button:focus-visible");
         css.ShouldContain(".ss-care-sort:focus-visible");
         css.ShouldContain("html[data-motion=\"reduced\"] .ss-care-progress-fill");
-        RepoPaths.ReadWeb("Components/App.razor").ShouldContain("\"care\"]");
+        RepoPaths.ReadWeb("Components/App.razor").ShouldContain("\"care\"");
         StorageView.MeterAttributes(new VolumeLine(StorageData.Volume(StorageVolumeIdDto.Backups, null, null), []), "x").ShouldBeEmpty();
     }
 }

@@ -4,7 +4,7 @@ title: "Track page"
 area: tracks
 summary: "Follow the separation of one song, see its stems and facts, and open the mixer."
 route: "/tracks/{id}"
-related: [track-progress, track-facts, detail-stems]
+related: [track-progress, track-facts, detail-stems, stem-quality, handouts]
 reviewed: "004"
 ---
 

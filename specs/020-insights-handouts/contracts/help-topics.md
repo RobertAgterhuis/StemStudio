@@ -32,7 +32,7 @@ Screen topic: none new (the track, setlist and library screen topics get a "See 
 | `handout.one-click` | Beginner | `handouts` |
 | `handout.customise` | Advanced | `handout-families` |
 | `handout.transposition` | Advanced | `handout-transposition` |
-| `practice-notes.edit` | Beginner | `practice-notes` |
+| `practice.notes-edit` (was `practice-notes.edit`, corrected 2026-11-23: feature ids match `^[a-z]+(.[a-z0-9-]+)+$`) | Beginner | `practice-notes` |
 | `reseparation.hq` **(G2, deferred)** | Beginner | `reseparate-hq` |
 
 ## Tour (optional, Beginner)

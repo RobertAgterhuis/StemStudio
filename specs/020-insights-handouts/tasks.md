@@ -105,8 +105,8 @@ in the execution plan.
 - [ ] T023 [backend] Implement the worker clients
 - [ ] T024 [P] [backend] Failing tests for the source ports and adapters `ISectionSource`, `ISetlistSource`, `IPracticeLogSource`, `IChordSource`, `INotationCatalog` over the merged 014/016 services, using the shapes of DELTA.md "Phase 0 outcome" P0-4 (setlist `note` "" -> null; practice progress = `bestTrainerPercent`; chords as 016 chart + key; notation by `ScoreFacts.profile/tablature/part`)
 - [ ] T025 [backend] Implement the adapters
-- [ ] T026 [P] [frontend] Failing tests: feature-catalogue entries and levels (help-topics.md), every new topic file loads and validates against the 004 schema
-- [ ] T027 [frontend] Add the catalogue entries and the help topic files (FR-016; not the deferred G2 topic/entry)
+- [x] T026 [P] [frontend] Failing tests: feature-catalogue entries and levels (help-topics.md), every new topic file loads and validates against the 004 schema
+- [x] T027 [frontend] Add the catalogue entries and the help topic files (FR-016; not the deferred G2 topic/entry)
 - [x] T028 [P] [qa] Failing tests for the per-family fixture builder `tests/fixtures/families/` (one fixture song with sections, chords, word-timed lyrics, and score/tab/drum/transposed-part PDFs for all seven families; a three-song setlist; seeding through the fake-stack API)
 - [x] T029 [qa] Implement the fixture builder and the E2E seeding helper (SC-006)
 
@@ -132,8 +132,8 @@ in the execution plan.
 - [ ] T043 [US1] [backend] Implement them
 - [ ] T044 [P] [US1] [backend] Failing tests endpoints `GET/POST /api/tracks/{id}/quality`, `Track.quality` badge, reason texts of data-model 4.6, disclaimer
 - [ ] T045 [US1] [backend] Implement the endpoints
-- [ ] T046 [P] [US1] [frontend] Failing bUnit tests `QualityPanel`, `QualityRow`, `QualityBadge`: states, polling, level visibility (Beginner/Advanced/Expert), text + icon (R20-1), `aria-label`, outdated notice, "was ..." (US1 scenarios 1-4, FR-016)
-- [ ] T047 [US1] [frontend] Implement the components on the track page and the mixer strip badge
+- [x] T046 [P] [US1] [frontend] Failing bUnit tests `QualityPanel`, `QualityRow`, `QualityBadge`: states, polling, level visibility (Beginner/Advanced/Expert), text + icon (R20-1), `aria-label`, outdated notice, "was ..." (US1 scenarios 1-4, FR-016)
+- [x] T047 [US1] [frontend] Implement the components on the track page and the mixer strip badge
 - [ ] T048 [US1] [qa] E2E `e2e/tests/stem-quality.spec.ts`: report after separation for all six stem types, detail rows after a split, levels per journey level, "Check again" on an existing track (wait on the report's own state, LESSONS 013/022). **Done when** the spec typechecks and lints in the wave and passes on a real fake stack at the mid-wave checkpoint (LESSONS 022/023)
 
 **Checkpoint**: HO:us1 per owner.
@@ -146,8 +146,8 @@ in the execution plan.
 - [ ] T050 [US2] [backend] Implement `Domain/Insights/TipRules.cs`
 - [ ] T051 [P] [US2] [backend] Failing tests: report view builds tips from the current track state (detail phase, outcomes, stem set) and the 003 device estimate text; tips change after a detail split without re-analysis (FR-005)
 - [ ] T052 [US2] [backend] Implement the view assembly
-- [ ] T053 [P] [US2] [frontend] Failing tests `TipList`: split-detail calls the 002 start endpoint, open-detail navigates to the mixer with the parent expanded, mute patches the current mix, buttons keyboard operable
-- [ ] T054 [US2] [frontend] Implement `TipList` and the action handlers
+- [x] T053 [P] [US2] [frontend] Failing tests `TipList`: split-detail calls the 002 start endpoint, open-detail navigates to the mixer with the parent expanded, mute patches the current mix, buttons keyboard operable
+- [x] T054 [US2] [frontend] Implement `TipList` and the action handlers
 - [ ] T055 [US2] [qa] E2E tips: other -> "Split further" starts the detail separation and the report is remade; piano -> mute; guitar -> hard to isolate; no tip text contains "GPU" (SC-003). **Done when** as T048
 
 **Checkpoint**: HO:us2 per owner.
@@ -176,10 +176,10 @@ in the execution plan.
 - [ ] T073 [US3] [audio-ingest] Implement `handouts/document.py`, `renderer.py`
 - [ ] T074 [P] [US3] [stem-separation] Failing tests handout routes: create (422 notice/song count, 400/404 paths), get, file (409 `handout-not-completed`), delete; composition
 - [ ] T075 [US3] [stem-separation] Implement `api/handout_routes.py`, `jobs/handout_service.py`
-- [ ] T076 [P] [US3] [frontend] Failing tests `HandoutMenu` (seven families, one-click create, toast with open action, Beginner "Not included" list) and `PracticeNotesEditor` (family selector, counter, save status live region)
-- [ ] T077 [US3] [frontend] Implement them on the track page
-- [ ] T078 [P] [US3] [frontend] Failing tests `HandoutDialog` (Advanced+: ingredients with status and create links, notation choices, transposition only for melodic, paper, estimate, notice) and `HandoutAssetRow` (preview, download, omitted, warnings, make again, `library-filter-handout`)
-- [ ] T079 [US3] [frontend] Implement them
+- [x] T076 [P] [US3] [frontend] Failing tests `HandoutMenu` (seven families, one-click create, toast with open action, Beginner "Not included" list) and `PracticeNotesEditor` (family selector, counter, save status live region)
+- [x] T077 [US3] [frontend] Implement them on the track page
+- [x] T078 [P] [US3] [frontend] Failing tests `HandoutDialog` (Advanced+: ingredients with status and create links, notation choices, transposition only for melodic, paper, estimate, notice) and `HandoutAssetRow` (preview, download, omitted, warnings, make again, `library-filter-handout`)
+- [x] T079 [US3] [frontend] Implement them
 - [ ] T080 [US3] [qa] E2E `e2e/tests/handouts.spec.ts`: seven families parametrised on the fixture song (defaults in `handout.included`, PDF downloads, page count via pdf-lib), melodic B-flat, a missing ingredient listed, practice note appears (SC-006). **Done when** as T048
 
 **Checkpoint**: HO:us3 per owner.
@@ -192,8 +192,8 @@ in the execution plan.
 - [ ] T082 [US4] [backend] Implement setlist assembly and the setlist source path of the endpoints
 - [ ] T083 [P] [US4] [audio-ingest] Failing tests setlist layout: cover, running order, contents with page numbers, each song on a new page, one bookmark per song, 20-song render within the budget (SC-004)
 - [ ] T084 [US4] [audio-ingest] Implement the setlist templates
-- [ ] T085 [P] [US4] [frontend] Failing tests `setlist-handout-menu` and customise entry on the setlist page
-- [ ] T086 [US4] [frontend] Implement them
+- [x] T085 [P] [US4] [frontend] Failing tests `setlist-handout-menu` and customise entry on the setlist page
+- [x] T086 [US4] [frontend] Implement them
 - [ ] T087 [US4] [qa] E2E `e2e/tests/setlist-handout.spec.ts` (three-song fixture setlist, running order and bookmarks via facts/outline). **Done when** as T048
 
 **Checkpoint**: HO:us4 per owner.

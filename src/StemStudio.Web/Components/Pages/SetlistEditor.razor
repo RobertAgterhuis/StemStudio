@@ -56,6 +56,14 @@
             {
                 <a class="rz-button rz-light ss-link-button" href="@PdfUrl" download data-testid="setlist-pdf">PDF for the stand</a>
             }
+            @if (Setlist.Entries.Count > 0)
+            {
+                @* 020 US4: the lesson handout per family, kept in the library, next to 014's quick stand PDF. *@
+                <div class="ss-setlist-handout">
+                    <HandoutMenu Source="HandoutSourceDto.Setlist(Setlist.Id)" Prefix="setlist-handout" />
+                    <HelpHint HelpId="setlist-handout-menu" />
+                </div>
+            }
         </div>
         <ol class="ss-setlist-entries">
             @foreach (var (entry, index) in Setlist.Entries.Select((e, i) => (e, i)))
