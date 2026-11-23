@@ -276,3 +276,16 @@ def test_insights_settings(env: dict[str, str], analyzer: str, threads: int) -> 
 def test_invalid_insights_settings(env: dict[str, str]) -> None:
     with pytest.raises(ValueError, match="STEMSTUDIO_"):
         load_settings(env)
+
+
+def test_quality_request_lists_its_paths_in_order() -> None:
+    request = QualityJobRequest.model_validate(_request(_stems()))
+
+    assert request.input_paths() == tuple(f"{_TRACK}/stems/{s}.flac" for s in _STANDARD)
+
+
+def test_artefact_kinds_are_unique() -> None:
+    with pytest.raises(ValidationError, match="unique"):
+        ArtefactEstimate(
+            level="low", index=0.1, kinds=["flicker", "flicker"], reliability="indicative"
+        )
