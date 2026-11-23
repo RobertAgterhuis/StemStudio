@@ -11,7 +11,7 @@ from typing import Final, Literal
 from stemstudio_worker.schemas import QualityInputKind, QualityLevel, Reliability, StemName
 
 ANALYZER_VERSION: Final = "1.0.1"
-"""``analyzerVersion`` of every result of the signal analyzer (1.0.1: the G1 outcome, 2026-11-23)."""
+"""``analyzerVersion`` of every result of the signal analyzer (1.0.1: G1 outcome, 2026-11-23)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,9 +103,7 @@ G1_STEM_TYPES: Final[tuple[StemName, ...]] = ("vocals", "drums", "bass", "other"
 """Stem types that V2 (MUSDB18-HQ: four sources) can validate; the others never can."""
 
 G1_RESULTS: Final[dict[tuple[str, Dimension], G1Status]] = {
-    (stem, dimension): "failed"
-    for stem in G1_STEM_TYPES
-    for dimension in ("bleed", "artefacts")
+    (stem, dimension): "failed" for stem in G1_STEM_TYPES for dimension in ("bleed", "artefacts")
 }
 """Outcome of gate G1 per stem type and dimension.
 
