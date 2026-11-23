@@ -1,0 +1,59 @@
+{
+  "qualityJobId": "0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a",
+  "status": "completed",
+  "stage": null,
+  "progress": 1,
+  "error": null,
+  "result": {
+    "analyzerVersion": "1.0.0",
+    "durationSeconds": 14.2,
+    "stems": [
+      {
+        "channel": "vocals",
+        "rating": "fair",
+        "ratingReason": "bleed",
+        "activeSeconds": 182.4,
+        "activeShare": 0.69,
+        "levelDb": -6.1,
+        "bleed": {
+          "level": "medium",
+          "index": 0.18,
+          "mainSource": "drums",
+          "coOccurrence": false,
+          "reliability": "validated"
+        },
+        "artefacts": {
+          "level": "low",
+          "index": 0.21,
+          "kinds": [],
+          "reliability": "validated"
+        }
+      },
+      {
+        "channel": "piano",
+        "rating": "not-present",
+        "ratingReason": "not-present",
+        "activeSeconds": 11.0,
+        "activeShare": 0.04,
+        "levelDb": -34.5,
+        "bleed": {
+          "level": "high",
+          "index": 0.71,
+          "mainSource": "guitar",
+          "coOccurrence": false,
+          "reliability": "indicative"
+        },
+        "artefacts": {
+          "level": "unknown",
+          "index": 0.4,
+          "kinds": [
+            "flicker"
+          ],
+          "reliability": "indicative"
+        }
+      }
+    ]
+  },
+  "createdAt": "2026-11-16T10:00:00Z",
+  "updatedAt": "2026-11-16T10:00:15Z"
+}

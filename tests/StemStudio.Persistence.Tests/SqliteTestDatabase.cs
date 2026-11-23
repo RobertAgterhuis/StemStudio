@@ -40,6 +40,10 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
     public StemStudioDbContext NewContext() =>
         new(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(_connection).Options);
 
+    /// <summary>A context with interceptors (e.g. a write that races the context's own save).</summary>
+    public StemStudioDbContext NewContext(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors) =>
+        new(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(_connection).AddInterceptors(interceptors).Options);
+
     public async Task SeedAsync(params Domain.Tracks.Track[] tracks)
     {
         await using var context = NewContext();

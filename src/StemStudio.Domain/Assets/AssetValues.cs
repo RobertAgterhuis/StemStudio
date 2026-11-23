@@ -11,6 +11,9 @@ public enum AssetKind
 
     /// <summary>Sheet music (feature 008).</summary>
     Score,
+
+    /// <summary>A lesson handout PDF (feature 020).</summary>
+    Handout,
 }
 
 /// <summary>Status of a library item (data-model 4.5).</summary>
@@ -43,6 +46,9 @@ public enum AssetOrigin
 
     /// <summary>A play-along take (feature 015): hidden from the library list, managed by its take.</summary>
     Recording,
+
+    /// <summary>A lesson handout (feature 020).</summary>
+    Handout,
 }
 
 /// <summary>The take a recording item holds (feature 015, <c>Provenance.recording</c>).</summary>
@@ -121,4 +127,7 @@ public sealed record Provenance
 
     /// <summary>The take of a recording item (origin recording, feature 015); null otherwise.</summary>
     public RecordingSource? Recording { get; init; }
+
+    /// <summary>The recipe of a handout item (origin handout, feature 020); null otherwise.</summary>
+    public Handouts.HandoutRecipe? HandoutRecipe { get; init; }
 }

@@ -1,0 +1,22 @@
+{
+  "status": "ok",
+  "separator": "fake",
+  "device": "cpu",
+  "deviceInfo": { "kind": "cpu", "name": null, "computeCapability": null, "totalMemoryMiB": null, "freeMemoryMiB": null, "reason": null },
+  "onlineLookups": false,
+  "library": { "readable": true, "reason": null },
+  "lanes": {
+    "render": { "queued": 0, "running": false },
+    "transcribe": { "queued": 0, "running": false },
+    "practice": { "queued": 0, "running": false },
+    "instrumentAnalysis": { "queued": 0, "running": false },
+    "insights": { "queued": 1, "running": true }
+  },
+  "insights": {
+    "analyzer": "fake",
+    "analyzerVersion": "fake-1",
+    "renderer": { "weasyprint": "70.0", "pango": "1.56.3" },
+    "fonts": { "archivo": true, "fallback": true }
+  },
+  "contractVersion": "1.11.0"
+}

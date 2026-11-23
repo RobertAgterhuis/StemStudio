@@ -32,6 +32,20 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>Completed tracks whose quality report is queued or running, for the quality synchroniser (oldest first, feature 020).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListQualityActiveAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// True when the stored quality report of the track is queued or running, read from the database (not from a track this
+    /// unit of work loaded earlier), so a start under a lock sees a report another unit of work stored meanwhile (feature 020).
+    /// </summary>
+    /// <param name="trackId">Track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>True when a report is active.</returns>
+    Task<bool> IsQualityActiveStoredAsync(Guid trackId, CancellationToken cancellationToken);
+
     /// <summary>
     /// True when the stored detail phase of <paramref name="track"/> still equals the tracked one: no other unit of work
     /// changed it since this one loaded the track (a cancel during a synchroniser pass).

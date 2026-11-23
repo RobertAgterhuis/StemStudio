@@ -1,0 +1,55 @@
+{
+  "stems": [
+    {
+      "channel": "vocals",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/vocals.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "drums",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/drums.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "bass",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/bass.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "guitar",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/guitar.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "piano",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/piano.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "other",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/other.flac",
+      "kind": "standard"
+    },
+    {
+      "channel": "drums.kick",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/detail/drums/kick.flac",
+      "kind": "detail"
+    },
+    {
+      "channel": "drums.rest",
+      "path": "tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/detail/drums/rest.flac",
+      "kind": "rest"
+    }
+  ],
+  "detailParents": [
+    {
+      "parent": "drums",
+      "modelResidualDb": -25.8,
+      "reconstructionErrorDb": -170.0
+    }
+  ],
+  "titles": {
+    "title": "Example Song",
+    "artist": "Example Band"
+  }
+}

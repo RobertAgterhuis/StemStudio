@@ -1,0 +1,10 @@
+{
+  "qualityJobId": "0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a",
+  "status": "running",
+  "stage": "analysing",
+  "progress": 0.45,
+  "error": null,
+  "result": null,
+  "createdAt": "2026-11-16T10:00:00Z",
+  "updatedAt": "2026-11-16T10:00:07Z"
+}

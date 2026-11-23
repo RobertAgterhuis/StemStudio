@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StemStudio.Domain.Insights;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Configurations;
@@ -37,6 +38,35 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .OrderBy(track => track.CreatedAt)
             .ToListAsync(cancellationToken);
         return withPhase.Where(track => track.IsDetailActive).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListQualityActiveAsync(CancellationToken cancellationToken)
+    {
+        // The report is one JSON column: its status is filtered in SQL, so a tick loads only the active tracks. CASE keeps
+        // json_extract away from a text that is not JSON (it would fail the whole query).
+        var ids = await context.Database.SqlQuery<Guid>($$"""
+            SELECT "Id" AS "Value" FROM "Tracks"
+            WHERE "Status" = 'Completed'
+              AND CASE WHEN json_valid("QualityReport") THEN json_extract("QualityReport", '$.Status') END IN ('Queued', 'Running')
+            """).ToListAsync(cancellationToken);
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var active = await context.Tracks.Where(track => ids.Contains(track.Id)).OrderBy(track => track.CreatedAt).ToListAsync(cancellationToken);
+        return active.Where(track => track.IsQualityActive).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsQualityActiveStoredAsync(Guid trackId, CancellationToken cancellationToken)
+    {
+        var stored = await context.Tracks.AsNoTracking()
+            .Where(track => track.Id == trackId)
+            .Select(track => new { track.QualityReport })
+            .FirstOrDefaultAsync(cancellationToken);
+        return stored?.QualityReport?.Status is QualityReportStatus.Queued or QualityReportStatus.Running;
     }
 
     /// <inheritdoc />
