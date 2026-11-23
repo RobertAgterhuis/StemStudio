@@ -8,7 +8,7 @@
 <div class="ss-modal-backdrop">
     <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="setlist-pdf-title" data-testid="setlist-pdf-dialog"
          @onkeydown="e => CloseOnEscapeAsync(e, OnClose)">
-        <h2 id="setlist-pdf-title" class="ss-title" tabindex="-1" @ref="InitialFocus">PDF for the stand</h2>
+        <h2 id="setlist-pdf-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Print setlist</h2>
         <p class="ss-help">An A4 overview page, then one page per song with its facts, your note, the sections and the lyrics.</p>
         <label class="ss-choice"><input type="checkbox" checked="@Options.Lyrics" @onchange="e => Set(o => o with { Lyrics = IsOn(e) })" data-testid="setlist-pdf-lyrics" /> Lyrics</label>
         <label class="ss-choice"><input type="checkbox" checked="@Options.Sections" @onchange="e => Set(o => o with { Sections = IsOn(e) })" data-testid="setlist-pdf-sections" /> Sections</label>

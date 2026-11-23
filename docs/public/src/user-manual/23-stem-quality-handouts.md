@@ -141,15 +141,15 @@ minutes; press **Retry**.
 
 ### Setlist handouts
 
-On a setlist, **Setlist handout** makes one lesson PDF for the whole set and one family: a cover
+On a setlist, **Lesson handout per instrument** makes one lesson PDF for the whole set and one family: a cover
 with the setlist name and note, the running order, a contents page, and each song on new pages
 with its family layout. It is kept in the library like a song handout. A setlist can hold up to
 50 songs in a handout; for a longer one the dialog says *"A setlist handout can hold up to 50
 songs."* An empty setlist has no handout menu.
 
-The other button, **PDF for the stand** (chapter 9), stays the quick print of the set for the
+The other button, **Print setlist** (chapter 9), stays the quick print of the set for the
 music stand: an overview and one page per song with sections and lyrics, not stored. Use the
-setlist handout for a lesson or a band rehearsal, the PDF for the stand on stage.
+lesson handout for a lesson or a band rehearsal and **Print setlist** on stage.
 
 ### Copyright notice
 

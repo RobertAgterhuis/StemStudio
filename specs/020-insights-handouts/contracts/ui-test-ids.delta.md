@@ -55,7 +55,7 @@ Binding for the **frontend** agent once merged; **qa** authors the 020 specs aga
 | Track page | `practice-notes-family` | family selector of the notes editor | all |
 | Track page | `practice-notes-text` | multi-line input (max 4,000, counter) | all |
 | Track page | `practice-notes-save`, `practice-notes-saved` | save button and saved status (live region) | all |
-| Setlist page | `setlist-handout-menu` | "Setlist handout" menu button | all |
+| Setlist page | `setlist-handout-menu` | "Lesson handout per instrument" menu button | all |
 | Setlist page | `setlist-handout-family-<family>` | menu item per family | all |
 | Setlist page | `setlist-handout-customise` | opens `handout-dialog` for the setlist | Advanced, Expert |
 | Library | `asset-handout-<assetId>` | row of a handout item; attribute `data-family` | all |

@@ -194,12 +194,12 @@ public sealed class HandoutMenuTests : PageTestContext
     {
         var page = RenderMenu(ExperienceLevel.Expert, "setlist-handout");
 
-        page.Find("[data-testid=setlist-handout-menu]").TextContent.ShouldContain("Setlist handout");
+        page.Find("[data-testid=setlist-handout-menu]").TextContent.ShouldContain("Lesson handout per instrument");
         page.Find("[data-testid=setlist-handout-menu]").Click();
 
         page.Find("[data-testid=setlist-handout-family-overview]").ShouldNotBeNull();
         page.Find("[data-testid=setlist-handout-customise]").ShouldNotBeNull();
-        page.Find("[role=menu]").GetAttribute("aria-label").ShouldBe("Setlist handout");
+        page.Find("[role=menu]").GetAttribute("aria-label").ShouldBe("Lesson handout per instrument");
     }
 
     [Fact]

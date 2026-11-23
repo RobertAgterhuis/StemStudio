@@ -23,9 +23,9 @@ says "wait until one is ready".
 From Advanced, **Customise...** lets you choose the parts, the sheet music, the paper size and, for melodic
 instruments, the transposition.
 
-On a setlist, **Setlist handout** makes one lesson PDF for the whole set and one family: a cover, the running order
-and one section per song (up to 50 songs). It is kept in the library. The other button, **PDF for the stand**, is the
-quick print of the set for the music stand; it is not stored. A setlist with more than 50 songs cannot get a
+On a setlist, **Lesson handout per instrument** makes one lesson PDF for the whole set and one family: a cover, the running order
+and one section per song (up to 50 songs). It is kept in the library. The other button, **Print setlist**, is the
+quick print of the set for the music stand; it is not stored. Use the lesson handout for a lesson or rehearsal and Print setlist on stage. A setlist with more than 50 songs cannot get a
 handout: the dialog says "A setlist handout can hold up to 50 songs."
 
 **Notes on a ready handout** (from Advanced, on the library item):

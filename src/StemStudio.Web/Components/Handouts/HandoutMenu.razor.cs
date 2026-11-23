@@ -40,7 +40,7 @@ public sealed partial class HandoutMenu
 
     private bool IsSetlist => Prefix != "handout";
 
-    private string Title => IsSetlist ? "Setlist handout" : "Lesson handout";
+    private string Title => IsSetlist ? "Lesson handout per instrument" : "Lesson handout";
 
     private string HelpId => IsSetlist ? "setlist-handout-menu" : "handout-menu";
 

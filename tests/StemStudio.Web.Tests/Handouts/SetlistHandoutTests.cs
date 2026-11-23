@@ -9,7 +9,7 @@ using StemStudio.Web.Tests.Fakes;
 namespace StemStudio.Web.Tests.Handouts;
 
 /// <summary>
-/// Setlist handout (T085, US4 scenarios 1-3, FR-009; ui-test-ids setlist-handout-*): the menu next to 014's
+/// Lesson handout per instrument (T085, US4 scenarios 1-3, FR-009; ui-test-ids setlist-handout-*): the menu next to 014's
 /// <c>setlist-pdf</c>, one click with the setlist source, "Customise..." at Advanced+ opening the same dialog without create
 /// links, and no handout for an empty setlist.
 /// </summary>
@@ -34,7 +34,7 @@ public sealed class SetlistHandoutTests : PageTestContext
         var page = RenderEditor(ExperienceLevel.Beginner);
 
         var menu = page.Find("[data-testid=setlist-handout-menu]");
-        menu.TextContent.ShouldContain("Setlist handout");
+        menu.TextContent.ShouldContain("Lesson handout per instrument");
         menu.GetAttribute("data-help-id").ShouldBe("setlist-handout-menu");
         page.Find("[data-testid=setlist-pdf]").ShouldNotBeNull();
         page.Find(".ss-section-nav").QuerySelector("[data-testid=setlist-handout-menu]").ShouldNotBeNull();

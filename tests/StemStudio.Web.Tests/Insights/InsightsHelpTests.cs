@@ -121,7 +121,7 @@ public sealed class InsightsHelpTests
 
         handouts.ShouldContain("library", Case.Insensitive);
         handouts.ShouldContain("Make again");
-        handouts.ShouldContain("PDF for the stand");
+        handouts.ShouldContain("Print setlist");
         Catalog.Topic("practice-notes")!.Markdown.ShouldContain("one note per family", Case.Insensitive);
     }
 

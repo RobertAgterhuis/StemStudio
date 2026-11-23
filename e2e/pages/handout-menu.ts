@@ -4,7 +4,7 @@ import { TestIdPage } from './test-id-page';
 
 /** Lesson handout menu and dialog of the track page and the setlist page (020 US3/US4, ui-test-ids 1.19.0). */
 export class HandoutMenu extends TestIdPage {
-  /** "Lesson handout" (`song`) or "Setlist handout" (`setlist`) menu button. */
+  /** "Lesson handout" (`song`) or "Lesson handout per instrument" (`setlist`) menu button. */
   menu(kind: 'song' | 'setlist' = 'song'): Locator {
     return this.byId(kind === 'song' ? 'handout-menu' : 'setlist-handout-menu');
   }

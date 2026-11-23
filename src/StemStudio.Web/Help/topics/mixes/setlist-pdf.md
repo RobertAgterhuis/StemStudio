@@ -11,7 +11,7 @@ related: [setlists, setlist-edit]
 reviewed: "014"
 ---
 
-**PDF for the stand** makes an A4 PDF: first an overview of all songs with their length and tempo, then one page per song
+**Print setlist** makes an A4 PDF: first an overview of all songs with their length and tempo, then one page per song
 with its facts, your note, its sections and its lyrics.
 
 At Advanced level you can leave out the lyrics, the sections or the notes, and choose whether every song starts on a new

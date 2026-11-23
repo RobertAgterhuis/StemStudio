@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-23",
-  "sourceHash": "6aa43d05b49e4521dc5c6adb514cb53e9a2daeaa8240360ecd1c026573e27a4b",
+  "sourceHash": "9beb044ccf044294a8e007080e2b91f0d2474fc32d7835ed183338eb4c49ae02",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 66,
-      "bytes": 2593686
+      "bytes": 2591669
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 88,
-      "bytes": 2186126
+      "bytes": 2184105
     }
   ],
   "inputs": [
@@ -21,7 +21,7 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "4b9d2bc018e63f1b2e75009829be3b18be71bd68bbbdcf0d222c6528066d339d"
+      "sha256": "ca5afa9219d638e66eed771ac5bcd621b94fe7560c782c2709182085db1cc40f"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -141,7 +141,7 @@
     },
     {
       "path": "docs/public/src/user-manual/09-setlists.md",
-      "sha256": "cfda8059a4f5a2d40a0bec4aa631dc5a677e3e3ec8f922643afda26eeb620a5d"
+      "sha256": "9c2d5c6d0f953a1e103a1b79f3a3dbe93824aa09a219ec14dc9fa1f1020c94fe"
     },
     {
       "path": "docs/public/src/user-manual/10-practice-log.md",
@@ -197,7 +197,7 @@
     },
     {
       "path": "docs/public/src/user-manual/23-stem-quality-handouts.md",
-      "sha256": "f4092a8c56c90817510f46636edc24dd786f70c8c111381b9ca50e5537b4d98b"
+      "sha256": "460dc8c5eea12ce0520b15314b53b71799eb9fc6b03dd9d63da34251369b80af"
     },
     {
       "path": "docs/public/src/user-manual/24-keyboard-shortcuts.md",
