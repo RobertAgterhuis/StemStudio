@@ -32,7 +32,10 @@ PASSES = {
     "lyric": ["scripts/lyric-e2e.sh fake", "scripts/lyric-e2e.sh none"],
     "gpu": ["STEMSTUDIO_FAKE_DEVICE=gpu", "STEMSTUDIO_FAKE_DEVICE=gpu-oom", "npm run test:gpu"],
     "instrument": ["npm run test:instrument"],
-    "fake-mic": ["npm run test:fake-mic"],
+    "fake-mic": [
+        "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false docker compose up",
+        "npm run test:fake-mic",
+    ],
 }
 """Every feature pass and what its dry run must show (014/015 set + instrument, fake-mic)."""
 
@@ -89,6 +92,24 @@ def test_the_gpu_suite_runs_with_the_device_of_its_stack() -> None:
     assert len(suites) == 2
     assert "STEMSTUDIO_FAKE_DEVICE=gpu " in suites[0]
     assert "STEMSTUDIO_FAKE_DEVICE=gpu-oom " in suites[1]
+
+
+@pytest.mark.skipif(BASH is None, reason="bash not available")
+def test_the_fake_mic_pass_turns_the_digital_loopback_off_and_back_on() -> None:
+    """The fake microphone is the input only without the 015 loopback (it feeds the song in)."""
+    lines = _dry("fake-mic").stdout.splitlines()
+
+    suite = next(i for i, line in enumerate(lines) if "npm run test:fake-mic" in line)
+    assert "STEMSTUDIO_RECORDING_TEST_LOOPBACK=false" in lines[suite - 1]
+    assert "docker compose up" in lines[suite + 1]
+    assert "LOOPBACK=false" not in lines[suite + 1]
+
+
+def test_the_e2e_override_keeps_the_loopback_on_by_default() -> None:
+    override = (REPO_ROOT / "docker-compose.e2e.yml").read_text(encoding="utf-8")
+
+    expected = "StemStudio__Recording__TestLoopback=${STEMSTUDIO_RECORDING_TEST_LOOPBACK:-true}"
+    assert expected in override
 
 
 @pytest.mark.skipif(BASH is None, reason="bash not available")
