@@ -212,10 +212,12 @@ the microphone audio nor the scores are sent to the server. Use headphones while
 
 ### Stem quality and lesson handouts (feature 020)
 
-- **Stem quality**: after every separation StemStudio rates each stem and detail stem (Good, Fair, Poor, Probably not
-  in this song, Not rated) with a short reason, the main bleed source and up to two tips with a button (Split further,
-  Open detail stem, Mute). The ratings are estimates made from the stems alone; until they are validated on real
-  multitrack music every rating is labelled a *rough indication*.
+- **Stem quality** (switched off by default): StemStudio can rate each stem and detail stem (Good, Fair, Poor,
+  Probably not in this song, Not rated) with a short reason, the main bleed source and up to two tips with a button
+  (Split further, Open detail stem, Mute). The ratings are estimates made from the stems alone, and a check on real
+  multitrack music (MUSDB18-HQ) found them not reliable yet, so the report is off unless you set
+  `STEMSTUDIO_QUALITY_REPORT_ENABLED=true` (setting `StemStudio:QualityReport:Enabled`); then every rating is a
+  *rough indication*.
 - **Lesson handouts**: one click on the track page makes a PDF for one instrument family (Band overview, Vocals,
   Guitar, Bass, Keys, Drums, Melodic instruments in C, B-flat, E-flat or F) with the song facts, the form chart with
   bars, chords over the lyrics, the chord chart, the family's sheet music or tablature and your practice notes. The
@@ -449,8 +451,9 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 - **Library folders** are derived from names that come from online lookups and tags, so two bands
   with the same name share a folder until you rename one with library info. There are no artist
   photos, and no folder download or rename-a-whole-folder action.
-- **Stem quality** ratings are rough indications: they have only been checked on synthetic test songs (the check on
-  real multitrack music is pending). Artefacts are estimated from dropouts only (no "watery" flicker measure), and
+- **Stem quality** is switched off by default: its measures failed the check on real multitrack music (MUSDB18-HQ,
+  25 songs), so when switched on every rating is a rough indication and vocals, drums, bass and other show only a
+  High level. Artefacts are estimated from dropouts only (no "watery" flicker measure), and
   instruments that hold notes together on the same beats can read as bleed. Tracks separated into 4 stems get no
   quality report.
 - **Handouts**: at most 3 handouts of one song or setlist are made at a time, a setlist handout holds up to 50 songs,

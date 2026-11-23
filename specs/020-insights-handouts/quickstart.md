@@ -11,6 +11,11 @@ WeasyPrint with Pango, HarfBuzz, fontconfig, the Archivo font and DejaVu Sans. T
 (`STEMSTUDIO_SEPARATOR=fake`) uses the fake quality analyzer (fixed ratings per stem,
 data-model 2.6) and, if G2 shipped, the fake re-separator; handouts are rendered for real.
 
+The stem quality report is **switched off by default** (owner decision 2026-11-23, G1 failed): set
+`STEMSTUDIO_QUALITY_REPORT_ENABLED=true` (api and web; `docker-compose.e2e.yml` does this for the test stacks)
+before the steps below that use it. While it is off, `POST /api/tracks/<trackId>/quality` answers `503` and the track
+page has no **Stem quality** card.
+
 Check the worker: `curl -s http://localhost:8000/health` shows `insights.analyzerVersion`,
 `insights.renderer.weasyprint`, `insights.fonts.archivo = true` and `lanes.insights`.
 

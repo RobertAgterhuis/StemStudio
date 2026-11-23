@@ -115,11 +115,14 @@ up the pinned newer version when the project updates it.
 
 ## Insights and handouts (020)
 
-- **Quality reports** run on the worker's `insights` lane after every six-stem separation and
+- **Quality reports** are switched off by default (`STEMSTUDIO_QUALITY_REPORT_ENABLED`, api and
+  web). Switched on, they run on the worker's `insights` lane after every six-stem separation and
   detail split (`StemStudio__AutoQualityReport`); a 5-minute song with 18 stems takes about 13 s
   on the reference CPU with 4 threads (`STEMSTUDIO_INSIGHTS_THREADS`; budget 30 s). A report made
   with an older analyzer version shows as outdated and is only remade on request. Every label is a
-  rough indication until gate G1 runs on real multitrack music (MUSDB18-HQ, pending).
+  rough indication: gate G1 on real multitrack music (MUSDB18-HQ, 25 tracks) failed on all eight
+  stem type and measure pairs, so vocals, drums, bass and other show only High (analyzer 1.0.1;
+  reports made with 1.0.0 show as outdated).
 - **Handouts** share that lane: a song handout takes under a second, a 20-song setlist about 3 s
   in the worker image. A handout over its limits is refused, fails or leaves items out with a
   warning (chapter 8); `503 worker-unavailable` means the worker cannot be reached. Check the image

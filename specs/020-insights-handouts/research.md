@@ -239,7 +239,7 @@ image `stemstudio/worker:local-gpu`, Debian 13, run in throw-away containers wit
 mount; the running stack was not touched). Scripts and logs stay in the git-ignored scratch folder
 `.claude/scratchpad/020-round/{g2,p04}/` (not committed).
 
-### Gate G2 (T005): **pending owner, dataset needed**
+### Gate G2 (T005): **pending owner, dataset needed** (measured later: failed, see "Gates G1 and G2 on MUSDB18-HQ")
 
 MUSDB18-HQ is not on this machine, so the G2 criteria (median vocals SDR gain >= 1.0 dB and median
 SIR gain >= 0.5 dB of the other stems, measured by us on V2) **could not be measured**. What was
@@ -271,7 +271,7 @@ measured or collected:
 - **Decision for this round**: User Story 5 is deferred; the G2 contract parts are not merged
   (DELTA.md "Phase 0 outcome"); no G2 task runs in the wave.
 
-### Gate G1 (V2 real validation): **not run, labels `indicative`**
+### Gate G1 (V2 real validation): **not run, labels `indicative`** (measured later: failed, see "Gates G1 and G2 on MUSDB18-HQ")
 
 Same dataset gap. T039 (beat-analysis) runs the protocol of R-04 when MUSDB18-HQ is available.
 Until then every reliability label is `indicative` ("rough indication") and **no level is masked**:
@@ -299,10 +299,72 @@ Typst stays the recorded fallback; it is not needed.
 | V1 playing-together control (kick and bass on the same onsets) | never High (co-occurrence cap) | same |
 | V1 dense same-grid control (every family all the time) | 1 of 6 stems falsely High (guitar 0.080 from bass); strict `xfail`, known limit | same |
 | V1 dropouts, 6 families x 3 amounts | Spearman 0.96, 100 % correct; clean stems 0 | same |
-| G1 (T039) | **pending dataset** (MUSDB18-HQ); harness `tests/insights/g1.py` ready, skips without `STEMSTUDIO_MUSDB_DIR` | same |
+| G1 (T039) | **failed** on all 8 cells (MUSDB18-HQ, 25 tracks; next section); harness `tests/insights/g1.py`, skips without `STEMSTUDIO_MUSDB_DIR` | beat-analysis G1/G2 run |
 | SC-001 analysis time (T103), 5-min song, 6 standard + 12 detail stems, CPU only (Core Ultra 9 285K) | 14.7 s with default BLAS threads, **12.8 s** with 4 threads (budget 30 s) | beat-analysis polish hand-off |
 | SC-004 render time (T104), worker image | song handout 7 pages **0.67 s** (budget 15 s); 20-song setlist 123 pages **2.98 s** (budget 90 s); a 50-song request at 96 % of the text and cell limits 35 s | audio-ingest polish hand-off |
 | Notation PDF bomb (security fix) | 10 pages x 1.8 M tokens: 373 s before, unreadable after 0.26 s with the parse limits | audio-ingest polish hand-off |
+
+### Gates G1 and G2 on MUSDB18-HQ (2026-11-23)
+
+Beat-analysis lane, research use only: the dataset was mounted read-only, separated audio lived only in a git-ignored
+scratch folder and was deleted per track; only numbers, scripts and logs are kept
+(`.claude/scratchpad/020-round/g12/`, not committed). Protocol: MUSDB18-HQ `test` split, **fixed seeded subset of
+25 tracks** (`sorted(random.Random(20261123).sample(sorted(test), 25))`, 104.9 min of audio; the full 50 tracks
+would have taken more than 3 h on the shared machine). Production separation `htdemucs_6s` through the worker's own
+`demucs_runtime` (guitar + piano + other summed into `other` for scoring); museval **0.4.1**
+`bss_eval(window=44100, hop=44100)`, per track the nanmedian over 1-s frames; Spearman of our bleed index against
+-SIR and of our artefact index against -SAR, 95 % CI by bootstrap (2000 resamples, seed 20261123). Analyzer
+`SignalQualityAnalyzer` 1.0.0.
+
+**G1: failed on every stem type and dimension (8 of 8).**
+
+| Stem type | Bleed vs -SIR rho (95 % CI) | Gate 0.5 | Artefacts vs -SAR rho (95 % CI) | Gate 0.4 |
+|---|---|---|---|---|
+| vocals | 0.05 (-0.38 .. 0.49) | failed | -0.07 (-0.46 .. 0.34) | failed |
+| drums | 0.49 (0.10 .. 0.76) | failed (just) | **-0.60** (-0.79 .. -0.30) | failed (inverse) |
+| bass | 0.14 (-0.32 .. 0.55) | failed | -0.16 (-0.56 .. 0.30) | failed |
+| other | -0.12 (-0.53 .. 0.29) | failed | 0.02 (-0.35 .. 0.39) | failed |
+
+- Pooled over the four stem types: bleed rho 0.23, artefacts rho -0.22: no signal either.
+- The artefact index is 0 on most tracks (non-zero on 9 / 8 / 16 / 6 of 25 for vocals / drums / bass / other), so
+  most artefact rhos are driven by ties. Drums artefacts run the wrong way significantly: the dropout detector
+  plausibly fires on genuinely sparse drum parts, which score well in BSS Eval.
+- Levels on real separations are almost all Low (vocals and drums Low on 25/25 tracks in both dimensions).
+- Caveat: per-track SIR measures all interference after 512-tap filtering, not only the constant-ratio copy that
+  the bleed measure models; the gate asks the index to rank songs by that, and it does not.
+- **Code change** (R-04, label table only): `G1_RESULTS` = `failed` for all 8 cells, `ANALYZER_VERSION` 1.0.0 ->
+  1.0.1. Low/Medium are shown as `unknown` for vocals, drums, bass and other; guitar, piano, detail and rest stems
+  stay rough indications with every level. No contract change.
+- **Owner decision 2026-11-23:** the quality report ships **switched off** (`StemStudio:QualityReport:Enabled`,
+  default false; ADR-029 D8). The applied R-04 masking makes the four validated-and-failed stem types less
+  informative than guitar/piano; the remedy is a redesign of the measures (backlog), not a change of R-04.
+
+**G2 (SC-007): failed as specified - User Story 5 stays removed.** Museval medians over the 25 tracks; gain =
+per-track difference against the production stems on the same references.
+
+| | Variant A (R-06: input = sum of six stems) | Variant B (diagnostic: input = original mix) | Gate |
+|---|---|---|---|
+| vocals SDR, production -> hq (median) | 7.72 -> 10.53 dB | 7.72 -> 11.05 dB | |
+| median vocals SDR gain | **+2.70 dB** (25/25 tracks > 0) | **+3.21 dB** (25/25) | >= +1.0: pass |
+| median SIR gain, other stems pooled (n = 75) | **+0.09 dB** | **+0.24 dB** | >= +0.5: **fail** |
+| per stem drums / bass / other SIR gain | +0.02 / +0.17 / +0.18 | +0.34 / -0.08 / +0.88 | |
+| median over tracks of the mean SIR gain of the three | -1.71 dB | +0.51 dB | (alternative reading) |
+| SAR gain drums / bass / other | -0.11 / -0.48 / -0.39 | +0.28 / +0.02 / +0.67 | |
+
+- The R-06 input assumption does not hold: the six production stems sum to **-20.8 dB** against the mixture
+  (median; min -25.4, max -12.8; planned: better than -30 dB; the spike measured -27 dB on synthetic audio).
+  Variant A degrades the other stems (SAR and, for bass, ISR drop); on 4 tracks its stems sum to more error than
+  signal (-1.4 to +2.9 dB), all among the 5 tracks whose residual Demucs vocals were folded into `other`.
+- Variant B is uniformly better (other SDR +1.12 dB, 21/25 tracks) but misses the pooled gate; it passes only the
+  per-track-mean reading (+0.51 dB), which is marginal.
+- Runtime (RTX 5070 Ti, uncontended): `htdemucs_6s` 0.9 s per minute of audio (1,468 MiB peak); KJ Mel-Band
+  RoFormer 4.4 s per minute (1,710 MiB); the `vocals-hq` chain 26 s for a 5-min song; our quality analyzer (CPU,
+  10 threads) 4.5 s per minute. `GpuNeed("Mel-Band RoFormer vocals", 3000)` would stay adequate.
+- Per R-06 a fail removes FR-007, SC-007, the `reseparation` contract parts, the `rerun-high-quality` tip and
+  T088-T099. Re-scope options for a later spec decision (backlog): **vocals-only HQ** (replace only the vocals stem,
+  keep the production instrumentals; smoke track vocals +1.9 dB SDR, other stems unchanged, but the stem sum no
+  longer matches the mix) or **variant B** (the original audio as input: the API would have to keep the original,
+  and the gate would need re-wording).
 
 ### Not measured in Phase 0
 

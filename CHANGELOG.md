@@ -6,10 +6,12 @@ What changed for StemStudio users. Technical details are in `docs/STATUS.md` and
 
 ### Added (feature 020, insights and handouts)
 
-- **Stem quality**: after every six-stem separation and detail split, the track page rates every stem (Good, Fair,
-  Poor, Probably not in this song, Not rated) with a short reason; the mixer shows the rating as a badge per strip.
-  From Advanced you see the bleed (with its main source) and the artefacts behind a rating, at Expert the index values
-  and the analyzer version. The ratings are estimates and labelled a *rough indication* for now.
+- **Stem quality** (switched off by default, setting `StemStudio:QualityReport:Enabled` /
+  `STEMSTUDIO_QUALITY_REPORT_ENABLED`): when switched on, after every six-stem separation and detail split the track
+  page rates every stem (Good, Fair, Poor, Probably not in this song, Not rated) with a short reason; the mixer shows
+  the rating as a badge per strip. From Advanced you see the bleed (with its main source) and the artefacts behind a
+  rating, at Expert the index values and the analyzer version. The ratings are estimates and labelled a *rough
+  indication*: the check on real multitrack music (MUSDB18-HQ) failed, which is why the report is off by default.
 - **Quality tips**: up to two tips per stem, with a button where it helps: **Split further**, **Open detail stem** or
   **Mute** (opens the mixer with the stem muted, nothing saved). There is no GPU tip: the GPU gives the same stems.
 - **Lesson handouts**: one click on the track page makes a PDF for Band overview, Vocals, Guitar, Bass, Keys, Drums or

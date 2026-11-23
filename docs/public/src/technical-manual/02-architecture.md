@@ -200,8 +200,10 @@ Per-track analyses feed one shared timeline in the browser; the views are drawn 
 
 ### Insights and handouts (020, ADR-029)
 
-- **Stem quality** (`Tracks.QualityReport`): the API starts a report after every six-stem
-  separation and detail split (setting `StemStudio:AutoQualityReport`) or on request; the worker
+- **Stem quality** (`Tracks.QualityReport`): switched off by default
+  (`StemStudio:QualityReport:Enabled`, read by api and web; ADR-029 D8, gate G1 failed). While it
+  is on, the API starts a report after every six-stem separation and detail split (setting
+  `StemStudio:AutoQualityReport`) or on request; the worker
   runs it on its own lane `insights` (one job at a time, never waiting for the other lanes) with
   `SignalQualityAnalyzer` (or `FakeQualityAnalyzer` in the fake stack) and returns the result
   inline. The measures are reference-free: bleed is a per-band non-negative fit of each stem on

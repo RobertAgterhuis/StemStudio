@@ -160,7 +160,8 @@ approval.
   ears.
 - **A watery stem shows few artefacts**: artefacts are estimated from dropouts only; a watery
   sound is not measured yet.
-- **No quality card on a track**: tracks separated into 4 stems get no report.
+- **No quality card on a track**: the quality report is switched off by default (chapter 23 says
+  how to switch it on); when it is on, tracks separated into 4 stems still get no report.
 - **"wait until one is ready"**: at most 3 handouts of one song or setlist are made at a time.
 - **Sheet music is missing from a handout**: open the item in the library at Advanced level; it
   lists files that could not be read or were left out because the handout reached its size

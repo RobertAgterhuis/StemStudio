@@ -7,6 +7,18 @@ drums and the melodic instruments each get their own handout.
 
 ## Stem quality
 
+**The quality report is switched off by default.** Its measures are not yet reliable on real
+music: a check on 25 songs of MUSDB18-HQ, a public set of songs with their separate instruments,
+found that the ratings did not follow how well the stems were really separated. While it is off,
+the track page has no **Stem quality** card, the mixer shows no quality badges and no report is
+made. Lesson handouts and practice notes work as normal.
+
+Whoever runs StemStudio can switch it on with the setting `StemStudio:QualityReport:Enabled`
+(with Docker: put `STEMSTUDIO_QUALITY_REPORT_ENABLED=true` in the `.env` file next to
+`docker-compose.yml` and start StemStudio again; the technical manual has the details). Read every
+rating then as a **rough indication** only. The rest of this section describes the report while it
+is switched on.
+
 The **Stem quality** card on the track page rates every stem and every detail stem. Each rating
 has a word and an icon, never just a colour:
 
@@ -22,7 +34,8 @@ Next to the rating is one short reason, for example *"Some sound of drums is in 
 the mixer every channel strip shows the rating as a small badge; select it to come back to the
 card.
 
-**When a report is made.** Automatically after every six-stem separation and every detail split;
+**When a report is made** (while the report is switched on). Automatically after every
+six-stem separation and every detail split;
 for older tracks press **Check stem quality**. **Check again** makes a new report. When the new
 rating differs, the old one stays visible as *"was Fair"*. A report made with an older version of
 StemStudio is marked *"Made with an older version"* and is only remade when you ask. Mixing,
@@ -34,10 +47,13 @@ check needs the six stems (vocals, drums, bass, guitar, piano and other).
 The ratings are **estimates**. StemStudio has no copy of the separate instruments the song was
 recorded with, so it cannot measure the truth; it looks for signs in the stems instead.
 
-- Every rating is labelled a **rough indication** for now. The measures were checked on
-  synthetic test songs, where known amounts of bleed and damage were mixed in on purpose; the
-  check on real multitrack music has not run yet. Guitar, piano, detail and rest stems stay rough
-  indications even after that check.
+- Every rating is labelled a **rough indication**. The measures were checked on synthetic test
+  songs, where known amounts of bleed and damage were mixed in on purpose, and there they ranked
+  the amounts correctly. The check on real multitrack music (25 songs of MUSDB18-HQ, November
+  2026) **failed** for vocals, drums, bass and other: for those four stems only a *High* level of
+  bleed or artefacts is shown, Low and Medium read as unknown. Guitar, piano, detail and rest
+  stems are not in that public set; they show every level. This is why the report is switched off
+  by default.
 - **Artefacts are estimated from dropouts only**: short holes where a stem suddenly falls silent
   and comes back. A watery, warbling sound is not measured yet, so a stem can sound watery and
   still show few artefacts.

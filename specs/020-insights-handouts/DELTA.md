@@ -130,7 +130,7 @@ the deltas were merged onto 016's documents and keep the allocated labels backen
 (`merge_full.py` `shared`). When 017-019 are built later, their deltas are merged onto the 1.19.0
 documents by containment; no 020 label changes.
 
-### P0-2 Gate G2: pending owner (dataset needed) - User Story 5 deferred
+### P0-2 Gate G2: pending owner (dataset needed) - User Story 5 deferred (measured later: failed, P0-7)
 
 No MUSDB18-HQ: G2 cannot be measured. Following 7a, the G2 parts are **not merged**: the paths
 tagged `reseparation` (worker and backend), `Health.separationPipelines`, the `Reseparation*`,
@@ -142,7 +142,24 @@ this wave; spec US5, FR-007 and SC-007 are marked deferred. If the owner provide
 passes, the parts need a **new contract minor** (allocated by the CTO then); the recommended
 checkpoint is in research.md.
 
-### P0-3 Gate G1: not run - every label `indicative`, levels shown
+### P0-7 G1 and G2 measured on MUSDB18-HQ (2026-11-23): both failed
+
+Measurements: research.md "Gates G1 and G2 on MUSDB18-HQ" (25-track seeded subset of the `test` split).
+
+- **G1 failed** on all 8 cells (best: drums bleed rho 0.49 against the 0.5 gate; drums artefacts -0.60). The worker
+  records `failed` for vocals, drums, bass and other in both dimensions and `analyzerVersion` becomes **1.0.1**;
+  no contract change (the label table only).
+- **Owner decision**: the stem quality report (US1/US2) ships **switched off** behind
+  `StemStudio:QualityReport:Enabled` (default false; ADR-029 D8). While off, `requestQualityReport` answers the
+  existing `503` (ProblemDetails with a readable detail; no new problem type: the contract has no code for
+  "switched off"), `getQualityReport` answers status `none`, `Track.quality` is absent and the web hides the quality
+  card, badges and tips. The e2e override switches it on. US3/US4 and practice notes are not affected.
+- **G2 failed** as specified (vocals SDR +2.70 dB passes, other stems' SIR +0.09 dB against +0.5 dB fails; on the
+  original mixture +3.21 dB and +0.24 dB): **User Story 5 stays removed**. The deferred G2 parts listed in P0-2
+  stay out of the contracts; re-scoping (vocals-only HQ, or the original audio as input) needs a new spec decision
+  and contract minor.
+
+### P0-3 Gate G1: not run - every label `indicative`, levels shown (superseded by P0-7)
 
 The reliability table starts with every dimension `indicative`. Low/medium are masked as `unknown`
 only for a dimension that was measured and failed G1 (data-model 4.5 clarified). T039 runs G1 when

@@ -14,7 +14,8 @@ deltas; on any difference the OpenAPI documents win). Design:
 | worker | `STEMSTUDIO_QUALITY_ANALYZER` | unset = `fake` when `STEMSTUDIO_SEPARATOR=fake`, else `real` | `real` (signal measures) or `fake` (deterministic per channel, 2.6) |
 | worker | `STEMSTUDIO_INSIGHTS_THREADS` | `4` (1..16) | intra-op thread cap of the `insights` lane (numpy/scipy BLAS threads) |
 | worker | `STEMSTUDIO_RESEPARATOR` **(G2, deferred)** | as the analyzer | `real` (`vocals-hq` pipeline) or `fake` (copies the inputs, applies -1 dB, 2 s) |
-| API | `StemStudio:AutoQualityReport` | `true` | start a report after every standard, detail and high-quality separation |
+| API, web | `StemStudio:QualityReport:Enabled` | `false` | the stem quality report as a whole (owner decision 2026-11-23, G1 failed; ADR-029 D8). Off: no automatic report, `requestQualityReport` 503, `getQualityReport` status `none`, `Track.quality` absent, no quality UI |
+| API | `StemStudio:AutoQualityReport` | `true` | while the report is on: start a report after every standard, detail and high-quality separation |
 | API | `StemStudio:MaxSetlistHandoutSongs` | `50` | FR-009 limit |
 
 No secrets. The handout renderer never uses the network (FR-018).
