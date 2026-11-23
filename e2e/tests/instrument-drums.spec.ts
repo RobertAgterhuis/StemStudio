@@ -17,6 +17,8 @@ import { expect, test } from '../support/test';
 const hitsMs = 60_000;
 const scoreMs = 90_000;
 const meterWindowMs = 1500;
+/** One bar of count-in at the fake 120 BPM (Drumless, data-model 5.3). */
+const countInMs = 2000;
 const hitToleranceMs = 30;
 
 const suite = useInstrumentApi(fakeJobTimeoutMs + 2 * hitsMs + scoreMs);
@@ -96,7 +98,8 @@ test.describe('drum trainer (016 US3)', { tag: '@instrument' }, () => {
     await expect(ui.drumLaneLabel('hihat')).toHaveAttribute('aria-pressed', 'true');
     await mixer.play();
 
-    await expectSomeMeterMoves(mixer, ['drums-hihat'], meterWindowMs);
+    // Drumless starts with a one-bar count-in (2 s at the fake 120 BPM), so the window covers the count-in and a bar.
+    await expectSomeMeterMoves(mixer, ['drums-hihat'], countInMs + meterWindowMs);
     await expectSilentMeters(mixer, others, meterWindowMs);
   });
 });
