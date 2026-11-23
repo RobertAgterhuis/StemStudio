@@ -45,6 +45,8 @@ dependencies = [
     # Feature 020 (ADR-029 D7): lesson handouts as HTML + CSS paged media; needs system Pango >= 1.44.
     "weasyprint==70.0",            # BSD-3-Clause (2026-09-08); deps pydyf, tinyhtml5, pyphen (MPL-1.1 option), fonttools[woff]
     "jinja2==3.1.6",               # BSD-3-Clause; was transitive, now direct (handout templates, autoescape)
+    "fonttools==4.68.0",           # MIT; was transitive (weasyprint), now direct: glyphs.py reads the font cmaps
+    "threadpoolctl==3.8.0",        # BSD-3-Clause; was transitive (scikit-learn), now direct: insights lane caps BLAS threads
 ]
 
 [project.scripts]
