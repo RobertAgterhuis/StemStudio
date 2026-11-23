@@ -28,6 +28,12 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
 {
     private static readonly string AppVersion = Version();
 
+    /// <summary>
+    /// The write gate around the backup job (FR-002): closed before the job can read as running, opened after its finished
+    /// record is stored, so a client never sees a running backup with an open gate.
+    /// </summary>
+    public LibraryJobHooks GateHooks => new(() => services.Gate.TryBeginBackup(), services.Gate.EndBackup);
+
     /// <summary>Runs a backup.</summary>
     /// <param name="request">Options and archive name.</param>
     /// <param name="context">Progress.</param>
@@ -39,14 +45,12 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
         ArgumentNullException.ThrowIfNull(context);
         var staging = services.Paths.Staging(context.JobId);
         var partial = services.Paths.Archive(request.FileName) + LibraryCareLimits.PartialSuffix;
-        services.Gate.TryBeginBackup();
         try
         {
             return await BackUpAsync(request with { Staging = staging, Partial = partial }, context, cancellationToken);
         }
         finally
         {
-            services.Gate.EndBackup();
             DeleteQuietly(staging, partial);
         }
     }

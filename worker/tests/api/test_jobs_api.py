@@ -51,6 +51,7 @@ def test_health_reports_fake_separator(api: Api) -> None:
             "render": {"queued": 0, "running": False},
             "transcribe": {"queued": 0, "running": False},
             "practice": {"queued": 0, "running": False},
+            "instrumentAnalysis": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
             "available": True,
@@ -67,7 +68,14 @@ def test_health_reports_fake_separator(api: Api) -> None:
             "font": {"leipzig": False},
         },
         "structure": {"analyzer": "stems-novelty", "version": "1.0.0"},
-        "contractVersion": "1.8.0",
+        # 1.9.0 (016): the configured engines (InstrumentAnalysisSettings defaults btc / pyin; the
+        # fake engines come from load_settings with the fake separator, data-model 1).
+        "instrumentAnalysis": {
+            "models": {"btc-majmin": "not-downloaded", "btc-large-voca": "not-downloaded"},
+            "chordEngine": "btc",
+            "pitchEngine": "pyin",
+        },
+        "contractVersion": "1.9.0",
     }
 
 

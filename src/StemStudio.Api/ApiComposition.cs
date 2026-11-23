@@ -12,6 +12,7 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.InstrumentViews;
 using StemStudio.Api.Library;
 using StemStudio.Api.LibraryCare;
 using StemStudio.Api.LibraryCare.Gate;
@@ -53,21 +54,36 @@ public static class ApiComposition
         builder.Configuration.GetSection(StemStudioApiOptions.SectionName).Bind(options);
         var dataDirectory = DataDirectory.Resolve(options.DataDir, builder.Environment.ContentRootPath);
         var services = builder.Services;
+        AddStorage(builder, dataDirectory);
+        AddServiceClients(services, builder.Configuration);
+        AddApplicationServices(services);
+        AddHttpServices(services, options);
+        AddFeatureModules(builder, options);
+        return builder;
+    }
+
+    /// <summary>The data directory, the Claude key protection and the live SQLite database.</summary>
+    private static void AddStorage(WebApplicationBuilder builder, DataDirectory dataDirectory)
+    {
+        var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddClaudeKeyProtection(builder.Configuration, builder.Environment.ContentRootPath, dataDirectory);
         var connectionString = LiveDatabaseFile.ForLive(ConnectionString(builder.Configuration, dataDirectory));
         services.AddStemStudioPersistence(connectionString);
         services.AddSingleton(new LiveDatabase(connectionString));
-        AddServiceClients(services, builder.Configuration);
-        AddApplicationServices(services);
-        AddHttpServices(services, options);
+    }
+
+    /// <summary>The feature modules that register themselves (013 and later).</summary>
+    private static void AddFeatureModules(WebApplicationBuilder builder, StemStudioApiOptions options)
+    {
+        var services = builder.Services;
         services.AddLibraryCare(options, builder.Environment.ContentRootPath);
         services.AddAgentHost(builder.Configuration);
         services.AddLibraryFolders();
         services.AddLyricAssist();
         services.AddPracticeFlow(builder.Configuration);
         services.AddRecording(builder.Configuration);
-        return builder;
+        services.AddInstrumentViews(builder.Configuration);
     }
 
     private static void AddServiceClients(IServiceCollection services, IConfiguration configuration)
@@ -85,20 +101,8 @@ public static class ApiComposition
     public static async Task UseStemStudioApiAsync(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
-        await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
-        var live = app.Services.GetRequiredService<LiveDatabase>().ConnectionString;
-        LiveDatabaseFile.EnsureCreated(live);
-        LiveDatabaseFile.UseWal(live);
-        app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
-        await using (var scope = app.Services.CreateAsyncScope())
-        {
-            await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
-            await SeedPresetsAsync(scope.ServiceProvider);
-            await scope.ServiceProvider.GetRequiredService<AudioHashIndex>().RefreshAsync(CancellationToken.None);
-            await scope.ServiceProvider.GetRequiredService<AgentStartupRecovery>().RecoverAsync(CancellationToken.None);
-        }
-
+        await PrepareStorageAsync(app.Services);
+        await PrepareDatabaseAsync(app.Services);
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors(CorsPolicy);
@@ -106,6 +110,27 @@ public static class ApiComposition
         app.UseLibraryGate();
         app.MapOpenApi();
         MapEndpoints(app);
+    }
+
+    /// <summary>Creates the data directory, recovers an interrupted library care step and opens the live database in WAL mode.</summary>
+    private static async Task PrepareStorageAsync(IServiceProvider services)
+    {
+        Directory.CreateDirectory(services.GetRequiredService<DataDirectory>().Root);
+        await services.RecoverLibraryCareAsync(CancellationToken.None);
+        var live = services.GetRequiredService<LiveDatabase>().ConnectionString;
+        LiveDatabaseFile.EnsureCreated(live);
+        LiveDatabaseFile.UseWal(live);
+        services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(services.GetRequiredService<ILogger<KeyRingStatus>>());
+    }
+
+    /// <summary>Migrates the database, seeds the style presets, refreshes the audio hash index and recovers agent runs.</summary>
+    private static async Task PrepareDatabaseAsync(IServiceProvider services)
+    {
+        await using var scope = services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
+        await SeedPresetsAsync(scope.ServiceProvider);
+        await scope.ServiceProvider.GetRequiredService<AudioHashIndex>().RefreshAsync(CancellationToken.None);
+        await scope.ServiceProvider.GetRequiredService<AgentStartupRecovery>().RecoverAsync(CancellationToken.None);
     }
 
     private static Task<int> SeedPresetsAsync(IServiceProvider services) =>
@@ -125,11 +150,23 @@ public static class ApiComposition
         app.MapBandInfoEndpoints();
         app.MapAssetEndpoints();
         app.MapLyricsEndpoints();
+        MapLaterEndpoints(app);
+    }
+
+    /// <summary>The endpoints of features 008 and later.</summary>
+    private static void MapLaterEndpoints(WebApplication app)
+    {
         app.MapScoreEndpoints();
         app.MapGenerationEndpoints();
         app.MapStyleEndpoints();
         app.MapLyricsSheetEndpoints();
         app.MapVoiceEndpoints();
+        MapModuleEndpoints(app);
+    }
+
+    /// <summary>The endpoints of features 011 and later.</summary>
+    private static void MapModuleEndpoints(WebApplication app)
+    {
         app.MapAgentEndpoints();
         app.MapClaudeKeyEndpoints();
         app.MapLibraryCareEndpoints();
@@ -137,6 +174,7 @@ public static class ApiComposition
         app.MapLyricAssistEndpoints();
         app.MapPracticeFlowEndpoints();
         app.MapRecordingEndpoints();
+        app.MapInstrumentViewEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

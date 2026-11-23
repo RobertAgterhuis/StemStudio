@@ -139,6 +139,29 @@ by SHA-256, never committed or baked into an image. All three have a stated, ope
 | basic-pitch ICASSP 2022 (bass, vocal and guitar notes, 008) | nmp.onnx | 230,444 | `2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec` | https://raw.githubusercontent.com/spotify/basic-pitch/v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx | Apache-2.0 (Spotify) |
 | High-resolution piano transcription CRNN (note + pedal, 008) | CRNN_note_F1=0.9677_pedal_F1=0.9186.pth | 171,966,578 | `c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141` | https://zenodo.org/records/4034264 | **CC BY 4.0**. Attribution: Q. Kong, B. Li, X. Song, Y. Wan, Y. Wang, "High-resolution Piano Transcription with Pedals by Regressing Onset and Offset Times", Zenodo record 4034264 |
 
+### Chord recognition: vendored BTC code and its weights (feature 016, ADR-031)
+
+**Vendored code** (`worker/src/stemstudio_worker/harmony/vendor/btc/`, with `LICENSE` and `NOTICE`): a subset of
+BTC, "A Bi-directional Transformer for Musical Chord Recognition" (J. Park, K. Choi, S. Jeon, D. Kim, J. Park,
+ISMIR 2019), https://github.com/jayg996/BTC-ISMIR19 at commit `2682317b` (`2682317be668032e6e4b269ded36adaa2ad57df0`),
+**MIT**, Copyright (c) 2019 Jonggwon Park. Only `btc_model.py`, `transformer_modules.py` and the label tables are
+vendored, with small changes listed in `NOTICE`; the training and evaluation code (and with it `mir_eval`,
+`pretty_midi`, `pandas` and the GPL `pyrubberband`) is not. The folder is excluded from the coverage and SIG gates as
+third-party code.
+
+**Weights**: downloaded at first use into `STEMSTUDIO_MODEL_DIR` (Docker: the `model-cache` volume), verified by
+SHA-256, loaded with `torch.load(weights_only=True)` and an allow-list of three globals; never committed or baked into
+an image.
+
+| Model | File | Bytes | SHA-256 | Source | Licence |
+|---|---|---|---|---|---|
+| `btc-majmin` (major/minor chords) | btc_model.pt | 12,154,754 | `71c2c5db17e8c43b8a9a9da5db36ef2d667158c07a214eba16344c154c00bf54` | https://raw.githubusercontent.com/jayg996/BTC-ISMIR19/2682317be668032e6e4b269ded36adaa2ad57df0/test/btc_model.pt | MIT (same repository) |
+| `btc-large-voca` (170 chord classes) | btc_model_large_voca.pt | 12,229,576 | `1673d23f8f9a55ae7f9e8b80a51da616debb22675b8d8b67ea6ce0ef37b0ab51` | https://raw.githubusercontent.com/jayg996/BTC-ISMIR19/2682317be668032e6e4b269ded36adaa2ad57df0/test/btc_model_large_voca.pt | MIT (same repository) |
+
+Feature 016 adds **no new package** in any component: the chroma-HMM fallback, the key estimate, tablature, parts,
+drum MIDI and singing pitch (librosa pYIN in the worker, a YIN core in the browser) use dependencies that were already
+listed above.
+
 ### System dependencies: GPU image variant only (constitution 1.2.0, ADR-011)
 
 Present only in the optional GPU worker image (`docker-compose.gpu.yml`, build args

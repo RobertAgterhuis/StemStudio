@@ -115,7 +115,7 @@ public static partial class ContractLimits
     public const double MinScoreRangeSeconds = 2;
 
     /// <summary>Instrument profiles of sheet music (feature 008).</summary>
-    public static readonly IReadOnlyList<string> ScoreProfiles = ["vocals", "bass", "guitar", "keys", "piano", "drums"];
+    public static readonly IReadOnlyList<string> ScoreProfiles = ["vocals", "bass", "guitar", "keys", "piano", "drums", "strings", "brass", "woodwinds"];
 
     /// <summary>Score resolutions (feature 008).</summary>
     public static readonly IReadOnlyList<string> ScoreResolutions = ["sixteenth", "eighth"];

@@ -41,6 +41,22 @@ public sealed partial class Mixer
         }
     }
 
+    /// <summary>Expands a collapsed split parent for a view (singing, drum guide); true when this call expanded it.</summary>
+    private async Task<bool> ExpandForViewAsync(string parent)
+    {
+        if (!EngineReady || State!.GroupOf(parent) is not { Expanded: false })
+        {
+            return false;
+        }
+
+        await SwapAsync(parent, true);
+        return State.IsExpanded(parent);
+    }
+
+    /// <summary>Collapses a parent again that <see cref="ExpandForViewAsync"/> expanded and that is still expanded.</summary>
+    private Task CollapseAfterViewAsync(string parent, bool expandedByView) =>
+        expandedByView && State!.IsExpanded(parent) ? SwapAsync(parent, false) : Task.CompletedTask;
+
     private async Task PushExpansionAsync(MixerState state)
     {
         foreach (var group in state.Groups.Where(g => g.Expanded != _engineExpanded.Contains(g.Parent)))

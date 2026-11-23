@@ -1,3 +1,4 @@
+using StemStudio.Api.InstrumentViews;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
@@ -13,7 +14,8 @@ namespace StemStudio.Api.Tracks;
 /// <param name="uploads">Upload store (retry source for uploads).</param>
 /// <param name="clock">Clock.</param>
 /// <param name="takes">Takes (feature 015 <c>takeCount</c>).</param>
-public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, IUploadStore uploads, TimeProvider clock, IRecordingTakeRepository takes)
+/// <param name="views">Instrument view statuses and key (feature 016).</param>
+public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, IUploadStore uploads, TimeProvider clock, IRecordingTakeRepository takes, TrackViewsProjection views)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -24,7 +26,8 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
     {
         var all = await tracks.ListAsync(cancellationToken);
         var counts = await takes.CountsAsync([.. all.Select(track => track.Id)], cancellationToken);
-        return TypedResults.Ok(all.Select(track => TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(track.Id) }).ToList());
+        var items = all.Select(track => (track, TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(track.Id) })).ToList();
+        return TypedResults.Ok(await views.ApplyAsync(items, cancellationToken));
     }
 
     /// <summary>One track.</summary>
@@ -41,7 +44,8 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
 
         await ScheduleOwnLookupAsync(track, cancellationToken);
         var counts = await takes.CountsAsync([id], cancellationToken);
-        return TypedResults.Ok(TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(id) });
+        var dto = TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(id) };
+        return TypedResults.Ok((await views.ApplyAsync([(track, dto)], cancellationToken))[0]);
     }
 
     /// <summary>

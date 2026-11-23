@@ -8,6 +8,7 @@
 import { CaptureBuffer } from './capture-buffer';
 import { CAPTURE_PROCESSOR_NAME } from './capture-worklet';
 import type { MediaEnvironment } from './environment';
+import { onceLoader } from '../worklet-module';
 
 /** Default URL of the capture worklet module. */
 export const DEFAULT_CAPTURE_WORKLET_URL = './js/audio-engine-capture-worklet.js';
@@ -32,20 +33,7 @@ interface BlockMessage {
   readonly channels?: unknown;
 }
 
-const modules = new WeakMap<BaseAudioContext, Promise<void>>();
-
-/** Adds the module once per context; a failed load is forgotten so the next call retries. */
-function loadModule(context: AudioContext, url: string): Promise<void> {
-  let loading = modules.get(context);
-  if (loading === undefined) {
-    loading = context.audioWorklet.addModule(url).catch((error: unknown) => {
-      modules.delete(context);
-      throw new Error(`unsupported: The capture worklet could not be loaded (${String(error)}).`, { cause: error });
-    });
-    modules.set(context, loading);
-  }
-  return loading;
-}
+const loadModule = onceLoader((cause) => `unsupported: The capture worklet could not be loaded (${cause}).`);
 
 /** Node options: one input of exactly `channels` discrete channels, one silent mono output. */
 function captureNodeOptions(channels: 1 | 2): AudioWorkletNodeOptions {

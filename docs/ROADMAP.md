@@ -50,6 +50,14 @@ full E2E run and the manual NVDA pass (023 T070, 022 T090/T092).
 2026-11-18, with backend API 1.14.0, worker API 1.8.0, audio engine 2.5.0, web interop 1.1.0 (the 014 key map; the module
 constant is `1.1.0`), UI test ids 1.14.0 and render vectors 1.1.0, waiting for the merge to `main`; MoSCoW S2, S3, S5-S8).
 Still open in their `tasks.md`: the owner checks on the reference machine (014 T105, 015 T089).
+**016 Instrument views is delivered** (integrated on the round branch `016-round`, 2026-11-22, with backend API 1.15.0,
+worker API 1.9.0, audio engine 2.6.0, UI test ids 1.15.0, help content 1.1.0 and chord spelling vectors 1.0.0, waiting
+for the merge to `main`; MoSCoW S1, S4, S9-S12). Still open in its `tasks.md`: the reference-machine validation (T140:
+quickstart V1-V14 with a real song per family, the BTC GPU memory peak, SC-007 trace, SC-009 first-time-user check).
+Backlog from the 016 reviews (later rounds): take scoring ignores the playback rate of a take recorded slowed down;
+`ScoreOptions.tablature` cannot express availability and capo per profile; drum hits carry no warnings (thinning is
+invisible); `instrument-view` has no close control; soft SIG findings in pre-016 engine code (`engine.ts`
+createParts/loadTrack, `capture.ts` isBlock); `js/singing-raw.js` has no unit test (covered by E2E).
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.

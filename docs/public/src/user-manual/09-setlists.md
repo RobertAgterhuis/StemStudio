@@ -39,7 +39,7 @@ the song.
 
 | Action | How |
 |---|---|
-| Next song | **Next song**, <kbd>Mod</kbd>+<kbd>→</kbd>, or the right pedal with the pedal preset *Next / previous song* (chapter 22) |
+| Next song | **Next song**, <kbd>Mod</kbd>+<kbd>→</kbd>, or the right pedal with the pedal preset *Next / previous song* (chapter 23) |
 | Previous song | **Previous song**, <kbd>Mod</kbd>+<kbd>←</kbd>, or the left pedal with that preset |
 | Leave play mode | **Exit setlist** goes back to the setlist |
 

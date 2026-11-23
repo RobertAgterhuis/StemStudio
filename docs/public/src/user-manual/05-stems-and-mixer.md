@@ -194,7 +194,7 @@ and come back when you load it. Mixes saved before this feature open at 100 % an
 semitones. **Exports to the library always use the original speed and key**; the export
 dialog says so.
 
-Shortcuts (chapter 22): <kbd>-</kbd> and <kbd>=</kbd> (or <kbd>+</kbd>) speed −5/+5 %,
+Shortcuts (chapter 23): <kbd>-</kbd> and <kbd>=</kbd> (or <kbd>+</kbd>) speed −5/+5 %,
 <kbd>,</kbd> and <kbd>.</kbd> transpose −1/+1, <kbd>0</kbd> original speed and key,
 <kbd>Shift</kbd>+<kbd>K</kbd> count-in and <kbd>T</kbd> speed trainer (Advanced). The count-in and
 *Original speed and key* used to be <kbd>C</kbd> and <kbd>R</kbd>; those keys are now used for

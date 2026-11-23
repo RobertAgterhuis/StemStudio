@@ -19,6 +19,7 @@ your notation program.
 | Keys | Grand staff, split at middle C | |
 | Piano | Grand staff | *Accurate* (best with a GPU) or *Fast* |
 | Drums | Percussion staff | Needs split drums (detail stems) |
+| Strings, brass, woodwinds | The clef of the chosen instrument | Part in the written pitch of your instrument (chapter 17) |
 
 If the drums are not split yet, the dialog offers **Split drums first**.
 
@@ -31,7 +32,10 @@ If the drums are not split yet, the dialog offers **Split drums first**.
   *simplified* mode).
 - The estimated **key** with its confidence, for example *A-flat major (83 %)*. At Advanced
   level you can override the key.
-- Not included: triplets, swing, dynamics, articulations, lyrics, chords and tablature.
+- Options (chapter 17): **tablature** for guitar and bass (layout, tuning, capo), a **part for
+  your instrument** (B-flat, E-flat and F instruments, clef) and, from Advanced, **include
+  chords** above the top staff once the chords are ready.
+- Not included: triplets, swing, dynamics, articulations and lyrics.
 
 ## When the beat grid is unreliable
 

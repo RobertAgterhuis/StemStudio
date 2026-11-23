@@ -1,0 +1,37 @@
+@* Tablature options of the sheet music dialog (016 US2, FR-020; ui-test-ids score-tab-*): layout, tuning and, for guitar,
+   the capo (Advanced). Tuning names come from the instrument catalogue. *@
+@using StemStudio.Contracts.InstrumentViews
+
+<fieldset class="ss-score-tab">
+    <legend class="ss-label">Tablature <HelpHint HelpId="score-tablature" /></legend>
+    <div class="ss-field">
+        <label class="ss-label" for="score-tab-layout">Layout</label>
+        <select id="score-tab-layout" class="ss-select" @bind:get="Tab.LayoutValue" @bind:set="SetLayout" data-testid="score-tab-layout" data-help-id="score-tablature">
+            <option value="@TabChoice.NotationAndTabValue">Notation and tab</option>
+            <option value="@TabChoice.TabOnlyValue">Tab only</option>
+            <option value="@TabChoice.NoneValue">No tab</option>
+        </select>
+    </div>
+    @if (Tab.Layout != TabLayoutChoice.None)
+    {
+        <div class="ss-field">
+            <label class="ss-label" for="score-tab-tuning">Tuning</label>
+            <select id="score-tab-tuning" class="ss-select" @bind:get="WireName.Of(Tab.Tuning)" @bind:set="SetTuning" data-testid="score-tab-tuning" data-help-id="score-tab-tuning">
+                @foreach (var tuning in Tab.Tunings(AllTunings))
+                {
+                    <option value="@WireName.Of(tuning)">@TuningLabel(tuning)</option>
+                }
+            </select>
+        </div>
+        @if (Tab.CapoAllowed)
+        {
+            <LevelGate Feature="tab.tunings">
+                <div class="ss-field">
+                    <label class="ss-label" for="score-tab-capo">Capo</label>
+                    <input id="score-tab-capo" type="number" class="ss-input" min="0" max="@ContractLimits.CapoMax" step="1"
+                           @bind:get="Tab.Capo" @bind:set="SetCapo" @bind:event="onchange" data-testid="score-tab-capo" />
+                </div>
+            </LevelGate>
+        }
+    }
+</fieldset>

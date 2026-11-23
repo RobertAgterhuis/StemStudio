@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - instrument views delta (feature 016)
-  version: 1.15.0-delta.1
+  version: 1.15.0-delta.2
   summary: Additive delta of the backend API for chords, drum hits, reference melody, the instrument catalogue, tablature and transposed parts.
   description: |
     * **Standalone, additive delta.** Merged unchanged into the full
@@ -23,8 +23,12 @@ info:
       `ScoreConflict` codes + `chords-not-ready`; `ScoreUnprocessable` codes + `tablature-not-allowed`,
       `capo-not-allowed`, `tuning-mismatch`, `clef-not-allowed`, `part-not-allowed`.
     * Singing scores are computed in the browser and never sent to this API (FR-047).
-    * Changelog: 1.15.0-delta.1 (additive, feature 016 planning). See ADR-031..033 and
-      contracts/DELTA.md.
+    * Changelog: 1.15.0-delta.1 (additive, feature 016 planning). 1.15.0-delta.2 (016 Phase 0,
+      2026-11-18): the `*Extension` properties are optional on the wire (absent = null, `false` or
+      all `none`, so 1.14.0 producers stay valid); key display examples use the chord spelling
+      ("Eb major", data-model.md 2.5). Integration (2026-11-22): `getKey` and `getCapoSuggestions`
+      declare `422` ValidationProblem (out-of-range `transpose`, unknown `instrument`), as the API
+      already answers. See ADR-031..033 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -246,6 +250,8 @@ paths:
                   - {startMs: 16500, endMs: 32500, startBar: 9, tonic: 2, mode: major, confidence: 0.77, display: E major}
         '404':
           $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/chords/capo-suggestions:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -276,6 +282,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/drum-hits:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -425,7 +433,7 @@ components:
     InstrumentViewsStatus:
       type: object
       additionalProperties: false
-      description: Added to `Track` as `instrumentViews` (always present; `none` for old tracks).
+      description: Added to `Track` as `instrumentViews` (optional; always sent by 1.15.0; absent = every analysis `none`).
       required: [chords, drumHits, vocalPitch]
       properties:
         chords:
@@ -498,7 +506,7 @@ components:
         display:
           type: string
           maxLength: 40
-          example: E-flat major
+          example: Eb major
         regions:
           type: integer
           minimum: 0
@@ -1052,8 +1060,7 @@ components:
     ScoreOptionsExtension:
       type: object
       additionalProperties: false
-      description: Properties added to `ScoreOptions`.
-      required: [tablature, parts, chords]
+      description: Properties added to `ScoreOptions` (optional; always sent by 1.15.0; absent = not available).
       properties:
         tablature:
           type: object
@@ -1131,8 +1138,7 @@ components:
     ScoreFactsExtension:
       type: object
       additionalProperties: false
-      description: Properties added to `ScoreFacts` (and the worker `ScoreSummary`).
-      required: [tablature, part, chordsIncluded]
+      description: Properties added to `ScoreFacts` (optional; always sent by 1.15.0; absent = null, null, false - 008 items).
       properties:
         tablature:
           oneOf:

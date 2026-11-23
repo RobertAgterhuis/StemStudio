@@ -17,6 +17,7 @@ namespace StemStudio.Api.Detail;
 /// <param name="applier">Applies detail job states.</param>
 /// <param name="rehydrator">Rehydrates the worker cache on a miss (feature 013).</param>
 /// <param name="locks">Per-track locks shared with <see cref="DetailService"/>.</param>
+/// <param name="hooks">Hooks run after a detail phase completed (feature 016 drum hits).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class DetailSynchronizer(
     ITrackRepository tracks,
@@ -24,6 +25,7 @@ public sealed partial class DetailSynchronizer(
     DetailJobApplier applier,
     WorkerCacheRehydrator rehydrator,
     DetailPhaseLocks locks,
+    IEnumerable<IDetailCompletionHook> hooks,
     ILogger<DetailSynchronizer> logger)
 {
     /// <summary>Synchronises every active detail phase and saves after each track.</summary>
@@ -53,18 +55,47 @@ public sealed partial class DetailSynchronizer(
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
     {
         var before = track.DetailPhase!.Status;
-        try
+        if (!await TryApplyAsync(track, cancellationToken))
         {
-            await ApplyAsync(track, track.DetailPhase.WorkerDetailJobId, cancellationToken);
-        }
-        catch (WorkerUnavailableException)
-        {
-            LogWorkerUnavailable(logger, track.Id);
             return;
         }
 
         await tracks.SaveAsync(cancellationToken);
         LogTransition(track, before);
+        if (before != DetailPhaseStatus.Completed && track.DetailPhase?.Status == DetailPhaseStatus.Completed)
+        {
+            await RunHooksAsync(track, cancellationToken);
+        }
+    }
+
+    /// <summary>Applies the worker job; false while the worker is unreachable (the state is kept for the next tick).</summary>
+    private async Task<bool> TryApplyAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ApplyAsync(track, track.DetailPhase!.WorkerDetailJobId, cancellationToken);
+            return true;
+        }
+        catch (WorkerUnavailableException)
+        {
+            LogWorkerUnavailable(logger, track.Id);
+            return false;
+        }
+    }
+
+    private async Task RunHooksAsync(Track track, CancellationToken cancellationToken)
+    {
+        foreach (var hook in hooks)
+        {
+            try
+            {
+                await hook.OnDetailCompletedAsync(track, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                LogHookFailed(logger, track.Id, exception);
+            }
+        }
     }
 
     private async Task ApplyAsync(Track track, string? detailJobId, CancellationToken cancellationToken)
@@ -115,6 +146,9 @@ public sealed partial class DetailSynchronizer(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Track {TrackId}: detail phase changed since the pass started, synchronised on the next tick")]
     private static partial void LogChangedMeanwhile(ILogger logger, Guid trackId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Track {TrackId}: a detail completion hook failed; the detail phase stays completed")]
+    private static partial void LogHookFailed(ILogger logger, Guid trackId, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Track {TrackId}: detail synchronisation failed unexpectedly")]
     private static partial void LogSyncFailed(ILogger logger, Guid trackId, Exception exception);

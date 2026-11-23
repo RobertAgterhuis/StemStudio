@@ -1,0 +1,140 @@
+/**
+ * Validation of the singing inputs (contract 2.6.0 errors): `Invalid pitch contour: <reason>` and
+ * `Invalid singing request: <reason>`. Shared by `startSingingFeedback` and `scoreTake`.
+ *
+ * @packageDocumentation
+ */
+import type { LatencyMethod, PitchContour, SingingUnit } from '../types';
+
+/** Most reference frames (15 minutes at 10 ms). */
+export const MAX_CONTOUR_FRAMES = 90_000;
+/** Highest reference value (MIDI 127 x 100). */
+export const MAX_CENTS = 12_700;
+/** Tolerance range (cents). */
+export const TOLERANCE_RANGE = { min: 10, max: 200 } as const;
+/** Largest accepted round trip (ms). */
+export const MAX_ROUND_TRIP_MS = 1000;
+/** Most units of one request (far above any song's lines or bars). */
+export const MAX_UNITS = 20_000;
+/** Accepted latency methods (015 `LatencyMethod`). */
+const LATENCY_METHODS: readonly LatencyMethod[] = ['loopback', 'manual', 'estimated'];
+
+function request(reason: string): never {
+  throw new Error(`Invalid singing request: ${reason}`);
+}
+
+function contour(reason: string): never {
+  throw new Error(`Invalid pitch contour: ${reason}`);
+}
+
+function isList(frames: unknown): boolean {
+  return typeof (frames as { length?: unknown } | null)?.length === 'number';
+}
+
+/**
+ * @param reference - Reference melody from Blazor (untrusted shape).
+ * @returns The frames as an `Int16Array`.
+ * @throws Error `Invalid pitch contour: <reason>`.
+ */
+export function validateContour(reference: PitchContour): Int16Array {
+  if ((reference.hopMs as number) !== 10) {
+    contour('hopMs not 10');
+  }
+  if (!isList(reference.frames)) {
+    contour('frames missing');
+  }
+  return framesOf(reference.frames);
+}
+
+/** Checks the frame count and range of a contour that has a frame list. */
+function framesOf(frames: PitchContour['frames']): Int16Array {
+  if (frames.length > MAX_CONTOUR_FRAMES) {
+    contour(`more than ${String(MAX_CONTOUR_FRAMES)} frames`);
+  }
+  const values = Int16Array.from(frames);
+  if (!Array.from(frames).every((v) => v >= 0 && v <= MAX_CENTS)) {
+    contour(`values outside 0..${String(MAX_CENTS)}`);
+  }
+  return values;
+}
+
+/**
+ * @param cents - Tolerance.
+ * @returns The tolerance when in 10..200.
+ * @throws Error `Invalid singing request: tolerance outside 10..200`.
+ */
+export function validateTolerance(cents: number): number {
+  if (!(cents >= TOLERANCE_RANGE.min && cents <= TOLERANCE_RANGE.max)) {
+    request(`tolerance outside ${String(TOLERANCE_RANGE.min)}..${String(TOLERANCE_RANGE.max)}`);
+  }
+  return cents;
+}
+
+/**
+ * @param units - Units from Blazor (untrusted shape).
+ * @returns The units.
+ * @throws Error `Invalid singing request: units missing | more than 20000 units | unit index invalid |
+ *   unit times not finite | units not ordered`.
+ */
+export function validateUnits(units: readonly SingingUnit[]): readonly SingingUnit[] {
+  const list: unknown = units;
+  if (!Array.isArray(list)) {
+    request('units missing');
+  }
+  if (units.length > MAX_UNITS) {
+    request(`more than ${String(MAX_UNITS)} units`);
+  }
+  units.forEach((unit, i) => {
+    validateUnit(unit);
+    const previousEnd = units[i - 1]?.endMs ?? Number.NEGATIVE_INFINITY;
+    if (!(unit.startMs >= previousEnd && unit.endMs > unit.startMs)) {
+      request('units not ordered');
+    }
+  });
+  return units;
+}
+
+/** Checks the index and times of one unit (untrusted shape). */
+function validateUnit(unit: SingingUnit | null): void {
+  const fields: Partial<SingingUnit> = unit ?? {};
+  if (!isIndex(fields.index)) {
+    request('unit index invalid');
+  }
+  if (!(Number.isFinite(fields.startMs) && Number.isFinite(fields.endMs))) {
+    request('unit times not finite');
+  }
+}
+
+function isIndex(index: unknown): boolean {
+  return Number.isInteger(index) && (index as number) >= 0;
+}
+
+/**
+ * @param method - Latency method from Blazor (untrusted), or null/undefined.
+ * @returns The method when absent (undefined) or one of `loopback | manual | estimated`.
+ * @throws Error `Invalid singing request: latencyMethod`.
+ */
+export function validateLatencyMethod(method: LatencyMethod | null | undefined): LatencyMethod | undefined {
+  if (method === null || method === undefined) {
+    return undefined;
+  }
+  if (!LATENCY_METHODS.includes(method)) {
+    request('latencyMethod');
+  }
+  return method;
+}
+
+/**
+ * @param ms - Round trip from the request, or null/undefined.
+ * @returns The value when absent or in 0..1000.
+ * @throws Error `Invalid singing request: roundTripMs outside 0..1000`.
+ */
+export function validateRoundTrip(ms: number | null | undefined): number | null {
+  if (ms === null || ms === undefined) {
+    return null;
+  }
+  if (!(ms >= 0 && ms <= MAX_ROUND_TRIP_MS)) {
+    request(`roundTripMs outside 0..${String(MAX_ROUND_TRIP_MS)}`);
+  }
+  return ms;
+}

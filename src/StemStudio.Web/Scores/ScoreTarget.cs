@@ -15,6 +15,9 @@ public sealed record ScoreTarget(AudioSourceDto Source, string Subject)
     /// <summary>A tempo to prefill when the beat grid cannot be used: the track's detected tempo, or null.</summary>
     public ScoreTempoDto? SuggestedTempo { get; init; }
 
+    /// <summary>The capo of capo mode that prefills the guitar tablature options (016 FR-078); 0 without capo mode.</summary>
+    public int Capo { get; init; }
+
     /// <summary>The <c>data-source</c> value: <c>channel</c> or <c>asset</c>.</summary>
     public string SourceKind => Source.AssetId is null ? "channel" : "asset";
 

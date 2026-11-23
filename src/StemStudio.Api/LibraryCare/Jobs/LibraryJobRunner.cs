@@ -46,10 +46,19 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
     /// <param name="work">The work.</param>
     /// <param name="job">The queued job.</param>
     /// <returns>False when another job is active (<c>409 library-job-running</c>).</returns>
-    public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, out LibraryJobDto job)
+    public bool TryStart(LibraryJobKindDto kind, string? archiveFileName, LibraryJobWork work, out LibraryJobDto job) =>
+        TryStart(new LibraryJobStart(kind, archiveFileName, work), out job);
+
+    /// <summary>Starts a job unless one is active, with actions around its visible life.</summary>
+    /// <param name="start">Kind, archive, work and hooks.</param>
+    /// <param name="job">The queued job.</param>
+    /// <returns>False when another job is active.</returns>
+    public bool TryStart(LibraryJobStart start, out LibraryJobDto job)
     {
-        ArgumentNullException.ThrowIfNull(work);
-        job = LibraryJobs.Queued(Guid.NewGuid(), kind, archiveFileName, clock.GetUtcNow());
+        ArgumentNullException.ThrowIfNull(start);
+        ArgumentNullException.ThrowIfNull(start.Work);
+        var (work, hooks) = (start.Work, start.Hooks);
+        job = LibraryJobs.Queued(Guid.NewGuid(), start.Kind, start.ArchiveFileName, clock.GetUtcNow());
         lock (_lock)
         {
             if (_running is not null)
@@ -57,7 +66,8 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
                 return false;
             }
 
-            var running = new Running(new LibraryJobContext(job with { StartedAt = job.CreatedAt }, clock), new CancellationTokenSource());
+            var running = new Running(new LibraryJobContext(job with { StartedAt = job.CreatedAt }, clock), new CancellationTokenSource(), hooks);
+            hooks?.Begin();
             _running = running;
             _idle = Task.Run(() => RunAsync(running, work));
             return true;
@@ -134,6 +144,8 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
             _running = null;
         }
 
+        running.Hooks?.End();
+
         running.Cancellation.Dispose();
     }
 
@@ -166,5 +178,5 @@ public sealed partial class LibraryJobRunner(LibraryJobStore store, TimeProvider
     [LoggerMessage(Level = LogLevel.Error, Message = "Library job {Kind} failed unexpectedly ({ExceptionType})")]
     private static partial void LogUnexpected(ILogger logger, LibraryJobKindDto kind, string exceptionType);
 
-    private sealed record Running(LibraryJobContext Context, CancellationTokenSource Cancellation);
+    private sealed record Running(LibraryJobContext Context, CancellationTokenSource Cancellation, LibraryJobHooks? Hooks);
 }

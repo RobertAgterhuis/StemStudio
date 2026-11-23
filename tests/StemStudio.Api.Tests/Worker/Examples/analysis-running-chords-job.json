@@ -1,0 +1,17 @@
+{
+  "analysisJobId": "4f1c2b3a4d5e6f708192a3b4c5d6e7f8",
+  "kind": "chords",
+  "status": "running",
+  "stage": "analysing",
+  "progress": 0.42,
+  "device": {
+    "kind": "cpu",
+    "name": null,
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "result": null,
+  "createdAt": "2026-11-16T10:00:00Z",
+  "updatedAt": "2026-11-16T10:00:03Z"
+}

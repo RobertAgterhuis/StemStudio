@@ -1,0 +1,14 @@
+@* "Score this take" on a saved 015 take (016 US4 AS7, FR-046, P2; ui-test-ids take-score-<takeId>, take-score-result-<takeId>):
+   the engine scores the take in the browser with the rules of singing feedback; nothing is sent to the server (FR-047). *@
+
+@if (Source is not null && Item.Take is { Status: StemStudio.Contracts.Recording.TakeStatusDto.Ready } take)
+{
+    <span class="ss-take-score">
+        <button type="button" class="ss-text-button" disabled="@Busy" aria-busy="@(Busy ? "true" : null)" @onclick="ScoreAsync"
+                data-testid="@($"take-score-{take.Id}")" data-help-id="singing">Score this take</button>
+        @if (Result is not null)
+        {
+            <span class="ss-small" role="status" data-average="@Average" data-testid="@($"take-score-result-{take.Id}")">@Result</span>
+        }
+    </span>
+}

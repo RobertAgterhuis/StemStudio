@@ -5,7 +5,9 @@
  *
  * @packageDocumentation
  */
-import { FrameSubscription, type FrameLoop } from '../frame-loop';
+import type { ChordLayerFactory } from '../chords/banner';
+import type { FrameLoop } from '../frame-loop';
+import { TimelineFrames } from '../timeline/frames';
 import type { TransportListener } from '../transport';
 import type { KaraokeLyrics, KaraokeOptions, PlaybackState } from '../types';
 import { validateOffset, type KaraokeClock } from './clock';
@@ -27,11 +29,12 @@ export interface KaraokeDeps {
 /** The engine's karaoke controller; listens to the transport. */
 export class Karaoke implements TransportListener {
   private view: KaraokeView | null = null;
-  private readonly frames: FrameSubscription;
+  private chords: ChordLayerFactory | null = null;
+  private readonly frames: TimelineFrames;
 
   /** @param deps - Frame loop, clock, transport state and document. */
   public constructor(private readonly deps: KaraokeDeps) {
-    this.frames = new FrameSubscription(deps.loop, this.draw);
+    this.frames = new TimelineFrames({ loop: deps.loop, playing: deps.playing, draw: this.draw });
   }
 
   /**
@@ -56,8 +59,8 @@ export class Karaoke implements TransportListener {
       this.deps.loop.once(this.draw);
     };
     const { reducedMotion } = options;
-    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion });
-    this.frames.follow(this.deps.playing());
+    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion, chords: this.chords });
+    this.frames.start();
   }
 
   /** @param offsetMs - New user offset (-5000..5000 ms); drawn on the next frame. */
@@ -66,11 +69,20 @@ export class Karaoke implements TransportListener {
     this.redraw();
   }
 
+  /**
+   * Sets or removes the chord symbols (contract 2.6.0 `setKaraokeChords`); kept across {@link Karaoke.attach} calls.
+   *
+   * @param chords - Layer factory of a validated chart, or null.
+   */
+  public setChords(chords: ChordLayerFactory | null): void {
+    this.chords = chords;
+    this.view?.setChords(chords);
+    this.redraw();
+  }
+
   /** Draws one frame when a banner is attached (e.g. after a loop change). */
   public redraw(): void {
-    if (this.view !== null) {
-      this.frames.redraw();
-    }
+    this.frames.redraw();
   }
 
   /** Removes the banner and stops drawing; no-op when none is attached. */
@@ -82,9 +94,7 @@ export class Karaoke implements TransportListener {
 
   /** {@inheritDoc TransportListener.onStateChanged} */
   public onStateChanged(state: PlaybackState): void {
-    if (this.view !== null) {
-      this.frames.follow(state === 'playing');
-    }
+    this.frames.onStateChanged(state);
   }
 
   /** {@inheritDoc TransportListener.onReposition} */

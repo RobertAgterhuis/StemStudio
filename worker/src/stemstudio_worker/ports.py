@@ -27,6 +27,11 @@ Each protocol is implemented by a different agent and faked in unit tests:
 * ``StructureAnalyzer``: beat-analysis (``analysis/structure/``; the fake by stem-separation),
   ``ScoreViewRenderer`` and ``SetlistDocumentRenderer``: audio-ingest
   (``engraving/score_view.py``, ``documents/``), feature 014: the ``practice`` lane (ADR-023)
+* ``HarmonicMixer``: audio-ingest (``analysis_inputs/``); ``ChordRecognizer``: stem-separation
+  (``harmony/btc.py``) and beat-analysis (``harmony/chroma_hmm.py``); ``ChordPostProcessor``,
+  ``KeyEstimator``, ``PitchAnalyzer``, ``TabFingerer``, ``PartWriter``: beat-analysis
+  (``harmony/``, ``analysis/vocal_pitch.py``, ``notation/``), feature 016: the
+  ``instrument-analysis`` lane and the score extensions (ADR-031..033)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -52,29 +57,40 @@ from stemstudio_worker.schemas import (
     LIBRARY_UNAVAILABLE_TEXT,
     LYRICS_UNREACHABLE_TEXT,
     LYRICS_UNUSABLE_TEXT,
+    NO_MELODY_TEXT,
     NO_NOTES_TEXT,
     PIANO_MODEL_ID,
     SCORE_VIEW_FAILED_TEXT,
+    AnalysisKey,
     ArtworkInfo,
     ArtworkSource,
     BarBox,
     BeatGrid,
     BeatGridTempo,
+    ChordChart,
+    ChordEngine,
+    ChordSegment,
+    ChordVocabulary,
     DetailModelId,
     DeviceInfo,
     DrumPiece,
     JobDevice,
     KeyInfo,
     KeyName,
+    KeyRegion,
     LibraryHealth,
     LyricsResult,
     ManualTempo,
     MetadataResult,
     ModelName,
+    PartSettings,
+    PartSummary,
+    PitchEngine,
     ProcessingDeviceKind,
     RenderJobRequest,
     RenderRange,
     RenderResult,
+    ScoreChordSymbol,
     ScoreEngine,
     ScoreProfile,
     ScoreResolution,
@@ -88,9 +104,16 @@ from stemstudio_worker.schemas import (
     StorageCleanupRequest,
     StorageCleanupResult,
     StructureAnalyzerName,
+    TablatureSettings,
+    TablatureSummary,
     TempoGrid,
     TimedLyrics,
+    TuningId,
+    VocalPitch,
+    VocalSource,
     WorkerStorage,
+    WrittenClef,
+    WrittenInstrument,
 )
 
 DetailAudio = npt.NDArray[np.float32]
@@ -1217,6 +1240,11 @@ class NotationSettings:
         key_override: Key to use instead of the estimate (ignored for drums).
         titles: Title, subtitle and part name.
         duration_seconds: Length of the input (manual grids generate beats over it).
+        tablature: Tab staff settings (guitar/bass, 1.9.0); None = no tablature.
+        part: Written instrument and clef (1.9.0); None = concert pitch, profile clef.
+        chords: Chord symbols above the top staff (1.9.0); empty = none.
+        prefer_flats: Spelling hint for the chord symbols at concert pitch (1.9.0).
+        single_piece: ``drums`` with one piece (1.9.0): no ``missing-drum-piece`` warnings.
     """
 
     profile: ScoreProfile
@@ -1225,6 +1253,11 @@ class NotationSettings:
     key_override: KeyName | None
     titles: ScoreTitles
     duration_seconds: float
+    tablature: TablatureSettings | None = None
+    part: PartSettings | None = None
+    chords: tuple[ScoreChordSymbol, ...] = ()
+    prefer_flats: bool = False
+    single_piece: DrumPiece | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1240,6 +1273,9 @@ class ScoreDocument:
         bars: Measures including a pickup bar.
         notes: Notes (hits) in the score after cleaning.
         warnings: Cleaning and key warnings (data-model.md 2.7).
+        tablature: Tab facts (1.9.0); None without tablature.
+        part: Part facts (1.9.0); None for concert pitch.
+        chords_included: Chord symbols were written (1.9.0).
     """
 
     musicxml: bytes
@@ -1250,6 +1286,9 @@ class ScoreDocument:
     bars: int
     notes: int
     warnings: tuple[ScoreWarning, ...] = ()
+    tablature: TablatureSummary | None = None
+    part: PartSummary | None = None
+    chords_included: bool = False
 
 
 class Notator(Protocol):
@@ -1520,4 +1559,363 @@ class SetlistDocumentRenderer(Protocol):
         Raises:
             DocumentError: The fonts are missing or ReportLab fails.
         """
+        ...
+
+
+# ------------------------------------------------------------------ feature 016: instrument views
+
+CHORD_SAMPLE_RATE: Final = 22_050
+"""Sample rate of the summed harmonic stems for chord recognition (BTC, chroma-hmm)."""
+
+CHORD_HOP: Final = 2048
+"""CQT hop of the chord features; one frame = ``CHORD_HOP / CHORD_SAMPLE_RATE`` s (92.88 ms)."""
+
+PITCH_SAMPLE_RATE: Final = 16_000
+"""Sample rate of the vocal stem for the reference melody (hop 160 = 10 ms)."""
+
+BTC_MAJMIN_WEIGHTS: Final = WeightsFile(
+    model_id="btc-majmin",
+    url=(
+        "https://raw.githubusercontent.com/jayg996/BTC-ISMIR19/"
+        "2682317be668032e6e4b269ded36adaa2ad57df0/test/btc_model.pt"
+    ),
+    sha256="71c2c5db17e8c43b8a9a9da5db36ef2d667158c07a214eba16344c154c00bf54",
+    size_bytes=12_154_754,
+    licence="MIT",
+)
+"""BTC (Park et al. 2019) major/minor checkpoint, vocabulary ``simple`` (data-model 1)."""
+
+BTC_LARGE_VOCA_WEIGHTS: Final = WeightsFile(
+    model_id="btc-large-voca",
+    url=(
+        "https://raw.githubusercontent.com/jayg996/BTC-ISMIR19/"
+        "2682317be668032e6e4b269ded36adaa2ad57df0/test/btc_model_large_voca.pt"
+    ),
+    sha256="1673d23f8f9a55ae7f9e8b80a51da616debb22675b8d8b67ea6ce0ef37b0ab51",
+    size_bytes=12_229_576,
+    licence="MIT",
+)
+"""BTC large-vocabulary checkpoint (170 classes), vocabulary ``full``."""
+
+BTC_GPU_NEED: Final = GpuNeed("Chord recognition (BTC)", 512)
+"""Free GPU memory of one BTC pass. Phase 0 (016 research R-03): no GPU run was possible in the
+design phase; 512 MiB is far above the estimate from the 3.1 M parameters and 108-frame windows
+(< 64 MiB) and is confirmed with an NVML peak at integration (T140)."""
+
+BTC_SAFE_GLOBALS: Final[tuple[str, ...]] = (
+    "numpy.core.multiarray.scalar",
+    "numpy.dtype",
+    "numpy.dtypes.Float64DType",
+)
+"""Qualified names that ``torch.load(weights_only=True)`` may resolve in the BTC checkpoints
+(their ``mean``/``std`` entries are numpy scalars); everything else is refused (ADR-031,
+016 research R-02 Phase 0 outcome)."""
+
+
+@dataclass(frozen=True, slots=True)
+class Tuning:
+    """One entry of the tuning catalogue (data-model 4.1).
+
+    Attributes:
+        tuning_id: Catalogue id.
+        instrument: ``guitar`` or ``bass`` (the profile that may use it).
+        label: Display label.
+        pitches: Sounding MIDI pitches, lowest string first.
+    """
+
+    tuning_id: TuningId
+    instrument: str
+    label: str
+    pitches: tuple[int, ...]
+
+
+TUNINGS: Final[Mapping[TuningId, Tuning]] = {
+    t.tuning_id: t
+    for t in (
+        Tuning("guitar-standard", "guitar", "Standard (E A D G B E)", (40, 45, 50, 55, 59, 64)),
+        Tuning("guitar-drop-d", "guitar", "Drop D", (38, 45, 50, 55, 59, 64)),
+        Tuning("guitar-half-step-down", "guitar", "Half step down (Eb)", (39, 44, 49, 54, 58, 63)),
+        Tuning("guitar-full-step-down", "guitar", "Full step down (D)", (38, 43, 48, 53, 57, 62)),
+        Tuning("guitar-dadgad", "guitar", "DADGAD", (38, 45, 50, 55, 57, 62)),
+        Tuning("guitar-open-g", "guitar", "Open G", (38, 43, 50, 55, 59, 62)),
+        Tuning("guitar-open-d", "guitar", "Open D", (38, 45, 50, 54, 57, 62)),
+        Tuning("bass-4-standard", "bass", "4-string (E A D G)", (28, 33, 38, 43)),
+        Tuning("bass-4-drop-d", "bass", "4-string drop D", (26, 33, 38, 43)),
+        Tuning("bass-4-half-step-down", "bass", "4-string half step down", (27, 32, 37, 42)),
+        Tuning("bass-5-standard", "bass", "5-string (B E A D G)", (23, 28, 33, 38, 43)),
+        Tuning("bass-6-standard", "bass", "6-string (B E A D G C)", (23, 28, 33, 38, 43, 48)),
+    )
+}
+"""Tuning catalogue in data-model order (the backend catalogue has the same rows)."""
+
+TAB_MAX_FRET: Final = 24
+"""Highest fret counted from the nut (``fret + capo <= 24``)."""
+
+
+@dataclass(frozen=True, slots=True)
+class WrittenInstrumentInfo:
+    """One entry of the written instrument catalogue (data-model 4.2).
+
+    Attributes:
+        instrument_id: Catalogue id.
+        name: Part name.
+        key_name: Instrument key (``C``, ``Bb``, ``Eb``, ``F``).
+        interval: Sounding -> written interval in music21 notation.
+        semitones: The interval in semitones (written = sounding + semitones).
+        default_clef: Clef used for ``auto``; None = the profile's clef (``concert``).
+        low_midi: Lowest sounding MIDI pitch of the usual range; None = the profile's range.
+        high_midi: Highest sounding MIDI pitch of the usual range; None = the profile's range.
+    """
+
+    instrument_id: WrittenInstrument
+    name: str
+    key_name: str
+    interval: str
+    semitones: int
+    default_clef: WrittenClef | None
+    low_midi: int | None
+    high_midi: int | None
+
+
+WRITTEN_INSTRUMENTS: Final[Mapping[WrittenInstrument, WrittenInstrumentInfo]] = {
+    i.instrument_id: i
+    for i in (
+        WrittenInstrumentInfo("concert", "", "C", "P1", 0, None, None, None),
+        WrittenInstrumentInfo("trumpet-bb", "Trumpet in B-flat", "Bb", "M2", 2, "treble", 52, 82),
+        WrittenInstrumentInfo("clarinet-bb", "Clarinet in B-flat", "Bb", "M2", 2, "treble", 50, 91),
+        WrittenInstrumentInfo(
+            "soprano-sax-bb", "Soprano Saxophone in B-flat", "Bb", "M2", 2, "treble", 56, 87
+        ),
+        WrittenInstrumentInfo(
+            "tenor-sax-bb", "Tenor Saxophone in B-flat", "Bb", "M9", 14, "treble", 44, 75
+        ),
+        WrittenInstrumentInfo(
+            "bass-clarinet-bb", "Bass Clarinet in B-flat", "Bb", "M9", 14, "treble", 38, 77
+        ),
+        WrittenInstrumentInfo(
+            "alto-sax-eb", "Alto Saxophone in E-flat", "Eb", "M6", 9, "treble", 49, 80
+        ),
+        WrittenInstrumentInfo(
+            "baritone-sax-eb", "Baritone Saxophone in E-flat", "Eb", "M13", 21, "treble", 36, 68
+        ),
+        WrittenInstrumentInfo(
+            "clarinet-eb", "Clarinet in E-flat", "Eb", "-m3", -3, "treble", 53, 91
+        ),
+        WrittenInstrumentInfo("horn-f", "Horn in F", "F", "P5", 7, "treble", 34, 77),
+        WrittenInstrumentInfo(
+            "english-horn-f", "English Horn in F", "F", "P5", 7, "treble", 52, 81
+        ),
+        WrittenInstrumentInfo("flute", "Flute", "C", "P1", 0, "treble", 60, 96),
+        WrittenInstrumentInfo("oboe", "Oboe", "C", "P1", 0, "treble", 58, 91),
+        WrittenInstrumentInfo("violin", "Violin", "C", "P1", 0, "treble", 55, 100),
+        WrittenInstrumentInfo("viola", "Viola", "C", "P1", 0, "alto", 48, 88),
+        WrittenInstrumentInfo("cello", "Cello", "C", "P1", 0, "bass", 36, 76),
+        WrittenInstrumentInfo("double-bass", "Double Bass", "C", "P8", 12, "bass", 28, 67),
+        WrittenInstrumentInfo("trombone", "Trombone", "C", "P1", 0, "bass", 40, 72),
+        WrittenInstrumentInfo("bassoon", "Bassoon", "C", "P1", 0, "bass", 34, 75),
+        WrittenInstrumentInfo("tuba", "Tuba", "C", "P1", 0, "bass", 28, 65),
+    )
+}
+"""Written instrument catalogue in data-model order (``concert`` first)."""
+
+GM_DRUM_MAP: Final[Mapping[DrumPiece, int]] = {
+    "kick": 36,
+    "snare": 38,
+    "toms": 47,
+    "hihat": 42,
+    "cymbals": 49,
+}
+"""General MIDI percussion notes (channel 10) of the drum pieces (research R-10)."""
+
+MonoAudio = npt.NDArray[np.float32]
+"""Mono samples in -1..1 at the rate the port names."""
+
+AnalysisProgress = RenderProgress
+"""Receives 0..1 of an analysis step; may raise ``AnalysisCancelledError``."""
+
+
+class AnalysisError(WorkerError):
+    """An instrument analysis failed; the message is shown to the user."""
+
+
+class NoMelodyError(AnalysisError):
+    """The vocal stem is silent (``NO_MELODY_TEXT``)."""
+
+    def __init__(self) -> None:
+        """Use the fixed text."""
+        super().__init__(NO_MELODY_TEXT)
+
+
+class AnalysisCancelledError(AnalysisError):
+    """The job was deleted while running (raised from the progress callback)."""
+
+
+class HarmonicMixer(Protocol):
+    """Sums library stems to mono at a given rate (audio-ingest, ``analysis_inputs/mixdown.py``)."""
+
+    def mix(self, paths: Sequence[Path], sample_rate: int) -> MonoAudio:
+        """Sum 1-4 stems of possibly different lengths (longest wins), clipping-safe.
+
+        Raises:
+            InputNotFoundError: A file is missing.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ChordFrames:
+    """Frame-wise output of a chord recognizer (data-model 2.3 step 2).
+
+    Attributes:
+        posteriors: ``(frames, classes)`` class probabilities (one-hot for chroma-hmm).
+        labels: Harte label per class (``N`` included), in column order.
+        frame_seconds: Frame hop in seconds (``CHORD_HOP / CHORD_SAMPLE_RATE``).
+        chroma: ``(frames, 12)`` chroma of the mix (key estimation input).
+        engine: Engine that ran (``chroma-hmm`` after a BTC fallback).
+        device: Where BTC ran; None for the CPU-only engines.
+        fallback: True when BTC was requested but chroma-hmm ran (warning ``fallback-engine``).
+    """
+
+    posteriors: npt.NDArray[np.float32]
+    labels: tuple[str, ...]
+    frame_seconds: float
+    chroma: npt.NDArray[np.float32]
+    engine: ChordEngine
+    device: DeviceUse | None = None
+    fallback: bool = False
+
+
+class ChordRecognizer(Protocol):
+    """Mono mix -> chord frames (``harmony/btc.py``, ``harmony/chroma_hmm.py``)."""
+
+    @property
+    def engine(self) -> ChordEngine:
+        """Engine name recorded in the chart."""
+        ...
+
+    def recognize(
+        self, audio: MonoAudio, vocabulary: ChordVocabulary, progress: AnalysisProgress
+    ) -> ChordFrames:
+        """Recognise chords frame by frame (``audio`` at ``CHORD_SAMPLE_RATE``).
+
+        Raises:
+            AnalysisError: The model cannot run.
+            AnalysisCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class PostProcessOptions:
+    """What the chord post-processor needs besides the frames (data-model 2.3 steps 3-4).
+
+    Attributes:
+        grid: Reliable beat grid for snapping; None = 0.5 s minimum segments.
+        vocabulary: Requested vocabulary (``full`` adds slash bass from ``bass``).
+        bass: Mono bass stem at ``CHORD_SAMPLE_RATE``; None = no inversions.
+    """
+
+    grid: BeatGridTempo | None
+    vocabulary: ChordVocabulary
+    bass: MonoAudio | None = None
+
+
+class ChordPostProcessor(Protocol):
+    """Frames -> segments: beat snapping, merge, slash bass (``harmony/postprocess.py``)."""
+
+    def segments(self, frames: ChordFrames, options: PostProcessOptions) -> ChordChart:
+        """Build the chart without the key (``key``/``keyRegions`` empty, ``preferFlats`` false)."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class KeyEstimate:
+    """Output of the key estimator (data-model 2.8).
+
+    Attributes:
+        key: Global key; None when every segment is ``N``.
+        regions: Contiguous key regions over the non-``N`` part (at most 50).
+    """
+
+    key: AnalysisKey | None
+    regions: tuple[KeyRegion, ...] = ()
+
+
+class KeyEstimator(Protocol):
+    """Song key and key regions (beat-analysis ``harmony/key.py``, research R-13)."""
+
+    def estimate(
+        self,
+        chroma: npt.NDArray[np.float32],
+        segments: Sequence[ChordSegment],
+        grid: BeatGridTempo | None,
+    ) -> KeyEstimate:
+        """Estimate the global key and regions >= 8 bars (16 s without a grid)."""
+        ...
+
+
+class PitchAnalyzer(Protocol):
+    """Vocal stem -> reference melody (beat-analysis ``analysis/vocal_pitch.py``)."""
+
+    @property
+    def engine(self) -> PitchEngine:
+        """Engine name recorded in the result."""
+        ...
+
+    def analyze(
+        self, audio: MonoAudio, source: VocalSource, progress: AnalysisProgress
+    ) -> VocalPitch:
+        """10 ms frames in centi-semitones (``audio`` at ``PITCH_SAMPLE_RATE``).
+
+        Raises:
+            NoMelodyError: No voiced frame at all.
+            AnalysisCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class TabAssignment:
+    """String and fret of every note of a tablature (data-model 4.5).
+
+    Attributes:
+        positions: Per event, ``(string, fret)`` per kept pitch; string 1 = highest-pitched string,
+            fret 0 = the capo.
+        octave_moved: Notes moved by an octave to fit the tuning.
+        notes_dropped: Chord notes left out (more pitches than strings).
+        wide_stretches: Chords spanning more than 4 fretted frets.
+    """
+
+    positions: tuple[tuple[tuple[int, int], ...], ...]
+    octave_moved: int = 0
+    notes_dropped: int = 0
+    wide_stretches: int = 0
+
+
+class TabFingerer(Protocol):
+    """Pitches -> strings and frets (Viterbi, research R-08; ``notation/tablature.py``)."""
+
+    def assign(self, events: Sequence[Sequence[int]], tuning: Tuning, capo: int) -> TabAssignment:
+        """Assign every event (sounding MIDI pitches sounding together) to strings and frets."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class PartResult:
+    """A transposed part (data-model 4.6).
+
+    Attributes:
+        musicxml: The written part.
+        summary: ``ScoreSummary.part``.
+    """
+
+    musicxml: bytes
+    summary: PartSummary
+
+
+class PartWriter(Protocol):
+    """Concert score -> written part (music21; beat-analysis ``notation/parts.py``)."""
+
+    def write(self, musicxml: bytes, part: PartSettings, profile: ScoreProfile) -> PartResult:
+        """Transpose, respell, set part name, ``<transpose>`` and clef; MIDI is untouched."""
         ...

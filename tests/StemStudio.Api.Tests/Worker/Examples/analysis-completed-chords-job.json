@@ -1,0 +1,76 @@
+{
+  "analysisJobId": "4f1c2b3a4d5e6f708192a3b4c5d6e7f8",
+  "kind": "chords",
+  "status": "completed",
+  "stage": null,
+  "progress": 1,
+  "device": {
+    "kind": "cpu",
+    "name": null,
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "result": {
+    "kind": "chords",
+    "vocabulary": "simple",
+    "engine": "btc",
+    "key": {
+      "tonic": 0,
+      "mode": "major",
+      "confidence": 0.81,
+      "alternative": null
+    },
+    "keyRegions": [
+      {
+        "startMs": 500,
+        "endMs": 16500,
+        "tonic": 0,
+        "mode": "major",
+        "confidence": 0.84
+      },
+      {
+        "startMs": 16500,
+        "endMs": 32500,
+        "tonic": 2,
+        "mode": "major",
+        "confidence": 0.77
+      }
+    ],
+    "preferFlats": false,
+    "beatSnapped": true,
+    "noChords": false,
+    "segments": [
+      {
+        "startMs": 0,
+        "endMs": 500,
+        "label": "N",
+        "root": null,
+        "quality": null,
+        "bass": null,
+        "confidence": 0.95
+      },
+      {
+        "startMs": 500,
+        "endMs": 2500,
+        "label": "C:maj",
+        "root": 0,
+        "quality": "maj",
+        "bass": null,
+        "confidence": 0.9
+      },
+      {
+        "startMs": 2500,
+        "endMs": 4500,
+        "label": "G:maj",
+        "root": 7,
+        "quality": "maj",
+        "bass": null,
+        "confidence": 0.88
+      }
+    ],
+    "warnings": []
+  },
+  "createdAt": "2026-11-16T10:00:00Z",
+  "updatedAt": "2026-11-16T10:00:06Z"
+}

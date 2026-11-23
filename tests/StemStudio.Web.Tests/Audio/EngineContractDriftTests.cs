@@ -17,6 +17,8 @@ public sealed partial class EngineContractDriftTests
     // (OnPracticeChanged implemented); a later contract stages new names here until the frontend implements them.
     // 014 Phase 0 part 2 (engine 2.4.0): OnLoopPass, implemented by the 014 frontend lane (AudioEngineInterop.Score.cs).
     // 015 Phase 0 (T004, engine 2.5.0): the five recording callbacks, removed when the frontend implements them (T026/T027).
+    // 016 Phase 0 (T004, engine 2.6.0): the two singing callbacks, implemented by the 016 frontend lane (T105/T106,
+    // AudioEngineInterop.InstrumentViews.cs).
     private static readonly string[] PendingCallbacks = [];
 
     [Fact]
@@ -37,6 +39,14 @@ public sealed partial class EngineContractDriftTests
         var contractMethods = InterfaceMethods("AudioEngine");
 
         AudioEngineInterop.ScoreMethods.ShouldAllBe(m => contractMethods.Contains(m));
+    }
+
+    [Fact]
+    public void InstrumentViewMethods_ExistInAudioEngineInterface()
+    {
+        var contractMethods = InterfaceMethods("AudioEngine");
+
+        AudioEngineInterop.InstrumentViewMethods.ShouldAllBe(m => contractMethods.Contains(m));
     }
 
     [Fact]

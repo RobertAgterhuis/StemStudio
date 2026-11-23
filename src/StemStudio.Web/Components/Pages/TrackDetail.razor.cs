@@ -53,6 +53,7 @@ public sealed partial class TrackDetail
         {
             Track = await Api.GetTrackAsync(Id, Stopping);
             StartPolling();
+            await LoadGuitaristAsync();
         }
         catch (ApiException ex)
         {

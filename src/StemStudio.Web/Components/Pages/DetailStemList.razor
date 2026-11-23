@@ -10,6 +10,13 @@
         }
     </ul>
     <ChannelButtons Action="ChannelAction.Export" Channels="ChannelIds" OnSelect="OnExport" />
+    <div class="ss-export-row" data-help-id="midi-download">
+        <span class="ss-small ss-muted">MIDI:</span>
+        @foreach (var channel in ChannelIds)
+        {
+            <StemStudio.Web.Components.InstrumentViews.MidiAction Track="Track" Channel="@channel" />
+        }
+    </div>
     <LevelGate Feature="score.detail-stems">
         <ChannelButtons Action="ChannelAction.Score" Channels="PitchedIds" OnSelect="OnScore" />
     </LevelGate>
@@ -19,6 +26,10 @@
     /// <summary>The parent outcome whose stems are listed.</summary>
     [Parameter, EditorRequired]
     public ParentOutcomeDto Outcome { get; set; } = default!;
+
+    /// <summary>The completed track (its id and beat grid feed the MIDI action).</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
 
     /// <summary>Raised with a detail channel id (<c>drums.snare</c>) to save it raw to the library (feature 007).</summary>
     [Parameter]

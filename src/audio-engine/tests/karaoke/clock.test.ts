@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { KaraokeClock, MAX_OFFSET_MS, audioNow, outputLatency, validateOffset } from '../../src/karaoke/clock';
-import { MockAudioContext } from '../mocks/audio-context';
+import { KaraokeClock, MAX_OFFSET_MS, validateOffset } from '../../src/karaoke/clock';
 import { makeTransport, type TransportRig } from '../mocks/transport-rig';
 
 interface ClockRig extends TransportRig {
@@ -21,42 +20,6 @@ async function playing(): Promise<ClockRig> {
   await rig.transport.play();
   return rig;
 }
-
-describe('audioNow', () => {
-  it('extrapolates getOutputTimestamp with performance.now()', () => {
-    const ctx = new MockAudioContext();
-    ctx.currentTime = 2.2;
-    ctx.outputTimestamp = { contextTime: 2.09, performanceTime: 1000 };
-    expect(audioNow(ctx.asAudioContext(), 1005)).toBeCloseTo(2.095, 9);
-  });
-
-  it('falls back to currentTime when getOutputTimestamp returns zeros or is missing', () => {
-    const ctx = new MockAudioContext();
-    ctx.currentTime = 3;
-    expect(audioNow(ctx.asAudioContext(), 1234)).toBe(3);
-    Object.defineProperty(ctx, 'getOutputTimestamp', { value: undefined });
-    ctx.outputTimestamp = { contextTime: 1, performanceTime: 1 };
-    expect(audioNow(ctx.asAudioContext(), 1234)).toBe(3);
-  });
-
-  it('falls back to currentTime when the timestamp has undefined members', () => {
-    const ctx = new MockAudioContext();
-    ctx.currentTime = 4;
-    Object.defineProperty(ctx, 'getOutputTimestamp', { value: () => ({}) });
-    expect(audioNow(ctx.asAudioContext(), 99)).toBe(4);
-  });
-});
-
-describe('outputLatency', () => {
-  it('uses outputLatency, else baseLatency, else 0', () => {
-    const ctx = new MockAudioContext();
-    expect(outputLatency(ctx.asAudioContext())).toBe(0);
-    ctx.baseLatency = 0.005;
-    expect(outputLatency(ctx.asAudioContext())).toBe(0.005);
-    ctx.outputLatency = 0.03;
-    expect(outputLatency(ctx.asAudioContext())).toBe(0.03);
-  });
-});
 
 describe('validateOffset', () => {
   it('accepts -5000..5000 ms and rejects everything else', () => {

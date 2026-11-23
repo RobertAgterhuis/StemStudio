@@ -4,6 +4,7 @@
     <h2 id="summary-heading" class="ss-heading">Stems</h2>
     <dl class="ss-facts ss-facts-row" data-help-id="track-facts">
         <div><dt>Tempo</dt><dd data-testid="track-bpm" data-help-id="track-bpm">@TrackFacts.Bpm(Track)</dd></div>
+        <div><dt>Key</dt><StemStudio.Web.Components.InstrumentViews.TrackKey Track="Track" /></div>
         <div><dt>Duration</dt><dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd></div>
         <div><dt>Model</dt><dd data-testid="track-model">@TrackFacts.Model(Track)</dd></div>
     </dl>
@@ -24,6 +25,13 @@
     </ul>
     <ChannelButtons Action="ChannelAction.Export" Channels="StemIds" OnSelect="OnExport" />
     <ChannelButtons Action="ChannelAction.Score" Channels="StemIds" OnSelect="OnScore" />
+    <div class="ss-export-row" data-help-id="midi-download">
+        <span class="ss-small ss-muted">MIDI:</span>
+        @foreach (var stem in StemIds)
+        {
+            <StemStudio.Web.Components.InstrumentViews.MidiAction Track="Track" Channel="@stem" />
+        }
+    </div>
     <LevelGate Feature="export.stem-pack">
         <RadzenButton Text="Save all stems" Icon="library_add" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnExportAll"
                       data-testid="export-all-stems" data-help-id="export-actions" />

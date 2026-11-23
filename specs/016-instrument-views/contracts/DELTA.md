@@ -5,6 +5,54 @@ shared test-vector file. Every change is **additive** -> next **minor** of each 
 existing operation, schema value, id or engine call changes meaning, with one documented
 behaviour fix (the 004 `play-along-<stem>` presets now mute whole families, section 6).
 
+## Phase 0 outcome (architect, 2026-11-18, branch `016-round` on 014+015)
+
+| Contract | Label | File | Built by / checked by |
+|---|---|---|---|
+| Worker API | **1.9.0** | `worker-api.openapi.yaml` (= 014's 1.8.0 + `worker-api.delta.openapi.yaml` 1.9.0-delta.2) | `merge_full.py` (`--check`: freshness + superset of 1.8.0); `worker/tests/contract/test_instrument_views_contract.py` |
+| Backend API | **1.15.0** | `backend-api.openapi.yaml` (= 015's 1.14.0 + `backend-api.delta.openapi.yaml` 1.15.0-delta.2), `x-stemstudio-contains` ends `1.13.0, 1.14.0, 1.15.0` | `merge_full.py`; `InstrumentViewsContractTests` |
+| Audio engine | **2.6.0** | `audio-engine.md` (= 015's 2.5.0 + the delta, reconciliation table there), `src/audio-engine/src/types.ts` | `tests/views/instrument-views-contract.test.ts`; Web `EngineContractDriftTests` |
+| UI test ids | **1.15.0** | `ui-test-ids.md` (= 015's 1.14.0 + the delta table) | `InstrumentViewsUiTestIdsTests` |
+| Help content | **1.1.0** | `help-content.delta.md`, `help-topic.schema.json` (area `instruments`) | Web help tests (schema link switched) |
+| Chord spelling vectors | **1.0.0** | `chord-spelling-vectors.json` | `generate_chord_spelling_vectors.py --check`, `test_generate_chord_spelling_vectors.py` |
+
+Lint: Redocly 2.78.0 on the four documents: valid, 38 warnings (backend 1.15.0: the 16 known 1.14.0 ones
++ `getInstrumentCatalogue` without 4XX; worker 1.9.0: the 4 known + the idempotent DELETE; deltas: 15 merge
+fragments/known). Labels confirmed free in `docs/ROADMAP.md` (016 row) and against every `specs/*/contracts`.
+
+T001 reconciliation (placeholder -> real, 012/014/015 as merged):
+
+| Placeholder | Real name | Where |
+|---|---|---|
+| score view of a score item | `Components/Practice/ScorePanel.razor` + engine `attachScoreFollower` (014, 2.4.0) | drum score, tab and part items |
+| sections `{startMs, endMs, label}` | `GET /api/tracks/{id}/sections` -> `SectionSetDto.sections[]` with `startSeconds`/`endSeconds` (seconds; Blazor converts to ms for `SingingUnit`) | singing units (data-model 3.4) |
+| count-in on/off and bars | `PracticeSettings.countIn {bars, everyPass}` (engine `setPractice`, backend practice settings 1.11.0) | "Drumless" stores and restores it |
+| transpose state | `PracticeSettings.transposeSemitones` (engine-internal after `setPractice`) | chord spelling, scorer, `?transpose=` of the API |
+| 015 input node | the input opened by `openInput` (`InputInfo`) | `startSingingFeedback` |
+| round-trip latency, `calibrated` | 015 `LatencyMethod` (`loopback`, `manual`, `estimated`); the stored calibration (`/api/recording/calibrations`) is passed by Blazor as `roundTripMs` + `latencyMethod` | `RoundTripLatency`, `SingingSummary.latencySource`, ui id `singing-latency` |
+| take URL | `GET /api/takes/{takeId}/audio` + `startSample` of the take (`TakeScoreRequest`) | `scoreTake` (one request object: SIG <= 4 parameters) |
+| `audio-engine-pitch.worklet.js`, `vite.config.ts` second entry | `audio-engine-pitch-worklet.js` built by `vite.pitch.config.ts` (015's capture-worklet pattern), `EngineOptions.pitchWorkletUrl` | devops T011/T012 serve it next to the capture worklet |
+| mixer layout | the karaoke banner sits in the fixed `.ss-mixer-dock` (014 integration fix, `--ss-dock-inset`); banner chords make the dock taller, `dock-inset.js` re-measures; every other view renders in the scrolling content | frontend T070/T090/T105 |
+
+No id, route, operation id, tag or schema collides with 014 (1.13.0/1.8.0), 015 (1.14.0) or 022/023 (checked by
+`merge_full.py` and the skeleton tests); the only shared name is the help anchor `song-key` (a `data-help-id`;
+the 010 `data-testid` `song-key` on the song page is another attribute).
+
+Phase 0 decisions (rows for the CTO decision log in `docs/handoffs/architect-016-design.md`):
+
+1. Every 016 addition to an existing backend schema is **optional** on the wire (absent = null / false / all
+   `none`); C# uses `JsonIgnore(WhenWritingNull/WhenWritingDefault)`, so 1.14.0 producers and documents stay
+   valid. The worker's `ScoreSummary` and `Health` additions stay required (the worker always sends them).
+2. Worker request extensions are excluded from the dump when unset (pydantic `exclude_if`), so 008 requests
+   and their files stay byte-identical.
+3. The 422 combination rules of DELTA 1 live in `schemas.py` (`TranscriptionJobRequest._check_extensions`),
+   because the contract module is frozen in the wave.
+4. Key display spells with the chord rule ("Eb major", not "E-flat major"); the catalogue's `concert` row has
+   `defaultClef` `auto` and range 0..127 (= the profile's).
+5. Spelling rule kept as written: a sharps key spells chromatic chords with sharps (C major: `A#`); flagged
+   for the owner (open question 2 in the hand-off).
+6. ADR-033 D6: native Verovio TAB, "Capo n" as a direction text.
+
 ## Status (planning, 2026-11-16)
 
 | Contract | Base (assumed merged before 016 Phase 0) | 016 document now | Phase 0 result |

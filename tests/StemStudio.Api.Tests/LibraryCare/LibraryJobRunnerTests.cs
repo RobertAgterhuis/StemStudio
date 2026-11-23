@@ -42,6 +42,39 @@ public sealed class LibraryJobRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task Hooks_BeginBeforeTheJobIsVisible_EndAfterTheFinishedJobIsStored()
+    {
+        // 013 write gate (E2E library-care-backup:159): the gate must be closed whenever the backup job reads as active.
+        var release = new TaskCompletionSource();
+        var events = new List<string>();
+        Guid? id = null;
+        var hooks = new LibraryJobHooks(
+            () => events.Add("begin"),
+            () => events.Add($"end:{_store.FindAsync(id!.Value, CancellationToken.None).GetAwaiter().GetResult()?.Status}"));
+
+        _runner.TryStart(new LibraryJobStart(LibraryJobKindDto.Backup, "a.zip", async (_, ct) => { await release.Task.WaitAsync(ct); return Report; }, hooks), out var queued).ShouldBeTrue();
+        id = queued.JobId;
+
+        events.ShouldBe(["begin"]);
+        release.SetResult();
+        await _runner.WhenIdleAsync();
+        events.ShouldBe(["begin", $"end:{LibraryJobStatusDto.Completed}"]);
+    }
+
+    [Fact]
+    public void Hooks_ARefusedStart_RunsNeither()
+    {
+        var release = new TaskCompletionSource();
+        var events = new List<string>();
+        _runner.TryStart(LibraryJobKindDto.Verify, "a.zip", async (_, ct) => { await release.Task.WaitAsync(ct); return Report; }, out _).ShouldBeTrue();
+
+        _runner.TryStart(new LibraryJobStart(LibraryJobKindDto.Backup, "b.zip", (_, _) => Task.FromResult<LibraryJobReportDto>(Report), new LibraryJobHooks(() => events.Add("begin"), () => events.Add("end"))), out _).ShouldBeFalse();
+
+        events.ShouldBeEmpty();
+        release.SetResult();
+    }
+
+    [Fact]
     public async Task Start_OnlyOneJobAtATime()
     {
         var release = new TaskCompletionSource();

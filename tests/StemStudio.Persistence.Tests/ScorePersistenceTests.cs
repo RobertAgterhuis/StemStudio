@@ -115,6 +115,29 @@ public sealed class ScorePersistenceTests
         return asset;
     }
 
+    [Fact]
+    public async Task TheChannelFilter_MatchesTheRecipeSourceNewestFirstAndEscapesQuotes()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var (bass1, kick, bass2) = (ScoreOf("bass", 0), ScoreOf("drums.kick", 1), ScoreOf("bass", 2));
+        await AddAsync(db, bass1, kick, bass2, Asset.Create(Guid.NewGuid(), "Song - drums", AudioProvenance(), T0));
+
+        await using var read = db.NewContext();
+        var assets = new AssetRepository(read);
+        (await assets.ListAsync(new AssetQuery { TrackId = TrackId, Channel = "bass" }, Ct)).Items.Select(item => item.Id).ShouldBe([bass2.Id, bass1.Id]);
+        (await assets.ListAsync(new AssetQuery { TrackId = TrackId, Channel = "drums.kick" }, Ct)).Items.Select(item => item.Id).ShouldBe([kick.Id]);
+        (await assets.ListAsync(new AssetQuery { TrackId = TrackId, Channel = "vocals" }, Ct)).Total.ShouldBe(0);
+        (await assets.ListAsync(new AssetQuery { TrackId = TrackId, Channel = "x' OR '1'='1" }, Ct)).Total.ShouldBe(0);
+        (await assets.ListAsync(new AssetQuery { TrackId = TrackId }, Ct)).Total.ShouldBe(4);
+    }
+
+    private static Asset ScoreOf(string channel, int minutes)
+    {
+        var provenance = ScoreProvenance();
+        var recipe = provenance.ScoreRecipe! with { Source = ScoreSource.FromChannel(TrackId, channel) };
+        return Asset.CreateScore(Guid.NewGuid(), $"Song - {channel}", provenance with { ScoreRecipe = recipe }, T0.AddMinutes(minutes));
+    }
+
     private static Provenance ScoreProvenance() => new()
     {
         Origin = AssetOrigin.Transcription,

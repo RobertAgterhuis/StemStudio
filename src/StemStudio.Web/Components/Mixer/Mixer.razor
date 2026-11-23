@@ -2,6 +2,8 @@
 @using StemStudio.Web.Components.Recording
 @using StemStudio.Web.Components.Practice
 @using StemStudio.Contracts.Sections
+@using StemStudio.Contracts.InstrumentViews
+@using StemStudio.Contracts.Scores
 
 <PageTitle>Mixer - StemStudio</PageTitle>
 
@@ -27,6 +29,8 @@ else
                 {
                     <span class="ss-muted" data-testid="mixer-album">@album</span>
                 }
+                <MixerKey TrackId="Id" TransposeSemitones="State.Practice.TransposeSemitones" Position="Position" Instrument="PartInstrument"
+                          ChordStatus="@(ChordAnalysis?.Status ?? AnalysisStatusDto.None)" />
                 @if (State.MixName is not null)
                 {
                     <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>
@@ -104,18 +108,62 @@ else
                 </LevelGate>
             </ItemExtra>
         </SectionLane>
+        @{
+            RenderFragment<ScoreProfileDto> familyScore = profile => @<ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position"
+                TransposeSemitones="State.Practice.TransposeSemitones" Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion"
+                OnSeek="SeekAsync" OnLoop="LoopBarsAsync" Profile="profile" />;
+        }
         <div class="ss-section-nav">
-            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(ShowScore ? ButtonStyle.Primary : ButtonStyle.Light)"
-                          aria-expanded="@(ShowScore ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
+            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(MixerScoreShown ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(MixerScoreShown ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
             <RadzenButton Text="Practice log" Icon="timer" Size="ButtonSize.Small" ButtonStyle="@(ShowPracticeLog ? ButtonStyle.Primary : ButtonStyle.Light)"
                           aria-expanded="@(ShowPracticeLog ? "true" : "false")" Click="TogglePracticeLog" data-testid="practice-log-panel-toggle"
                           data-help-id="practice-log-panel" />
+            <RadzenButton Text="Drumless" Icon="volume_off" Size="ButtonSize.Small" ButtonStyle="@(DrumlessOn ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-pressed="@(DrumlessOn ? "true" : "false")" Click="ToggleDrumlessAsync" data-testid="drumless" data-help-id="drumless" />
+            <PractiseAsMenu Family="Family" OnChoose="PractiseAsAsync" />
+            @if (OfferedFamily is { } offered)
+            {
+                <span class="ss-chip ss-practise-offer" data-testid="practise-as-offer">
+                    <span>@($"Practise as {InstrumentFamilies.Label(offered)} again?")</span>
+                    <button type="button" class="ss-text-button" @onclick="AcceptOfferAsync">@($"Practise as {InstrumentFamilies.Label(offered)}")</button>
+                </span>
+            }
         </div>
+        <ChordPanel TrackId="Id" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" OnLoaded="OnChordsLoaded" />
+        @if (Family == InstrumentFamilyDto.Guitar)
+        {
+            <CapoMode TrackId="Id" TransposeSemitones="State.Practice.TransposeSemitones" OnChanged="SetCapoAsync" />
+        }
+        @if (OpenedView is { } openView && _track is not null)
+        {
+            <section class="ss-instrument-view" aria-label="@ViewLabel" data-testid="instrument-view" data-view="@WireName.Of(openView)" data-help-id="practise-as">
+                @switch (openView)
+                {
+                    case InstrumentViewDto.DrumTrainer:
+                        <DrumTrainer Track="_track" EngineReady="EngineReady" ReducedMotion="@(ReducedMotion == true)" Position="Position" GuidePiece="GuidePiece"
+                                     GuidePieces="DrumGuidePieces" OnGuide="SetGuideAsync" ScoreView="familyScore(ScoreProfileDto.Drums)" />
+                        break;
+                    case InstrumentViewDto.Singing:
+                        <SingingPanel Track="_track" Duration="State.Duration" Sections="State.SectionSet?.Sections" EngineReady="EngineReady"
+                                      ReducedMotion="@(ReducedMotion == true)" Latency="Recording?.LatencyInUse" OnRunningChanged="OnSingingRunningAsync"
+                                      OnUnitScored="OnUnitScored" OnOpenInputSettings="OpenInputSettingsAsync" Playback="Playback" />
+                        break;
+                    case InstrumentViewDto.Chords:
+                        <ChordSheet TrackId="Id" />
+                        break;
+                    default:
+                        <FamilyView Family="@(Family ?? InstrumentFamilyDto.Guitar)" Track="_track" Channel="@FamilyChannel" ScoreView="familyScore(FamilyProfile)"
+                                    OnInstrument="OnWrittenInstrument" />
+                        break;
+                }
+            </section>
+        }
         @if (ShowPracticeLog)
         {
             <PracticeLogPanel TrackId="Id" OnSettingsChanged="OnLogSettingsChanged" />
         }
-        @if (ShowScore)
+        @if (MixerScoreShown)
         {
             <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
                         Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync" />
@@ -145,7 +193,9 @@ else
             </PracticePanel>
         </div>
 
-        <RecordingArea Mixer="this" />
+        <CascadingValue Value="SingingSource">
+            <RecordingArea Mixer="this" />
+        </CascadingValue>
 
         @if (State.KeepsRemovedDetailSettings)
         {
@@ -163,6 +213,10 @@ else
                     <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded" Selected="channel.Stem == SelectedStem"
                                   OnVolume="v => SetVolumeAsync(channel.Stem, v)" OnPan="p => SetPanAsync(channel.Stem, p)"
                                   OnMute="() => ToggleMuteAsync(channel.Stem)" OnSolo="() => ToggleSoloAsync(channel.Stem)">
+                        @if (_track is not null)
+                        {
+                            <StemStudio.Web.Components.InstrumentViews.MidiAction Track="_track" Channel="@channel.Stem" />
+                        }
                         @if (group is not null)
                         {
                             <ExpandToggle Parent="@group.Parent" Expanded="group.Expanded" Busy="IsExpanding(group.Parent)"
@@ -172,7 +226,7 @@ else
                     @if (group is { Expanded: true })
                     {
                         <StemGroup Group="group" IsAudible="State.IsAudible" OnVolume="c => SetVolumeAsync(c.Id, c.Value)"
-                                   OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
+                                   OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" Track="_track" />
                     }
                 }
                 <TakeStripSlot Mixer="this" />
@@ -183,7 +237,11 @@ else
         </div>
 
         <div class="ss-mixer-dock">
-            <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" />
+            <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" Chords="BannerChords" />
+            @if (OpenedView == InstrumentViewDto.Singing && LastScore is { } scored)
+            {
+                <span class="ss-karaoke-score" data-testid="karaoke-score" data-unit-index="@scored.Score.Index" data-score="@(scored.Score.Score?.ToString() ?? string.Empty)">@scored.Text</span>
+            }
             <div class="ss-countin-slot"><CountInIndicator Status="PracticeLive.CountIn" /></div>
             <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
                           OnStop="StopAsync" OnSeek="SeekAsync" />

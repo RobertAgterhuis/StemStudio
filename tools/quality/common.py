@@ -71,6 +71,7 @@ EXCLUDED_PATHS = (
     "tools/quality/tests/samples/",
     "worker/src/stemstudio_worker/detail/vendor/",
     "worker/src/stemstudio_worker/transcription/vendor/",
+    "worker/src/stemstudio_worker/harmony/vendor/",
     "third_party/soundtouch/upstream/",
     "third_party/soundtouch/build/",
     "src/StemStudio.Web/wwwroot/js/time-stretch-processor.js",
@@ -86,7 +87,8 @@ Feature 023: ``Api/LyricAssist/Dictionaries/`` holds the vendored Hunspell dicti
 ``detail/vendor/`` holds vendored third-party MIT inference code (MSST), excluded from SIG like
 ``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO);
 ``transcription/vendor/`` holds the vendored basic-pitch and piano-transcription post-processing
-(feature 008 plan.md, same rule). ``vendor_check.py`` keeps their LICENSE/NOTICE records.
+(feature 008 plan.md, same rule); ``harmony/vendor/`` the vendored BTC model subset (feature
+016, MIT, commit 2682317b). ``vendor_check.py`` keeps their LICENSE/NOTICE records.
 
 Feature 012: ``third_party/soundtouch/upstream/`` is the downloaded, unmodified SoundTouch 2.4.1
 source (LGPL-2.1, third-party code) and ``third_party/soundtouch/build/`` the local em++ output;

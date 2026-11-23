@@ -42,6 +42,8 @@ REDOCLY=@redocly/cli@2.78.0
 # Round 014+015: the newest full backend document is 015's 1.14.0 (= 014's 1.13.0 + the recording
 # delta); the worker document is 014's 1.8.0. Render vectors 1.1.0 (007's + the take cases) are 015's.
 CONTRACTS=specs/015-play-along-recording/contracts
+# Feature 016: backend 1.15.0, worker 1.9.0, both deltas, merge_full.py and the chord spelling vectors 1.0.0.
+INSTRUMENT_CONTRACTS=specs/016-instrument-views/contracts
 RENDER_VECTORS=specs/015-play-along-recording/contracts/generate_render_vectors.py
 PRACTICE_FLOW_CONTRACTS=specs/014-practice-flow/contracts  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
@@ -163,6 +165,11 @@ step "contracts superset (015 contains its delta)" . uv run --no-project --with 
 step "contracts merge check (015 full 1.14.0)" . uv run --no-project --with "$PYYAML" python -I "$CONTRACTS/merge_recording_delta.py" --check
 step "contracts output schema (023 check_output_schema.py)" . uv run --no-project --with "$JSONSCHEMA" python -I "$LYRIC_ASSIST_CONTRACTS/check_output_schema.py"
 step "contracts merge tests (023 test_merge_full.py)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest "$LYRIC_ASSIST_CONTRACTS"
+step "contracts lint (016-instrument-views)" . npx --yes "$REDOCLY" lint --config "$INSTRUMENT_CONTRACTS/redocly.yaml" "$INSTRUMENT_CONTRACTS/backend-api.openapi.yaml" "$INSTRUMENT_CONTRACTS/worker-api.openapi.yaml" "$INSTRUMENT_CONTRACTS/backend-api.delta.openapi.yaml" "$INSTRUMENT_CONTRACTS/worker-api.delta.openapi.yaml"
+step "contracts merge check (016 full 1.15.0 / 1.9.0)" . uv run --no-project --with "$PYYAML" python -I "$INSTRUMENT_CONTRACTS/merge_full.py" --check
+step "chord spelling vectors check (016)" . uv run --no-project python -I "$INSTRUMENT_CONTRACTS/generate_chord_spelling_vectors.py" --check
+step "chord spelling vector tests (016)" . uv run --no-project --with "$PYTEST" python -m pytest "$INSTRUMENT_CONTRACTS"
+step "split E2E jobs check (016 T144)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest -c scripts/pyproject.toml -q scripts/tests/test_ci_e2e_split.py
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check

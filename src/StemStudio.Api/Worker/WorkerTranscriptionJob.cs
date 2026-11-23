@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using StemStudio.Domain.Scores;
 
 namespace StemStudio.Api.Worker;
@@ -31,6 +32,91 @@ public sealed record WorkerTranscriptionJobRequest
 
     /// <summary>Titles printed on the score.</summary>
     public required WorkerScoreTitles Titles { get; init; }
+
+    /// <summary>Tablature (worker 1.9.0, feature 016); absent = 008 behaviour.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkerTablatureSettings? Tablature { get; init; }
+
+    /// <summary>Transposed part (worker 1.9.0); absent = concert pitch.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WorkerPartSettings? Part { get; init; }
+
+    /// <summary>Chord symbols above the top staff (worker 1.9.0); absent = none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<WorkerScoreChord>? Chords { get; init; }
+
+    /// <summary>Spelling hint of the chord symbols (worker 1.9.0).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PreferFlats { get; init; }
+
+    /// <summary>The one drum piece of a <c>drums.&lt;piece&gt;</c> source (worker 1.9.0).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SinglePiece { get; init; }
+}
+
+/// <summary>Tablature settings on the wire (worker 1.9.0 <c>TablatureSettings</c>).</summary>
+/// <param name="Tuning">Tuning id (<c>guitar-standard</c>, ...).</param>
+/// <param name="Capo">Capo 0..12.</param>
+/// <param name="Layout"><c>notation-and-tab</c> or <c>tab-only</c>.</param>
+public sealed record WorkerTablatureSettings(string Tuning, int Capo, string Layout);
+
+/// <summary>Part settings on the wire (worker 1.9.0 <c>PartSettings</c>).</summary>
+/// <param name="Instrument">Written instrument id.</param>
+/// <param name="Clef">Clef choice.</param>
+public sealed record WorkerPartSettings(string Instrument, string Clef);
+
+/// <summary>A chord symbol on the wire (worker 1.9.0 <c>ScoreChordSymbol</c>).</summary>
+/// <param name="StartMs">Start relative to the input.</param>
+/// <param name="Root">Root 0..11.</param>
+/// <param name="Quality">Harte quality.</param>
+/// <param name="Bass">Bass pitch class or null.</param>
+public sealed record WorkerScoreChord(int StartMs, int Root, string Quality, int? Bass);
+
+/// <summary>Tablature facts on the wire (worker 1.9.0 <c>TablatureSummary</c>).</summary>
+public sealed record WorkerTablatureSummary
+{
+    /// <summary>Tuning id.</summary>
+    public required string Tuning { get; init; }
+
+    /// <summary>String count.</summary>
+    public required int Strings { get; init; }
+
+    /// <summary>Capo.</summary>
+    public int Capo { get; init; }
+
+    /// <summary>Layout.</summary>
+    public required string Layout { get; init; }
+
+    /// <summary>Notes moved by an octave.</summary>
+    public int OctaveMoved { get; init; }
+
+    /// <summary>Chord notes dropped.</summary>
+    public int NotesDropped { get; init; }
+
+    /// <summary>Wide stretches.</summary>
+    public int WideStretches { get; init; }
+}
+
+/// <summary>Part facts on the wire (worker 1.9.0 <c>PartSummary</c>).</summary>
+public sealed record WorkerPartSummary
+{
+    /// <summary>Written instrument id.</summary>
+    public required string Instrument { get; init; }
+
+    /// <summary>Part name.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>Interval.</summary>
+    public required string Interval { get; init; }
+
+    /// <summary>Written key name, or null.</summary>
+    public string? WrittenKey { get; init; }
+
+    /// <summary>Clef used.</summary>
+    public required string Clef { get; init; }
+
+    /// <summary>Notes outside the range.</summary>
+    public int OutOfRange { get; init; }
 }
 
 /// <summary>An input file relative to the library mount.</summary>
@@ -148,4 +234,13 @@ public sealed record WorkerScoreSummary
 
     /// <summary>Model credit, or null.</summary>
     public string? Attribution { get; init; }
+
+    /// <summary>Tablature facts (worker 1.9.0), or null.</summary>
+    public WorkerTablatureSummary? Tablature { get; init; }
+
+    /// <summary>Part facts (worker 1.9.0), or null.</summary>
+    public WorkerPartSummary? Part { get; init; }
+
+    /// <summary>Chord symbols were placed (worker 1.9.0).</summary>
+    public bool ChordsIncluded { get; init; }
 }

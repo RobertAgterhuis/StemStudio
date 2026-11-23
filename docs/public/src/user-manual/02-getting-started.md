@@ -66,7 +66,7 @@ StemStudio checks the GPU when it starts. If anything is wrong (no GPU, old driv
 card is busy with a game or another AI program), it simply uses the CPU and tells you why
 on the import screen under **Processing device**. You never lose a job because of the GPU.
 
-The generative features (style transfer and songs from your own lyrics, chapters 17 and 18)
+The generative features (style transfer and songs from your own lyrics, chapters 18 and 19)
 need an NVIDIA GPU with enough free memory and are started with an extra compose option
 (see the technical manual, "Generative services").
 

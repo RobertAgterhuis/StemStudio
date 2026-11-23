@@ -1,6 +1,6 @@
 """Pydantic v2 models of the worker HTTP contract.
 
-These models mirror ``specs/014-practice-flow/contracts/worker-api.openapi.yaml`` (1.8.0) and
+These models mirror ``specs/016-instrument-views/contracts/worker-api.openapi.yaml`` (1.9.0) and
 are the single source of truth for JSON on the wire (camelCase aliases) and for ``result.json``
 on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive new states.
 1.3.0 (feature 005, ``specs/005-artwork-band-info/contracts``) added artwork and metadata jobs;
@@ -10,7 +10,9 @@ on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive 
 1.7.0 (feature 013, ``specs/013-library-care/contracts``) the storage report, the storage clean-up
 and the rehydration of a completed standard job from library stems; 1.8.0 (feature 014,
 ``specs/014-practice-flow/contracts``) section, score-view and setlist document jobs on the
-``practice`` lane, ``Health.lanes.practice`` and ``Health.structure``.
+``practice`` lane, ``Health.lanes.practice`` and ``Health.structure``; 1.9.0 (feature 016,
+``specs/016-instrument-views/contracts``) instrument analysis jobs (chords with the key, drum hits,
+reference melody) on the ``instrument-analysis`` lane, tablature, parts and chord symbols in scores.
 """
 
 import itertools
@@ -32,7 +34,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.8.0"
+CONTRACT_VERSION = "1.9.0"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -970,8 +972,10 @@ BASIC_PITCH_MODEL_ID: Final = "basic-pitch-icassp2022"
 PIANO_MODEL_ID: Final = "piano-crnn-note-pedal"
 """Model id of the piano CRNN weights (``Health.transcription.models`` key)."""
 
-ScoreProfile = Literal["vocals", "bass", "guitar", "keys", "piano", "drums"]
-"""Instrument profile (data-model.md 2.1)."""
+ScoreProfile = Literal[
+    "vocals", "bass", "guitar", "keys", "piano", "drums", "strings", "brass", "woodwinds",
+]  # fmt: skip
+"""Instrument profile (008 data-model 2.1; ``strings``, ``brass``, ``woodwinds``: 1.9.0)."""
 
 ScoreQuality = Literal["accurate", "fast"]
 """Piano only: ``accurate`` = piano CRNN, ``fast`` = basic-pitch."""
@@ -1013,9 +1017,10 @@ SCORE_FILES: Final[dict[ScoreFileRole, tuple[ScoreFileName, ScoreContentType]]] 
 
 ScoreWarningCode = Literal[
     "manual-tempo", "low-key-confidence", "notes-cleaned", "dense-capped", "detail-bleed",
-    "cpu-piano", "few-notes", "missing-drum-piece",
+    "cpu-piano", "few-notes", "missing-drum-piece", "tab-octave-moved", "tab-notes-dropped",
+    "tab-wide-stretch", "part-out-of-range", "section-reduced",
 ]  # fmt: skip
-"""Warning codes of a score (data-model.md 2.7)."""
+"""Warning codes of a score (008 data-model.md 2.7; the last five 1.9.0, 016 data-model 4.2-4.5)."""
 
 SCORE_WARNING_TEXTS: Final[dict[ScoreWarningCode, str]] = {
     "manual-tempo": "Tempo and bars come from the values you entered.",
@@ -1026,6 +1031,11 @@ SCORE_WARNING_TEXTS: Final[dict[ScoreWarningCode, str]] = {
     "cpu-piano": "The piano model ran on the CPU.",
     "few-notes": "Very few notes were detected.",
     "missing-drum-piece": "No {piece} stem was available; that part is empty.",
+    "tab-octave-moved": "{n} notes were moved by an octave to fit the tuning.",
+    "tab-notes-dropped": "{n} chord notes were left out because there are not enough strings.",
+    "tab-wide-stretch": "{n} chords need a wide stretch.",
+    "part-out-of-range": "{n} notes are outside the usual range of the instrument.",
+    "section-reduced": "This stem may hold a whole section; the part shows its loudest line.",
 }
 """English warning texts; ``{n}`` and ``{piece}`` are filled with ``str.format``."""
 
@@ -1136,6 +1146,128 @@ class ScoreTitles(ContractModel):
     instrument_name: Annotated[str | None, Field(max_length=200)] = None
 
 
+# ---------------------------------------------------- score pipeline additions (1.9.0, feature 016)
+
+TuningId = Literal[
+    "guitar-standard", "guitar-drop-d", "guitar-half-step-down", "guitar-full-step-down",
+    "guitar-dadgad", "guitar-open-g", "guitar-open-d", "bass-4-standard", "bass-4-drop-d",
+    "bass-4-half-step-down", "bass-5-standard", "bass-6-standard",
+]  # fmt: skip
+"""Tuning catalogue ids (data-model 4.1; pitches in ``ports.TUNINGS``)."""
+
+TabLayout = Literal["notation-and-tab", "tab-only"]
+"""Tablature layout: a notation staff plus a TAB staff, or the TAB staff only."""
+
+WrittenInstrument = Literal[
+    "concert", "trumpet-bb", "clarinet-bb", "soprano-sax-bb", "tenor-sax-bb", "bass-clarinet-bb",
+    "alto-sax-eb", "baritone-sax-eb", "clarinet-eb", "horn-f", "english-horn-f", "flute", "oboe",
+    "violin", "viola", "cello", "double-bass", "trombone", "bassoon", "tuba",
+]  # fmt: skip
+"""Written instrument catalogue ids (data-model 4.2; facts in ``ports.WRITTEN_INSTRUMENTS``)."""
+
+ClefChoice = Literal["auto", "treble", "bass", "alto", "tenor", "treble-8vb", "bass-8vb"]
+"""Clef of a part (data-model 4.3); ``auto`` = the instrument's default clef."""
+
+WrittenClef = Literal["treble", "bass", "alto", "tenor", "treble-8vb", "bass-8vb"]
+"""The clef a part was written with (``PartSummary.clef``)."""
+
+PitchClass = Annotated[int, Field(ge=0, le=11)]
+"""Pitch class, C = 0 ... B = 11."""
+
+ChordQuality = Literal[
+    "maj", "min", "dim", "aug", "min6", "maj6", "min7", "minmaj7", "maj7", "7", "dim7", "hdim7",
+    "sus2", "sus4",
+]  # fmt: skip
+"""Chord qualities of the ``full`` vocabulary (data-model 2.1); ``simple`` uses ``maj``/``min``."""
+
+TAB_PROFILES: Final[frozenset[str]] = frozenset({"guitar", "bass"})
+"""Profiles that accept ``tablature``."""
+
+CHORD_SYMBOL_PROFILES: Final[frozenset[str]] = frozenset(
+    {"vocals", "guitar", "keys", "piano", "strings", "brass", "woodwinds"}
+)
+"""Profiles that accept ``chords`` (data-model 4.7)."""
+
+GRAND_STAFF_PROFILES: Final[frozenset[str]] = frozenset({"keys", "piano"})
+"""Profiles whose clef cannot be chosen (``clef`` must be ``auto``)."""
+
+
+class TablatureSettings(ContractModel):
+    """``TranscriptionJobRequest.tablature``: guitar/bass only; capo only for guitar tunings."""
+
+    tuning: TuningId
+    capo: Annotated[int, Field(ge=0, le=12)] = 0
+    layout: TabLayout = "notation-and-tab"
+
+
+class PartSettings(ContractModel):
+    """``TranscriptionJobRequest.part``: written instrument and clef (data-model 4.6)."""
+
+    instrument: WrittenInstrument
+    clef: ClefChoice = "auto"
+
+
+class ScoreChordSymbol(ContractModel):
+    """A chord symbol above the top staff; pitch classes at concert pitch (data-model 4.7)."""
+
+    start_ms: Annotated[int, Field(ge=0, description="Relative to the transcription input start.")]
+    root: PitchClass
+    quality: ChordQuality
+    bass: PitchClass | None = None
+
+
+class TablatureSummary(ContractModel):
+    """``ScoreSummary.tablature`` (data-model 4.5)."""
+
+    tuning: TuningId
+    strings: Annotated[int, Field(ge=4, le=6)]
+    capo: Annotated[int, Field(ge=0, le=12)]
+    layout: TabLayout
+    octave_moved: Annotated[int, Field(ge=0)] = 0
+    notes_dropped: Annotated[int, Field(ge=0)] = 0
+    wide_stretches: Annotated[int, Field(ge=0)] = 0
+
+
+class PartSummary(ContractModel):
+    """``ScoreSummary.part`` (data-model 4.6)."""
+
+    instrument: WrittenInstrument
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    interval: Annotated[str, Field(pattern=r"^-?[PMm]\d{1,2}$")]
+    written_key: KeyName | None = None
+    clef: WrittenClef
+    out_of_range: Annotated[int, Field(ge=0)] = 0
+
+
+def _is_none(value: object) -> bool:
+    """``exclude_if`` of the optional 1.9.0 request fields: absent = 008 request, byte-identical."""
+    return value is None
+
+
+def _tablature_problem(profile: str, tablature: TablatureSettings | None) -> str | None:
+    """The 422 reason of a ``tablature`` setting, or None."""
+    if tablature is None:
+        return None
+    if profile not in TAB_PROFILES:
+        return "tablature is for guitar and bass only"
+    if not tablature.tuning.startswith(f"{profile}-"):
+        return "tuning does not match the profile"
+    return "capo is for guitar tunings only" if tablature.capo > 0 and profile != "guitar" else None
+
+
+def _part_problem(profile: str, part: PartSettings | None) -> str | None:
+    """The 422 reason of a ``part`` setting, or None."""
+    if part is None:
+        return None
+    if profile == "drums":
+        return "part is not allowed for drums"
+    return (
+        "clef is not allowed for keys and piano"
+        if part.clef != "auto" and profile in GRAND_STAFF_PROFILES
+        else None
+    )
+
+
 class TranscriptionJobRequest(ContractModel):
     """JSON body of ``POST /v1/transcription-jobs`` (data-model.md 2.8)."""
 
@@ -1150,6 +1282,13 @@ class TranscriptionJobRequest(ContractModel):
     )
     key_override: KeyName | None = None
     titles: ScoreTitles
+    tablature: TablatureSettings | None = Field(default=None, exclude_if=_is_none)
+    part: PartSettings | None = Field(default=None, exclude_if=_is_none)
+    chords: Annotated[list[ScoreChordSymbol] | None, Field(max_length=4000)] = Field(
+        default=None, exclude_if=_is_none
+    )
+    prefer_flats: bool | None = Field(default=None, exclude_if=_is_none)
+    single_piece: DrumPiece | None = Field(default=None, exclude_if=_is_none)
 
     @model_validator(mode="after")
     def _check_inputs(self) -> Self:
@@ -1159,6 +1298,33 @@ class TranscriptionJobRequest(ContractModel):
             msg = "drums needs drumInputs and no input; pitched profiles need input only"
             raise ValueError(msg)
         return self
+
+    @model_validator(mode="after")
+    def _check_extensions(self) -> Self:
+        """The 1.9.0 combinations rejected with 422 (016 DELTA 1)."""
+        problem = (
+            _tablature_problem(self.profile, self.tablature)
+            or _part_problem(self.profile, self.part)
+            or self._chords_problem()
+            or self._single_piece_problem()
+        )
+        if problem is not None:
+            raise ValueError(problem)
+        return self
+
+    def _chords_problem(self) -> str | None:
+        """Chord symbols only for the profiles of data-model 4.7."""
+        allowed = self.chords is None or self.profile in CHORD_SYMBOL_PROFILES
+        return None if allowed else "chords are not allowed for this profile"
+
+    def _single_piece_problem(self) -> str | None:
+        """``singlePiece`` only with ``drums`` and ``drumInputs`` holding exactly that piece."""
+        if self.single_piece is None:
+            return None
+        pieces = list(self.drum_inputs.pieces()) if self.drum_inputs is not None else []
+        return (
+            None if pieces == [self.single_piece] else "singlePiece needs exactly that drum piece"
+        )
 
     def input_paths(self) -> list[str]:
         """Return every library path of the request (for the path guard), in input order."""
@@ -1208,6 +1374,9 @@ class ScoreSummary(ContractModel):
     resolution: ScoreResolution
     warnings: Annotated[list[ScoreWarning], Field(max_length=8)] = []
     attribution: Annotated[str | None, Field(max_length=300)] = None
+    tablature: TablatureSummary | None = None
+    part: PartSummary | None = None
+    chords_included: bool = False
 
 
 class TranscriptionResult(ContractModel):
@@ -1282,11 +1451,12 @@ class LaneHealth(ContractModel):
 
 
 class LanesHealth(ContractModel):
-    """Queue state of the lanes beside the separation queue (1.4.0, 1.6.0, practice 1.8.0)."""
+    """Lanes beside the separation queue (1.4.0, 1.6.0, 1.8.0, instrument-analysis 1.9.0)."""
 
     render: LaneHealth = LaneHealth()
     transcribe: LaneHealth = LaneHealth()
     practice: LaneHealth = LaneHealth()
+    instrument_analysis: LaneHealth = LaneHealth()
 
 
 # ------------------------------------------------------------ practice lane (1.8.0, feature 014)
@@ -1571,6 +1741,273 @@ class SetlistDocumentJob(PracticeJobStatus):
     pages: Annotated[int | None, Field(ge=1)] = None
 
 
+# ----------------------------------------------- instrument analysis lane (1.9.0, feature 016)
+
+InstrumentAnalysisKind = Literal["chords", "drum-hits", "vocal-pitch"]
+"""Kinds of instrument analysis jobs (discriminator ``kind``)."""
+
+ChordVocabulary = Literal["simple", "full"]
+"""``simple`` = major/minor (25 classes); ``full`` = 170 classes + inversions (data-model 2.1)."""
+
+ChordEngine = Literal["btc", "chroma-hmm", "fake"]
+"""Chord engine recorded in the chart (``btc`` falls back to ``chroma-hmm``)."""
+
+PitchEngine = Literal["pyin", "yin", "fake"]
+"""Reference melody engine."""
+
+KeyMode = Literal["major", "minor"]
+"""Mode of a detected key."""
+
+VocalSource = Literal["vocals.lead", "vocals"]
+"""Which stem the reference melody was taken from."""
+
+InstrumentAnalysisStage = Literal["loading-model", "preparing", "analysing", "finishing"]
+"""Stage of a running instrument analysis job."""
+
+AnalysisWarningCode = Literal[
+    "vocabulary-reduced", "grid-unreliable", "fallback-engine", "few-chords", "key-uncertain",
+    "few-voiced", "detail-bleed",
+]  # fmt: skip
+"""Warning codes of the analysis results (data-model 2.4, 3.1)."""
+
+ANALYSIS_WARNING_TEXTS: Final[Mapping[AnalysisWarningCode, str]] = {
+    "vocabulary-reduced": "The fast method knows only major and minor chords.",
+    "grid-unreliable": "Chord changes are not aligned to beats because the beat grid is uncertain.",
+    "fallback-engine": "The chord model was not available; the fast method was used.",
+    "few-chords": "Very few chords were detected.",
+    "key-uncertain": "The key is uncertain (confidence {n} %).",
+    "few-voiced": "Very little sung melody was found.",
+    "detail-bleed": "Detail stems can contain other instruments; expect extra notes.",
+}
+"""English warning texts; ``{n}`` is filled with ``str.format``."""
+
+NO_MELODY_TEXT: Final = "The vocal stem is silent, so no melody can be shown."
+"""Failure text of a vocal-pitch job on a silent stem (``NoMelodyError``)."""
+
+MAX_CHORD_SEGMENTS: Final = 4000
+"""Most chord segments per chart."""
+
+MAX_KEY_REGIONS: Final = 50
+"""Most key regions per chart."""
+
+MAX_DRUM_HITS: Final = 40_000
+"""Most drum hits per result."""
+
+MAX_PITCH_FRAMES: Final = 90_000
+"""Most 10 ms reference frames (15 minutes)."""
+
+MAX_CENTS: Final = 12_700
+"""Highest centi-semitone value (MIDI 127)."""
+
+
+class ChordsJobRequest(ContractModel):
+    """``kind: chords``: sum the harmonic stems, recognise and post-process (data-model 2.3)."""
+
+    kind: Literal["chords"]
+    inputs: Annotated[list[LibraryPath], Field(min_length=1, max_length=4)]
+    bass_input: LibraryPath | None = None
+    grid: BeatGridTempo | None = None
+    vocabulary: ChordVocabulary
+    engine: ChordEngine | None = Field(default=None, description="None = STEMSTUDIO_CHORD_ENGINE.")
+
+    def input_paths(self) -> list[str]:
+        """Every library path of the request (for the path guard)."""
+        return [*self.inputs, *([self.bass_input] if self.bass_input is not None else [])]
+
+
+class DrumHitsJobRequest(ContractModel):
+    """``kind: drum-hits``: the 008 drum onsets per piece."""
+
+    kind: Literal["drum-hits"]
+    drum_inputs: DrumInputs
+
+    def input_paths(self) -> list[str]:
+        """Every library path of the request (for the path guard)."""
+        return list(self.drum_inputs.pieces().values())
+
+
+class VocalPitchJobRequest(ContractModel):
+    """``kind: vocal-pitch``: pYIN (or YIN) reference melody of one vocal stem."""
+
+    kind: Literal["vocal-pitch"]
+    input: LibraryPath
+    source: VocalSource
+
+    def input_paths(self) -> list[str]:
+        """Every library path of the request (for the path guard)."""
+        return [self.input]
+
+
+AnyAnalysisRequest = ChordsJobRequest | DrumHitsJobRequest | VocalPitchJobRequest
+"""One of the three request bodies."""
+
+INSTRUMENT_ANALYSIS_REQUEST: Final[TypeAdapter[AnyAnalysisRequest]] = TypeAdapter(
+    Annotated[AnyAnalysisRequest, Field(discriminator="kind")]
+)
+"""Validates the body of ``POST /v1/instrument-analysis-jobs`` by its ``kind``."""
+
+
+class ChordSegment(ContractModel):
+    """One chord; segments are ordered, contiguous and cover the track (data-model 2.2)."""
+
+    start_ms: Annotated[int, Field(ge=0)]
+    end_ms: Annotated[int, Field(ge=1)]
+    label: Annotated[str, Field(min_length=1, max_length=32)]
+    root: PitchClass | None = None
+    quality: ChordQuality | None = None
+    bass: PitchClass | None = None
+    confidence: Annotated[float, Field(ge=0, le=1)]
+
+
+class KeyAlternative(ContractModel):
+    """The relative key that fits almost as well (research R-13)."""
+
+    tonic: PitchClass
+    mode: KeyMode
+
+
+class AnalysisKey(ContractModel):
+    """The global song key (scope addition S11, data-model 2.8)."""
+
+    tonic: PitchClass
+    mode: KeyMode
+    confidence: Annotated[float, Field(ge=0, le=1)]
+    alternative: KeyAlternative | None = None
+
+
+class KeyRegion(ContractModel):
+    """A key region of at least 8 bars (16 s without a grid); regions are contiguous and ordered."""
+
+    start_ms: Annotated[int, Field(ge=0)]
+    end_ms: Annotated[int, Field(ge=1)]
+    tonic: PitchClass
+    mode: KeyMode
+    confidence: Annotated[float, Field(ge=0, le=1)]
+
+
+class AnalysisWarning(ContractModel):
+    """A warning of an analysis result."""
+
+    code: AnalysisWarningCode
+    text: Annotated[str, Field(min_length=1, max_length=300)]
+
+
+def _contiguous_ms(spans: list[tuple[int, int]]) -> None:
+    """Require ordered, contiguous ``(start, end)`` spans with ``start < end``."""
+    if any(start >= end for start, end in spans) or any(
+        later[0] != earlier[1] for earlier, later in itertools.pairwise(spans)
+    ):
+        msg = "spans must be ordered and contiguous with start < end"
+        raise ValueError(msg)
+
+
+class ChordChart(ContractModel):
+    """Result of a chords job (data-model 2.4)."""
+
+    kind: Literal["chords"] = "chords"
+    vocabulary: ChordVocabulary
+    engine: ChordEngine
+    key: AnalysisKey | None = None
+    key_regions: Annotated[list[KeyRegion], Field(max_length=MAX_KEY_REGIONS)] = []
+    prefer_flats: bool = False
+    beat_snapped: bool = False
+    no_chords: bool = False
+    segments: Annotated[list[ChordSegment], Field(max_length=MAX_CHORD_SEGMENTS)]
+    warnings: Annotated[list[AnalysisWarning], Field(max_length=8)] = []
+
+    @model_validator(mode="after")
+    def _check_order(self) -> Self:
+        """Segments and key regions are each ordered and contiguous."""
+        _contiguous_ms([(s.start_ms, s.end_ms) for s in self.segments])
+        _contiguous_ms([(r.start_ms, r.end_ms) for r in self.key_regions])
+        return self
+
+
+class DrumHitEvent(ContractModel):
+    """One drum hit (data-model 5.1)."""
+
+    time_ms: Annotated[int, Field(ge=0)]
+    piece: DrumPiece
+    strength: Annotated[float, Field(ge=0, le=1)]
+
+
+class DrumHits(ContractModel):
+    """Result of a drum-hits job: hits in time order."""
+
+    kind: Literal["drum-hits"] = "drum-hits"
+    engine: Literal["drum-onsets", "fake"]
+    pieces: Annotated[list[DrumPiece], Field(max_length=5)]
+    hits: Annotated[list[DrumHitEvent], Field(max_length=MAX_DRUM_HITS)]
+
+    @model_validator(mode="after")
+    def _check_order(self) -> Self:
+        """Hit times never decrease."""
+        if any(later.time_ms < earlier.time_ms for earlier, later in itertools.pairwise(self.hits)):
+            msg = "hits must be in time order"
+            raise ValueError(msg)
+        return self
+
+
+class PitchRange(ContractModel):
+    """5th/95th percentile of the voiced frames in centi-semitones."""
+
+    low_cents: Annotated[int, Field(ge=1, le=MAX_CENTS)]
+    high_cents: Annotated[int, Field(ge=1, le=MAX_CENTS)]
+
+
+PitchFrame = Annotated[int, Field(ge=0, le=MAX_CENTS)]
+"""One 10 ms reference frame in centi-semitones; 0 = unvoiced."""
+
+
+class VocalPitch(ContractModel):
+    """Result of a vocal-pitch job (data-model 3.1)."""
+
+    kind: Literal["vocal-pitch"] = "vocal-pitch"
+    hop_ms: Literal[10] = 10
+    frames: Annotated[list[PitchFrame], Field(max_length=MAX_PITCH_FRAMES)]
+    source: VocalSource
+    engine: PitchEngine
+    voiced_ratio: Annotated[float, Field(ge=0, le=1)]
+    range: PitchRange | None = None
+    warnings: Annotated[list[AnalysisWarning], Field(max_length=8)] = []
+
+
+AnalysisResult = Annotated[ChordChart | DrumHits | VocalPitch, Field(discriminator="kind")]
+"""Inline result of a completed instrument analysis job."""
+
+
+class InstrumentAnalysisJob(ContractModel):
+    """Status of an analysis job: ``POST`` and ``GET /v1/instrument-analysis-jobs/{id}``."""
+
+    analysis_job_id: JobId
+    kind: InstrumentAnalysisKind
+    status: RenderJobStatus
+    stage: InstrumentAnalysisStage | None = Field(
+        default=None, description="None while queued and after the job ended."
+    )
+    progress: Annotated[float, Field(ge=0, le=1)]
+    device: JobDevice | None = Field(default=None, description="Set for chords on the BTC engine.")
+    error: Annotated[str | None, Field(max_length=500)] = None
+    result: AnalysisResult | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class InstrumentAnalysisModels(ContractModel):
+    """Readiness of the BTC chord weights (``Health.instrumentAnalysis.models``)."""
+
+    btc_majmin: ModelReadiness = Field(default="not-downloaded", alias="btc-majmin")
+    btc_large_voca: ModelReadiness = Field(default="not-downloaded", alias="btc-large-voca")
+
+
+class InstrumentAnalysisHealth(ContractModel):
+    """``Health.instrumentAnalysis`` (1.9.0)."""
+
+    models: InstrumentAnalysisModels = InstrumentAnalysisModels()
+    chord_engine: ChordEngine = "btc"
+    pitch_engine: PitchEngine = "pyin"
+
+
 class StructureHealth(ContractModel):
     """``Health.structure``: the configured section analyser (1.8.0)."""
 
@@ -1604,6 +2041,9 @@ class Health(ContractModel):
     )
     structure: StructureHealth = Field(
         default=StructureHealth(), description="Configured section analyser (1.8.0)."
+    )
+    instrument_analysis: InstrumentAnalysisHealth = Field(
+        default=InstrumentAnalysisHealth(), description="Chord and pitch engines (1.9.0)."
     )
     contract_version: str = CONTRACT_VERSION
 

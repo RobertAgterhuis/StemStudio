@@ -1,0 +1,48 @@
+@* Capo mode of the guitar family (016 US8, FR-075..FR-078; ui-test-ids capo-mode, capo-select, capo-badge, capo-suggestions,
+   capo-suggestion-<n>, capo-shortcut, capo-show-sounding at Advanced). The suggestions are a plain list of buttons (no
+   listbox: options may not hold buttons). *@
+
+<div class="ss-capo-mode" role="group" aria-label="Capo mode">
+    <button type="button" class="rz-button rz-button-sm @(Setting.On ? "rz-secondary" : "rz-light")" aria-pressed="@(Setting.On ? "true" : "false")"
+            @onclick="ToggleAsync" data-testid="capo-mode" data-help-id="capo-mode">Capo mode</button>
+    @if (Setting.On)
+    {
+        <label class="ss-inline-label">
+            Capo
+            <input type="number" class="rz-textbox ss-number" min="0" max="@StemStudio.Contracts.ContractLimits.CapoMax" step="1" value="@Setting.Capo"
+                   aria-valuenow="@Setting.Capo" @onchange="SetCapoAsync" data-testid="capo-select" />
+        </label>
+        @if (Setting.Capo > 0)
+        {
+            <span class="ss-badge" data-testid="capo-badge">@($"Capo {Setting.Capo}")</span>
+        }
+        <LevelGate Feature="capo.sounding">
+            <label class="ss-check">
+                <input type="checkbox" checked="@Setting.ShowSounding" @onchange="SetSoundingAsync" data-testid="capo-show-sounding" />
+                Show the sounding chords
+            </label>
+        </LevelGate>
+        @if (Suggestions?.Shortcut is { } shortcut)
+        {
+            <button type="button" class="ss-text-button" @onclick="() => SetAsync(Setting with { Capo = shortcut.Capo })"
+                    data-testid="capo-shortcut">@($"Capo {shortcut.Capo}: play the original shapes")</button>
+        }
+        @if (Suggestions is { Suggestions.Count: > 0 } suggestions)
+        {
+            <ul class="ss-capo-suggestions" aria-label="Suggested capo positions" data-testid="capo-suggestions">
+                @for (var i = 0; i < suggestions.Suggestions.Count; i++)
+                {
+                    var suggestion = suggestions.Suggestions[i];
+                    <li>
+                        <button type="button" class="ss-text-button" data-capo="@suggestion.Capo" @onclick="() => SetAsync(Setting with { Capo = suggestion.Capo })"
+                                data-testid="@($"capo-suggestion-{i}")">@SuggestionText(suggestion)</button>
+                    </li>
+                }
+            </ul>
+        }
+        @if (Error is not null)
+        {
+            <p class="ss-small ss-muted" role="status">@Error</p>
+        }
+    }
+</div>

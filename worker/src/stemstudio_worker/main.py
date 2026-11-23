@@ -13,9 +13,13 @@ lookup, the aligner and the vocal loader; alignments run through the shared devi
 Feature 013 adds the storage services (meter, janitor, rehydrator) over the running jobs.
 """
 
+import importlib
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
+from types import ModuleType
+from typing import Any, Final
 
 from fastapi import FastAPI
 
@@ -25,6 +29,7 @@ from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNov
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
+    instrument_analysis_routes,
     lyrics_routes,
     metadata_routes,
     practice_routes,
@@ -40,8 +45,18 @@ from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.documents import ReportLabSetlistRenderer
 from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.engraving.score_view import VerovioScoreViewRenderer
+from stemstudio_worker.harmony.btc import BtcParts, BtcRecognizer, TorchBtcRuntime
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.instrument_analysis_chords import (
+    ChordPipelineParts,
+    PipelineChordAnalyzer,
+)
+from stemstudio_worker.jobs.instrument_analysis_ports import (
+    ChordAnalyzer,
+    DrumHitsEngine,
+    InstrumentAnalysisParts,
+)
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.practice_lane import PracticeParts
 from stemstudio_worker.jobs.runtime import (
@@ -68,8 +83,12 @@ from stemstudio_worker.notation import create_notator
 from stemstudio_worker.notation.notices import score_warning
 from stemstudio_worker.notation.profiles import get_profile, resolve_resolution
 from stemstudio_worker.ports import (
+    BTC_GPU_NEED,
     WHISPER_GPU_NEED,
     Aligner,
+    AnalysisError,
+    DeviceRunner,
+    DrumTranscriber,
     GpuNeed,
     ImageNormalizer,
     LibraryReader,
@@ -84,7 +103,7 @@ from stemstudio_worker.ports import (
     StructureAnalyzer,
 )
 from stemstudio_worker.render import create_library_reader, create_render_executor
-from stemstudio_worker.schemas import CONTRACT_VERSION, ScoreProfile
+from stemstudio_worker.schemas import CONTRACT_VERSION, InstrumentAnalysisModels, ScoreProfile
 from stemstudio_worker.separation import create_separator
 from stemstudio_worker.storage.services import (
     StorageServices,
@@ -92,6 +111,12 @@ from stemstudio_worker.storage.services import (
     create_storage_services,
 )
 from stemstudio_worker.transcription import create_transcription_engines
+from stemstudio_worker.transcription.models import ModelStore, UrlOpener, https_open
+from stemstudio_worker.views_fake import (
+    FakeChordAnalyzer,
+    FakeDrumHitsTranscriber,
+    FakePitchAnalyzer,
+)
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
@@ -105,6 +130,7 @@ _ROUTERS = (
     transcription_routes.router,
     storage.router,
     practice_routes.router,
+    instrument_analysis_routes.router,
 )
 
 
@@ -128,6 +154,8 @@ class AppOverrides:
         structure_analyzer: Section analyser (default :func:`create_structure_analyzer`).
         score_view_renderer: Score views (default ``engraving.score_view``).
         setlist_renderer: Setlist PDFs (default ``documents.ReportLabSetlistRenderer``).
+        instrument_analysis: Chords, drum hits and melody parts (default
+            :func:`create_instrument_analysis_parts`, feature 016).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -144,6 +172,7 @@ class AppOverrides:
     structure_analyzer: StructureAnalyzer | None = None
     score_view_renderer: ScoreViewRenderer | None = None
     setlist_renderer: SetlistDocumentRenderer | None = None
+    instrument_analysis: InstrumentAnalysisParts | None = None
 
 
 def create_app(
@@ -245,15 +274,23 @@ class _Parts:
         pipeline = self.overrides.detail_pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
         lyrics = default_lyrics(settings, self.overrides, devices)
-        models = _GpuModels(pipeline, lyrics.aligner)
-        devices.reclaim_with(models.reclaim)
-        hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
+        analysis, btc = self._analysis(settings, devices)
+        hooks = _GpuModels(pipeline, lyrics.aligner, btc).hooks(devices)
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
         scores = default_transcription(settings, self.overrides, devices, render.library)
         practice = default_practice(settings, self.overrides)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores, practice,
+                            analysis)  # fmt: skip
         return WorkerRuntime.start_with(settings, parts)
+
+    def _analysis(
+        self, settings: WorkerSettings, devices: ManagedRunner
+    ) -> tuple[InstrumentAnalysisParts, BtcRecognizer | None]:
+        """The injected analysis parts (no BTC to release), else the configured ones (016)."""
+        if self.overrides.instrument_analysis is not None:
+            return self.overrides.instrument_analysis, None
+        return create_instrument_analysis_parts(settings, devices)
 
 
 def _pitch_range(profile: ScoreProfile) -> tuple[int, int]:
@@ -298,24 +335,31 @@ def default_practice(settings: WorkerSettings, overrides: AppOverrides) -> Pract
 
 
 class _GpuModels:
-    """The worker's cached models: the detail pipeline's (``release_gpu``) and the aligner's."""
+    """The cached models: the detail pipeline's (``release_gpu``), the aligner's and BTC's."""
 
-    def __init__(self, pipeline: object, aligner: object) -> None:
+    def __init__(self, pipeline: object, aligner: object, btc: object = None) -> None:
         self._pipeline: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
         self._aligner: Callable[[], None] | None = getattr(aligner, "release", None)
+        self._btc: Callable[[], None] | None = getattr(btc, "release", None)
+
+    def hooks(self, devices: ManagedRunner) -> DeviceHooks:
+        """Register :meth:`reclaim` on ``devices``; the device hooks with the idle release."""
+        devices.reclaim_with(self.reclaim)
+        return DeviceHooks(info=devices.info, on_idle=self.idle_release(devices))
 
     def reclaim(self, need: GpuNeed) -> None:
         """Release the models a step that does not fit does not need (keeps its own)."""
         if self._pipeline is not None:
             self._pipeline(keep=need)
-        if self._aligner is not None and need != WHISPER_GPU_NEED:
-            self._aligner()
+        for drop, own in ((self._aligner, WHISPER_GPU_NEED), (self._btc, BTC_GPU_NEED)):
+            if drop is not None and need != own:
+                drop()
 
     def idle_release(self, devices: ManagedRunner) -> Callable[[], None]:
         """Idle hook: drop every cached model, then return the GPU memory."""
 
         def release() -> None:
-            for drop in (self._pipeline, self._aligner):
+            for drop in (self._pipeline, self._aligner, self._btc):
                 if drop is not None:
                     drop()
             devices.release()
@@ -345,6 +389,118 @@ def _lifespan(settings: WorkerSettings, parts: _Parts) -> Lifespan:
             runtime.stop()
 
     return lifespan
+
+
+# ------------------------------------------------------------------ feature 016: instrument views
+
+MISSING_PART_TEXT: Final = "This analysis is not available on this worker."
+"""Failure text of a job whose adapter is not installed."""
+
+Loader = Callable[[str], ModuleType]
+"""Imports a module by its dotted path (``importlib.import_module``; a fake in tests)."""
+
+_PACKAGE: Final = "stemstudio_worker"
+
+
+class MissingPart:
+    """Stands in for an adapter that is not installed: every call fails readably."""
+
+    def __init__(self, engine: str) -> None:
+        """Report ``engine`` as the part's engine name."""
+        self.engine = engine
+
+    def __getattr__(self, name: str) -> Callable[..., Any]:
+        """Any method fails with ``MISSING_PART_TEXT``."""
+
+        def fail(*_args: object, **_kwargs: object) -> Any:
+            raise AnalysisError(MISSING_PART_TEXT)
+
+        return fail
+
+
+@dataclass(frozen=True, slots=True)
+class _Lookup:
+    loader: Loader
+
+    def build(self, target: str, label: str, **kwargs: Any) -> Any:
+        """``<module>.<Name>(**kwargs)`` of ``target`` = ``module:Name``, or a missing part."""
+        module, _, name = target.partition(":")
+        try:
+            factory = getattr(self.loader(f"{_PACKAGE}.{module}"), name)
+        except (ImportError, AttributeError):
+            return MissingPart(label)
+        return factory(**kwargs)
+
+
+def create_instrument_analysis_parts(
+    settings: WorkerSettings, devices: DeviceRunner, loader: Loader = importlib.import_module
+) -> tuple[InstrumentAnalysisParts, BtcRecognizer | None]:
+    """The parts of the analysis jobs and the BTC recognizer (for the idle release), if any."""
+    lookup = _Lookup(loader)
+    analysis = settings.instrument_analysis
+    mixer = lookup.build("analysis_inputs.mixdown:SoundfileHarmonicMixer", "mixdown",
+                         allowed_root=settings.render.library_dir)  # fmt: skip
+    btc = None if analysis.chord_engine == "fake" else _btc(settings, devices, lookup)
+    chords = FakeChordAnalyzer() if btc is None else _pipeline(settings, mixer, btc, lookup)
+    drums, engine = _drums(settings)
+    parts = InstrumentAnalysisParts(chords=chords, drums=drums, pitch=_pitch(settings, lookup),
+                                    mixer=mixer, drum_engine=engine)  # fmt: skip
+    return parts, btc
+
+
+def _pitch(settings: WorkerSettings, lookup: _Lookup) -> Any:
+    """The configured ``PitchAnalyzer`` (L2's pYIN/YIN, or the fake)."""
+    engine = settings.instrument_analysis.pitch_engine
+    if engine == "fake":
+        return FakePitchAnalyzer()
+    return lookup.build("analysis.vocal_pitch:LibrosaPitchAnalyzer", engine, engine=engine)
+
+
+def _drums(settings: WorkerSettings) -> tuple[DrumTranscriber, DrumHitsEngine]:
+    """The 008 drum transcriber of the configured transcriber and its ``DrumHits.engine``."""
+    if settings.transcription.transcriber == "fake":
+        return FakeDrumHitsTranscriber(), "fake"
+    return LibrosaDrumTranscriber(), "drum-onsets"
+
+
+def _btc(settings: WorkerSettings, devices: DeviceRunner, lookup: _Lookup) -> BtcRecognizer:
+    fallback = lookup.build("harmony.chroma_hmm:ChromaHmmRecognizer", "chroma-hmm")
+    runtime = TorchBtcRuntime(settings.instrument_analysis.threads)
+    return BtcRecognizer(BtcParts(ChordModelStore(settings.model_dir), devices, runtime, fallback))
+
+
+def _pipeline(
+    settings: WorkerSettings, mixer: Any, btc: BtcRecognizer, lookup: _Lookup
+) -> ChordAnalyzer:
+    key_module = _module(lookup.loader, "harmony.key")
+    parts = ChordPipelineParts(
+        mixer=mixer,
+        recognizers={"btc": btc, "chroma-hmm": btc.fallback},
+        postprocessor=lookup.build("harmony.postprocess:BeatSnapPostProcessor", "postprocess"),
+        keys=lookup.build("harmony.key:HmmKeyEstimator", "key"),
+        apply_key=getattr(key_module, "apply_key", MissingPart("key").apply_key),
+    )
+
+    def models() -> InstrumentAnalysisModels:
+        return InstrumentAnalysisModels.model_validate(btc.models_ready())
+
+    return PipelineChordAnalyzer(parts, settings.instrument_analysis.chord_engine, models)
+
+
+def _module(loader: Loader, module: str) -> ModuleType | None:
+    try:
+        return loader(f"{_PACKAGE}.{module}")
+    except ImportError:
+        return None
+
+
+class ChordModelStore(ModelStore):
+    """The 008 model store with the BTC weights below ``STEMSTUDIO_MODEL_DIR/harmony``."""
+
+    def __init__(self, model_dir: Path, opener: UrlOpener = https_open) -> None:
+        """Keep weights below ``model_dir/harmony``; fetch with ``opener``."""
+        super().__init__(model_dir, opener)
+        self._root = model_dir / "harmony"
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn

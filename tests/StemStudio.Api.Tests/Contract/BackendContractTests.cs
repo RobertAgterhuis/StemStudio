@@ -212,7 +212,7 @@ public sealed partial class BackendContractTests : IDisposable
                 "verifyBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "restoreBackup", "getPreviousLibrary", "revertRestore",
                 "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup", .. PendingLibraryCareOperations,
                 .. LibraryContractTests.LibraryOperations, .. PracticeFlowOperations, .. PendingPracticeFlowOperations, .. PendingRecordingOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations,
-                .. PendingAgentOperations, .. LyricAssistOperations], ignoreOrder: true);
+                .. PendingAgentOperations, .. LyricAssistOperations, .. InstrumentViewOperations, .. PendingInstrumentViewOperations], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

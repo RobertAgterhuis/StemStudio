@@ -2,8 +2,9 @@
 
 The fake standard separator copies the mix into every stem, so the fake models are chosen per
 parent and return scaled copies of their input with a fixed, deterministic outcome table:
-drums, vocals and other split; guitar has one audible family ("nothing further"); piano's
-outputs sum to 0.3 x the parent ("not reliable"); bass is never split. Each model call waits
+drums (kick, snare, toms and the hi-hat of the research R-11 groove), vocals and other split;
+guitar has one audible family ("nothing further"); piano's outputs sum to 0.3 x the parent
+("not reliable"); bass is never split. Each model call waits
 ``fake_detail_step_seconds`` in four chunks so E2E tests can observe progress and cancel.
 Nothing is downloaded.
 """
@@ -23,11 +24,11 @@ CHUNKS: Final = 4
 """Progress reports (and sleeps) per fake model call."""
 
 FAKE_SCALES: Final[Mapping[ParentStemName, Mapping[DetailStemName, float]]] = {
-    "drums": {"kick": 0.5, "snare": 0.3, "toms": 0.2},
+    "drums": {"kick": 0.5, "snare": 0.25, "toms": 0.15, "hihat": 0.1},
     "vocals": {"lead": 0.7, "backing": 0.3},
     "guitar": {"electric-guitar": 1.0, "keys": 0.001},
     "piano": {"keys": 0.15, "synth": 0.15},
-    "other": {"brass": 0.6, "strings": 0.4},
+    "other": {"brass": 0.4, "strings": 0.3, "woodwinds": 0.3},
 }
 """Output scales per parent; outputs are named with their detail stem names."""
 
