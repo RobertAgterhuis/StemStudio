@@ -2198,7 +2198,13 @@ NotationKind = Literal["score", "tab", "drums", "transposed"]
 HandoutStage = Literal["layout", "notation", "writing"]
 """Stages of a handout job (``layout`` 0-0.6, ``notation`` 0.6-0.9, ``writing`` 0.9-1.0)."""
 
-HandoutWarningCode = Literal["missing-glyphs", "notation-scaled", "notation-unreadable"]
+HandoutWarningCode = Literal[
+    "missing-glyphs",
+    "notation-scaled",
+    "notation-unreadable",
+    "notation-omitted",
+    "artwork-omitted",
+]
 """Warnings of a finished handout."""
 
 HANDOUT_NOTICE_FOOTER: Final = "For personal practice and teaching only"

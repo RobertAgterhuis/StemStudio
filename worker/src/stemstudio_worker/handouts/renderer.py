@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from stemstudio_worker.handouts.document import (
     NotationBlock,
@@ -39,6 +39,8 @@ from stemstudio_worker.ports import (
     NotationReader,
     NotationUnreadableError,
     RenderedHandout,
+    artwork_omitted_text,
+    notation_omitted_text,
     notation_unreadable_text,
 )
 from stemstudio_worker.schemas import HandoutJobRequest, HandoutNotation, HandoutWarning
@@ -49,10 +51,11 @@ MAX_WARNINGS: Final = 50
 
 MAX_NOTATION_FRAMES: Final = 600
 """Most notation frame pages of one handout (50 songs with 12 pages each); further items are
-notes with a ``notation-unreadable`` warning."""
+notes with a ``notation-omitted`` warning."""
 
 MAX_JOB_NOTATION_BYTES: Final = 128 * 1024 * 1024
-"""Largest total size of the distinct notation PDFs one handout reads; further files are notes."""
+"""Largest total size of the distinct notation PDFs one handout reads; further files are notes
+with a ``notation-omitted`` warning."""
 
 RENDER_DEADLINE_SECONDS: Final = 240.0
 """Wall-clock limit of one render; past it the job fails with ``HANDOUT_FAILED_TEXT``."""
@@ -91,6 +94,18 @@ class _Deadline:
         return report
 
 
+Refusal = Literal["notation-unreadable", "notation-omitted"]
+"""Why a notation item became a note: the file cannot be read, or the job budget is spent."""
+
+PageSizes = tuple[tuple[float, float], ...]
+"""Page sizes (points) of one notation PDF."""
+
+_REFUSAL_TEXTS: Final[dict[Refusal, Callable[[str], str]]] = {
+    "notation-unreadable": notation_unreadable_text,
+    "notation-omitted": notation_omitted_text,
+}
+
+
 @dataclass(slots=True)
 class _NotationBudget:
     """The notation one render may read: each file once, within the frame and byte limits."""
@@ -98,33 +113,35 @@ class _NotationBudget:
     reader: NotationReader
     limits: RenderLimits
     deadline: _Deadline
-    pages: dict[Path, tuple[tuple[float, float], ...] | None] = field(default_factory=dict)
+    pages: dict[Path, PageSizes | Refusal] = field(default_factory=dict)
     frames: int = 0
     read_bytes: int = 0
 
-    def admit(self, source: Path) -> tuple[tuple[float, float], ...] | None:
-        """Page sizes of ``source`` when its pages fit the job (None: the item becomes a note)."""
+    def admit(self, source: Path) -> PageSizes | Refusal:
+        """Page sizes of ``source`` when its pages fit the job, else why it becomes a note."""
         self.deadline.check()
         if source not in self.pages:
             self.pages[source] = self._read(source)
         sizes = self.pages[source]
-        if sizes is None or self.frames + len(sizes) > self.limits.frames:
-            return None
+        if isinstance(sizes, str):
+            return sizes
+        if self.frames + len(sizes) > self.limits.frames:
+            return "notation-omitted"
         self.frames += len(sizes)
         return sizes
 
-    def _read(self, source: Path) -> tuple[tuple[float, float], ...] | None:
+    def _read(self, source: Path) -> PageSizes | Refusal:
         try:
             size = source.stat().st_size
         except OSError:
-            return None
+            return "notation-unreadable"
         if self.read_bytes + size > self.limits.notation_bytes:
-            return None
+            return "notation-omitted"
         self.read_bytes += size
         try:
             return self.reader.page_sizes(source)
         except NotationUnreadableError:
-            return None
+            return "notation-unreadable"
 
 
 Layout = Callable[[str, AllowList], Any]
@@ -167,7 +184,8 @@ class _Job:
     def song_inputs(self, index: int) -> SongInputs:
         """Artwork URI and notation blocks of song ``index`` (notation only when included)."""
         song = self.request.document.songs[index]
-        uri = self.artwork_uri(self.files.get(song.artwork_path) if song.artwork_path else None)
+        artwork = self.files.get(song.artwork_path) if song.artwork_path else None
+        uri = self.artwork_uri(artwork, song.title)
         if "notation" not in song.include:
             return SongInputs(uri, ())
         blocks = tuple(
@@ -175,29 +193,41 @@ class _Job:
         )
         return SongInputs(uri, blocks)
 
-    def artwork_uri(self, artwork: Path | None) -> str | None:
-        """The URI of an allowed artwork JPEG within the pixel limit, else None (left out)."""
-        if artwork is None or artwork not in self.allowed.paths or not artwork_fits(artwork):
+    def artwork_uri(self, artwork: Path | None, title: str) -> str | None:
+        """The URI of an allowed artwork JPEG within the pixel limit, else None (left out).
+
+        Allowed artwork that is not a JPEG or is over the pixel limit warns ``artwork-omitted``.
+        """
+        if artwork is None or artwork not in self.allowed.paths:
+            return None
+        if not artwork_fits(artwork):
+            self.warn("artwork-omitted", artwork_omitted_text(title))
             return None
         return self.allowed.uri(artwork)
 
     def block(self, anchor: str, item: HandoutNotation) -> NotationBlock:
-        """One frame per page of ``item``, or a note when the file cannot be read."""
+        """One frame per page of ``item``, or a note when it is unreadable or over the budget."""
         heading = f"Notation - {item.title}"
         source = self.files.get(item.pdf_path)
+        if source is None:
+            return self.note(heading, item.title, "notation-unreadable")
         sizes = self.sizes(source, item.title)
-        if source is None or sizes is None:
-            text = notation_unreadable_text(item.title)
-            self.warn("notation-unreadable", text)
-            return NotationBlock(heading, item.title, (), text)
+        if isinstance(sizes, str):
+            return self.note(heading, item.title, sizes)
         frames = tuple(f"{anchor}-{page}" for page in range(len(sizes)))
         self.sources.extend((frame, source, page) for page, frame in enumerate(frames))
         return NotationBlock(heading, item.title, frames, None)
 
-    def sizes(self, source: Path | None, title: str) -> tuple[tuple[float, float], ...] | None:
-        """Page sizes of ``source`` (None: unreadable or over the limits); warns when scaled."""
-        sizes = self.notation.admit(source) if source is not None else None
-        if sizes is not None and not all(fits_paper(s, self.request.paper) for s in sizes):
+    def note(self, heading: str, title: str, refusal: Refusal) -> NotationBlock:
+        """The note that replaces item ``title``; its text is also the warning."""
+        text = _REFUSAL_TEXTS[refusal](title)
+        self.warn(refusal, text)
+        return NotationBlock(heading, title, (), text)
+
+    def sizes(self, source: Path, title: str) -> PageSizes | Refusal:
+        """Page sizes of ``source`` or why it becomes a note; warns when the pages are scaled."""
+        sizes = self.notation.admit(source)
+        if not isinstance(sizes, str) and not all(fits_paper(s, self.request.paper) for s in sizes):
             self.warn("notation-scaled", scaled_text(title))
         return sizes
 

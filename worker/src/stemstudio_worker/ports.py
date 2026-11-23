@@ -1979,13 +1979,16 @@ def notation_unreadable_text(title: str) -> str:
 
 
 def notation_omitted_text(title: str) -> str:
-    """Warning text of a notation item left out by the per-job render budget."""
-    raise NotImplementedError
+    """Warning text of a notation item left out by the per-job render budget (frames or bytes)."""
+    return f"A notation file was left out because the handout reached its size limit: {title}"
 
 
 def artwork_omitted_text(song_title: str) -> str:
     """Warning text of a cover picture left out (not a JPEG or over 40 megapixels)."""
-    raise NotImplementedError
+    return (
+        "The cover picture was left out because it is not a JPEG or is larger than"
+        f" 40 megapixels: {song_title}"
+    )
 
 
 class QualityAnalysisError(WorkerError):

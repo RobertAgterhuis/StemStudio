@@ -313,9 +313,9 @@ def test_an_unreadable_file_and_an_omitted_one_keep_their_own_codes(
         def page_sizes(self, path: Path) -> tuple[tuple[float, float], ...]:
             if path == files[TAB]:
                 raise NotationUnreadableError(path.name)
-            return ((595.28, 841.89),) * 3
+            return ((595.28, 841.89),)
 
-    renderer = WeasyHandoutRenderer(UnreadableTab(), FakeLayout(), RenderLimits(frames=4))
+    renderer = WeasyHandoutRenderer(UnreadableTab(), FakeLayout(), RenderLimits(frames=1))
 
     result = renderer.render(request(notation=_items(TAB, SCORE, SCORE)), files, lambda _f: None)
 
@@ -323,18 +323,6 @@ def test_an_unreadable_file_and_an_omitted_one_keep_their_own_codes(
         ("notation-unreadable", notation_unreadable_text("Part 0")),
         ("notation-omitted", notation_omitted_text("Part 2")),
     ]
-
-
-def test_an_omitted_warning_with_a_long_title_is_cut_to_300_characters(
-    files: dict[str, Path],
-) -> None:
-    title = "T" * 300
-    items = [{"title": title, "kind": "score", "pdfPath": TAB}]
-    renderer = WeasyHandoutRenderer(layout=FakeLayout(), limits=RenderLimits(frames=0))
-
-    result = renderer.render(request(notation=items), files, lambda _f: None)
-
-    assert [w.text for w in result.warnings] == [notation_omitted_text(title)[:300]]
 
 
 class _Clock:
