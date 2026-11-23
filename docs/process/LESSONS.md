@@ -101,3 +101,17 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - `toBeVisible()` never passes on an element with zero width by design (banner chords overflow above their word);
   assert presence and position (count, bounding box of the anchor word) instead, and check such assertions on a real
   stack at the checkpoint. (016)
+- Put job-level size limits in the plan of every feature that renders untrusted files: the notation PDF
+  content-stream bomb (373 s on one handout), pypdf's `LimitReachedError` failing the whole handout and the missing
+  request/text/cell/notation totals were found only by the late security review; set parser limits and per-job caps
+  in Phase 0 and mirror them in the API before it submits. (020)
+- Bind enums by name only (`allowIntegerValues: false` or `Enum.IsDefined`): numeric enum values reached the
+  domain and the worker again, as in 016. Make it a backend checklist item, not a review finding. (020)
+- Check a new gate rule against the project policy before deciding it: the write gate was put on the three 020
+  writes and removed again, because 013 gates only deleting or replacing library files. Quote the policy row in the
+  decision. (020)
+- Questions that cost the most time were measurement ones (bleed guard, flicker, same-grid co-sustain): answer them
+  with a timebox and a fallback ("if still flat, ship dropouts only and say so"), so a lane never waits for a perfect
+  measure. (020)
+- Consumer-driven fakes worked: the fake analyzer and the fake stack were checked against the data-model and the
+  contract examples when they were written, so the E2E specs and the lanes agreed at the checkpoint. Keep doing it. (020)

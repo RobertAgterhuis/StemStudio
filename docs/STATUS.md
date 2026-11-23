@@ -360,3 +360,21 @@ S4, S9-S12.
 | Owner stack | compose project `stemstudio` untouched; `e2e016` torn down (`down -v`, images removed) |
 | T140 reference machine | Not run in this integration: quickstart V1-V14 per family, SC-003/SC-007/SC-009 checks and the BTC NVML peak need the reference machine and the GPU image; `BTC_GPU_NEED` stays 512 MiB, `StemStudio:InstrumentViews:Estimates` unchanged (no measurement off by > 50 %: CPU BTC and pYIN are far below the estimates) |
 | Open | Fake-mic on-pitch score alignment (above); `practice-log.spec.ts:90` state-dependent flake. Backlog: take scoring ignores a slowed take's rate, `ScoreOptions.tablature` per profile, drum-hit warnings, no close control for `instrument-view`, pre-016 engine SIG soft findings, `singing-raw.js` without unit test. T140 reference-machine checks |
+
+## Feature 020 insights and handouts (2026-11-23)
+
+Integrating on the round branch `020-insights-handouts` (lanes backend; frontend; beat; worker-io = stem-separation +
+audio-ingest; qa-ops = qa + quality-gate + devops; plus the flakes-pre020 fixes merged to `main` as PR #18, bf7df94e).
+017-019 are not built, so the contracts were merged onto 016's documents: backend-api 1.19.0, worker-api 1.11.0,
+ui-test-ids 1.19.0, help-content 1.2.0 (areas `insights`, `handouts`). MoSCoW C7, C8. User Story 5 (re-separation,
+gate G2) deferred until the owner provides MUSDB18-HQ.
+
+| Check | Result |
+|---|---|
+| Lanes | All five lane waves accepted (orchestrator log 15:05-15:55); security reviews: worker-io 1 high, 2 medium, 3 low; backend 0 critical, 8 fixes + fixed refusal texts; all fixed test-first and re-merged (16:14, 17:05) |
+| Measures (V1, synthetic) | Bleed Spearman 0.94/0.97/0.91, levels 87-93 % correct; dropouts Spearman 0.96, 100 %; dense same-grid control 1 of 6 stems falsely High (known limit, strict xfail). Flicker not shipped. G1 pending dataset: every label `indicative` |
+| Timing | SC-001 quality report 12.8 s for 18 stems of a 5-min song (4 threads, budget 30 s); SC-004 song handout 0.67 s (15 s), 20-song setlist 2.98 s (90 s) |
+| Contracts | Additive warning codes `notation-omitted`, `artwork-omitted`; 409 `handouts-active`; options 409 `too-many-songs`; write gate removed again from the three 020 writes (013 policy); `merge_full.py --check` superset yes (c5cb7f5f) |
+| Docs | data-model/research after the wave (T108), licence rows (T106), help topics, user manual chapter 23 (later chapters renumbered 24-27), technical manual (T105 sources); PDFs are rebuilt last by the CTO |
+| Final gate | Pending (CTO): .NET, worker, lint, contracts, `run_all.py`, full E2E on an isolated stack, migration copy test, `scripts/test-all.sh` |
+| Open | Owner: MUSDB18-HQ for G1/G2; confirm the two setlist PDFs. Backlog: 4-stem tracks get no quality report; stale save link after the band-info lookup (candidate `library?asset=<id>`); a family-neutral flicker measure |
