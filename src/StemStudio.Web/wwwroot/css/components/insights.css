@@ -59,6 +59,9 @@
   /* Not the pill radius: a long word ("Probably not in this song") wraps in a narrow strip and a pill turns round. */
   border-radius: var(--ss-radius-control);
   max-inline-size: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
   color: var(--ss-color-ink);
 }
 
