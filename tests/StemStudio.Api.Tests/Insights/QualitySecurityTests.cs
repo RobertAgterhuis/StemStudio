@@ -7,6 +7,7 @@ using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Domain.Insights;
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Tests.Insights;
 
@@ -16,6 +17,33 @@ namespace StemStudio.Api.Tests.Insights;
 /// </summary>
 public sealed class QualitySecurityTests : ApiTestBase
 {
+    [Fact]
+    public async Task TheAutomaticRun_ReReadsTheReportUnderTheLock()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var stale = (await scope.ServiceProvider.GetRequiredService<ITrackRepository>().FindAsync(track.Id, CancellationToken.None))!;
+        var submitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Factory.InsightsWorker.AfterSubmit = async () =>
+        {
+            Factory.InsightsWorker.AfterSubmit = null;
+            submitted.SetResult();
+            await release.Task;
+        };
+
+        var request = Client.RequestQualityAsync(track.Id);
+        await submitted.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        var automatic = scope.ServiceProvider.GetRequiredService<QualityService>().StartAutomaticallyAsync(stale, CancellationToken.None);
+        release.SetResult();
+        using var response = await request;
+
+        (response.StatusCode, await automatic).ShouldBe((HttpStatusCode.Accepted, false));
+        Factory.InsightsWorker.QualityRequests.Count.ShouldBe(1);
+        (await Factory.FindTrackAsync(track.Id))!.QualityReport!.WorkerJobId.ShouldBe(Factory.InsightsWorker.OnlyJob());
+        stale.QualityReport.ShouldBeNull();
+    }
+
     [Fact]
     public async Task AFailedSave_AfterTheSubmit_DeletesTheWorkerJob()
     {
