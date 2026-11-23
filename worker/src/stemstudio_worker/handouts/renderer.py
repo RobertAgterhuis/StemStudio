@@ -31,7 +31,7 @@ from stemstudio_worker.handouts.notation import (
     merge_frames,
     pdf_facts,
 )
-from stemstudio_worker.handouts.resources import ARCHIVO_FONT, AllowList
+from stemstudio_worker.handouts.resources import ARCHIVO_FONT, AllowList, artwork_fits
 from stemstudio_worker.ports import (
     HANDOUT_FAILED_TEXT,
     HandoutRenderError,
@@ -167,14 +167,19 @@ class _Job:
     def song_inputs(self, index: int) -> SongInputs:
         """Artwork URI and notation blocks of song ``index`` (notation only when included)."""
         song = self.request.document.songs[index]
-        artwork = self.files.get(song.artwork_path) if song.artwork_path else None
-        uri = self.allowed.uri(artwork) if artwork in self.allowed.paths else None
+        uri = self.artwork_uri(self.files.get(song.artwork_path) if song.artwork_path else None)
         if "notation" not in song.include:
             return SongInputs(uri, ())
         blocks = tuple(
             self.block(f"frame-{index}-{k}", item) for k, item in enumerate(song.notation)
         )
         return SongInputs(uri, blocks)
+
+    def artwork_uri(self, artwork: Path | None) -> str | None:
+        """The URI of an allowed artwork JPEG within the pixel limit, else None (left out)."""
+        if artwork is None or artwork not in self.allowed.paths or not artwork_fits(artwork):
+            return None
+        return self.allowed.uri(artwork)
 
     def block(self, anchor: str, item: HandoutNotation) -> NotationBlock:
         """One frame per page of ``item``, or a note when the file cannot be read."""

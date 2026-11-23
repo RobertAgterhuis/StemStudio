@@ -10,12 +10,15 @@ they are not on the list.
 """
 
 import stat
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 from urllib.parse import unquote, urlsplit
 from urllib.request import url2pathname
+
+from PIL import Image
 
 from stemstudio_worker.ports import ARTWORK_PATTERN
 
@@ -32,13 +35,24 @@ MAX_RESOURCE_BYTES: Final = 16 * 1024 * 1024
 """Largest file the layout may read (a cover is far smaller)."""
 
 MAX_ARTWORK_PIXELS: Final = 40_000_000
-"""Largest artwork in pixels (stub)."""
+"""Largest artwork in pixels (a 005 cover is at most a few megapixels); larger is left out."""
 
 CONTENT_TYPES: Final[Mapping[str, str]] = {
     ".woff2": "font/woff2",
     ".jpg": "image/jpeg",
 }
 """The only file types the layout may read, by suffix."""
+
+
+def artwork_fits(path: Path) -> bool:
+    """Whether ``path`` is a JPEG of at most ``MAX_ARTWORK_PIXELS`` (only its header is read)."""
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+            with Image.open(path) as image:
+                return image.format == "JPEG" and image.width * image.height <= MAX_ARTWORK_PIXELS
+    except Exception:  # any failure of an untrusted picture leaves it out
+        return False
 
 
 class RefusedResourceError(ValueError):
