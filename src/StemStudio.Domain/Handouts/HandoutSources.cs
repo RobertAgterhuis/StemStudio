@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Domain.InstrumentViews;
 using StemStudio.Domain.Scores;
 
@@ -95,6 +94,10 @@ public static class NotationClassifier
     /// <returns>The transposition.</returns>
     public static Transposition Written(WrittenInstrument instrument)
     {
-        throw new NotImplementedException();
+        var name = instrument.ToString();
+        return name.EndsWith("Bb", StringComparison.Ordinal) ? Handouts.Transposition.BFlat
+            : name.EndsWith("Eb", StringComparison.Ordinal) ? Handouts.Transposition.EFlat
+            : name.EndsWith('F') ? Handouts.Transposition.F
+            : Handouts.Transposition.C;
     }
 }

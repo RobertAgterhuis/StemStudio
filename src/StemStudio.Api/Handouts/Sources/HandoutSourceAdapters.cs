@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Contracts;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Handouts;
@@ -15,9 +14,14 @@ namespace StemStudio.Api.Handouts.Sources;
 public sealed class SectionSourceAdapter(ISectionRepository sections) : ISectionSource
 {
     /// <inheritdoc />
-    public Task<IReadOnlyList<SongSection>> SectionsAsync(Track track, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SongSection>> SectionsAsync(Track track, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        var set = await sections.FindAsync(track.Id, cancellationToken);
+        var grid = track.BeatGrid is { Reliable: true } reliable ? reliable : null;
+        return (set?.Sections ?? []).OrderBy(section => section.Position)
+            .Select(section => new SongSection(section.Id, section.Label, section.StartSeconds, section.EndSeconds, SectionSnapper.BarAt(section.StartSeconds, grid)))
+            .ToList();
     }
 }
 
@@ -26,9 +30,15 @@ public sealed class SectionSourceAdapter(ISectionRepository sections) : ISection
 public sealed class SetlistSourceAdapter(ISetlistRepository setlists) : ISetlistSource
 {
     /// <inheritdoc />
-    public Task<SetlistSnapshot?> FindAsync(Guid setlistId, CancellationToken cancellationToken)
+    public async Task<SetlistSnapshot?> FindAsync(Guid setlistId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (await setlists.FindAsync(setlistId, cancellationToken) is not { } setlist)
+        {
+            return null;
+        }
+
+        var entries = setlist.Entries.OrderBy(entry => entry.Position).Select(entry => new SetlistSong(entry.Position + 1, entry.TrackId, NoteOrNull(entry.Note))).ToList();
+        return new SetlistSnapshot(setlist.Id, setlist.Name, NoteOrNull(setlist.Note), entries);
     }
 
     private static string? NoteOrNull(string? note) => string.IsNullOrWhiteSpace(note) ? null : note;
@@ -40,9 +50,13 @@ public sealed class SetlistSourceAdapter(ISetlistRepository setlists) : ISetlist
 public sealed class PracticeLogSourceAdapter(IPracticeRepository practice, TimeProvider clock) : IPracticeLogSource
 {
     /// <inheritdoc />
-    public Task<IReadOnlyDictionary<Guid, int>> BestTempoAsync(Guid trackId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<Guid, int>> BestTempoAsync(Guid trackId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var sessions = await practice.SessionsOfTrackAsync(trackId, cancellationToken);
+        var window = new SummaryWindow(clock.GetUtcNow().UtcDateTime, ContractLimits.MaxSummaryDays, 0);
+        return PracticeSummaryCalculator.Summarize(sessions, window, new Dictionary<Guid, string>()).Sections
+            .Where(total => total is { SectionId: not null, BestTrainerPercent: not null })
+            .ToDictionary(total => total.SectionId!.Value, total => (int)Math.Round(total.BestTrainerPercent!.Value, MidpointRounding.AwayFromZero));
     }
 }
 
@@ -51,7 +65,10 @@ public sealed class PracticeLogSourceAdapter(IPracticeRepository practice, TimeP
 public sealed class ChordSourceAdapter(ITrackAnalysisRepository analyses) : IChordSource
 {
     /// <inheritdoc />
-    public Task<ChordChart?> ChartAsync(Guid trackId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public async Task<ChordChart?> ChartAsync(Guid trackId, CancellationToken cancellationToken) =>
+        await analyses.FindAsync(trackId, AnalysisKind.Chords, cancellationToken) is { Status: AnalysisStatus.Ready or AnalysisStatus.Stale, Document: ChordChart chart }
+            ? chart
+            : null;
 }
 
 /// <summary>Ready score items of a song with a PDF (008/016), classified by <see cref="NotationClassifier"/>.</summary>
@@ -62,9 +79,10 @@ public sealed class NotationCatalogAdapter(IAssetRepository assets) : INotationC
     public const int MaxItems = 400;
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<NotationItem>> ItemsAsync(Guid trackId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<NotationItem>> ItemsAsync(Guid trackId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var page = await assets.ListAsync(new AssetQuery { Kind = AssetKind.Score, TrackId = trackId, Status = AssetStatus.Ready, Limit = MaxItems }, cancellationToken);
+        return page.Items.Select(ToItem).OfType<NotationItem>().OrderByDescending(item => item.CreatedAt).ToList();
     }
 
     private static NotationItem? ToItem(Asset asset)
