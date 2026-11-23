@@ -115,3 +115,7 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   measure. (020)
 - Consumer-driven fakes worked: the fake analyzer and the fake stack were checked against the data-model and the
   contract examples when they were written, so the E2E specs and the lanes agreed at the checkpoint. Keep doing it. (020)
+- Specs written blind still need one real-backend run before integration: the first run of the 020 specs found three
+  wrong readings (one-click melodic is the C handout; Beginners have no "All items" list; a copy shared by both browser
+  projects was already split), and the first visual run found a badge that turned into a circle in a narrow strip. Run
+  the new specs and the visual suite on a fake stack at the mid-wave checkpoint, not only `--list`. (020)
