@@ -52,7 +52,7 @@ public sealed class LibraryJobRunnerTests : IDisposable
             () => events.Add("begin"),
             () => events.Add($"end:{_store.FindAsync(id!.Value, CancellationToken.None).GetAwaiter().GetResult()?.Status}"));
 
-        _runner.TryStart(LibraryJobKindDto.Backup, "a.zip", async (_, ct) => { await release.Task.WaitAsync(ct); return Report; }, hooks, out var queued).ShouldBeTrue();
+        _runner.TryStart(new LibraryJobStart(LibraryJobKindDto.Backup, "a.zip", async (_, ct) => { await release.Task.WaitAsync(ct); return Report; }, hooks), out var queued).ShouldBeTrue();
         id = queued.JobId;
 
         events.ShouldBe(["begin"]);
@@ -68,7 +68,7 @@ public sealed class LibraryJobRunnerTests : IDisposable
         var events = new List<string>();
         _runner.TryStart(LibraryJobKindDto.Verify, "a.zip", async (_, ct) => { await release.Task.WaitAsync(ct); return Report; }, out _).ShouldBeTrue();
 
-        _runner.TryStart(LibraryJobKindDto.Backup, "b.zip", (_, _) => Task.FromResult<LibraryJobReportDto>(Report), new LibraryJobHooks(() => events.Add("begin"), () => events.Add("end")), out _).ShouldBeFalse();
+        _runner.TryStart(new LibraryJobStart(LibraryJobKindDto.Backup, "b.zip", (_, _) => Task.FromResult<LibraryJobReportDto>(Report), new LibraryJobHooks(() => events.Add("begin"), () => events.Add("end"))), out _).ShouldBeFalse();
 
         events.ShouldBeEmpty();
         release.SetResult();

@@ -16,6 +16,13 @@ public delegate Task<LibraryJobReportDto> LibraryJobWork(LibraryJobContext conte
 /// <param name="End">Runs after the finished job is stored.</param>
 public sealed record LibraryJobHooks(Action Begin, Action End);
 
+/// <summary>A job to start.</summary>
+/// <param name="Kind">Kind.</param>
+/// <param name="ArchiveFileName">Archive the job reads or writes.</param>
+/// <param name="Work">The work.</param>
+/// <param name="Hooks">Begin and end actions, or null.</param>
+public sealed record LibraryJobStart(LibraryJobKindDto Kind, string? ArchiveFileName, LibraryJobWork Work, LibraryJobHooks? Hooks = null);
+
 /// <summary>A progress report of a running library job.</summary>
 /// <param name="Stage">Stage.</param>
 /// <param name="StageText">Readable stage text (no file paths).</param>
