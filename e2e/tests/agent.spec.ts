@@ -466,6 +466,10 @@ test('lyrics: applying suggestions shows the before/after card; reject keeps the
   await expect(agent.byId('agent-approval-lyrics-diff').locator('[data-testid^="agent-approval-lyrics-diff-"]')).toHaveCount(openSpelling.length);
   expect(await agent.approvalReasons()).toContain('lyrics-edit');
   await agent.reject();
+  // The rejected run goes on to the script's final turn; only one run may be active, so a command sent before it ended
+  // was refused with 409 run-active (flake list: no user message, or no approval card).
+  await agent.expectAnswer(finalText('us4-lyric-apply'));
+  await agent.expectStep('apply_lyric_suggestions', 'rejected');
   expect((await lyricAssistApi.sheet(sheet.id)).revision).toBe(sheet.revision);
 
   // A new conversation, so the run's answer is the only one with the script's final text.
