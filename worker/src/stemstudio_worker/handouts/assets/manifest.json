@@ -1,0 +1,13 @@
+{
+  "copies": {
+    "fonts/archivo/Archivo-Variable-latin.woff2": "e6fc4127b49ae0474c97ed3d7814e2ce745faca44055718039ef8a5948b7ead1",
+    "fonts/archivo/OFL.txt": "108b4e57c9c796d3d38d0428ca7ee39de47ad93187302718d9b2d8864b9b716b",
+    "tokens.css": "6cd3653fdb4a50f084aaf90fa4faac6cb8c600dc0769321376fc966a7d40ee7a"
+  },
+  "generatedBy": "worker/scripts/sync_handout_style.py",
+  "sources": {
+    "src/StemStudio.Web/wwwroot/css/tokens.css": "543867685b654db9e8c01e081d8761c7fc8d2119a276b62aad0b3c013c4df807",
+    "src/StemStudio.Web/wwwroot/fonts/archivo/Archivo-Variable-latin.woff2": "e6fc4127b49ae0474c97ed3d7814e2ce745faca44055718039ef8a5948b7ead1",
+    "src/StemStudio.Web/wwwroot/fonts/archivo/OFL.txt": "108b4e57c9c796d3d38d0428ca7ee39de47ad93187302718d9b2d8864b9b716b"
+  }
+}

@@ -90,10 +90,14 @@ def test_sync_writes_the_copies_and_a_manifest_with_hashes(tmp_path: Path) -> No
     font = assets / "fonts" / "archivo" / "Archivo-Variable-latin.woff2"
     assert font.read_bytes() == b"wOF2-archivo"
     assert (assets / "fonts" / "archivo" / "OFL.txt").is_file()
-    assert manifest["sources"]["src/StemStudio.Web/wwwroot/css/tokens.css"] == hashlib.sha256(
-        _TOKENS.encode("utf-8")
-    ).hexdigest()
-    assert manifest["copies"]["tokens.css"] == hashlib.sha256((assets / "tokens.css").read_bytes()).hexdigest()
+    assert (
+        manifest["sources"]["src/StemStudio.Web/wwwroot/css/tokens.css"]
+        == hashlib.sha256(_TOKENS.encode("utf-8")).hexdigest()
+    )
+    assert (
+        manifest["copies"]["tokens.css"]
+        == hashlib.sha256((assets / "tokens.css").read_bytes()).hexdigest()
+    )
     assert set(manifest["copies"]) == {
         "tokens.css",
         "fonts/archivo/Archivo-Variable-latin.woff2",
@@ -101,7 +105,9 @@ def test_sync_writes_the_copies_and_a_manifest_with_hashes(tmp_path: Path) -> No
     }
 
 
-def test_check_passes_when_fresh_and_fails_on_drift(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_check_passes_when_fresh_and_fails_on_drift(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     root = _repo(tmp_path)
     sync.main(["--root", str(root)])
 

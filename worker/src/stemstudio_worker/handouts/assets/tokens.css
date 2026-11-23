@@ -1,0 +1,122 @@
+/*
+ * Handout tokens: copied by worker/scripts/sync_handout_style.py from
+ * src/StemStudio.Web/wwwroot/css/tokens.css (theme-independent tokens and the light theme,
+ * "day session"). Do not edit: change the app tokens and run the script
+ * (manifest.json).
+ */
+:root {
+  --ss-font: "Archivo", "Segoe UI Variable", system-ui, sans-serif;
+  --ss-num: tabular-nums;
+  --ss-color-none: transparent;
+
+  /* Type scale: size / line height, weight, width (font-stretch). */
+  --ss-type-display-size: 2.075rem;
+  --ss-type-display-line: 1.1;
+  --ss-type-display-weight: 750;
+  --ss-type-display-width: 116%;
+  --ss-type-title-size: 1.4375rem;
+  --ss-type-title-line: 1.2;
+  --ss-type-title-weight: 650;
+  --ss-type-title-width: 108%;
+  --ss-type-heading-size: 1.2rem;
+  --ss-type-heading-line: 1.25;
+  --ss-type-heading-weight: 600;
+  --ss-type-heading-width: 100%;
+  --ss-type-body-size: 1rem;
+  --ss-type-body-line: 1.5;
+  --ss-type-body-weight: 400;
+  --ss-type-label-size: 0.83125rem;
+  --ss-type-label-line: 1.3;
+  --ss-type-label-weight: 550;
+  --ss-type-strip-size: 0.83125rem;
+  --ss-type-strip-line: 1.1;
+  --ss-type-strip-weight: 650;
+  --ss-type-strip-width: 75%;
+  --ss-type-small-size: 0.75rem;
+  --ss-type-small-line: 1.35;
+  --ss-type-small-weight: 450;
+  --ss-type-counter-size: 1.725rem;
+  --ss-type-counter-line: 1;
+  --ss-type-counter-weight: 500;
+  --ss-type-counter-width: 90%;
+
+  /* Space (4 px grid). */
+  --ss-space-1: 0.25rem;
+  --ss-space-2: 0.5rem;
+  --ss-space-3: 0.75rem;
+  --ss-space-4: 1rem;
+  --ss-space-5: 1.5rem;
+  --ss-space-6: 2rem;
+  --ss-space-7: 3rem;
+  --ss-space-8: 4rem;
+
+  /* Density multiplier and the sizes it drives (WCAG 2.5.8: never below 24 px). */
+  --ss-density: 1;
+  --ss-control-height: calc(2.5rem * var(--ss-density));
+  --ss-strip-width: calc(6rem * var(--ss-density));
+  --ss-target-min: 1.5rem;
+
+  /* Layout. */
+  --ss-rail-width: 4.5rem;
+  --ss-content-max: 80rem;
+  --ss-help-width: 25rem;
+  --ss-transport-height: 4.5rem;
+  --ss-gutter: 1.5rem;
+
+  /* Radius encodes containment. */
+  --ss-radius-control: 2px;
+  --ss-radius-panel: 6px;
+  --ss-radius-float: 12px;
+  --ss-radius-pill: 999px;
+  --ss-elev-0: none;
+
+  /* Motion. */
+  --ss-dur-press: 90ms;
+  --ss-dur-small: 160ms;
+  --ss-dur-panel: 240ms;
+  --ss-dur-reveal: 600ms;
+  --ss-dur-fade: 240ms;
+  --ss-ease-enter: cubic-bezier(0.2, 0, 0, 1);
+  --ss-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+
+  /* Layers. */
+  --ss-z-rail: 10;
+  --ss-z-transport: 20;
+  --ss-z-panel: 30;
+  --ss-z-popover: 40;
+  --ss-z-dialog: 50;
+  --ss-z-tour: 60;
+
+  /* Focus ring geometry. */
+  --ss-focus-width: 2px;
+  --ss-focus-offset: 2px;
+}
+
+/* Light theme (day session). */
+:root {
+  color-scheme: light;
+  --ss-color-base: #E6EAF0;
+  --ss-color-surface: #F7F9FC;
+  --ss-color-raised: #FFFFFF;
+  --ss-color-sunken: #DCE1E8;
+  --ss-color-ink: #172030;
+  --ss-color-muted: #4F5B6E;
+  --ss-color-divider: #CBD2DC;
+  --ss-color-control-border: #6E7B90;
+  --ss-color-focus: #9A5B00;
+  --ss-color-primary: var(--ss-color-ink);
+  --ss-color-on-primary: var(--ss-color-surface);
+  --ss-color-success: #1E7A45;
+  --ss-color-warning: #8A6200;
+  --ss-color-danger: #B3261E;
+  --ss-color-on-state: #FFFFFF;
+  --ss-color-scrim: rgb(23 32 48 / 0.35);
+  --ss-stem-vocals: #B8336A;
+  --ss-stem-drums: #A85400;
+  --ss-stem-bass: #5B45C9;
+  --ss-stem-guitar: #00806D;
+  --ss-stem-piano: #1F6FB5;
+  --ss-stem-other: #5B7417;
+  --ss-stem-none: #8A95A6;
+  --ss-elev-float: 0 12px 32px rgb(23 32 48 / 0.18);
+}
