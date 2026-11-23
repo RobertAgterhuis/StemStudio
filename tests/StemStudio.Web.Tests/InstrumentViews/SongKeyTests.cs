@@ -71,6 +71,17 @@ public sealed class SongKeyTests : PageTestContext
     }
 
     [Fact]
+    public void Advanced_TrackPage_TheKeyTextIsOnlyTheDisplay_TheRegionsSitBesideIt()
+    {
+        var page = TrackKeyAt(ExperienceLevel.Advanced, Summary());
+
+        page.WaitForAssertion(() => page.FindAll("[data-testid=track-key-region-1]").ShouldNotBeEmpty());
+        var key = page.Find("[data-testid=track-key]");
+        key.TextContent.Trim().ShouldBe("C major");
+        key.QuerySelector("[data-testid=track-key-regions]").ShouldBeNull();
+    }
+
+    [Fact]
     public void Beginner_TrackPage_HasNoRegionList()
     {
         TrackKeyAt(ExperienceLevel.Beginner, Summary()).FindAll("[data-testid=track-key-regions]").ShouldBeEmpty();
