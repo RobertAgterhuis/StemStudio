@@ -3,6 +3,8 @@ using System.Text;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
+using StemStudio.Contracts.Assets;
+using StemStudio.Contracts.Handouts;
 
 namespace StemStudio.Api.Tests.Handouts;
 
@@ -64,6 +66,22 @@ public sealed class HandoutSecurityTests : ApiTestBase
         body.ShouldContain("\"paper\":\"letter\"");
         nulls.StatusCode.ShouldBe(HttpStatusCode.Accepted);
     }
+
+    [Fact]
+    public async Task DeletingAQueuedHandout_DeletesItsHandoutJob()
+    {
+        var song = await Factory.SeedSongAsync();
+        var created = await (await Client.PostHandoutAsync(Bass(song.Id))).BodyAsync<AssetDto>();
+        var job = Factory.InsightsWorker.HandoutJobs.Keys.Single();
+
+        using var deleted = await Client.DeleteAsync(new Uri(ApiRoutes.Asset(created.Id), UriKind.Relative), Ct);
+
+        deleted.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        Factory.InsightsWorker.Deleted.ShouldBe([$"handout:{job}"]);
+        Factory.Worker.RenderDeletes.ShouldBeEmpty();
+    }
+
+    private static CreateHandoutRequest Bass(Guid trackId) => new() { Source = HandoutSourceDto.Song(trackId), Family = HandoutFamilyDto.Bass };
 
     private Task<HttpResponseMessage> PostRawAsync(string json) =>
         Client.PostAsync(new Uri(ApiRoutes.Handouts, UriKind.Relative), new StringContent(json, Encoding.UTF8, "application/json"), Ct);
