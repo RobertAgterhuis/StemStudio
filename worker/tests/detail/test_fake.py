@@ -47,7 +47,7 @@ def test_the_fake_table_matches_the_e2e_expectations(tmp_path: Path) -> None:
     }  # fmt: skip
     assert names["drums"] == ["kick", "snare", "toms", "hihat", "rest"]
     assert names["vocals"] == ["lead", "backing", "rest"]
-    assert names["other"] == ["strings", "brass", "rest"]
+    assert names["other"] == ["strings", "brass", "woodwinds", "rest"]
     assert {o.model for p, o in outcomes.items() if p != "bass"} == {"fake-detail"}
 
 
@@ -55,7 +55,7 @@ def test_fake_scales_follow_the_tasks_table() -> None:
     assert FAKE_SCALES["drums"] == {"kick": 0.5, "snare": 0.25, "toms": 0.15, "hihat": 0.1}
     assert FAKE_SCALES["vocals"] == {"lead": 0.7, "backing": 0.3}
     assert sum(FAKE_SCALES["piano"].values()) == pytest.approx(0.3)
-    assert FAKE_SCALES["other"] == {"brass": 0.6, "strings": 0.4}
+    assert FAKE_SCALES["other"] == {"brass": 0.4, "strings": 0.3, "woodwinds": 0.3}
 
 
 def test_fake_parents_run_one_by_one(tmp_path: Path) -> None:
@@ -91,7 +91,7 @@ def test_create_detail_adapters_in_fake_mode_needs_no_downloads(tmp_path: Path) 
     vocals = adapters.models.get("uvr-mdxnet-kara-2").separate(noise(0.1, 0.2), lambda f, s: None)
     assert sorted(vocals) == ["backing", "lead"]
     other = adapters.models.get("fake-detail").separate(noise(0.1, 0.2), lambda f, s: None)
-    assert sorted(other) == ["brass", "strings"]
+    assert sorted(other) == ["brass", "strings", "woodwinds"]
     assert not (tmp_path / "models").exists()
 
 
