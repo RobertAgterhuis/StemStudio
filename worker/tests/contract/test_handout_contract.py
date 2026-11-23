@@ -48,7 +48,7 @@ from stemstudio_worker.schemas import (
     SongFacts,
 )
 
-from .docs import WorkerDocument
+from .docs import WorkerDocument, field_mismatch
 
 V1110 = WorkerDocument("020-insights-handouts")
 _ASSET = "assets/1b2c3d4e-5f60-4718-9a0b-c1d2e3f4a5b6"
@@ -105,12 +105,7 @@ def _setlist(request: dict[str, Any], songs: int) -> dict[str, Any]:
 
 @pytest.mark.parametrize("name", sorted(_MODELS))
 def test_every_handout_schema_has_a_model_with_the_same_fields(name: str) -> None:
-    schema = V1110.schemas[name]
-    fields = {f.alias or key for key, f in _MODELS[name].model_fields.items()}
-    required = {f.alias or key for key, f in _MODELS[name].model_fields.items() if f.is_required()}
-
-    assert fields == set(schema["properties"])
-    assert required <= set(schema.get("required", []))
+    assert field_mismatch(V1110, name, _MODELS[name]) == []
 
 
 @pytest.mark.parametrize(

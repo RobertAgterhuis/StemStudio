@@ -45,7 +45,7 @@ from stemstudio_worker.schemas import (
     StemQuality,
 )
 
-from .docs import WorkerDocument, changed_entries
+from .docs import WorkerDocument, changed_entries, field_mismatch
 
 V190 = WorkerDocument("016-instrument-views")
 V1110 = WorkerDocument("020-insights-handouts")
@@ -108,12 +108,7 @@ def test_g2_parts_are_not_merged() -> None:
 
 @pytest.mark.parametrize("name", sorted(_MODELS))
 def test_every_new_schema_has_a_model_with_the_same_fields(name: str) -> None:
-    schema = V1110.schemas[name]
-    fields = {f.alias or key for key, f in _MODELS[name].model_fields.items()}
-    required = {f.alias or key for key, f in _MODELS[name].model_fields.items() if f.is_required()}
-
-    assert fields == set(schema["properties"])
-    assert required <= set(schema.get("required", []))
+    assert field_mismatch(V1110, name, _MODELS[name]) == []
 
 
 @pytest.mark.parametrize(("model", "schema"), [(Health, "Health"), (LanesHealth, "LanesHealth")])
