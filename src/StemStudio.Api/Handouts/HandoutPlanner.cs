@@ -117,8 +117,35 @@ public sealed class HandoutPlanner(ITrackRepository tracks, ISetlistSource setli
         return await SetlistSongsAsync(recipe.SetlistId!.Value, cancellationToken);
     }
 
-    private Task<(List<(Track Track, string? Notes)>?, SetlistSnapshot?, IResult?)> SetlistSongsAsync(Guid setlistId, CancellationToken cancellationToken) =>
-        throw new NotImplementedException($"Setlist {setlistId} handouts ({setlists}, {options}, {cancellationToken.CanBeCanceled}) come with User Story 4.");
+    private async Task<(List<(Track Track, string? Notes)>?, SetlistSnapshot?, IResult?)> SetlistSongsAsync(Guid setlistId, CancellationToken cancellationToken)
+    {
+        var setlist = await setlists.FindAsync(setlistId, cancellationToken);
+        var max = options.Value.MaxSetlistHandoutSongs;
+        var refusal = setlist switch
+        {
+            null => HandoutProblems.SetlistNotFound(setlistId),
+            { Entries.Count: 0 } => InsightsProblems.SetlistEmpty(),
+            _ when setlist.Entries.Count > max => InsightsProblems.TooManySongs(max),
+            _ => null,
+        };
+        if (refusal is not null)
+        {
+            return (null, null, refusal);
+        }
+
+        var songs = new List<(Track, string?)>();
+        var kept = new List<SetlistSong>();
+        foreach (var entry in setlist!.Entries)
+        {
+            if (await tracks.FindAsync(entry.TrackId, cancellationToken) is { } track)
+            {
+                songs.Add((track, entry.Notes));
+                kept.Add(entry);
+            }
+        }
+
+        return songs.Count == 0 ? (null, null, InsightsProblems.SetlistEmpty()) : (songs, setlist with { Entries = kept }, null);
+    }
 }
 
 /// <summary>Problems of the handout endpoints beside the conflicts of <see cref="InsightsProblems"/>.</summary>
