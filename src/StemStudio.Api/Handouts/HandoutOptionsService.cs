@@ -1,4 +1,6 @@
 using System.Globalization;
+using Microsoft.Extensions.Options;
+using StemStudio.Api.Insights;
 using StemStudio.Api.Handouts.Sources;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Handouts;
@@ -16,7 +18,8 @@ namespace StemStudio.Api.Handouts;
 /// <param name="tracks">Tracks.</param>
 /// <param name="setlists">014 setlists.</param>
 /// <param name="loader">Reads the songs' material.</param>
-public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSource setlists, HandoutMaterialLoader loader)
+/// <param name="options">The setlist song limit (<c>MaxSetlistHandoutSongs</c>, the same cap as creation).</param>
+public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSource setlists, HandoutMaterialLoader loader, IOptions<InsightsOptions> options)
 {
     /// <summary>Most notation choices.</summary>
     public const int MaxChoices = 400;
@@ -79,8 +82,10 @@ public sealed class HandoutOptionsService(ITrackRepository tracks, ISetlistSourc
             return (null, HandoutProblems.SetlistNotFound(setlistId.Value));
         }
 
+        // At most the song limit is read: a longer setlist cannot be made (409 too-many-songs on create), so its options are
+        // those of the first songs and the request stays bounded.
         var songs = new List<(HandoutMaterial, Track)>();
-        foreach (var entry in setlist.Entries)
+        foreach (var entry in setlist.Entries.Take(options.Value.MaxSetlistHandoutSongs))
         {
             if (await tracks.FindAsync(entry.TrackId, cancellationToken) is { } track)
             {
