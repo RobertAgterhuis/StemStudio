@@ -20,7 +20,7 @@ namespace StemStudio.Api.Insights;
 /// <param name="options">The <c>AutoQualityReport</c> setting.</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed class QualityService(
+public sealed partial class QualityService(
     ITrackRepository tracks,
     IWorkerInsightsClient worker,
     QualityInputs inputs,
@@ -105,7 +105,8 @@ public sealed class QualityService(
         catch (WorkerRequestException refused)
         {
             track.RequestQuality(plan.StemsVersion, Now);
-            track.FailQuality($"The processing service refused the quality check: {refused.Detail}", Now);
+            LogRefused(logger, track.Id, refused.Detail);
+            track.FailQuality(WorkerRefused, Now);
             await tracks.SaveAsync(cancellationToken);
             return null;
         }
@@ -123,4 +124,7 @@ public sealed class QualityService(
             () => worker.DeleteQualityJobAsync(job.QualityJobId, CancellationToken.None),
             logger);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Quality report of track {TrackId}: the processing service refused the job: {Reason}")]
+    private static partial void LogRefused(ILogger logger, Guid trackId, string reason);
 }

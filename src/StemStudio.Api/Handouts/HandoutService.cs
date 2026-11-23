@@ -29,7 +29,7 @@ public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, 
 /// <param name="store">Item storage.</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed class HandoutService(
+public sealed partial class HandoutService(
     HandoutPlanner planner, HandoutAssembler assembler, IWorkerInsightsClient worker, HandoutStore store, TimeProvider clock, ILogger<HandoutService> logger)
 {
     /// <summary>Most handouts of one song or setlist that are queued or rendering at a time (security review 020, finding 4).</summary>
@@ -108,7 +108,8 @@ public sealed class HandoutService(
         }
         catch (WorkerRequestException refused)
         {
-            return HandoutProblems.Field("document", $"The processing service refused the handout: {refused.Detail}");
+            LogRefused(logger, refused.Detail);
+            return HandoutProblems.Field("document", WorkerRefused);
         }
 
         var kept = await SubmittedJob.KeepAsync(
@@ -129,6 +130,9 @@ public sealed class HandoutService(
         await store.Assets.SaveAsync(CancellationToken.None);
         return TypedResults.Accepted(ApiRoutes.Asset(asset.Id), await store.Reader.ToDtoAsync(asset, CancellationToken.None));
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The processing service refused a handout: {Reason}")]
+    private static partial void LogRefused(ILogger logger, string reason);
 
     private static Provenance Provenance(HandoutRecipe recipe, HandoutDraft draft, string label)
     {
