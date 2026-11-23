@@ -3,15 +3,17 @@
 Worktree `E:\PatricksSoundStudio\.claude\worktrees\020-lane-worker-io`, branch `020-lane-worker-io`.
 This note covers both owners (audio-ingest points here).
 
-## Done
+## Done (all lane tasks)
 
-- Foundational: T016/T017 (insights lane, stores), T018/T019 (allow-list, fetcher).
+- stem-separation: T016/T017, T040/T041, T074/T075 (hand-offs foundational, us1, us3).
+- audio-ingest: T018/T019, T068-T073, T083/T084, T104 (hand-offs foundational, us3, us4, polish).
+- G2 T088-T092: deferred, not built.
 
-## Next (in order)
+## Open
 
-1. T040/T041 quality routes/service/composition/health (stem-separation).
-2. T068-T073 renderer (audio-ingest), T074/T075 handout routes/service (stem-separation).
-3. T083/T084 setlist templates, T104 timing.
+- Integration: confirm the analyzer class names with beat-analysis (`main.QUALITY_ANALYZERS`).
+- Questions in the hand-offs: outline order vs the contract example (audio-ingest us3),
+  `threadpoolctl`/`fontTools` as direct dependencies (architect).
 
 ## How to run
 

@@ -19,7 +19,7 @@ Lane WORKER-IO, branch `020-lane-worker-io` (from `ca82a055`).
 
 | Task | Red | Green |
 |---|---|---|
-| T018 / T019 | 4df361c8 | f4f10a49 (+ complexity fix in 68658fd8's follow-up commit) |
+| T018 / T019 | 4df361c8 | f4f10a49 (+ complexity fix in 870b8182) |
 
 ## Tests and coverage
 
