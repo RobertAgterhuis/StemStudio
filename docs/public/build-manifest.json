@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-23",
-  "sourceHash": "41a2a27aee2c1397025e9251323b8fee48c7209526adc8a145b56cecec8d55aa",
+  "sourceHash": "12879cd2f20013ee1adf6ac66ba09cbe99c6c0807daabae2d0bc6078d8ecd023",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 62,
-      "bytes": 2343106
+      "bytes": 2358412
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 83,
-      "bytes": 2120948
+      "bytes": 2121894
     }
   ],
   "inputs": [
@@ -89,7 +89,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
-      "sha256": "159289aae2ee9d59f9b98edeeddb0aeb7924056da03dddc5b16ee6366eb264e5"
+      "sha256": "eaadba73dd76cf8c986c91e52419e2096f2be49cf44879786159c9a75b51143a"
     },
     {
       "path": "docs/public/src/technical-manual/10-development-workflow.md",
