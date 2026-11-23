@@ -1,1 +1,213 @@
-/* red stub */
+/*
+ * Lesson handout print style (feature 020, data-model 6.4/6.5). Colours only from the app tokens
+ * (handouts/assets/tokens.css, light theme); no literal colours. Page size, the frame height, the
+ * font face and the footer notice come from the inline style of the template (markup.py).
+ */
+
+@page {
+  margin: 18mm 18mm 20mm 18mm;
+  @top-center {
+    content: string(running, first-except);
+    font-family: var(--ss-font);
+    font-size: 9pt;
+    color: var(--ss-color-muted);
+  }
+  @bottom-left {
+    font-family: var(--ss-font);
+    font-size: 9pt;
+    color: var(--ss-color-muted);
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: var(--ss-font);
+    font-size: 9pt;
+    color: var(--ss-color-muted);
+  }
+}
+
+html {
+  font-family: var(--ss-font);
+  font-size: 10pt;
+  line-height: 1.4;
+  color: var(--ss-color-ink);
+  background: var(--ss-color-raised);
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-weight: 600;
+  line-height: var(--ss-type-title-line);
+  margin: 0 0 3mm;
+  break-after: avoid;
+}
+
+h1 {
+  font-size: 20pt;
+  font-weight: 700;
+  font-variation-settings: "wdth" 125, "wght" 700;
+  string-set: running attr(data-running);
+}
+
+h2 {
+  font-size: 12pt;
+  margin-top: 6mm;
+  padding-bottom: 1mm;
+  border-bottom: 0.5pt solid var(--ss-color-divider);
+}
+
+h3 {
+  bookmark-level: none;
+  font-size: 10pt;
+  font-weight: 600;
+  margin: 3mm 0 1mm;
+}
+
+p {
+  margin: 0 0 2mm;
+}
+
+.song,
+.about {
+  break-before: page;
+}
+
+.song.first {
+  break-before: auto;
+}
+
+.band {
+  display: flex;
+  gap: 6mm;
+  align-items: flex-start;
+  margin-bottom: 4mm;
+}
+
+.artwork {
+  width: 40mm;
+  height: 40mm;
+  object-fit: cover;
+  border-radius: var(--ss-radius-panel);
+}
+
+.byline,
+.family,
+.muted {
+  color: var(--ss-color-muted);
+}
+
+.facts {
+  margin: 2mm 0 0;
+  font-variant-numeric: var(--ss-num);
+}
+
+.fact {
+  display: inline-block;
+  margin: 0 5mm 1mm 0;
+  white-space: nowrap;
+}
+
+.fact .label {
+  color: var(--ss-color-muted);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: var(--ss-num);
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 1mm 2mm;
+  border-bottom: 0.5pt solid var(--ss-color-divider);
+}
+
+th {
+  color: var(--ss-color-muted);
+  font-weight: 600;
+}
+
+tr {
+  break-inside: avoid;
+}
+
+.bars td.bar {
+  border-left: 0.5pt solid var(--ss-color-divider);
+  min-width: 12mm;
+  font-weight: 700;
+}
+
+.lyrics .row {
+  margin: 0 0 2mm;
+  break-inside: avoid;
+}
+
+.seg {
+  display: inline-block;
+  vertical-align: top;
+  white-space: pre;
+}
+
+.seg .chord {
+  display: block;
+  min-height: 1.3em;
+  padding-right: 1.5mm;
+  font-weight: 700;
+  color: var(--ss-color-focus);
+}
+
+.seg .lyric {
+  display: block;
+}
+
+.legend {
+  margin-top: 2mm;
+  color: var(--ss-color-muted);
+}
+
+.legend b {
+  color: var(--ss-color-focus);
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+.frame-page {
+  break-before: page;
+}
+
+.frame {
+  width: 100%;
+  border: 0.5pt solid var(--ss-color-divider);
+}
+
+.note {
+  padding: 3mm;
+  border: 0.5pt solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+}
+
+.contents a {
+  color: var(--ss-color-ink);
+  text-decoration: none;
+}
+
+.contents a::after {
+  content: leader(".") target-counter(attr(href), page);
+}
+
+.contents li {
+  list-style: none;
+  margin: 0 0 1mm;
+}
+
+.contents ul {
+  padding: 0;
+}
