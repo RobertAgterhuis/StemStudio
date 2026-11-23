@@ -5,6 +5,7 @@ area: insights
 summary: "The tips under a stem rating and what each button does."
 feature: quality.report
 levels: [beginner, advanced, expert]
+anchors: ["quality-tip-*"]
 keywords: ["tip", "split further", "detail", "mute", "gpu", "advice"]
 related: [stem-quality, detail-stems, mixer-mute-solo]
 reviewed: "020"

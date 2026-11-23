@@ -5,6 +5,7 @@ area: insights
 summary: "Reliability labels, the validation state and the analyzer version of a quality report."
 feature: quality.indices
 levels: [advanced, expert]
+anchors: ["quality-analyzer-version"]
 keywords: ["reliability", "validated", "rough indication", "analyzer", "version", "index"]
 related: [stem-quality-measures, stem-quality]
 reviewed: "020"

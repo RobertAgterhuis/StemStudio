@@ -5,6 +5,7 @@ area: insights
 summary: "Bleed, artefacts and the main bleed source behind a stem rating."
 feature: quality.details
 levels: [advanced, expert]
+anchors: ["quality-bleed-*", "quality-artefacts-*", "quality-index-*"]
 keywords: ["bleed", "artefacts", "flicker", "dropouts", "leakage", "index"]
 related: [stem-quality, stem-quality-reliability]
 reviewed: "020"

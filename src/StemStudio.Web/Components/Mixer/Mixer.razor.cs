@@ -86,6 +86,7 @@ public sealed partial class Mixer : IAsyncDisposable
             _track = await Api.GetTrackAsync(Id);
             LoadError = _track.Status == TrackStatusDto.Completed ? null : NotReadyMessage;
             State = LoadError is null ? new MixerState(_track) : null;
+            await LoadQualityAsync();
         }
         catch (ApiException ex)
         {

@@ -5,6 +5,7 @@ area: insights
 summary: "How clean each stem is: a rating per stem and detail stem with a short reason and tips."
 feature: quality.report
 levels: [beginner, advanced, expert]
+anchors: ["quality-panel", "quality-badge-*"]
 keywords: ["quality", "rating", "bleed", "spill", "clean", "estimate", "report"]
 related: [stem-quality-tips, stem-quality-measures, detail-stems]
 reviewed: "020"

@@ -1,0 +1,103 @@
+/*
+ * Stem quality (feature 020): the quality card of the track page and the rating badge of the mixer strips. Ratings
+ * always show a word and an icon (R20-1); the tint only repeats them. Tokens only (004), no literal colours.
+ */
+
+.ss-quality {
+  display: grid;
+  gap: var(--ss-space-3);
+}
+
+.ss-quality > * {
+  min-width: 0;
+}
+
+.ss-quality-progress {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.ss-quality-rows {
+  display: grid;
+  gap: var(--ss-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-quality-children {
+  margin-block-start: var(--ss-space-2);
+  padding-inline-start: var(--ss-space-4);
+  border-inline-start: 2px solid var(--ss-color-divider);
+}
+
+.ss-quality-row {
+  display: grid;
+  gap: var(--ss-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ss-quality-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-quality-channel {
+  font-weight: 600;
+}
+
+.ss-quality-rating,
+.ss-quality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  padding-inline: var(--ss-space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--ss-radius-pill);
+  color: var(--ss-color-ink);
+}
+
+/* Target size (WCAG 2.5.8): the badge is a link, at least --ss-target-min (24 px) high. */
+.ss-quality-badge {
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.ss-quality-badge:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+[data-rating="good"] > .rzi {
+  color: var(--ss-color-success);
+}
+
+[data-rating="fair"] > .rzi,
+[data-rating="poor"] > .rzi {
+  color: var(--ss-color-warning);
+}
+
+[data-rating="not-present"] > .rzi,
+[data-rating="unknown"] > .rzi {
+  color: var(--ss-color-muted);
+}
+
+.ss-quality-tips {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-quality-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}

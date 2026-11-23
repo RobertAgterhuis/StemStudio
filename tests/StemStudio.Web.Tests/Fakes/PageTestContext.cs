@@ -66,6 +66,14 @@ public abstract class PageTestContext : BunitContext
         AgentDefaults();
         LibraryCareDefaults();
         InstrumentViewDefaults();
+        InsightsDefaults();
+    }
+
+    /// <summary>No quality report was ever made and no practice notes exist unless a test says otherwise (020).</summary>
+    private void InsightsDefaults()
+    {
+        Api.GetQualityReportAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(InsightsData.NoReport());
+        Api.GetPracticeNotesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(new StemStudio.Contracts.Handouts.PracticeNotesDto { Notes = [] });
     }
 
     /// <summary>No 016 analysis exists and the catalogue is the fake one unless a test says otherwise.</summary>
