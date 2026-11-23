@@ -22,6 +22,15 @@ public enum ScoreProfile
 
     /// <summary>Percussion staff from the five drum detail stems.</summary>
     Drums,
+
+    /// <summary>Strings section line (feature 016).</summary>
+    Strings,
+
+    /// <summary>Brass section line (feature 016).</summary>
+    Brass,
+
+    /// <summary>Woodwinds section line (feature 016).</summary>
+    Woodwinds,
 }
 
 /// <summary>Piano transcription quality.</summary>
@@ -119,6 +128,21 @@ public enum ScoreWarningCode
 
     /// <summary>A drum piece stem was missing.</summary>
     MissingDrumPiece,
+
+    /// <summary>Notes were moved by an octave to fit the tuning (feature 016).</summary>
+    TabOctaveMoved,
+
+    /// <summary>Chord notes were left out for lack of strings (feature 016).</summary>
+    TabNotesDropped,
+
+    /// <summary>Chords need a wide stretch (feature 016).</summary>
+    TabWideStretch,
+
+    /// <summary>Notes are outside the usual range of the written instrument (feature 016).</summary>
+    PartOutOfRange,
+
+    /// <summary>A section stem was reduced to its loudest line (feature 016).</summary>
+    SectionReduced,
 }
 
 /// <summary>Why a score cannot be made from a source (the API answers 409).</summary>
@@ -211,6 +235,15 @@ public sealed record ScoreRecipe
 
     /// <summary>Part of the source (at least 2 s).</summary>
     public ExportRange? Range { get; init; }
+
+    /// <summary>Tablature settings (feature 016), null without tablature.</summary>
+    public TablatureSettings? Tablature { get; init; }
+
+    /// <summary>Part settings (feature 016), null for concert pitch without a clef choice.</summary>
+    public PartSettings? Part { get; init; }
+
+    /// <summary>Place chord symbols above the top staff (feature 016).</summary>
+    public bool IncludeChords { get; init; }
 }
 
 /// <summary>The key of a score.</summary>

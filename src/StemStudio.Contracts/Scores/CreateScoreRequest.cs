@@ -3,7 +3,7 @@ using StemStudio.Contracts.Assets;
 namespace StemStudio.Contracts.Scores;
 
 /// <summary>Body of <c>POST /api/assets/scores</c> (backend contract 1.7.0); null members take the defaults of data-model.md 4.2.</summary>
-public sealed record CreateScoreRequest
+public sealed record CreateScoreRequest : ScoreNotationOptions
 {
     /// <summary>A channel of a completed track or a ready audio item.</summary>
     public required AudioSourceDto Source { get; init; }

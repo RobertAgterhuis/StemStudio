@@ -173,7 +173,8 @@ public sealed class AssetContractTests
         SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), JsonSerializer.SerializeToNode(body, Web)).ShouldBeEmpty(schema);
 
     private static JsonNode ListParameter(string name) =>
-        OpenApiContract.Backend.Operation("listAssets")["parameters"]!.AsArray().Single(p => p!["name"]!.GetValue<string>() == name)!["schema"]!;
+        OpenApiContract.Backend.Operation("listAssets")["parameters"]!.AsArray().Select(p => OpenApiContract.Backend.Resolve(p!))
+            .Single(p => p["name"]!.GetValue<string>() == name)["schema"]!;
 
     private static IEnumerable<int> Integers(JsonNode array) => array.AsArray().Where(v => v is not null).Select(v => (int)v!.GetValue<double>());
 

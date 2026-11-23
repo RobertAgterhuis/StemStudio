@@ -61,8 +61,8 @@ from stemstudio_worker.schemas import (
 from .docs import WorkerDocument
 
 V160 = WorkerDocument("008-sheet-music")
-# Health grew in 1.8.0 (014: lanes.practice, structure); its checks use the current document.
-CURRENT = WorkerDocument("014-practice-flow")
+# Health grew in 1.8.0 (014) and 1.9.0 (016); its checks use the current document.
+CURRENT = WorkerDocument("016-instrument-views")
 _TRACK = "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a"
 
 
@@ -77,7 +77,7 @@ def _example(name: str) -> Any:
 def test_contract_version_is_1_6_0_or_a_superset() -> None:
     # 013 Phase 0: the code follows 1.7.0, which contains 1.6.0 unchanged (storage contract test).
     assert V160.root["info"]["version"] == "1.6.0"
-    assert CONTRACT_VERSION == "1.8.0"
+    assert CONTRACT_VERSION == "1.9.0"
 
 
 @pytest.mark.parametrize(
@@ -95,7 +95,8 @@ def test_contract_version_is_1_6_0_or_a_superset() -> None:
     ],
 )
 def test_literals_match_the_contract(alias: object, schema: str) -> None:
-    assert list(get_args(alias)) == V160.schemas[schema]["enum"]
+    # 1.9.0 (016) appends profiles and warning codes; the current document is checked.
+    assert list(get_args(alias)) == CURRENT.schemas[schema]["enum"]
 
 
 def test_drum_pieces_and_files_match_the_contract() -> None:
@@ -121,7 +122,7 @@ def test_drum_pieces_and_files_match_the_contract() -> None:
     ],
 )
 def test_examples_round_trip(example: str, model: type[BaseModel]) -> None:
-    V160.assert_round_trip(example, model)
+    CURRENT.assert_round_trip(example, model)  # 1.9.0 summary fields (016)
 
 
 def test_example_paths_pass_the_library_guard() -> None:

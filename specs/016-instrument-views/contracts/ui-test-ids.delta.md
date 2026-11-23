@@ -1,10 +1,8 @@
 # Contract delta: UI test ids for feature 016 (draft, additive)
 
-Status: **draft delta** (016 planning, 2026-11-16). Base: `ui-test-ids.md` **1.14.0** (015, written
-in parallel; on `main` the last full document is 1.7.0 in
-[008](../../008-sheet-music/contracts/ui-test-ids.md) plus the 009-011 deltas). In Phase 0 (T004)
-the architect merges this delta unchanged into `specs/016-instrument-views/contracts/ui-test-ids.md`
-**1.15.0**. Nothing below renames, removes or changes an existing id; every existing rule applies
+Status: **merged** (016 Phase 0 T004, 2026-11-18) into `specs/016-instrument-views/contracts/ui-test-ids.md`
+**1.15.0** = 015's 1.14.0 plus the table below unchanged (section "Additions in 1.15.0 (feature 016)"); Phase 0
+fixes are listed under "Phase 0 changes". Planning base was 1.14.0 (015). Nothing below renames, removes or changes an existing id; every existing rule applies
 (R1-R9: `getByTestId` only, level visibility, placement inside 004's layout).
 
 Binding for the **frontend** agent once merged; the **qa** agent may author the 016 specs
@@ -47,8 +45,8 @@ against these names now.
 | Track detail | `track-key-regions` | list of key regions; items `track-key-region-<n>` with text "Bar 9: D major" | advanced, expert |
 | Mixer, Track detail | `capo-mode` | toggle (`aria-pressed`) of capo mode; exists only for the guitar family (chosen in "Practise as" or the chord view's menu) | all |
 | Mixer, Track detail | `capo-badge` | "Capo 3"; exists only while capo mode is on with capo > 0 | all |
-| Mixer, Track detail | `capo-select` | number input 0..12 (`aria-valuenow`), replaces `chords-capo` for the guitar family | all |
-| Mixer, Track detail | `capo-suggestions` | list; items `capo-suggestion-<n>` (buttons; text "Capo 3 - C shapes, 100 % open"; `data-capo`) | all |
+| Mixer, Track detail | `capo-select` | number input 0..12 (`aria-valuenow`); exists only for the guitar family | all |
+| Mixer, Track detail | `capo-suggestions` | plain list (`<ul>`, no `listbox`: options may not hold buttons); items `capo-suggestion-<n>` are buttons (text "Capo 3 - C shapes, 100 % open"; `data-capo`) | all |
 | Mixer, Track detail | `capo-shortcut` | button "Capo 2: play the original shapes" (exists only when a shortcut applies) | all |
 | Mixer, Track detail | `capo-show-sounding` | checkbox | advanced, expert |
 | Track detail | `chord-sheet` | chord-over-lyrics rows inside `lyrics-section`; each row `chord-sheet-row-<n>` with chord spans `chord-sheet-chord-<n>-<m>` (text = symbol) | all |
@@ -60,10 +58,10 @@ against these names now.
 | Track detail, Mixer | `midi-<key>` | "MIDI" action per channel (track page stem/detail rows, mixer strip menu); `aria-busy="true"` while a score is generated for it | all |
 | Track detail, Mixer | `midi-progress-<key>` | progress (`aria-valuenow` 0-100) while generating | all |
 | Track detail, Mixer | `midi-error-<key>` | readable reason | all |
-| Sheet music dialog | `score-tab-layout` | select `notation-and-tab`/`tab-only`/`none` (guitar, bass profiles only) | all |
+| Sheet music dialog | `score-tab-layout` | select `notation-and-tab`/`tab-only`/`none` (guitar, bass profiles only; `none` sends `tablature: null`) | all |
 | Sheet music dialog | `score-tab-tuning` | select of catalogue tunings for the profile | all (Beginner: standard only + drop D) |
 | Sheet music dialog | `score-tab-capo` | number input 0..12 (guitar only) | advanced, expert |
-| Sheet music dialog | `score-part-instrument` | select of the written instrument catalogue (`concert` first) | all |
+| Sheet music dialog | `score-part-instrument` | select of the written instrument catalogue (`concert` first); also in the instrument view (Practise as strings/brass/woodwinds) | all |
 | Sheet music dialog | `score-part-clef` | select of clefs | advanced, expert |
 | Sheet music dialog | `score-include-chords` | checkbox (disabled with `aria-describedby` reason when chords are not ready) | advanced, expert |
 | Library | `asset-score-tab-<assetId>` | text e.g. "Tab: Drop D, capo 2 (3 notes moved by an octave)" | all |
@@ -83,7 +81,7 @@ against these names now.
 | Singing | `singing-reference-status` | `data-status`; readable status, `singing-reference-analyse` button and `singing-reference-estimate` text | all |
 | Singing | `pitch-view` | engine host (rendered **empty**, `@key`, `role="img"`); engine writes `data-state`, `data-singer-cents`, `data-target-cents`, `data-unit-index`, `data-last-score`, `data-latency-source` | all |
 | Singing | `singing-tolerance` | slider 10..200 step 5 (`aria-valuenow` = cents) | advanced, expert |
-| Singing | `singing-latency` | text "Latency: 42 ms (calibrated)" / "(estimated - calibrate in Recording settings)" with a link to the 015 settings | advanced, expert |
+| Singing | `singing-latency` | text "Latency: 42 ms (calibrated)" (015 `LatencyMethod` `loopback` or `manual`) / "(estimated - calibrate in Recording settings)" (`estimated`) with a link to the 015 settings; `data-latency-source` = the method | advanced, expert |
 | Singing | `singing-raw` | text "220.0 Hz, A3 +3 cents" | expert |
 | Singing | `singing-headphones-hint` | hint text | all |
 | Singing | `singing-error` | readable reason (no permission, no device, too slow) with link to the 015 input settings | all |
@@ -101,3 +99,13 @@ against these names now.
 `score-part-clef`, `drumless`, `drum-trainer`, `drum-lanes`, `singing`, `singing-tolerance`,
 `singing-latency`, `pitch-view`, `song-key` (on `track-key`, `mixer-key`), `capo-mode` (on
 `capo-mode`, `capo-suggestions`).
+
+## Phase 0 changes (2026-11-18)
+
+- `capo-select`: the planning text named a non-existent `chords-capo`; removed.
+- `capo-suggestions`: written down as a plain list of buttons (LESSONS frontend: `listbox` options may not hold
+  interactive content).
+- `score-tab-layout`: `none` = `tablature: null` in the request (the contract enum has two layouts).
+- `singing-latency`: mapped to the 015 `LatencyMethod` values (`loopback`/`manual` = calibrated, `estimated`).
+- Help anchor `song-key` is a `data-help-id`; the 010 `data-testid` `song-key` (song page input) is a different
+  attribute and is unchanged.

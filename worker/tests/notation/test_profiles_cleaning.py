@@ -62,7 +62,9 @@ def test_profile_table(row: tuple[str, tuple[str, ...], int, int, bool, str]) ->
 
 
 def test_every_profile_is_in_the_table() -> None:
-    assert set(PROFILES) == {"vocals", "bass", "guitar", "keys", "piano", "drums"}
+    assert set(PROFILES) == {
+        "vocals", "bass", "guitar", "keys", "piano", "drums", "strings", "brass", "woodwinds",
+    }  # fmt: skip
 
 
 @pytest.mark.parametrize(

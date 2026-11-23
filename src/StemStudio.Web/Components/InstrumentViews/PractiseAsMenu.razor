@@ -1,0 +1,24 @@
+@* "Practise as ..." (016 US6, FR-060, FR-062; ui-test-ids practise-as, practise-as-<family>): a WAI-ARIA menu button with one
+   radio item per family; arrows, Home and End move the focus, Escape closes and returns the focus to the button. *@
+@using StemStudio.Contracts.InstrumentViews
+@using StemStudio.Web.InstrumentViews
+
+<div class="ss-menu ss-practise-as">
+    <button type="button" class="rz-button rz-button-sm rz-light" aria-haspopup="menu" aria-expanded="@(Open ? "true" : "false")"
+            @ref="_button" @onclick="Toggle" @onkeydown="ButtonKey" data-family="@FamilyId" data-testid="practise-as" data-help-id="practise-as">
+        <span class="rzi" aria-hidden="true">piano</span>@ButtonText
+    </button>
+    @if (Open)
+    {
+        <div class="ss-menu-list" role="menu" aria-label="Practise as" @onkeydown="MenuKey">
+            @for (var i = 0; i < InstrumentFamilies.All.Count; i++)
+            {
+                var index = i;
+                var family = InstrumentFamilies.All[index];
+                <button type="button" role="menuitemradio" class="ss-menu-item" aria-checked="@(family == Family ? "true" : "false")"
+                        tabindex="@(index == _focus ? 0 : -1)" @ref="_items[index]" @onclick="() => ChooseAsync(family)"
+                        data-testid="@($"practise-as-{InstrumentFamilies.Id(family)}")">@InstrumentFamilies.Label(family)</button>
+            }
+        </div>
+    }
+</div>

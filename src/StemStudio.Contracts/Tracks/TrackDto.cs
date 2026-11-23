@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using StemStudio.Contracts.InstrumentViews;
 using StemStudio.Contracts.Lyrics;
 
 namespace StemStudio.Contracts.Tracks;
@@ -70,6 +71,14 @@ public sealed record TrackDto
     /// <summary>Recorded takes of the track (1.14.0, 0..200), shown in the delete confirmation; absent on the wire when 0.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int TakeCount { get; init; }
+
+    /// <summary>Status of the instrument view analyses (1.15.0); null (absent on the wire) = every analysis <c>none</c>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public InstrumentViewsStatusDto? InstrumentViews { get; init; }
+
+    /// <summary>The song key next to the BPM (1.15.0) when chords are ready; null (absent on the wire) otherwise.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TrackKeySummaryDto? Key { get; init; }
 
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }

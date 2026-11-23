@@ -170,6 +170,34 @@ Recording is browser-side capture plus API-side storage; the worker API is uncha
   the stems; compare modes mute the take or the part stem sample-exactly. Exports with the take
   use the 007 planner with `ExportChannelId` (`take`) and `takeId`.
 
+### Instrument views (016, ADR-031, ADR-032, ADR-033)
+
+Per-track analyses feed one shared timeline in the browser; the views are drawn by the engine.
+
+- **Analyses** (`TrackAnalyses`, one row per track and kind): `chords` (with the song key and key
+  regions), `drum-hits` and `vocal-pitch`. The API starts chords automatically once the standard
+  separation is complete and drum hits once the drums are split; the reference melody starts on
+  demand. The worker runs them on its own lane `instrument-analysis` (one job at a time, never
+  waiting for the separate, render or transcribe lanes) and returns the result inline; the API
+  bounds and stores it as a document, marks it `stale` when its source stems change and serves
+  it per track.
+- **Chords**: BTC (vendored MIT subset, weights `btc-majmin` / `btc-large-voca`, GPU when
+  available) or the CPU chroma-HMM fallback, then post-processing (beat snapping, minimum
+  duration, Harte labels) and a key estimate. Spelling (flats or sharps per key region, transpose,
+  capo) is shared by Domain (C#) and engine (TS) through the chord spelling vectors 1.0.0.
+- **Engine views**: `timeline/**` (one clock and bar cursor per frame, paging under reduced
+  motion), `chords/**` (lane, karaoke banner chords, current key), `drums/**` (five hit lanes) and
+  `singing/**` (pitch view, per-line scorer, take score). The live pitch of the microphone is a
+  YIN core in its own AudioWorklet (`pitch/worklet.ts`, built by `vite.pitch.config.ts`); singing
+  scores are computed in the browser and never sent to the API (FR-047).
+- **Notation** (008 transcription lane, extended): tablature (guitar and bass tunings, capo,
+  fingering by a minimum-movement search, Verovio native TAB), transposed parts for B-flat,
+  E-flat and F instruments with clefs, chord symbols above the top staff, drum MIDI on the General
+  MIDI channel 10 map, and the new profiles `strings`, `brass`, `woodwinds`.
+- **Practise as ...** (Web): a minus-one mix per family (the family's stem and all its detail
+  channels muted, the rest unmuted and unsoloed) and the family's view; Drumless per data-model
+  5.3 (metronome with count-in, previous state restored on the second click).
+
 ## Dependency rules
 
 - .NET: Web → Contracts ← Api → Domain ← Persistence, and Api → Persistence. Web never
@@ -197,13 +225,14 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.14.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0) + 014 (1.13.0: sections, score views, setlists, practice log) + 015 (1.14.0: takes, calibrations, export with `take`); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
-| Worker API (`worker-api.openapi.yaml`) | 1.8.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration, 014: 1.8.0 practice lane with section, score-view and setlist-document jobs, `Health.structure`, `Health.lanes.practice`) | — |
+| Backend API (`backend-api.openapi.yaml`) | 1.15.0 = 1.14.0 + 016 (chords, key, capo suggestions, drum hits, vocal pitch, instrument catalogue; tablature and part options on scores); 1.14.0 = 1.11.0 + 013 (1.12.0) + 022 (1.22.0) + 023 (1.23.0) + 014 (1.13.0: sections, score views, setlists, practice log) + 015 (1.14.0: takes, calibrations, export with `take`); earlier labels: (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes, 013: 1.12.0 = 1.11.0 + library care; labels identify merged deltas, not an order) | - |
+| Worker API (`worker-api.openapi.yaml`) | 1.9.0 = 1.8.0 + 016 (instrument-analysis jobs and lane, tablature, parts, chord symbols, new profiles); 1.8.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0, 013: 1.7.0 storage, clean-up and rehydration, 014: 1.8.0 practice lane with section, score-view and setlist-document jobs, `Health.structure`, `Health.lanes.practice`) | — |
 | Backup archive (`backup-archive.md` + `backup-manifest.schema.json`) | 1.0.0 (013) | a new major only for an incompatible layout |
-| Audio engine (`audio-engine.md`) | 2.5.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1; 014: 2.4.0 score follower and `OnLoopPass`; 015: 2.5.0 recording, calibration, take channel and five recording callbacks) | — |
-| UI test ids (`ui-test-ids.md`) | 1.14.0 (014: 1.13.0, 015: 1.14.0, merged after 022: 1.22.0 and 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
-| Help content (`help-content.md` + schemas) | 1.0.0 (004) | additive topics per feature |
+| Audio engine (`audio-engine.md`) | 2.6.0 (016: timeline views for chords, drum hits and singing, pitch worklet, singing scores); 2.5.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1; 014: 2.4.0 score follower and `OnLoopPass`; 015: 2.5.0 recording, calibration, take channel and five recording callbacks) | — |
+| UI test ids (`ui-test-ids.md`) | 1.15.0 (016: instrument views); 1.14.0 (014: 1.13.0, 015: 1.14.0, merged after 022: 1.22.0 and 023: 1.23.0; earlier: 005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0, 013: 1.12.0) | one minor per feature |
+| Help content (`help-content.md` + schemas) | 1.1.0 (016: area `instruments`); 1.0.0 (004) | additive topics per feature |
 | Web interop (`web-interop.md`) | 1.1.0, which contains 1.0.0 (004), 1.2.0 (022: scope `library`, key `/` -> `library.search.focus`) and 1.1.0 (014: data-driven key map `keymap-defaults.json`, scope `setlist`, preferences schema version 2) | - |
+| Chord spelling vectors (`chord-spelling-vectors.json`, generator + `--check`) | 1.0.0 (016; shared by Domain and engine) | - |
 | Render vectors (`render-vectors.json`) | 1.1.0 (007: 1.0.0; 015: 1.1.0 adds eight take cases) | — |
 | Generator API (`generator-api.openapi.yaml`) | 1.1.0 (009: 1.0.0, 010: 1.1.0) | — |
 | Agent tool catalogue (`tool-catalogue.md`, 69 tools), agent E2E script schema (`agent-script.schema.json`), evaluation set (`eval-set.md`, 40 scored cases), lyric output schema (`lyric-assist-output.schema.json`) | catalogue 1.2.0 = 1.0.0 + 012 (1.3.0: `practice` read-only in `get_mix` / `mixer_get_state`) + 022 (1.1.0: four library tools) + 023 (1.2.0: eight lyric tools); evaluation set 1.1.0; script schema 1.0.0 (023 adds the `{{context.lyricsId}}` and `{{result.<tool>.ids:<category>}}` placeholders in its descriptions); lyric output schema 1.0.0 | - |

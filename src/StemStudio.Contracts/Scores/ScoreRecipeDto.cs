@@ -3,7 +3,7 @@ using StemStudio.Contracts.Assets;
 namespace StemStudio.Contracts.Scores;
 
 /// <summary>The normalised request of a score item (defaults resolved), stored with the item (backend contract 1.7.0).</summary>
-public sealed record ScoreRecipeDto
+public sealed record ScoreRecipeDto : ScoreNotationOptions
 {
     /// <summary>Wire discriminator; always <c>score</c>.</summary>
     public string Kind { get; init; } = "score";

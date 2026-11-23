@@ -28,7 +28,7 @@ describe('practice contract 2.3.0 (skeleton)', () => {
     const trainer: readonly TrainerState[] = ['off', 'waiting', 'running', 'target'];
     const callback: DotNetCallbacks = 'OnPracticeChanged';
 
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.5.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.6.0');
     expect([stretch.length, trainer.length, callback]).toEqual([4, 4, 'OnPracticeChanged']);
   });
 

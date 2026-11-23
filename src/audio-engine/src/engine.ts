@@ -8,7 +8,8 @@ import { DotNetNotifier, PracticeNotifier, loopPassNotifier } from './callbacks'
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
-import { KaraokeClock, heardTime } from './karaoke/clock';
+import { KaraokeClock } from './karaoke/clock';
+import { heardTime } from './timeline/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
 import { LoopPassTracker } from './loop-pass';
@@ -24,12 +25,24 @@ import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
+import { scoreTake } from './singing/take-score';
+import { InstrumentViews } from './views/instrument-views';
 import type {
   AudioEngine,
   BeatGrid,
   CalibrationOptions,
   CalibrationResult,
   CapturedTake,
+  ChordChartData,
+  ChordDisplay,
+  ChordLaneOptions,
+  DrumHitEvent,
+  HitLaneOptions,
+  RoundTripLatency,
+  SingingFeedbackRequest,
+  SingingSummary,
+  TakeScoreRequest,
+  TakeScoreResult,
   ChannelId,
   ChannelSettings,
   DotNetObjectReference,
@@ -173,6 +186,7 @@ export class Engine implements AudioEngine {
   private readonly practice: PracticeController;
   private readonly practiceNotifier: PracticeNotifier;
   private readonly recording: Recording;
+  private readonly views: InstrumentViews;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -185,6 +199,7 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
+    this.views = this.createViews(ref, options);
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
     this.recording = this.createRecording(ref, options);
@@ -235,6 +250,7 @@ export class Engine implements AudioEngine {
     this.alive();
     this.parts.transport.stop();
     this.parts.passes.reset();
+    this.views.seeked();
   }
 
   /** {@inheritDoc AudioEngine.seek} */
@@ -244,6 +260,7 @@ export class Engine implements AudioEngine {
     const max = this.parts.transport.duration;
     this.parts.transport.seek(clampChecked(seconds, { min: 0, max, name: 'position' }));
     this.parts.passes.reset();
+    this.views.seeked();
   }
 
   /** {@inheritDoc AudioEngine.getPosition} */
@@ -285,6 +302,7 @@ export class Engine implements AudioEngine {
     this.parts.passes.onLoopChanged();
     this.parts.karaoke.redraw();
     this.parts.score.redraw();
+    this.views.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -440,6 +458,78 @@ export class Engine implements AudioEngine {
     this.recording.setTakeCompare(mode);
   }
 
+  /** {@inheritDoc AudioEngine.attachChordLane} */
+  public attachChordLane(elementId: string, chart: ChordChartData, options?: ChordLaneOptions): void {
+    this.alive();
+    this.views.attachChordLane(elementId, chart, options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachChordLane} */
+  public detachChordLane(): void {
+    this.alive();
+    this.views.detachChordLane();
+  }
+
+  /** {@inheritDoc AudioEngine.setKaraokeChords} */
+  public setKaraokeChords(chart: ChordChartData | null): void {
+    this.alive();
+    this.views.setKaraokeChords(chart);
+  }
+
+  /** {@inheritDoc AudioEngine.setChordDisplay} */
+  public setChordDisplay(display: ChordDisplay): void {
+    this.alive();
+    this.views.setChordDisplay(display);
+  }
+
+  /** {@inheritDoc AudioEngine.attachHitLanes} */
+  public attachHitLanes(elementId: string, hits: readonly DrumHitEvent[], options?: HitLaneOptions): void {
+    this.alive();
+    this.views.attachHitLanes(elementId, hits, options);
+  }
+
+  /** {@inheritDoc AudioEngine.setHitLaneOptions} */
+  public setHitLaneOptions(options: HitLaneOptions): void {
+    this.alive();
+    this.views.setHitLaneOptions(options);
+  }
+
+  /** {@inheritDoc AudioEngine.detachHitLanes} */
+  public detachHitLanes(): void {
+    this.alive();
+    this.views.detachHitLanes();
+  }
+
+  /** {@inheritDoc AudioEngine.getRoundTripLatency} */
+  public getRoundTripLatency(): RoundTripLatency {
+    this.alive();
+    return this.views.getRoundTripLatency();
+  }
+
+  /** {@inheritDoc AudioEngine.setSingingTolerance} */
+  public setSingingTolerance(cents: number): void {
+    this.alive();
+    this.views.setSingingTolerance(cents);
+  }
+
+  /** {@inheritDoc AudioEngine.stopSingingFeedback} */
+  public stopSingingFeedback(): SingingSummary {
+    this.alive();
+    return this.views.stopSingingFeedback();
+  }
+
+  /** {@inheritDoc AudioEngine.startSingingFeedback} */
+  public async startSingingFeedback(request: SingingFeedbackRequest): Promise<void> {
+    this.alive();
+    await this.views.startSingingFeedback(request);
+  }
+
+  /** {@inheritDoc AudioEngine.scoreTake} */
+  public async scoreTake(request: TakeScoreRequest): Promise<TakeScoreResult> {
+    this.alive();
+    return scoreTake(request, { context: this.parts.context, fetch: this.fetchFn });
+  }
+
   /** {@inheritDoc AudioEngine.dispose} */
   public async dispose(): Promise<void> {
     if (this.disposed) {
@@ -452,10 +542,26 @@ export class Engine implements AudioEngine {
     });
     karaoke.detach();
     this.parts.score.detach();
+    this.views.dispose();
     [frames, metronome, this.practice, this.practiceNotifier, this.recording].forEach((part) => {
       part.dispose();
     });
     await context.close();
+  }
+
+  private createViews(ref: DotNetObjectReference, options: EngineOptions): InstrumentViews {
+    const { context, transport, frames, karaoke } = this.parts;
+    return new InstrumentViews({
+      context,
+      transport,
+      loop: frames,
+      karaoke,
+      ref,
+      grid: () => this.grid,
+      input: () => this.recording.singingInput,
+      createNode: (ctx, name, nodeOptions) => this.recording.environment.createWorkletNode(ctx, name, nodeOptions),
+      pitchWorkletUrl: options.pitchWorkletUrl,
+    });
   }
 
   private createPractice(options: EngineOptions): PracticeController {
@@ -463,6 +569,7 @@ export class Engine implements AudioEngine {
     const factory = options.timeStretchFactory ?? createWorkletStageFactory({ ...options.timeStretch, fetch: this.fetchFn });
     const changed = (): void => {
       this.practiceNotifier.changed();
+      this.views.setTranspose(this.practice.status().transposeSemitones);
     };
     const startDelay = options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS;
     const tempoSource = (): TempoSource => ({ grid: this.grid, metronome: this.metronome });

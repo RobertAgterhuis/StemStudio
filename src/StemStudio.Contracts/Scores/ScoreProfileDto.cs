@@ -29,4 +29,16 @@ public enum ScoreProfileDto
     /// <summary>Percussion staff from the five drum detail stems.</summary>
     [JsonStringEnumMemberName("drums")]
     Drums,
+
+    /// <summary>One line of a string section (1.15.0, feature 016).</summary>
+    [JsonStringEnumMemberName("strings")]
+    Strings,
+
+    /// <summary>One line of a brass section (1.15.0, feature 016).</summary>
+    [JsonStringEnumMemberName("brass")]
+    Brass,
+
+    /// <summary>One line of a woodwind section (1.15.0, feature 016).</summary>
+    [JsonStringEnumMemberName("woodwinds")]
+    Woodwinds,
 }

@@ -34,11 +34,12 @@ of the sources the PDF was built from.
   and the mixer, and saving mixes.
 - Chapters 7 to 11 cover practising with the mixer: song sections, the score that follows the
   playback, setlists, the practice log and play-along recording.
-- Chapters 12 to 21 describe the features that build on the core: cover art and band info,
-  karaoke lyrics, the export library, the library by artist and album, sheet music, style
+- Chapters 12 to 22 describe the features that build on the core: cover art and band info,
+  karaoke lyrics, the export library, the library by artist and album, sheet music, the
+  instrument views (chords, key, capo, tablature, drum trainer, singing feedback, parts), style
   transfer, songs from your own lyrics, the lyric writing assistant, the AI composer agent
   and library care (backups, restore and disk space).
-- Chapters 22 to 25 are reference material: keyboard shortcuts and foot pedals, help and tours,
+- Chapters 23 to 26 are reference material: keyboard shortcuts and foot pedals, help and tours,
   troubleshooting, and the legal notice.
 
 Names of buttons and screens are printed in **bold**. Keys are shown like <kbd>Space</kbd>.

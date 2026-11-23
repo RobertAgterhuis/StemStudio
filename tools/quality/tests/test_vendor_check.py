@@ -26,10 +26,11 @@ def _package(root: Path, folder: str, *names: str) -> None:
         write_module(root, f"{folder}/{name}", "text\n")
 
 
-def test_vendor_roots_cover_detail_and_transcription() -> None:
+def test_vendor_roots_cover_detail_transcription_and_harmony() -> None:
     assert (
         f"{PACKAGE}/detail/vendor",
         f"{PACKAGE}/transcription/vendor",
+        f"{PACKAGE}/harmony/vendor",
     ) == vendor_check.VENDOR_ROOTS
 
 

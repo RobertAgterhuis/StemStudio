@@ -56,7 +56,10 @@
           "text": "87 very short or out-of-range notes were removed."
         }
       ],
-      "attribution": null
+      "attribution": null,
+      "tablature": null,
+      "part": null,
+      "chordsIncluded": false
     }
   },
   "createdAt": "2026-11-15T11:00:00Z",

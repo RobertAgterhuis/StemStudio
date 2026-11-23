@@ -56,7 +56,7 @@ For each level StemStudio takes the first name it has, in this order:
 Names that differ only in capitals, accents, spaces, quotes, dashes or a leading "The" share
 one folder, so *Motörhead* and *MOTORHEAD* are the same artist. "feat." parts in an artist
 name are left out when filing; "Various Artists" is ignored. A song made from your own lyrics
-(chapter 18) is filed under **My songs > Songs from my lyrics**.
+(chapter 19) is filed under **My songs > Songs from my lyrics**.
 
 The name shown on a folder is the spelling from the band info when one of its items was filed
 from a match, otherwise the spelling most of its items use. Names that StemStudio chose
@@ -66,7 +66,7 @@ never changed automatically.
 ## Sorting your library (n left)
 
 The first time you start StemStudio after this feature was added, and after you restore an
-older backup (chapter 21), StemStudio files all existing items in the background. Until that is
+older backup (chapter 22), StemStudio files all existing items in the background. Until that is
 done the library shows **Sorting your library (n items left)** and updates by itself. You can
 keep working; a library of 5,000 items is normally ready within seconds. New items are filed in
 the same moment they are saved, so they never wait.
@@ -163,7 +163,7 @@ each level and **Open in library**, which opens the song folder at that item.
 
 ## Backups and the agent
 
-Filing and the names you set live in the database, so a backup (chapter 21) keeps them; folder
-pictures need nothing extra. The AI composer agent (chapter 20) can browse a folder, search
+Filing and the names you set live in the database, so a backup (chapter 22) keeps them; folder
+pictures need nothing extra. The AI composer agent (chapter 21) can browse a folder, search
 the library, open a folder for you and change library info. Folder and item names count as
 text from outside, so after the agent has read them it asks before changing anything.

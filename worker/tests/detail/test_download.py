@@ -108,6 +108,42 @@ def test_a_broken_stream_removes_the_partial_file(tmp_path: Path) -> None:
     assert list(_target(tmp_path).parent.iterdir()) == []
 
 
+def test_a_download_larger_than_the_pinned_size_is_aborted(tmp_path: Path) -> None:
+    """Hostile server: an endless stream stops at the pinned size instead of filling the disk."""
+    reads: list[int] = []
+
+    class Endless(io.RawIOBase):
+        def read(self, size: int | None = -1) -> bytes:
+            reads.append(1)
+            if len(reads) > 64:
+                raise AssertionError("kept reading past the pinned size")
+            return b"x" * (size if size is not None and size > 0 else download._CHUNK)
+
+    @contextmanager
+    def opener(url: str) -> Iterator[BinaryIO]:
+        yield Endless()  # type: ignore[misc]
+
+    with pytest.raises(DetailModelUnavailableError) as raised:
+        ModelDownloader(tmp_path, opener).ensure(SPEC)
+    assert str(raised.value) == DOWNLOAD_FAILED
+    assert len(reads) <= 2
+    assert list(_target(tmp_path).parent.iterdir()) == []
+
+
+def test_one_byte_over_the_pinned_size_fails_and_the_exact_size_is_kept(tmp_path: Path) -> None:
+    small = ModelSpec(
+        model_id=SPEC.model_id,
+        file_name=SPEC.file_name,
+        url=SPEC.url,
+        size_bytes=len(PAYLOAD) - 1,
+        sha256=SPEC.sha256,
+        licence=SPEC.licence,
+    )
+    with pytest.raises(DetailModelUnavailableError, match="try again when online"):
+        ModelDownloader(tmp_path, FakeOpener()).ensure(small)
+    assert ModelDownloader(tmp_path, FakeOpener()).ensure(SPEC).read_bytes() == PAYLOAD
+
+
 def test_open_url_uses_urllib_with_a_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[tuple[str, float]] = []
 

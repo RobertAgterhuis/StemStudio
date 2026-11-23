@@ -1,0 +1,12 @@
+{
+  "analysisJobId": "9a8b7c6d5e4f30211203f4e5d6c7b8a9",
+  "kind": "vocal-pitch",
+  "status": "failed",
+  "stage": null,
+  "progress": 0.3,
+  "device": null,
+  "error": "The vocal stem is silent, so no melody can be shown.",
+  "result": null,
+  "createdAt": "2026-11-16T10:00:00Z",
+  "updatedAt": "2026-11-16T10:00:20Z"
+}

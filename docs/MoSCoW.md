@@ -67,6 +67,7 @@ Nice ideas; pick them when there is room.
 | C9 | **Practice partner**: generate a missing part (bass line, drums, accompaniment) in the song's key and tempo, as an extra strip | Play with a band when a stem is missing or you want a variation; Moises' "AI session musician". | Generative stack of 009/010 (ACE-Step); research which models can generate a single part conditioned on the song. L |
 | C10 | **Amp and pedal simulation** for guitar and bass played through an audio interface | Practise with a realistic tone without an amp; Moises has an amp modeler. | Neural Amp Modeler (MIT) in an AudioWorklet/WASM; builds on 015 input and 017 effects. M |
 | C11 | **Export to a DAW** as DAWproject (open format) with stems, tempo, sections and the arrangement | Continue in Ableton, Bitwig, Studio One, Cubase. | Builds on 007 and 019. S-M |
+| C12 | **WASM DSP layer in the audio engine** (owner request 2026-11-22, an addition to the engine, not a replacement): one shared AudioWorklet + WASM (Rust/C++) path for heavy DSP, used by 017 effects (EQ, compressor, reverb) and C10 amp simulation; evaluate a higher-quality time-stretch/pitch-shift (e.g. Signalsmith Stretch, MIT) against today's SoundTouch WASM (012) | Better sound when slowing down or transposing a lot, and effects that run off the main thread with exact metering. | Only when 012 stretch quality or 017 effect load falls short; keep sample-lock across stems; licence check (no GPL: Rubber Band is out). Spike first: listening test + CPU per stem. M |
 
 ## Won't have (this time)
 

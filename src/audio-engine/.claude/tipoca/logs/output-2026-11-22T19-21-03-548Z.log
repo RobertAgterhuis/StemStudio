@@ -1,0 +1,99 @@
+
+ RUN  v5.1.0 E:/PatricksSoundStudio/.claude/worktrees/r16-l1/src/audio-engine
+
+ ❯ tests/singing/score-take.test.ts (11 tests | 3 failed) 463ms
+   ❯ scoreTake (FR-046) (10)
+     × scores every unit the take covers with the live core; the take starts at startSample 87ms
+     × applies no latency (015 takes are already compensated) 43ms
+     × averages the channels of a stereo take 156ms
+
+ Test Files  1 failed | 73 passed (74)
+      Tests  3 failed | 1382 passed (1385)
+   Start at  20:20:54
+   Duration  9.34s (environment 83%, tests 10%, transform 4%, import 3%)
+
+Environment  jsdom was created 74 times · 135.41s total, 83% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+npm notice run @stemstudio/audio-engine@0.1.0 test
+npm notice run vitest run
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > scores every unit the take covers with the live core; the take starts at startSample
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  [
+    {
+      "index": 1,
+      "pass": 1,
+-     "score": 100,
++     "score": 99,
+    },
+    {
+      "index": 2,
+      "pass": 1,
+      "score": 100,
+
+ ❯ tests/singing/score-take.test.ts:41:26
+     39|   it('scores every unit the take covers with the live core; the take s…
+     40|     const result = await scoreTake(REQUEST, deps(contextWith(tone(44_1…
+     41|     expect(result.units).toEqual([
+       |                          ^
+     42|       { index: 1, score: 100, pass: 1 },
+     43|       { index: 2, score: 100, pass: 1 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > applies no latency (015 takes are already compensated)
+AssertionError: expected [] to deeply equal [ { index: 1, score: 100, pass: 1 } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "index": 1,
+-     "pass": 1,
+-     "score": 100,
+-   },
+- ]
++ []
+
+ ❯ tests/singing/score-take.test.ts:58:26
+     56|     samples.set(tone(44_100, 0.5, [[440, 0.4]]), 22_050);
+     57|     const result = await scoreTake({ ...REQUEST, startSample: 22_050, …
+     58|     expect(result.units).toEqual([{ index: 1, score: 100, pass: 1 }]);
+       |                          ^
+     59|   });
+     60|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/singing/score-take.test.ts > scoreTake (FR-046) > averages the channels of a stereo take
+AssertionError: expected [ 99, 100 ] to deeply equal [ 100, 100 ]
+
+- Expected
++ Received
+
+  [
+-   100,
++   99,
+    100,
+  ]
+
+ ❯ tests/singing/score-take.test.ts:69:46
+     67|     });
+     68|     const result = await scoreTake(REQUEST, deps(ctx));
+     69|     expect(result.units.map((u) => u.score)).toEqual([100, 100]);
+       |                                              ^
+     70|   });
+     71|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+

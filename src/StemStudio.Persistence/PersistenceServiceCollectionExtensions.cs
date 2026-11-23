@@ -23,6 +23,12 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IGenerationRepository, GenerationRepository>();
         services.AddScoped<ILyricsSheetRepository, LyricsSheetRepository>();
         services.AddScoped<IVoiceProfileRepository, VoiceProfileRepository>();
+        return services.AddLaterRepositories();
+    }
+
+    /// <summary>The repositories of features 011 and later.</summary>
+    private static IServiceCollection AddLaterRepositories(this IServiceCollection services)
+    {
         services.AddScoped<IAudioHashRepository, AudioHashRepository>();
         services.AddScoped<IAgentSecretStore, AgentSecretStore>();
         services.AddScoped<ILyricAssistRepository, LyricAssistRepository>();
@@ -30,10 +36,17 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ILyricsRevisionRepository, LyricsRevisionRepository>();
         services.AddScoped<ILyricWordRepository, LyricWordRepository>();
         services.AddScoped<ILyricsCorpusSource, LyricsCorpusSource>();
+        return services.AddPracticeRepositories();
+    }
+
+    /// <summary>The repositories of features 014 and later.</summary>
+    private static IServiceCollection AddPracticeRepositories(this IServiceCollection services)
+    {
         services.AddScoped<ISectionRepository, SectionRepository>();
         services.AddScoped<IScoreViewRepository, ScoreViewRepository>();
         services.AddScoped<ISetlistRepository, SetlistRepository>();
         services.AddScoped<IPracticeRepository, PracticeRepository>();
+        services.AddScoped<ITrackAnalysisRepository, TrackAnalysisRepository>();
         return services;
     }
 }

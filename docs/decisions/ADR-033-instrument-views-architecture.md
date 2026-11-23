@@ -1,6 +1,8 @@
 # ADR-033: Instrument views: analyses, timeline views, tablature and transposed parts (feature 016)
 
 - **Status**: Accepted (owner, 2026-11-19, via the Tipoca project site; proposed by the architect, 2026-11-16).
+  Architect Phase 0 notes (2026-11-18): T001 reconciled with the merged 012/014/015
+  surface (016 DELTA.md "Phase 0 outcome"); T006 decided D6 = native Verovio TAB (see D6).
 - **Context documents**: `specs/016-instrument-views/{spec.md, plan.md, research.md R-08..R-12,
   data-model.md 4-7}`, ADR-016 (lanes, library), ADR-017 (notation/engraving), ADR-015 (banner),
   ADR-031, ADR-032, `docs/MoSCoW.md` (every instrument counts equally)
@@ -59,6 +61,11 @@ Verovio 6.4.0 engraves the TAB staff from our MusicXML (`TAB` clef, staff tuning
 technical). If the Phase 0 spike shows incorrect tab rendering, audio-ingest draws the TAB staff
 into the Verovio SVG pages itself (lines and fret numbers per measure, measure x positions from
 Verovio's notation staff); this is a bounded fallback inside `engraving/`, with no new dependency.
+
+**Phase 0 decision (T006, 2026-11-18): native Verovio, no fallback drawing.** Verovio 6.4.0 engraved
+notation + TAB and TAB-only parts with 6, 5 and 4 staff lines and the fret numbers as text; it does not
+print `<capo>`. The notator therefore also writes a `<direction>` "Capo <n>" above bar 1 (keeping
+`<capo>` in `<staff-details>`); `engraving/tablature.py` only checks line counts and fret texts (T037/T038).
 
 ### D7 Equal entry point and family rule
 

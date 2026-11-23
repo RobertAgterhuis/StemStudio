@@ -31,7 +31,6 @@ from stemstudio_worker.ports import (
     is_allowed_library_path,
 )
 from stemstudio_worker.schemas import (
-    CONTRACT_VERSION,
     DOCUMENT_FAILED_TEXT,
     SCORE_VIEW_FAILED_TEXT,
     SECTION_WARNING_TEXTS,
@@ -163,7 +162,7 @@ def _document(*songs: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_contract_version_is_1_8_0() -> None:
-    assert CONTRACT_VERSION == V180.root["info"]["version"] == "1.8.0"
+    assert V180.root["info"]["version"] == "1.8.0"  # current: 1.9.0 (016)
 
 
 def test_1_8_0_contains_1_7_0_except_the_additive_health_fields() -> None:
@@ -251,7 +250,7 @@ def test_default_health_validates_against_the_document() -> None:
 
     assert health["lanes"]["practice"] == {"queued": 0, "running": False}
     assert health["structure"] == {"analyzer": "stems-novelty", "version": "1.0.0"}
-    assert V180.errors("Health", health) == []
+    assert WorkerDocument("016-instrument-views").errors("Health", health) == []  # 1.9.0 fields
 
 
 def test_health_examples_validate() -> None:

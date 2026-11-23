@@ -139,6 +139,25 @@ public sealed class WorkerTranscriptionClientTests
         summary.Warnings.Select(warning => warning.Code).ShouldBe([ScoreWarningCode.MissingDrumPiece, ScoreWarningCode.CpuPiano]);
     }
 
+    [Theory]
+    [InlineData("tab-octave-moved")]
+    [InlineData("tab-notes-dropped")]
+    [InlineData("tab-wide-stretch")]
+    [InlineData("part-out-of-range")]
+    [InlineData("section-reduced")]
+    public async Task Get_ParsesThe016WarningCodes(string code)
+    {
+        // Worker 1.9.0 ScoreWarningCode: a part with notes out of range must not read as an unusable service (E2E instrument-parts).
+        var body = JsonNode.Parse(WorkerExamples.Read("transcription-completed-job"))!;
+        body["result"]!["summary"]!["warnings"] = JsonNode.Parse($$"""[{"code":"{{code}}","text":"016 warning."}]""");
+        var (client, _) = Create(_ => StubHttpMessageHandler.Json(HttpStatusCode.OK, body.ToJsonString()));
+
+        var summary = (await client.GetTranscriptionJobAsync(JobId, Ct))!.Result!.Summary;
+
+        var warning = summary.Warnings.Single();
+        (System.Text.Json.JsonNamingPolicy.KebabCaseLower.ConvertName(warning.Code.ToString()), warning.Text).ShouldBe((code, "016 warning."));
+    }
+
     [Fact]
     public async Task Get_ParsesTheFailureAnd404IsNull()
     {

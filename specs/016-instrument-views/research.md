@@ -56,6 +56,9 @@ spec promises a practice aid (FR-064) and SC-001 is measured on synthetic materi
   naming the commit; no import of mir_eval, pretty_midi, pandas or pyrubberband (Rubber Band is
   GPL; it is used only by the training augmentation and is not vendored).
 
+
+**Phase 0 outcome (2026-11-18, this PC: 24 cores, torch 2.15 CPU, numpy 2.5.4).** Both checkpoints download from the pinned commit with the recorded SHA-256 (12,154,754 / 12,229,576 bytes). They are legacy (non-zip) pickles; `torch.load(weights_only=True)` fails without help and succeeds with exactly `numpy.core.multiarray.scalar`, `numpy.dtype`, `numpy.dtypes.Float64DType` allow-listed (`mean`, `std` are numpy scalars); keys `model`, `mean`, `std`; 3,018,137 / 3,036,842 parameters. CQT (144 bins, 24/oct, hop 2048) of 5 min: 1.31 s, 3,230 frames = 30 windows of 108. The BTC forward pass was not run in the design phase (executing the downloaded model code was not permitted there); T063 measures it, estimate < 2 s on 8 threads. `BTC_GPU_NEED` stays 512 MiB until the T140 NVML peak.
+
 ## R-03 Fallback chord method `chroma-hmm`
 
 `librosa.feature.chroma_cqt` (hop 2048 at 22,050 Hz, the BTC frame rate so both engines share
@@ -65,6 +68,9 @@ similarity to emission probabilities, `librosa.sequence.transition_loop(25, 0.9)
 about 1-2 s per 5-minute song (P0). Used when BTC weights are not downloaded and cannot be
 (offline), when the user picks "fast" at Expert, and as the deterministic engine of many unit
 tests.
+
+
+**Phase 0 outcome (2026-11-18).** Prototype chroma (librosa `chroma_cqt`, hop 2048) + 25-state template HMM (`transition_loop(25, 0.9)`, Viterbi) on 5 min: 3.72 s. Estimate factor chroma-hmm 0.013 s/s (data-model 7.7).
 
 ## R-04 Harmonic input and post-processing
 
@@ -108,6 +114,9 @@ deltas of overruns reported by the main thread (missed hops); after 50 missed ho
 engine stops tracking (FR-045). P0 (T007) benchmarks the YIN core in Node on the reference
 machine and in Chromium with a fake input.
 
+
+**Phase 0 outcome (2026-11-18).** Node 22 (V8): the R-05 core (31-tap windowed-sinc decimator, W 512, hop 160, tau 14..246, threshold 0.15, parabolic interpolation) takes 0.021 / 0.019 / 0.010 ms average and 0.21 / 0.33 / 0.18 ms worst per 128-frame block at 44.1 / 48 / 96 kHz (20 s of a 220 Hz + 440 Hz tone; median 5700 cents = A3, correct). Chromium 159 headless (main thread, `page.evaluate`, no fake capture): 0.017 ms average, 0.30 ms worst at 48 kHz. SC-004 budget (0.5 ms average, 2 ms worst) holds with a margin of about 25x; the AudioWorklet run with a fake capture device is part of the qa fake-mic projects (T107).
+
 ## R-06 Reference melody (worker)
 
 - `librosa.pyin` on the lead vocal (`vocals/lead` detail stem when split, else `vocals`), resampled
@@ -120,6 +129,9 @@ machine and in Chromium with a fake input.
   voicing rule of R-05 (about 10x faster), switched by `STEMSTUDIO_PITCH_ENGINE=yin` (data-model 1).
 - Same algorithm family as the live tracker (YIN), so systematic offsets between reference and
   singer are small; scoring folds octaves anyway (data-model 3.4).
+
+
+**Phase 0 outcome (2026-11-18).** `librosa.pyin` (fmin 65, fmax 1047, frame 1024, hop 160, 16 kHz) on 30 s took 0.99 s, about 10 s for 5 min; `librosa.yin` on 5 min 1.23 s. `pyin` stays the default (<= 90 s); estimate factors pyin 0.035 s/s, yin 0.005 s/s (data-model 7.7).
 
 ## R-07 Latency alignment
 
@@ -151,6 +163,9 @@ the UI shows "not calibrated". The worklet stamps frames at the window centre:
   fretted frets (rejected when another candidate exists); open strings are free of position.
   Hand position = mean fretted fret of the event. Known-good on scales and the open-position
   chord shapes of the golden fixtures (SC-002).
+
+
+**Phase 0 outcome (2026-11-18, T006).** Verovio 6.4.0 engraves hand-written MusicXML with a `TAB` clef, `<staff-lines>` 6/5/4, `<staff-tuning>` and `<technical><string/><fret/>`: notation + TAB and TAB only render, the TAB staff has the right number of lines, fret numbers are text (`tabGrp` per note). `<capo>` is accepted but not printed. Decision ADR-033 D6: native Verovio; the notator writes "Capo <n>" as a `<direction>` above bar 1.
 
 ## R-09 Transposed parts
 
@@ -228,6 +243,9 @@ Expected accuracy: profile-based key finding reaches about 0.7-0.8 (MIREX weight
 material; harmonic stems and the chord term help. SC-010 is measured on synthetic cadences in all
 24 keys and modulation fixtures (I-IV-V-I in C, then in D) rendered in the tests. Cost: below 1 s
 per 5-minute song on top of the chords job (shared mixdown and CQT).
+
+
+**Phase 0 outcome (2026-11-18).** Prototype key HMM over 24 Krumhansl profiles on beat chroma smoothed over +-8 beats, emission `exp(beta x correlation)`: with beta 2-3 and `p_stay` 0.995 per beat the C -> D fixture (8 bars each, then C again) is reported at bar 8 (one bar early) and back at bar 16, with no spurious region; beta 8 gave three short spurious regions at every `p_stay`, beta 1 lost the change at `p_stay` >= 0.995. Start values for T019/T020: beta 3, `p_stay` 0.995, +-8 beats; the >= 8-bar region merge stays.
 
 ## R-14 Capo advisor (scope addition S12)
 

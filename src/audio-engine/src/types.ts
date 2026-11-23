@@ -8,7 +8,7 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '2.5.0';
+export type EngineContractVersion = '2.6.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
@@ -73,6 +73,8 @@ export interface DotNetObjectReference {
  * - `OnInputLost(string reason)` (2.5.0): the input device was unplugged or its track ended; a running recording
  *   stops and keeps a partial take.
  * - `OnInputDevicesChanged()` (2.5.0): a `devicechange` event; the UI lists the inputs again.
+ * - `OnSingingUnitScored(int index, int? score, int pass)` (2.6.0, feature 016): once per finished singing unit.
+ * - `OnSingingStateChanged(string state, string? reason)` (2.6.0): on every {@link SingingState} change.
  */
 export type DotNetCallbacks =
   | 'OnPositionChanged'
@@ -83,7 +85,9 @@ export type DotNetCallbacks =
   | 'OnRecordingProgress'
   | 'OnTakesCaptured'
   | 'OnInputLost'
-  | 'OnInputDevicesChanged';
+  | 'OnInputDevicesChanged'
+  | 'OnSingingUnitScored'
+  | 'OnSingingStateChanged';
 
 /** One stem to load: its name and an absolute or API-relative URL of the FLAC file. */
 export interface StemSource {
@@ -574,6 +578,206 @@ export interface LoadTakeRequest {
   readonly adjustmentSamples?: number;
 }
 
+// ---------------------------------------------------------------- instrument views (contract 2.6.0, feature 016)
+
+/** Chord quality of the `full` vocabulary (data-model 2.1); `simple` charts use `maj` / `min`. */
+export type ChordQuality =
+  | 'maj'
+  | 'min'
+  | 'dim'
+  | 'aug'
+  | 'min6'
+  | 'maj6'
+  | 'min7'
+  | 'minmaj7'
+  | 'maj7'
+  | '7'
+  | 'dim7'
+  | 'hdim7'
+  | 'sus2'
+  | 'sus4';
+
+/** Mode of a key. */
+export type KeyMode = 'major' | 'minor';
+
+/** One chord of a chart; `root`/`quality` null = no chord (`N.C.`). Pitch classes C = 0 ... B = 11. */
+export interface ChordSymbolEvent {
+  /** Start in track milliseconds. */
+  readonly startMs: number;
+  /** End in track milliseconds (> start; segments are contiguous). */
+  readonly endMs: number;
+  /** Root pitch class 0..11, or null for no chord. */
+  readonly root: number | null;
+  /** Quality, or null for no chord. */
+  readonly quality: ChordQuality | null;
+  /** Bass pitch class when it is not the root (slash chord), else null. */
+  readonly bass: number | null;
+}
+
+/** A key region (scope addition S11); spelling uses the region a chord starts in. */
+export interface KeyRegionData {
+  /** Start in track milliseconds. */
+  readonly startMs: number;
+  /** End in track milliseconds. */
+  readonly endMs: number;
+  /** Tonic pitch class 0..11. */
+  readonly tonic: number;
+  /** Mode. */
+  readonly mode: KeyMode;
+}
+
+/** Argument of {@link AudioEngine.attachChordLane} and {@link AudioEngine.setKaraokeChords}. */
+export interface ChordChartData {
+  /** Contiguous, ordered segments (at most 4000). */
+  readonly segments: readonly ChordSymbolEvent[];
+  /** Global key tonic (fallback of the regions), or null. */
+  readonly keyTonic: number | null;
+  /** Global key mode, or null. */
+  readonly keyMode: KeyMode | null;
+  /** Key regions (at most 50); absent = the global key everywhere. */
+  readonly keyRegions?: readonly KeyRegionData[];
+}
+
+/** Argument of {@link AudioEngine.setChordDisplay} (capo mode, S12); the transpose comes from the 012 practice state. */
+export interface ChordDisplay {
+  /** Capo 0..12; chords are spelled as the shapes played with the capo. */
+  readonly capo: number;
+  /** Also show the sounding symbol in a `.chord-sounding` child (Advanced). */
+  readonly showSounding?: boolean;
+}
+
+/** Options of {@link AudioEngine.attachChordLane}. */
+export interface ChordLaneOptions {
+  /** Bars shown before the current one; default 1. */
+  readonly barsBehind?: number;
+  /** Bars shown after the current one; default 6. */
+  readonly barsAhead?: number;
+  /** Page instead of scrolling; default from `prefers-reduced-motion`. */
+  readonly reducedMotion?: boolean;
+}
+
+/** Drum piece of the hit lanes. */
+export type DrumPiece = 'kick' | 'snare' | 'toms' | 'hihat' | 'cymbals';
+
+/** One drum hit (data-model 5.1). */
+export interface DrumHitEvent {
+  /** Track milliseconds. */
+  readonly timeMs: number;
+  /** Piece. */
+  readonly piece: DrumPiece;
+  /** Strength 0..1 (mark height 40-100 % of the lane). */
+  readonly strength: number;
+}
+
+/** Options of {@link AudioEngine.attachHitLanes} and {@link AudioEngine.setHitLaneOptions}. */
+export interface HitLaneOptions {
+  /** Look-ahead 2000..8000 ms; default 4000. */
+  readonly lookAheadMs?: number;
+  /** Lanes to draw; default all five. */
+  readonly pieces?: readonly DrumPiece[];
+  /** Page instead of scrolling; default from `prefers-reduced-motion`. */
+  readonly reducedMotion?: boolean;
+}
+
+/** Reference melody: 10 ms frames in centi-semitones (MIDI x 100), 0 = unvoiced; at most 90,000 frames. */
+export interface PitchContour {
+  /** Always 10. */
+  readonly hopMs: 10;
+  /** Frames (values 0..12700). */
+  readonly frames: ArrayLike<number>;
+}
+
+/** One scored unit: a lyric line, a 014 section, a 4-bar block or a 10 s block (data-model 3.4). */
+export interface SingingUnit {
+  /** 0-based index (ordered by start). */
+  readonly index: number;
+  /** Start in track milliseconds. */
+  readonly startMs: number;
+  /** End in track milliseconds. */
+  readonly endMs: number;
+}
+
+/** Argument of {@link AudioEngine.startSingingFeedback}. */
+export interface SingingFeedbackRequest {
+  /** Host of the pitch view canvas. */
+  readonly pitchViewElementId: string;
+  /** Reference melody of the lead vocal. */
+  readonly reference: PitchContour;
+  /** Units in time order. */
+  readonly units: readonly SingingUnit[];
+  /** Tolerance 10..200 cents (level defaults 100 / 50 / 25). */
+  readonly toleranceCents: number;
+  /**
+   * Round trip in ms from the 015 calibration Blazor holds (`/api/recording/calibrations`); null or absent = the
+   * estimate of the open 015 input (`InputInfo.estimatedLatencySamples`).
+   */
+  readonly roundTripMs?: number | null;
+  /** How `roundTripMs` was obtained (`loopback` or `manual`); ignored without `roundTripMs`. */
+  readonly latencyMethod?: LatencyMethod;
+  /** Page instead of scrolling; default from `prefers-reduced-motion`. */
+  readonly reducedMotion?: boolean;
+}
+
+/** Score of one finished unit (`OnSingingUnitScored`). */
+export interface SingingUnitScore {
+  /** Unit index. */
+  readonly index: number;
+  /** 0..100, or null with fewer than 20 voiced reference frames. */
+  readonly score: number | null;
+  /** 1-based loop pass. */
+  readonly pass: number;
+}
+
+/** Summary on stop or track end (never sent to the server, FR-047). */
+export interface SingingSummary {
+  /** Units with a score. */
+  readonly unitsScored: number;
+  /** Rounded mean of the scored units, or null. */
+  readonly average: number | null;
+  /** Best unit, or null. */
+  readonly best: { readonly index: number; readonly score: number } | null;
+  /** Tolerance in cents at the end. */
+  readonly toleranceCents: number;
+  /** Where the round trip came from (015 `LatencyMethod`). */
+  readonly latencySource: LatencyMethod;
+}
+
+/** State of singing feedback (`OnSingingStateChanged`). */
+export type SingingState = 'idle' | 'starting' | 'running' | 'stopped' | 'failed';
+
+/** Result of {@link AudioEngine.getRoundTripLatency}. */
+export interface RoundTripLatency {
+  /** Round trip in milliseconds. */
+  readonly ms: number;
+  /** `estimated` until a 015 calibration is given in the request. */
+  readonly source: LatencyMethod;
+}
+
+/** Argument of {@link AudioEngine.scoreTake} (a 015 take, already latency-compensated). */
+export interface TakeScoreRequest {
+  /** Audio URL of the take (`GET /api/takes/{takeId}/audio`). */
+  readonly takeUrl: string;
+  /** Song sample (44.1 kHz) of the take's first sample (`RecordingTake.startSample`). */
+  readonly startSample: number;
+  /** Reference melody. */
+  readonly reference: PitchContour;
+  /** Units in time order. */
+  readonly units: readonly SingingUnit[];
+  /** Tolerance 10..200 cents. */
+  readonly toleranceCents: number;
+  /**
+   * 012 transpose the take was recorded at (integer -12..12, default 0): the reference target moves by 100 cents per
+   * semitone, as in the live scorer. Added at review 2026-11-22; optional, backwards compatible.
+   */
+  readonly transposeSemitones?: number;
+}
+
+/** Result of {@link AudioEngine.scoreTake}. */
+export interface TakeScoreResult extends SingingSummary {
+  /** Score of every unit the take covers. */
+  readonly units: readonly SingingUnitScore[];
+}
+
 /** Optional construction parameters (mainly for tests). */
 export interface EngineOptions {
   /** Factory for the single AudioContext; defaults to `new AudioContext({ sampleRate: 44100 })`. */
@@ -599,6 +803,8 @@ export interface EngineOptions {
   readonly mediaDevices?: Pick<MediaDevices, 'getUserMedia' | 'enumerateDevices' | 'addEventListener' | 'removeEventListener'>;
   /** Capture worklet module URL (contract 2.5.0); default `./js/audio-engine-capture-worklet.js`. */
   readonly captureWorkletUrl?: string;
+  /** Pitch tracker worklet module URL (contract 2.6.0); default `./js/audio-engine-pitch-worklet.js`. */
+  readonly pitchWorkletUrl?: string;
 }
 
 /**
@@ -721,6 +927,37 @@ export interface AudioEngine {
   setTakeAdjustment(samples: number): void;
   /** Compare gate (research R-10), swapped at one context time with ramps <= 10 ms. */
   setTakeCompare(mode: TakeCompareMode): void;
+  /**
+   * Chord lane (2.6.0, feature 016): engine-owned `.chord-lane-item` children of the host on a bar timeline; host
+   * attributes `data-chord-index`, `data-current-symbol`, `data-next-symbol`, `data-position-ms`, `data-capo`,
+   * `data-current-key`. Replaces an attached lane; validates before replacing (`Invalid chord chart: ...`).
+   */
+  attachChordLane(elementId: string, chart: ChordChartData, options?: ChordLaneOptions): void;
+  /** Removes the lane's children and host attributes; no-op when none. */
+  detachChordLane(): void;
+  /** Chord symbols above the karaoke words (`.karaoke-chord`); null removes them; kept across {@link AudioEngine.attachKaraoke}. */
+  setKaraokeChords(chart: ChordChartData | null): void;
+  /** Capo and sounding display for every chord view; re-spelled on the next frame (throws `Capo out of range: <n>`). */
+  setChordDisplay(display: ChordDisplay): void;
+  /** Drum hit lanes on an engine-owned canvas in the host (data-model 5.2); validates first (`Invalid drum hits: ...`). */
+  attachHitLanes(elementId: string, hits: readonly DrumHitEvent[], options?: HitLaneOptions): void;
+  /** Changes look-ahead or pieces without re-attaching. */
+  setHitLaneOptions(options: HitLaneOptions): void;
+  /** Removes the canvas and host attributes; no-op when none. */
+  detachHitLanes(): void;
+  /** The round trip singing feedback would use (the given 015 calibration or the open input's estimate). */
+  getRoundTripLatency(): RoundTripLatency;
+  /**
+   * Loads the `pitch-tracker` worklet once, connects it to the open 015 input (rejects `No input device is open`,
+   * `Singing feedback is already running`), draws the pitch view and scores units while playing.
+   */
+  startSingingFeedback(request: SingingFeedbackRequest): Promise<void>;
+  /** Tolerance 10..200 cents for the current and later units. */
+  setSingingTolerance(cents: number): void;
+  /** Disconnects the worklet and returns the summary; idempotent (returns the last summary). */
+  stopSingingFeedback(): SingingSummary;
+  /** Scores a saved 015 take offline with the same YIN core (no worklet needed). */
+  scoreTake(request: TakeScoreRequest): Promise<TakeScoreResult>;
   /** Stops playback, cancels timers/animation frames and closes the AudioContext. */
   dispose(): Promise<void>;
 }

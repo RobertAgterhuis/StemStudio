@@ -28,7 +28,7 @@ describe('recording contract 2.5.0', () => {
     const meter: MeterTarget = 'input';
     const callbacks: readonly DotNetCallbacks[] = ['OnRecordingStateChanged', 'OnRecordingProgress', 'OnTakesCaptured', 'OnInputLost', 'OnInputDevicesChanged'];
 
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.5.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.6.0');
     expect([states.length, modes.length, channel, meter, callbacks.length]).toEqual([5, 3, 'take', 'input', 5]);
   });
 

@@ -51,7 +51,7 @@ public sealed class BackupService(
         }
 
         var backup = new BackupRequest(request, NextFileName());
-        return runner.TryStart(LibraryJobKindDto.Backup, backup.FileName, (context, ct) => run.RunAsync(backup, context, ct), out var job)
+        return runner.TryStart(new LibraryJobStart(LibraryJobKindDto.Backup, backup.FileName, (context, ct) => run.RunAsync(backup, context, ct), run.GateHooks), out var job)
             ? new BackupStartOutcome(job, null, null)
             : Refused(LibraryCareProblems.JobRunning(runner.Active));
     }

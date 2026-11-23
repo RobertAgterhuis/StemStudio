@@ -1,64 +1,16 @@
 /**
- * Karaoke clock: the transport position at the audio time currently heard, read on every
- * animation frame and never accumulated from frame deltas (contract 2.1.0, ADR-015 D5).
+ * Karaoke clock: the shared timeline clock (`timeline/clock.ts`, contract 2.1.0 and 2.6.0, ADR-015 D5) minus the
+ * user offset.
  *
  * @packageDocumentation
  */
+import { TimelineClock, type TimelineClockOptions } from '../timeline/clock';
+
+/** Construction parameters of {@link KaraokeClock} (those of the timeline clock). */
+export type KaraokeClockOptions = TimelineClockOptions;
 
 /** Largest user offset in either direction (ms). */
 export const MAX_OFFSET_MS = 5000;
-
-/** The part of the transport the clock reads. */
-export interface PositionSource {
-  /** Track time (s) heard at context time `time` while playing, else the stored position. */
-  positionAt(time: number): number;
-}
-
-/** Construction parameters of {@link KaraokeClock}. */
-export interface KaraokeClockOptions {
-  /** The engine's AudioContext. */
-  readonly context: AudioContext;
-  /** The transport. */
-  readonly transport: PositionSource;
-  /** `performance.now()`; injectable for tests. */
-  readonly now?: () => number;
-}
-
-/**
- * Context time currently at the output: `getOutputTimestamp()` extrapolated with `performance.now()`.
- *
- * @param context - AudioContext.
- * @param perfNow - Current `performance.now()` (ms).
- * @returns Seconds of context time; `currentTime` when no output timestamp is available.
- */
-export function audioNow(context: AudioContext, perfNow: number): number {
-  const optional: Partial<Pick<AudioContext, 'getOutputTimestamp'>> = context;
-  const stamp = usable(optional.getOutputTimestamp?.());
-  return stamp === null ? context.currentTime : stamp.contextTime + (perfNow - stamp.performanceTime) / 1000;
-}
-
-function usable(stamp: AudioTimestamp | undefined): Required<AudioTimestamp> | null {
-  const { contextTime = 0, performanceTime = 0 } = { ...stamp };
-  return contextTime === 0 && performanceTime === 0 ? null : { contextTime, performanceTime };
-}
-
-/**
- * @param context - AudioContext.
- * @returns `outputLatency` when defined, else `baseLatency`, else 0 (s).
- */
-export function outputLatency(context: AudioContext): number {
-  const optional: Partial<Pick<AudioContext, 'outputLatency' | 'baseLatency'>> = context;
-  return optional.outputLatency ?? optional.baseLatency ?? 0;
-}
-
-/**
- * @param context - AudioContext.
- * @param perfNow - Current `performance.now()` (ms).
- * @returns Context time heard at the output now: {@link audioNow} minus {@link outputLatency} (s).
- */
-export function heardTime(context: AudioContext, perfNow: number): number {
-  return audioNow(context, perfNow) - outputLatency(context);
-}
 
 /**
  * @param offsetMs - Requested user offset.
@@ -74,12 +26,12 @@ export function validateOffset(offsetMs: number): number {
 
 /** Position of the lyrics in integer milliseconds: heard transport position minus the user offset. */
 export class KaraokeClock {
-  private readonly now: () => number;
+  private readonly clock: TimelineClock;
   private offset = 0;
 
   /** @param options - Context, transport and `performance.now`. */
-  public constructor(private readonly options: KaraokeClockOptions) {
-    this.now = options.now ?? (() => performance.now());
+  public constructor(options: KaraokeClockOptions) {
+    this.clock = new TimelineClock(options);
   }
 
   /** User offset (ms); positive = the lyrics come later. */
@@ -94,7 +46,6 @@ export class KaraokeClock {
 
   /** @returns `round(1000 * heard transport position) - offsetMs`. */
   public positionMs(): number {
-    const { context, transport } = this.options;
-    return Math.round(1000 * transport.positionAt(heardTime(context, this.now()))) - this.offset;
+    return this.clock.positionMs() - this.offset;
   }
 }

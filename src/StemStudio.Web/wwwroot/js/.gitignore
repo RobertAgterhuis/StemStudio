@@ -14,3 +14,5 @@ soundtouch/
 # Build output of feature 015 (architect, Phase 0 T004): the capture AudioWorklet processor (npm run build, MIT); never committed.
 audio-engine-capture-worklet.js
 audio-engine-capture-worklet.js.map
+audio-engine-pitch-worklet.js
+audio-engine-pitch-worklet.js.map

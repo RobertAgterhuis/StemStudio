@@ -16,6 +16,8 @@ AlignAutoMode = Literal["gpu", "always", "never"]
 FakeLyricsMode = Literal["word", "line", "plain", "instrumental", "not-found", "failed"]
 TranscriberKind = Literal["real", "fake"]
 StructureAnalyzerKind = Literal["real", "fake"]
+ChordEngineKind = Literal["btc", "chroma-hmm", "fake"]
+PitchEngineKind = Literal["pyin", "yin", "fake"]
 
 _SEPARATORS: tuple[SeparatorKind, ...] = ("demucs", "fake")
 _DEVICES: tuple[DeviceKind, ...] = ("cpu", "cuda", "auto")
@@ -29,6 +31,9 @@ _FAKE_LYRICS: tuple[FakeLyricsMode, ...] = (
 )  # fmt: skip
 _TRANSCRIBERS: tuple[str, ...] = ("", "real", "fake")
 _STRUCTURE_ANALYZERS: tuple[str, ...] = ("", "real", "fake")
+_CHORD_ENGINES: tuple[str, ...] = ("", "btc", "chroma-hmm", "fake")
+_PITCH_ENGINES: tuple[str, ...] = ("", "pyin", "yin", "fake")
+_DEFAULT_ANALYSIS_THREADS = 4
 _MAX_THREADS = 64
 _LANGUAGE = re.compile(r"[a-z]{2,3}")
 _MAX_LANGUAGES = 5
@@ -108,6 +113,25 @@ class TranscriptionSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class InstrumentAnalysisSettings:
+    """Settings of the ``instrument-analysis`` lane (feature 016, data-model 1).
+
+    Attributes:
+        chord_engine: ``STEMSTUDIO_CHORD_ENGINE``: ``btc`` (falls back to ``chroma-hmm`` per
+            job when the weights are unavailable), ``chroma-hmm`` or ``fake``; unset = ``fake`` with
+            ``separator=fake``, else ``btc``.
+        pitch_engine: ``STEMSTUDIO_PITCH_ENGINE``: ``pyin``, ``yin`` (fast) or ``fake``; unset =
+            ``fake`` with ``separator=fake``, else ``pyin``.
+        threads: torch/numpy threads of the lane (``STEMSTUDIO_ANALYSIS_THREADS``, 1..64; unset or
+            blank = 4).
+    """
+
+    chord_engine: ChordEngineKind = "btc"
+    pitch_engine: PitchEngineKind = "pyin"
+    threads: int = _DEFAULT_ANALYSIS_THREADS
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerSettings:
     """Runtime settings of the worker.
 
@@ -143,6 +167,7 @@ class WorkerSettings:
         structure_analyzer: Section detection of feature 014 (``STEMSTUDIO_STRUCTURE_ANALYZER``):
             ``real`` (``stems-novelty``) or the deterministic ``fake`` (data-model 2.4); unset =
             ``fake`` with ``separator=fake``, else ``real``.
+        instrument_analysis: Chord, pitch and thread settings of feature 016.
     """
 
     data_dir: Path
@@ -162,6 +187,7 @@ class WorkerSettings:
     gpu_lease_file: Path | None = None
     gpu_lease_wait_seconds: float = 900.0
     structure_analyzer: StructureAnalyzerKind = "real"
+    instrument_analysis: InstrumentAnalysisSettings = InstrumentAnalysisSettings()
 
 
 GPU_LEASE_BUSY_REASON = "GPU busy with another StemStudio job"
@@ -281,14 +307,39 @@ class _AnalysisSettings(TypedDict):
 
     transcription: TranscriptionSettings
     structure_analyzer: StructureAnalyzerKind
+    instrument_analysis: InstrumentAnalysisSettings
 
 
 def _analysis_settings(env: Mapping[str, str], separator: SeparatorKind) -> _AnalysisSettings:
-    """Read the 008 transcription and the 014 structure analyser variables."""
+    """Read the 008 transcription, the 014 structure analyser and the 016 analysis variables."""
     return {
         "transcription": _transcription_settings(env, separator),
         "structure_analyzer": _structure_analyzer(env, separator),
+        "instrument_analysis": _instrument_analysis_settings(env, separator),
     }
+
+
+def _instrument_analysis_settings(
+    env: Mapping[str, str], separator: SeparatorKind
+) -> InstrumentAnalysisSettings:
+    """Read ``STEMSTUDIO_CHORD_ENGINE``, ``..._PITCH_ENGINE`` and ``..._ANALYSIS_THREADS`` (016)."""
+    fake = separator == "fake"
+    chord = _choice(env, "STEMSTUDIO_CHORD_ENGINE", _CHORD_ENGINES) or ("fake" if fake else "btc")
+    pitch = _choice(env, "STEMSTUDIO_PITCH_ENGINE", _PITCH_ENGINES) or ("fake" if fake else "pyin")
+    return InstrumentAnalysisSettings(
+        chord_engine=cast(ChordEngineKind, chord),
+        pitch_engine=cast(PitchEngineKind, pitch),
+        threads=_analysis_threads(env),
+    )
+
+
+def _analysis_threads(env: Mapping[str, str]) -> int:
+    """Read ``STEMSTUDIO_ANALYSIS_THREADS`` (1..64); unset or blank = 4."""
+    raw = env.get("STEMSTUDIO_ANALYSIS_THREADS", "").strip() or str(_DEFAULT_ANALYSIS_THREADS)
+    if not raw.isdigit() or not 0 < int(raw) <= _MAX_THREADS:
+        msg = f"STEMSTUDIO_ANALYSIS_THREADS must be a whole number from 1 to 64; got {raw!r}"
+        raise ValueError(msg)
+    return int(raw)
 
 
 def _structure_analyzer(env: Mapping[str, str], separator: SeparatorKind) -> StructureAnalyzerKind:

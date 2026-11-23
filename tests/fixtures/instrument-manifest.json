@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "sampleRate": 44100,
+  "licence": "CC0-1.0",
+  "provenance": "synthesised by tests/fixtures/generate_instrument_fixtures.py",
+  "referenceMelody": {
+    "bpm": 120,
+    "firstBeatSeconds": 0.5,
+    "walk": [
+      60,
+      62,
+      64,
+      65,
+      67,
+      69,
+      71,
+      72,
+      71,
+      69,
+      67,
+      65,
+      64,
+      62
+    ],
+    "notes": [
+      {
+        "startSeconds": 0.5,
+        "endSeconds": 1.0,
+        "midi": 60
+      },
+      {
+        "startSeconds": 1.0,
+        "endSeconds": 1.5,
+        "midi": 62
+      },
+      {
+        "startSeconds": 1.5,
+        "endSeconds": 2.0,
+        "midi": 64
+      },
+      {
+        "startSeconds": 2.0,
+        "endSeconds": 2.5,
+        "midi": 65
+      },
+      {
+        "startSeconds": 2.5,
+        "endSeconds": 3.0,
+        "midi": 67
+      },
+      {
+        "startSeconds": 3.0,
+        "endSeconds": 3.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 3.5,
+        "endSeconds": 4.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 4.0,
+        "endSeconds": 4.5,
+        "midi": 72
+      },
+      {
+        "startSeconds": 4.5,
+        "endSeconds": 5.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 5.0,
+        "endSeconds": 5.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 5.5,
+        "endSeconds": 6.0,
+        "midi": 67
+      },
+      {
+        "startSeconds": 6.0,
+        "endSeconds": 6.5,
+        "midi": 65
+      },
+      {
+        "startSeconds": 6.5,
+        "endSeconds": 7.0,
+        "midi": 64
+      },
+      {
+        "startSeconds": 7.0,
+        "endSeconds": 7.5,
+        "midi": 62
+      },
+      {
+        "startSeconds": 7.5,
+        "endSeconds": 8.0,
+        "midi": 60
+      },
+      {
+        "startSeconds": 8.0,
+        "endSeconds": 8.5,
+        "midi": 62
+      },
+      {
+        "startSeconds": 8.5,
+        "endSeconds": 9.0,
+        "midi": 64
+      },
+      {
+        "startSeconds": 9.0,
+        "endSeconds": 9.5,
+        "midi": 65
+      },
+      {
+        "startSeconds": 9.5,
+        "endSeconds": 10.0,
+        "midi": 67
+      },
+      {
+        "startSeconds": 10.0,
+        "endSeconds": 10.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 10.5,
+        "endSeconds": 11.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 11.0,
+        "endSeconds": 11.5,
+        "midi": 72
+      },
+      {
+        "startSeconds": 11.5,
+        "endSeconds": 12.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 12.0,
+        "endSeconds": 12.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 12.5,
+        "endSeconds": 13.0,
+        "midi": 67
+      },
+      {
+        "startSeconds": 13.0,
+        "endSeconds": 13.5,
+        "midi": 65
+      },
+      {
+        "startSeconds": 13.5,
+        "endSeconds": 14.0,
+        "midi": 64
+      },
+      {
+        "startSeconds": 14.0,
+        "endSeconds": 14.5,
+        "midi": 62
+      },
+      {
+        "startSeconds": 14.5,
+        "endSeconds": 15.0,
+        "midi": 60
+      },
+      {
+        "startSeconds": 15.0,
+        "endSeconds": 15.5,
+        "midi": 62
+      },
+      {
+        "startSeconds": 15.5,
+        "endSeconds": 16.0,
+        "midi": 64
+      },
+      {
+        "startSeconds": 16.0,
+        "endSeconds": 16.5,
+        "midi": 65
+      },
+      {
+        "startSeconds": 16.5,
+        "endSeconds": 17.0,
+        "midi": 67
+      },
+      {
+        "startSeconds": 17.0,
+        "endSeconds": 17.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 17.5,
+        "endSeconds": 18.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 18.0,
+        "endSeconds": 18.5,
+        "midi": 72
+      },
+      {
+        "startSeconds": 18.5,
+        "endSeconds": 19.0,
+        "midi": 71
+      },
+      {
+        "startSeconds": 19.0,
+        "endSeconds": 19.5,
+        "midi": 69
+      },
+      {
+        "startSeconds": 19.5,
+        "endSeconds": 20.0,
+        "midi": 67
+      }
+    ]
+  },
+  "fixtures": {
+    "sing-on-pitch.wav": {
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "offsetCentsFromReference": -1200,
+      "peakDbfs": -3.1,
+      "sha256": "f05b20740c0c0cc8c9d7ea1e5128e12a241c38f0c0913db7926aff522dfc3a6f"
+    },
+    "sing-semitone-off.wav": {
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "offsetCentsFromReference": -1100,
+      "peakDbfs": -3.1,
+      "sha256": "a71e86549fcafb5a3b45cdf373d0dc73da00ab75616ba6b22f718ceb763cc20a"
+    },
+    "silence.wav": {
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "offsetCentsFromReference": null,
+      "peakDbfs": null,
+      "sha256": "a69b653e1f690753513f7708e55534cdb92aa4e9edda91948d071204e985594d"
+    }
+  }
+}

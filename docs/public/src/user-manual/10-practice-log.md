@@ -47,7 +47,7 @@ last practised, most recent first. There you can:
 - The practice log is stored only in StemStudio's own database on this computer. It is never sent
   to another computer or service.
 - Deleting a song from your library also deletes its practice log.
-- A backup of your library (chapter 21) contains the log; a restore that adds what is missing
+- A backup of your library (chapter 22) contains the log; a restore that adds what is missing
   keeps your current log.
 
 ## Levels

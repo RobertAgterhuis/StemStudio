@@ -110,7 +110,9 @@ branch = true
 # Vendored third-party inference code (MIT, ZFTurbo MSST); covered by the detail integration test
 # instead (plan.md Complexity Tracking, accepted by CTO 2026-11-15). Feature 008: the vendored
 # basic-pitch (Apache-2.0) and piano-transcription (MIT) subsets, same rule (CTO 2026-11-15).
-omit = ["*/stemstudio_worker/detail/vendor/*", "*/stemstudio_worker/transcription/vendor/*"]
+# Feature 016: the vendored BTC subset (MIT), covered by the chords integration test (T063).
+omit = ["*/stemstudio_worker/detail/vendor/*", "*/stemstudio_worker/transcription/vendor/*",
+        "*/stemstudio_worker/harmony/vendor/*"]
 
 [tool.coverage.report]
 fail_under = 90
@@ -128,7 +130,8 @@ exclude_also = [
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-extend-exclude = ["src/stemstudio_worker/detail/vendor", "src/stemstudio_worker/transcription/vendor"]
+extend-exclude = ["src/stemstudio_worker/detail/vendor", "src/stemstudio_worker/transcription/vendor",
+                  "src/stemstudio_worker/harmony/vendor"]
 
 [tool.ruff.lint]
 select = [
@@ -171,7 +174,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # Vendored third-party code (plan.md Complexity Tracking).
-module = ["stemstudio_worker.detail.vendor.*", "stemstudio_worker.transcription.vendor.*"]
+module = ["stemstudio_worker.detail.vendor.*", "stemstudio_worker.transcription.vendor.*",
+          "stemstudio_worker.harmony.vendor.*"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]

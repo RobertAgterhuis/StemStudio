@@ -46,7 +46,7 @@
         @if (ShowsBanner)
         {
             <div id="@HostId" @key="Karaoke" class="ss-karaoke-host" aria-live="off" aria-label="Lyrics banner" role="group"
-                 data-size="@Size" data-sync="@LyricsText.Sync(Lyrics!)" data-testid="karaoke-banner" data-help-id="karaoke"></div>
+                 data-size="@Size" data-sync="@LyricsText.Sync(Lyrics!)" data-chords="@ChordsFlag" data-testid="karaoke-banner" data-help-id="karaoke"></div>
             <p class="ss-small ss-muted ss-karaoke-credit" data-testid="karaoke-credit">@Lyrics!.Credit</p>
             @if (ShowFullText)
             {

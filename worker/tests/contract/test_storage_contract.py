@@ -63,7 +63,7 @@ def _rehydrate(**changes: object) -> dict[str, object]:
 
 def test_contract_version_is_1_7_0() -> None:
     assert V170.root["info"]["version"] == "1.7.0"
-    assert CONTRACT_VERSION == "1.8.0"  # 014 Phase 0; see test_practice_contract.py
+    assert CONTRACT_VERSION == "1.9.0"  # 016 Phase 0; see test_instrument_views_contract.py
 
 
 def test_1_7_0_contains_1_6_0_unchanged() -> None:

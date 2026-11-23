@@ -54,6 +54,15 @@
 #   STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES=N largest take upload in bytes (default 268435456 = 256 MiB);
 #                                           api StemStudio__Recording__MaxUploadBytes and web
 #                                           StemStudio__Recording__MaxStreamBytes get the same value
+# Instrument views (feature 016; specs/016-instrument-views/quickstart.md), worker only, optional:
+#   STEMSTUDIO_CHORD_ENGINE=btc|chroma-hmm|fake   empty (default) = fake with the fake separator, else
+#                                           btc; the BTC weights (2 x 12 MB, MIT, SHA-256 checked)
+#                                           download into the model-cache volume (/models/harmony)
+#                                           at the first chords job; without them chroma-hmm runs
+#   STEMSTUDIO_PITCH_ENGINE=pyin|yin|fake   empty (default) = fake with the fake separator, else pyin
+#   STEMSTUDIO_ANALYSIS_THREADS=1..64       threads of the instrument-analysis lane (empty = 4)
+#   The web serves the pitch-tracker worklet /js/audio-engine-pitch-worklet.js (check:
+#   scripts/check-web-assets.{sh,ps1}); microphone audio for singing feedback never leaves the browser.
 # See .env.example for every optional variable in one place.
 # AI composer agent (feature 011; specs/011-ai-composer-agent/quickstart.md), api only, optional:
 #   STEMSTUDIO_AGENT_BACKEND=ollama|claude|none|fake   initial backend (default ollama) when no
@@ -131,6 +140,11 @@ services:
       STEMSTUDIO_TRANSCRIBE_THREADS: ${STEMSTUDIO_TRANSCRIBE_THREADS:-8}
       # Feature 014 (practice flow): empty = automatic (fake with the fake separator, else real).
       STEMSTUDIO_STRUCTURE_ANALYZER: ${STEMSTUDIO_STRUCTURE_ANALYZER:-}
+      # Feature 016 (instrument views): empty = automatic (fake with the fake separator, else btc /
+      # pyin); empty threads = the worker default 4.
+      STEMSTUDIO_CHORD_ENGINE: ${STEMSTUDIO_CHORD_ENGINE:-}
+      STEMSTUDIO_PITCH_ENGINE: ${STEMSTUDIO_PITCH_ENGINE:-}
+      STEMSTUDIO_ANALYSIS_THREADS: ${STEMSTUDIO_ANALYSIS_THREADS:-}
     expose:
       - "8000"
     volumes:

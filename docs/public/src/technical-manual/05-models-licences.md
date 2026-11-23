@@ -34,6 +34,7 @@ CTO consolidates from every hand-off.
 | Whisper large-v3-turbo | 006 | Lyrics alignment | MIT | 1.6 GB |
 | basic-pitch ICASSP 2022 (ONNX) | 008 | Melodic transcription | Apache-2.0 | 0.2 MB |
 | Piano CRNN note+pedal | 008 | Piano transcription | CC BY 4.0, attribution in UI | 172 MB |
+| BTC major/minor (`btc-majmin`) and large vocabulary (`btc-large-voca`), vendored code subset at commit `2682317b` | 016 | Chord recognition (CPU fallback: chroma-HMM, no model) | MIT (code and weights) | 12 MB each |
 | ACE-Step 1.5 (DiT, VAE, Qwen3 embedding, 5 Hz LM) | 009, 010 | Restyle and song generation | MIT; embedding Apache-2.0 | about 10 GB |
 | SoulX-Singer SVC, RMVPE, whisper-base | 010 | Voice conversion | Apache-2.0 | about 3.3 GB |
 | Qwen 3.5 9B / 4B via Ollama | 011, 023 | Agent (local default / fallback); lyric assistant (9B only: the 4B model on the CPU gave no valid lyric output in the spike) | Apache-2.0; pulled by the user | 6.6 GB / 3.4 GB |

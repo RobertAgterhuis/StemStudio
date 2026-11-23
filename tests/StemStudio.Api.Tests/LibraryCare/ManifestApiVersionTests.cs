@@ -12,6 +12,6 @@ public sealed class ManifestApiVersionTests
         var version = OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>();
 
         ManifestBuilder.BackendApiVersion.ShouldBe(version);
-        version.ShouldBe("1.14.0");
+        version.ShouldBe("1.15.0");
     }
 }
