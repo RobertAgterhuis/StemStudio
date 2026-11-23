@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Http;
@@ -5,10 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.Handouts;
 using StemStudio.Api.Tests.Contract;
+using StemStudio.Api.Tests.Setlists;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Handouts;
+using StemStudio.Contracts.Setlists;
 using StemStudio.Domain.Assets;
 using StemStudio.Persistence.Repositories;
 
@@ -177,6 +180,27 @@ public sealed class HandoutSecurityTests : ApiTestBase
         result.ShouldBeAssignableTo<IStatusCodeHttpResult>()!.StatusCode.ShouldBe(StatusCodes.Status202Accepted);
         (await HandoutsAsync(Factory)).Single().WorkerJobId.ShouldBe(Factory.InsightsWorker.HandoutJobs.Keys.Single());
         Factory.InsightsWorker.Deleted.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SetlistOptions_ReadAtMostTheSongLimit()
+    {
+        var max = ContractLimits.MaxSetlistHandoutSongs;
+        var entries = new List<SetlistEntryInputDto>();
+        for (var i = 0; i <= max; i++)
+        {
+            var track = await Factory.SeedAsync(SyncTestData.CompletedTrack(string.Create(CultureInfo.InvariantCulture, $"v{i:D10}")));
+            entries.Add(SetlistTestData.Entry(track.Id));
+        }
+
+        var setlist = await Client.CreateSetlistAsync("Long night");
+        (await Client.PutEntriesAsync(setlist.Id, [.. entries])).EnsureSuccessStatusCode();
+
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.HandoutOptions(HandoutSourceDto.Setlist(setlist.Id), HandoutFamilyDto.Overview), UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await ContractAssert.MatchesAsync(response, "getHandoutOptions");
+        (await response.BodyAsync<HandoutOptionsDto>()).Songs.ShouldBe(max);
     }
 
     private static Task<List<Asset>> HandoutsAsync(ApiFactory factory) => factory.WithScopeAsync(async sp =>
