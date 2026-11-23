@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using Microsoft.Extensions.Options;
 using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
@@ -34,15 +33,31 @@ public sealed class QualityService(
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 or 404.</returns>
-    public Task<IResult> GetAsync(Guid trackId, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public async Task<IResult> GetAsync(Guid trackId, CancellationToken cancellationToken) =>
+        await tracks.FindAsync(trackId, cancellationToken) is { } track
+            ? TypedResults.Ok(await view.ReportAsync(track, cancellationToken))
+            : TrackService.NotFound(trackId);
 
     /// <summary><c>POST /api/tracks/{trackId}/quality</c>: (re)makes the report.</summary>
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404, 409 or 503.</returns>
-    public Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken)
+    public async Task<IResult> RequestAsync(Guid trackId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await gate.Lock.WaitAsync(cancellationToken);
+        try
+        {
+            if (await tracks.FindAsync(trackId, cancellationToken) is not { } track)
+            {
+                return TrackService.NotFound(trackId);
+            }
+
+            return Refusal(track) ?? await StartLockedAsync(track, cancellationToken) ?? TypedResults.Accepted(ApiRoutes.Quality(trackId), await view.ReportAsync(track, cancellationToken));
+        }
+        finally
+        {
+            gate.Lock.Release();
+        }
     }
 
     /// <summary>
@@ -52,9 +67,23 @@ public sealed class QualityService(
     /// <param name="track">The track (tracked by this scope).</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>True when a report was queued (or stored as failed after a refusal).</returns>
-    public Task<bool> StartAutomaticallyAsync(Track track, CancellationToken cancellationToken)
+    public async Task<bool> StartAutomaticallyAsync(Track track, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        if (!options.Value.AutoQualityReport)
+        {
+            return false;
+        }
+
+        await gate.Lock.WaitAsync(cancellationToken);
+        try
+        {
+            return Refusal(track) is null && await StartLockedAsync(track, cancellationToken) is null;
+        }
+        finally
+        {
+            gate.Lock.Release();
+        }
     }
 
     private static IResult? Refusal(Track track) => track switch

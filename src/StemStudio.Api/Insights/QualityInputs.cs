@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Storage;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Insights;
@@ -30,7 +29,9 @@ public sealed class QualityInputs(IStemFileStore stems, IDetailStemFileStore det
     /// <returns>True for a six-stem track.</returns>
     public static bool HasSixStems(Track track)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        var names = track.Stems.Select(stem => stem.Name).ToHashSet(StringComparer.Ordinal);
+        return StemCatalog.SixStem.All(names.Contains);
     }
 
     /// <summary>The channels of a run: standard stems first, then kept detail stems in mixer order.</summary>
@@ -38,7 +39,8 @@ public sealed class QualityInputs(IStemFileStore stems, IDetailStemFileStore det
     /// <returns>The channels.</returns>
     public static IReadOnlyList<RenderChannel> Channels(Track track)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        return SectionChannels.Of(track).Select(RenderChannel.Parse).OfType<RenderChannel>().OrderBy(channel => channel.SortKey).ToList();
     }
 
     /// <summary>Plans a run of a six-stem track.</summary>
@@ -46,13 +48,19 @@ public sealed class QualityInputs(IStemFileStore stems, IDetailStemFileStore det
     /// <returns>The plan.</returns>
     public QualityPlan Plan(Track track)
     {
-        throw new NotImplementedException();
+        var channels = Channels(track);
+        var inputs = channels.Select(channel => new WorkerQualityInput(channel.Id, channel.PathFor(track.Id), Kind(channel))).ToList();
+        var parents = track.DetailPhase is { Status: DetailPhaseStatus.Completed, FilesRemovedAt: null } phase
+            ? phase.Parents.Where(parent => parent.Outcome == ParentOutcomeKind.Split).Select(parent => new WorkerDetailParentInput(parent.Parent, null, null)).ToList()
+            : [];
+        var titles = new WorkerQualityTitles(Cut(track.Title) ?? "Untitled", Cut(track.Artist));
+        return new QualityPlan(new WorkerQualityJobRequest(inputs, parents, titles), VersionOf(track, channels));
     }
 
     /// <summary>The version of the track's current stem files.</summary>
     /// <param name="track">The track.</param>
     /// <returns>The version.</returns>
-    public string CurrentVersion(Track track) => throw new NotImplementedException();
+    public string CurrentVersion(Track track) => VersionOf(track, Channels(track));
 
     private string VersionOf(Track track, IReadOnlyList<RenderChannel> channels) =>
         StemsVersion.Of(channels.Select(channel => Stamp(channel, File(track.Id, channel))));

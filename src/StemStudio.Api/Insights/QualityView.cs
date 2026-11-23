@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Contracts.Insights;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
@@ -18,18 +17,27 @@ public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versi
     /// <param name="track">The track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The DTO.</returns>
-    public Task<QualityReportDto> ReportAsync(Track track, CancellationToken cancellationToken)
+    public async Task<QualityReportDto> ReportAsync(Track track, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        var outdated = await OutdatedAsync(track, cancellationToken);
+        return QualityMapper.ToDto(track.QualityReport, outdated, track.QualityReport is null ? new Dictionary<string, IReadOnlyList<TipDto>>() : tips.For(track));
     }
 
     /// <summary>Adds the badge (<c>Track.quality</c>) to track DTOs.</summary>
     /// <param name="items">Tracks with their DTOs.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The DTOs with the badge.</returns>
-    public Task<IReadOnlyList<TrackDto>> WithBadgesAsync(IReadOnlyList<(Track Track, TrackDto Dto)> items, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TrackDto>> WithBadgesAsync(IReadOnlyList<(Track Track, TrackDto Dto)> items, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(items);
+        var result = new List<TrackDto>(items.Count);
+        foreach (var (track, dto) in items)
+        {
+            result.Add(dto with { Quality = QualityMapper.Badge(track.QualityReport, await OutdatedAsync(track, cancellationToken)) });
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -39,8 +47,16 @@ public sealed class QualityView(QualityInputs inputs, AnalyzerVersionCache versi
     /// <param name="track">The track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The flag.</returns>
-    public Task<bool> OutdatedAsync(Track track, CancellationToken cancellationToken)
+    public async Task<bool> OutdatedAsync(Track track, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(track);
+        if (track.QualityReport is not { Stems.Count: > 0 } report)
+        {
+            return false;
+        }
+
+        var current = await versions.CurrentAsync(cancellationToken);
+        return (current is not null && !string.Equals(current, report.AnalyzerVersion, StringComparison.Ordinal))
+            || !string.Equals(inputs.CurrentVersion(track), report.StemsVersion, StringComparison.Ordinal);
     }
 }

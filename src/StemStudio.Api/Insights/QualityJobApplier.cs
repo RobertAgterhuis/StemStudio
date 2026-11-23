@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Worker;
 using StemStudio.Domain;
 using StemStudio.Domain.Insights;
@@ -29,9 +28,20 @@ public sealed partial class QualityJobApplier(ITrackRepository tracks, IWorkerIn
     /// <summary>Synchronises every active report.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
-    public Task SyncAllAsync(CancellationToken cancellationToken)
+    public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        foreach (var track in await tracks.ListQualityActiveAsync(cancellationToken))
+        {
+            try
+            {
+                await SyncAsync(track, cancellationToken);
+            }
+            catch (WorkerUnavailableException)
+            {
+                LogWorkerUnavailable(logger, track.Id);
+                return;
+            }
+        }
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)

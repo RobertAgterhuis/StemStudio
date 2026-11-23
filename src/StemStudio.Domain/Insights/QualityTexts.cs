@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using System.Text.RegularExpressions;
 using StemStudio.Domain.Tracks;
 
@@ -15,7 +14,19 @@ public static class QualityReasonTexts
     /// <returns>The text (at most 300 characters).</returns>
     public static string For(StemQuality stem)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(stem);
+        var source = stem.Bleed.MainSource?.ToLowerInvariant() ?? UnknownSource;
+        return stem.Reason switch
+        {
+            QualityReason.Clean => "Little bleed and few artefacts.",
+            QualityReason.Bleed when stem.Bleed.Level == QualityLevel.High => $"Much of {source} is in this stem.",
+            QualityReason.Bleed => $"Some sound of {source} is in this stem.",
+            QualityReason.BleedTogether => $"May be bleed of {source}, or the two instruments playing together.",
+            QualityReason.Artefacts => "The stem has separation artefacts (a watery or choppy sound).",
+            QualityReason.BleedAndArtefacts => $"Bleed of {source} and separation artefacts.",
+            QualityReason.NotPresent => "This instrument is probably not in this song; what you hear is spill from other instruments.",
+            _ => "Too little audio to rate.",
+        };
     }
 }
 
@@ -34,7 +45,17 @@ public static partial class QualityResultRules
     /// <exception cref="DomainValidationException">A rule is broken.</exception>
     public static void Validate(string? analyzerVersion, IReadOnlyList<StemQuality> stems)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(stems);
+        var errors = new ValidationErrors();
+        errors.Check(analyzerVersion is { Length: > 0 and <= MaxVersionLength } && VersionPattern().IsMatch(analyzerVersion), "analyzerVersion", "Must be a short version text.");
+        errors.Check(stems.Count is > 0 and <= MaxStems, "stems", $"Must be 1 to {MaxStems} stems.");
+        errors.Check(stems.Select(stem => stem.Channel).Distinct(StringComparer.Ordinal).Count() == stems.Count, "stems", "Every channel must appear once.");
+        for (var index = 0; index < stems.Count; index++)
+        {
+            CheckStem(errors.Nested($"stems[{index}]"), stems[index]);
+        }
+
+        errors.ThrowIfAny();
     }
 
     private static void CheckStem(ValidationErrors errors, StemQuality stem)

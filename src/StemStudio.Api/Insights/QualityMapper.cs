@@ -1,4 +1,3 @@
-#pragma warning disable IDE0005, CS9113, CS1998, IDE0060, CA1822, CA1801, IDE0051, IDE0052, CS0169, CS0414
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Insights;
@@ -30,19 +29,38 @@ public static class QualityMapper
     /// <returns>The DTO.</returns>
     public static QualityReportDto ToDto(QualityReport? report, bool outdated, IReadOnlyDictionary<string, IReadOnlyList<TipDto>> tips)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(tips);
+        if (report is null)
+        {
+            return None;
+        }
+
+        return new QualityReportDto
+        {
+            Status = Status(report.Status),
+            Progress = Math.Clamp(report.Progress, 0, 100),
+            Error = report.Error,
+            AnalyzerVersion = report.AnalyzerVersion,
+            MeasuredAt = report.MeasuredAt is { } measured ? TrackMapper.Utc(measured) : null,
+            Outdated = outdated,
+            Disclaimer = ContractLimits.QualityDisclaimer,
+            Summary = Count(report.Stems),
+            Stems = report.Stems.Select(stem => ToDto(stem, report.Previous, tips.GetValueOrDefault(stem.Channel) ?? [])).ToList(),
+        };
     }
 
     /// <summary>The badge of a track (<c>Track.quality</c>); null when never made.</summary>
     /// <param name="report">The stored report, or null.</param>
     /// <param name="outdated">The outdated flag.</param>
     /// <returns>The badge or null.</returns>
-    public static QualityBadgeDto? Badge(QualityReport? report, bool outdated) => throw new NotImplementedException();
+    public static QualityBadgeDto? Badge(QualityReport? report, bool outdated) => report is null
+        ? null
+        : new QualityBadgeDto { Status = Status(report.Status), Summary = Count(report.Stems), Outdated = outdated };
 
     /// <summary>The wire rating.</summary>
     /// <param name="rating">The rating.</param>
     /// <returns>The DTO value.</returns>
-    public static QualityRatingDto ToDto(QualityRating rating) => throw new NotImplementedException();
+    public static QualityRatingDto ToDto(QualityRating rating) => Enum.Parse<QualityRatingDto>(rating.ToString());
 
     private static StemQualityViewDto ToDto(StemQuality stem, IReadOnlyDictionary<string, QualityRating> previous, IReadOnlyList<TipDto> tips) => new()
     {
