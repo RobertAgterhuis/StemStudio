@@ -17,12 +17,23 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
     private static readonly JsonSerializerOptions Json = CreateJson();
 
     private int _next;
+    private string? _nextJobId;
 
     /// <summary>When true every call throws <see cref="WorkerUnavailableException"/> (worker down).</summary>
     public bool Unavailable { get; set; }
 
     /// <summary>When set, every job submission throws it (e.g. a <see cref="WorkerRequestException"/> 422).</summary>
     public Exception? SubmitFailure { get; set; }
+
+    /// <summary>When set, the next submitted job gets this id (e.g. an invalid one); cleared after use.</summary>
+    public string? NextJobId
+    {
+        get => _nextJobId;
+        set => _nextJobId = value;
+    }
+
+    /// <summary>Runs after a job was created, before the submit returns (e.g. cancel the caller, or race a second request).</summary>
+    public Func<Task>? AfterSubmit { get; set; }
 
     /// <summary>When set, the handout file download throws it.</summary>
     public Exception? DownloadFailure { get; set; }
@@ -51,13 +62,14 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
 
     public static T Example<T>(string name) => JsonSerializer.Deserialize<T>(WorkerExamples.Read(name), Json)!;
 
-    public Task<WorkerQualityJob> CreateQualityJobAsync(WorkerQualityJobRequest request, CancellationToken cancellationToken)
+    public async Task<WorkerQualityJob> CreateQualityJobAsync(WorkerQualityJobRequest request, CancellationToken cancellationToken)
     {
         Submit("create-quality");
         QualityRequests.Enqueue(request);
         var job = Example<WorkerQualityJob>("quality-queued-job") with { QualityJobId = NewId() };
         QualityJobs[job.QualityJobId] = job;
-        return Task.FromResult(job);
+        await RunAfterSubmitAsync();
+        return job;
     }
 
     public Task<WorkerQualityJob?> GetQualityJobAsync(string jobId, CancellationToken cancellationToken)
@@ -68,13 +80,14 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
 
     public Task DeleteQualityJobAsync(string jobId, CancellationToken cancellationToken) => Delete($"quality:{jobId}", () => QualityJobs.TryRemove(jobId, out _));
 
-    public Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken)
+    public async Task<WorkerHandoutJob> CreateHandoutJobAsync(WorkerHandoutJobRequest request, CancellationToken cancellationToken)
     {
         Submit("create-handout");
         HandoutRequests.Enqueue(request);
         var job = Example<WorkerHandoutJob>("handout-queued-job") with { HandoutJobId = NewId() };
         HandoutJobs[job.HandoutJobId] = job;
-        return Task.FromResult(job);
+        await RunAfterSubmitAsync();
+        return job;
     }
 
     public Task<WorkerHandoutJob?> GetHandoutJobAsync(string jobId, CancellationToken cancellationToken)
@@ -150,5 +163,11 @@ internal sealed class FakeWorkerInsightsClient : IWorkerInsightsClient
         return Task.CompletedTask;
     }
 
-    private string NewId() => Interlocked.Increment(ref _next).ToString("x32", CultureInfo.InvariantCulture);
+    private string NewId()
+    {
+        var number = Interlocked.Increment(ref _next).ToString("x32", CultureInfo.InvariantCulture);
+        return Interlocked.Exchange(ref _nextJobId, null) ?? number;
+    }
+
+    private Task RunAfterSubmitAsync() => AfterSubmit is { } after ? after() : Task.CompletedTask;
 }

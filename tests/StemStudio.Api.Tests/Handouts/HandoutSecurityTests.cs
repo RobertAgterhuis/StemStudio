@@ -1,11 +1,16 @@
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.Handouts;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Handouts;
+using StemStudio.Domain.Assets;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Tests.Handouts;
 
@@ -126,6 +131,56 @@ public sealed class HandoutSecurityTests : ApiTestBase
 
         (full.StatusCode, again.StatusCode).ShouldBe((HttpStatusCode.Conflict, HttpStatusCode.Accepted));
     }
+
+    [Fact]
+    public async Task AFailedSave_AfterTheSubmit_DeletesTheWorkerJob()
+    {
+        var failure = new SaveFailure();
+        using var factory = new ApiFactory { ConfigureServices = failure.AddTo };
+        using var client = factory.CreateClient();
+        var song = await factory.SeedSongAsync();
+        failure.When = context => context.ChangeTracker.Entries<Asset>().Any(entry => entry.State == EntityState.Added && entry.Entity.Kind == AssetKind.Handout);
+
+        using var response = await client.PostHandoutAsync(Bass(song.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        failure.Failures.ShouldBe(1);
+        factory.InsightsWorker.HandoutRequests.Count.ShouldBe(1);
+        factory.InsightsWorker.Deleted.Single().ShouldStartWith("handout:");
+        factory.InsightsWorker.HandoutJobs.ShouldBeEmpty();
+        (await HandoutsAsync(factory)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AnInvalidWorkerJobId_StoresNothing_AndIsWorkerUnavailable()
+    {
+        var song = await Factory.SeedSongAsync();
+        Factory.InsightsWorker.NextJobId = "../not-a-job";
+
+        using var response = await Client.PostHandoutAsync(Bass(song.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        await ContractAssert.MatchesAsync(response, "createHandout");
+        Factory.InsightsWorker.Deleted.ShouldBe(["handout:../not-a-job"]);
+        (await HandoutsAsync(Factory)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ACancelledRequest_AfterTheSubmit_StillStoresTheItem()
+    {
+        var song = await Factory.SeedSongAsync();
+        using var cancel = new CancellationTokenSource();
+        Factory.InsightsWorker.AfterSubmit = () => cancel.CancelAsync();
+
+        var result = await Factory.WithScopeAsync(sp => sp.GetRequiredService<HandoutService>().CreateAsync(Bass(song.Id), cancel.Token));
+
+        result.ShouldBeAssignableTo<IStatusCodeHttpResult>()!.StatusCode.ShouldBe(StatusCodes.Status202Accepted);
+        (await HandoutsAsync(Factory)).Single().WorkerJobId.ShouldBe(Factory.InsightsWorker.HandoutJobs.Keys.Single());
+        Factory.InsightsWorker.Deleted.ShouldBeEmpty();
+    }
+
+    private static Task<List<Asset>> HandoutsAsync(ApiFactory factory) => factory.WithScopeAsync(async sp =>
+        (await sp.GetRequiredService<IAssetRepository>().ListActiveAsync(CancellationToken.None)).Where(asset => asset.Kind == AssetKind.Handout).ToList());
 
     private static CreateHandoutRequest Bass(Guid trackId) => new() { Source = HandoutSourceDto.Song(trackId), Family = HandoutFamilyDto.Bass };
 
