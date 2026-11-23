@@ -14,10 +14,10 @@ on the reference CPU (SC-004 budget of a setlist: 90 s). The backend mirrors the
   created; the renderer enforces it again when it runs).
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any, Final
 
-from stemstudio_worker.schemas import HandoutDocument, HandoutJobRequest, HandoutSong
+from stemstudio_worker.schemas import HandoutDocument, HandoutJobRequest, HandoutSong, LyricLine
 
 MAX_HANDOUT_BODY_BYTES: Final = 8 * 1024 * 1024
 """Largest ``POST /v1/handout-jobs`` body."""
@@ -55,11 +55,8 @@ def text_chars(document: HandoutDocument) -> int:
 def _chars(value: object) -> int:
     if isinstance(value, str):
         return len(value)
-    if isinstance(value, dict):
-        return sum(_chars(item) for item in value.values())
-    if isinstance(value, list):
-        return sum(_chars(item) for item in value)
-    return 0
+    items = value.values() if isinstance(value, dict) else value
+    return sum(_chars(item) for item in items) if isinstance(items, Iterable) else 0
 
 
 def layout_cells(document: HandoutDocument) -> int:
@@ -70,9 +67,13 @@ def layout_cells(document: HandoutDocument) -> int:
 
 def _song_cells(song: HandoutSong) -> int:
     bars = [bar for section in song.sections for bar in section.chord_bars or ()]
-    lines = song.lyrics.lines if song.lyrics is not None else ()
-    chords = sum(len(bar) for bar in bars) + sum(len(line.chords) for line in lines)
+    lines = _lyric_lines(song)
+    chords = sum(map(len, bars)) + sum(len(line.chords) for line in lines)
     return len(song.sections) + len(bars) + len(song.chord_symbols) + len(lines) + chords
+
+
+def _lyric_lines(song: HandoutSong) -> Sequence[LyricLine]:
+    return song.lyrics.lines if song.lyrics is not None else ()
 
 
 def check_request_limits(request: HandoutJobRequest) -> None:
