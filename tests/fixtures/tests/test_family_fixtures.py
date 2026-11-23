@@ -1,4 +1,4 @@
-"""Tests of the per-family handout fixtures (020 T028, SC-006): the seeding plan and the setlist songs.
+"""Tests of the per-family handout fixtures (020 T028, SC-006): seeding plan and setlist songs.
 
 The plan in ``tests/fixtures/families/manifest.json`` drives the E2E seeding helper
 (``e2e/support/handout-seed.ts``). Every fake it relies on is checked against the contract texts
@@ -170,7 +170,7 @@ def test_the_fake_quality_ratings_are_the_data_model_ones(
     assert "flicker" in fake["stems"]["guitar"]["artefactKinds"]
     assert fake["detail"] == {"rating": "good", "rest": "fair", "restKind": "rest-share"}
     assert f'`analyzerVersion = "{fake["analyzerVersion"]}"`' in flat
-    assert set(fake["stems"][c]["rating"] for c in fake["stems"]) <= set(_enum("QualityRating"))
+    assert {fake["stems"][c]["rating"] for c in fake["stems"]} <= set(_enum("QualityRating"))
 
 
 # ------------------------------------------------------------------ the setlist and its songs
