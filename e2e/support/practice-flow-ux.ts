@@ -12,7 +12,7 @@ import { ScorePanel } from '../pages/score-panel';
 import { SectionLane } from '../pages/section-lane';
 import { SetlistBar, SetlistsPage } from '../pages/setlists-page';
 import { setNumericValue } from './controls';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { okJson } from './http';
 import { PracticeFlowApi, sectionsReadyTimeoutMs, type ScoreViewDto, type SetlistDto } from './practice-flow';
 import type { UxData } from './ux-data';
@@ -46,7 +46,7 @@ export function seedPracticeUx(data: UxData): Promise<PracticeUxData> {
 }
 
 async function withApi<T>(run: (context: APIRequestContext) => Promise<T>): Promise<T> {
-  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const context = await request.newContext(apiContextOptions);
   try {
     return await run(context);
   } finally {

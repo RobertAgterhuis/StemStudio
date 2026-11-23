@@ -8,7 +8,7 @@ import { AgentPanel } from '../pages/agent-panel';
 import { ClaudeKeySection } from '../pages/claude-key-section';
 import { SettingsPage } from '../pages/settings-page';
 import { AgentApi } from './agent-api';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { test as generative } from './generative-test';
 
 /** Fixtures added by feature 011. */
@@ -23,7 +23,7 @@ export interface AgentFixtures {
 /** Extended Playwright test. */
 export const test = generative.extend<AgentFixtures>({
   agentApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new AgentApi(context));
     await context.dispose();
   },

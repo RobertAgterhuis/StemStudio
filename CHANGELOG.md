@@ -26,6 +26,20 @@ What changed for StemStudio users. Technical details are in `docs/STATUS.md` and
   of notes out of range; new strings, brass and woodwinds profiles.
 - **MIDI per channel**: download the notes of a single channel, for every instrument family.
 
+### Security (refactors 003 and 004)
+
+- **Only this computer by default**: Docker publishes the web app (8080) and the API (8081) on `127.0.0.1`, so other
+  devices in the network can no longer reach them. `STEMSTUDIO_BIND_ADDRESS=0.0.0.0` opens them on purpose (with the
+  T7 warning in `.env.example` and the manuals).
+- **API host allow-list**: the API answers `400` to a host name other than `localhost`, `127.0.0.1`, `[::1]` and `api`
+  (DNS rebinding). `STEMSTUDIO_API_ALLOWED_HOSTS` (`StemStudio__AllowedHosts`) adds names, for example the LAN address
+  when the ports are opened.
+- **Writes need the app's Origin or a local caller**: a request that changes data without an `Origin` header is
+  accepted only from this computer (loopback) or the web container; a script on the host now sends
+  `Origin: http://localhost:8080`. Forwarded headers are never trusted.
+- The API warns at start-up when it listens beyond loopback outside a container, and worker, api and web drop all
+  Linux capabilities and run with `no-new-privileges`.
+
 ### Changed
 
 - Development: `scripts/test-all.{sh,ps1} --affected` and the pull-request CI run only the checks

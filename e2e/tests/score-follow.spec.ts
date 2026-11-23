@@ -5,7 +5,7 @@ import type { TrackDto } from '../support/api';
 import type { AssetsApi } from '../support/assets-api';
 import { fillAndCommit } from '../support/controls';
 import { ensureDetailCompleted, fakeStems } from '../support/detail';
-import { apiBaseUrl, detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
+import { apiContextOptions, detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { positionSeconds } from '../support/levels';
 import { barAt, PracticeFlowApi, type ScoreViewDto } from '../support/practice-flow';
 import type { CreateScoreDto, ScoreApi, ScoreProfile } from '../support/score-api';
@@ -24,7 +24,7 @@ let flow: PracticeFlowApi;
 
 test.beforeEach(async ({ playwright }) => {
   test.setTimeout(fakeJobTimeoutMs + 3 * scoreMs);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  context = await playwright.request.newContext(apiContextOptions);
   flow = new PracticeFlowApi(context);
 });
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Agent.Backends;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Security;
 using StemStudio.Api.Storage;
 
 namespace StemStudio.Api.Agent.Secrets;
@@ -63,6 +64,7 @@ public static class DataProtectionSetup
         ArgumentNullException.ThrowIfNull(configuration);
         services.AddSingleton(new KeyEntryPolicy(configuration[KeyEntryPolicy.InternalCallerKey], configuration[WebOriginKey] ?? new StemStudioApiOptions().WebOrigin));
         services.TryAddSingleton<IHostAddressResolver, DnsHostAddressResolver>();
+        services.AddSingleton<TrustedPeerPolicy>();
         services.AddSingleton<LocalOnlyKeyEntryFilter>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ClaudeKeyProtector>();

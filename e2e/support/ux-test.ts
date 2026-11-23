@@ -8,7 +8,7 @@ import { AppShell } from '../pages/app-shell';
 import { HelpPanel } from '../pages/help-panel';
 import { TourPopover } from '../pages/tour-popover';
 import { StemStudioApi } from './api';
-import { apiBaseUrl, detailPhaseTimeoutMs, fakeJobTimeoutMs } from './env';
+import { apiContextOptions, detailPhaseTimeoutMs, fakeJobTimeoutMs } from './env';
 import { test as base } from './test';
 import { seedUxData, type UxData } from './ux-data';
 
@@ -28,7 +28,7 @@ export interface UxWorkerFixtures {
 export const test = base.extend<UxFixtures, UxWorkerFixtures>({
   uxData: [
     async ({ playwright }, use) => {
-      const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+      const context = await playwright.request.newContext(apiContextOptions);
       await use(await seedUxData(new StemStudioApi(context)));
       await context.dispose();
     },

@@ -4,7 +4,7 @@ import { PracticeLogPanel, PracticePage } from '../pages/practice-log-panel';
 import { SectionLane } from '../pages/section-lane';
 import type { StemStudioApi, TrackDto } from '../support/api';
 import { fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs, webBaseUrl } from '../support/env';
+import { apiBaseUrl, apiContextOptions, fakeJobTimeoutMs, webBaseUrl } from '../support/env';
 import { positionSeconds } from '../support/levels';
 import { PracticeFlowApi, sectionsReadyTimeoutMs } from '../support/practice-flow';
 import { expect, test } from '../support/test';
@@ -21,7 +21,7 @@ const foreignRequests: string[] = [];
 
 test.beforeEach(async ({ playwright, page }) => {
   test.setTimeout(fakeJobTimeoutMs + 120_000);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  context = await playwright.request.newContext(apiContextOptions);
   flow = new PracticeFlowApi(context);
   await flow.setPracticeLog(true);
   const own = new Set([new URL(webBaseUrl).origin, new URL(apiBaseUrl).origin]);

@@ -90,7 +90,7 @@ $PytestPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', '--wit
 $SoundTouchWasm = 'src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm'
 $HasSoundTouchWasm = Test-Path -LiteralPath (Join-Path $RepoRoot $SoundTouchWasm)
 $ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/backup_folder_checks.py', 'scripts/api_image_size_checks.py', 'scripts/affected_select.py', 'scripts/tests')
+$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/backup_folder_checks.py', 'scripts/api_image_size_checks.py', 'scripts/affected_select.py', 'scripts/loopback_ports_checks.py', 'scripts/tests')
 $QualityTools = @('uv', 'run', '--project', 'tools/quality', '--frozen')
 # Static key volume check (011 claude-key) for every compose combination CI validates.
 $ComposeCombos = @(
@@ -244,6 +244,9 @@ $Steps = Resolve-StepGroup @(
     @{ Group = 'compose' }
     foreach ($combo in $ComposeCombos) {
         @{ Name = "key volume check ($($combo -join ' + '))"; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-Command', "& ./scripts/check-key-volume.ps1 -File $($combo -join ',')") }
+    }
+    foreach ($combo in $ComposeCombos + , @('docker-compose.yml', 'docker-compose.e2e.yml')) {
+        @{ Name = "loopback ports check ($($combo -join ' + '))"; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-Command', "& ./scripts/check-loopback-ports.ps1 -File $($combo -join ',')") }
     }
     @{ Group = 'quality-gate' }
     @{ Name = 'quality gate (run_all)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'tools/quality', '--frozen', 'python', 'tools/quality/run_all.py') }

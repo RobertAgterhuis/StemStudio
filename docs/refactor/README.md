@@ -3,8 +3,8 @@
 |---|---|---|---|---|---|---|
 | [001](001-dotnet-affected.md) | Affected builds and tests for the .NET monorepo | build / CI | P2 | S | low | done (2026-11-23) |
 | [002](002-project-norm.md) | Project norm map | norm / governance | P2 | S | low | proposed |
-| [003](003-api-exposure.md) | Close the unauthenticated API to callers other than the Web app | Api / security | P1 | M | medium | proposed |
-| [004](004-loopback-ports.md) | Publish the web and api ports on localhost only by default | docker compose / security | P1 | S | low | proposed |
+| [003](003-api-exposure.md) | Close the unauthenticated API to callers other than the Web app | Api / security | P1 | M | medium | done (2026-11-23) |
+| [004](004-loopback-ports.md) | Publish the web and api ports on localhost only by default | docker compose / security | P1 | S | low | done (2026-11-23) |
 | [005](005-worker-ffmpeg-input-hardening.md) | Harden the worker's ffmpeg/ffprobe intake against disguised playlists | worker / ingest security | P1 | S | medium | proposed |
 | [006](006-stale-track-writes.md) | Optimistic concurrency for Track and TrackLyrics instead of per-feature locks | Api sync / Persistence | P1 | M | medium | proposed |
 | [007](007-quality-gates-real.md) | Make the SonarQube and Sigrid gates real and blocking | CI / quality gates | P1 | S-M | low | rejected (ADR-038) |

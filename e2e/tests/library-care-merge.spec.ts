@@ -1,5 +1,5 @@
 import { GenerationApi, type StyleDto, type StyleInputDto } from '../support/generation-api';
-import { apiBaseUrl, fakeJobTimeoutMs, runId } from '../support/env';
+import { apiContextOptions, fakeJobTimeoutMs, runId } from '../support/env';
 import { fixturePath } from '../support/fixtures';
 import { okJson } from '../support/http';
 import { mixSettings } from '../support/practice';
@@ -30,7 +30,7 @@ test.describe('merge restore (013 US5)', { tag: ['@library-care', '@merge'] }, (
   test('adds what is missing, keeps what exists, renames a clashing style to "(restored)"', async ({ api, care, careApi, playwright }, testInfo) => {
     test.setTimeout(fakeJobTimeoutMs * 4 + libraryJobTimeoutMs * 2);
     const salt = `${runId()}-${testInfo.project.name}`;
-    const styles = new GenerationApi(await playwright.request.newContext({ baseURL: apiBaseUrl }));
+    const styles = new GenerationApi(await playwright.request.newContext(apiContextOptions));
     const styleName = `Merge style ${salt}`;
     const track2 = await api.ensureFileCompleted(uniqueWavCopy(fixturePath('click_90bpm_3-4_12s.wav'), `merge-2-${salt}`), fakeJobTimeoutMs);
     const track3 = await api.ensureFileCompleted(uniqueWavCopy(fixturePath('click_120bpm_4-4_12s.wav'), `merge-3-${salt}`), fakeJobTimeoutMs);

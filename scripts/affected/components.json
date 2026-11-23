@@ -15,7 +15,7 @@
     "secret-scan": "secret scan self-test and scan (tracked files)",
     "quality-tools": "tools/quality ruff, mypy, pytest + coverage",
     "scripts-tests": "devops check scripts (scripts/tests) ruff, mypy, pytest + coverage, split E2E jobs check",
-    "compose": "compose validation and the key volume check for every compose combination",
+    "compose": "compose validation and the key volume and loopback ports checks for every compose combination",
     "quality-gate": "SIG checks on the whole code base (tools/quality/run_all.py)",
     "docs-manuals": "public manuals up to date (tools/docs/check.mjs)",
     "site": "website npm ci, unit tests, build + check (tools/site)",
@@ -217,8 +217,8 @@
       ]
     },
     {
-      "name": "Key volume check (compose)",
-      "paths": ["scripts/check-key-volume.*", "scripts/key_volume_checks.py"],
+      "name": "Key volume and loopback ports checks (compose)",
+      "paths": ["scripts/check-key-volume.*", "scripts/key_volume_checks.py", "scripts/check-loopback-ports.*", "scripts/loopback_ports_checks.py"],
       "groups": ["compose"]
     },
     {

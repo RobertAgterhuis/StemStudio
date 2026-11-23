@@ -4,7 +4,7 @@ import { SectionEditor } from '../pages/section-editor';
 import { SectionLane } from '../pages/section-lane';
 import type { StemStudioApi } from '../support/api';
 import { fakeStems } from '../support/detail';
-import { apiBaseUrl, fakeJobTimeoutMs } from '../support/env';
+import { apiContextOptions, fakeJobTimeoutMs } from '../support/env';
 import { PracticeFlowApi, requireDetectOnComplete, sectionsReadyTimeoutMs, type SectionDto, type SectionSetDto } from '../support/practice-flow';
 import { expertState } from '../support/preferences';
 import { expect, test } from '../support/test';
@@ -21,7 +21,7 @@ test.use({ storageState: expertState });
 
 test.beforeEach(async ({ playwright }) => {
   test.setTimeout(fakeJobTimeoutMs + 120_000);
-  context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  context = await playwright.request.newContext(apiContextOptions);
   flow = new PracticeFlowApi(context);
   requireDetectOnComplete(true); // after the context: afterEach disposes it also when this skips
 });

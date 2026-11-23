@@ -73,7 +73,9 @@ internal sealed class ClaudeKeyApi : IDisposable
                 .Where(value => value.StartsWith(TestDoubles.ClaudeKey.ClaudeKeySentinels.Prefix, StringComparison.Ordinal)));
             return Task.FromResult(AnthropicReply(request));
         });
-        var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = options.InternalCaller };
+        // Refactor 003: the app-wide host allow-list is opened to every name here, as an owner who opens the API on the LAN
+        // would, so the key filter's own host layer (CK-FR-012) stays under test; HostAllowListTests covers the default.
+        var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = options.InternalCaller, ["StemStudio:AllowedHosts"] = "*" };
         if (options.KeyRingDir is not null)
         {
             settings[DataProtectionSetup.KeyRingDirKey] = options.KeyRingDir;

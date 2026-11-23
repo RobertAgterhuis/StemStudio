@@ -1,5 +1,5 @@
 # 004 Publish the web and api ports on localhost only by default
-- Status: proposed · Date: 2026-11-19 · Area: delivery / docker compose · Priority: P1
+- Status: done (2026-11-23; commits `bd9e5ff2`, `2f9a6d0e`, `8814be29` on branch `sec-003-004`, see "Outcome") · Date: 2026-11-19 · Area: delivery / docker compose · Priority: P1
 
 ## Problem statement
 - `docker-compose.yml:181-182` (`"8081:8081"`, api) and `docker-compose.yml:217-218` (`"8080:8080"`, web) publish both ports on
@@ -47,3 +47,16 @@ S (0.5 day): two port lines, one `jq` assertion in CI, and the docs. No applicat
   that compose part ahead of 018. `003-api-exposure.md` (step 4) asks for the same change from the backend side. Merge
   the two, or schedule them together.
 - `014-supply-chain-pinning.md` (container hardening in general).
+
+## Outcome (2026-11-23)
+1. `scripts/loopback_ports_checks.py` (pytest, 100 % line and branch) with `scripts/check-loopback-ports.{sh,ps1}`: every
+   api/web port on `127.0.0.1` with the variable unset, on `0.0.0.0` with it set, and no other service publishes a
+   port. Wired into the CI compose validation (all five combinations incl. the e2e override), the devops script
+   checks and `test-all.{sh,ps1}`. Red on the old file (`bd9e5ff2`).
+2. Ports `"${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8081:8081"` and `:8080:8080` (`2f9a6d0e`).
+3. `.env.example` (commented out, T7 warning), compose header, user and technical manuals; PDFs regenerated.
+4. `security_opt: ["no-new-privileges:true"]` and `cap_drop: [ALL]` for worker, api and web (`8814be29`); the E2E stack
+   stayed healthy and green with it.
+5. Verified: the isolated stack publishes on `127.0.0.1` only (`docker compose config`, `docker inspect`); from the host
+   `http://localhost:18080` and `:18081` work. A second LAN device was not available in this environment; the binding
+   itself is what refuses it.

@@ -6,7 +6,7 @@
  */
 import { LyricAssistPane } from '../pages/lyric-assist-pane';
 import { test as agent } from './agent-test';
-import { apiBaseUrl } from './env';
+import { apiContextOptions } from './env';
 import { LyricAssistApi } from './lyric-assist-api';
 
 /** Fixtures added by feature 023. */
@@ -18,7 +18,7 @@ export interface LyricAssistFixtures {
 /** Extended Playwright test. */
 export const test = agent.extend<LyricAssistFixtures>({
   lyricAssistApi: async ({ playwright }, use) => {
-    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    const context = await playwright.request.newContext(apiContextOptions);
     await use(new LyricAssistApi(context));
     await context.dispose();
   },

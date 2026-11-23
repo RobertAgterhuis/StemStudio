@@ -1,5 +1,5 @@
 # 003 Close the unauthenticated API to callers other than the Web app
-- Status: proposed · Date: 2026-11-19 · Area: Api / security (StemStudio.Api, ApiComposition, Security) · Priority: P1
+- Status: done (2026-11-23; commits `ee4a5cc4`..`874686a8` and `55dc9824` on branch `sec-003-004`, see "Outcome") · Date: 2026-11-19 · Area: Api / security (StemStudio.Api, ApiComposition, Security) · Priority: P1
 
 ## Problem statement
 The API has no authentication and, apart from the Claude-key endpoints, no check of who is calling. The one app-wide guard lets
@@ -66,3 +66,28 @@ browser-to-API stem path.
 ## Dependencies and related proposals
 ADR-027 (D3, D6) is the design source. The compose binding change belongs to the CI/docker audit. Do this before feature 018
 starts.
+
+## Outcome (2026-11-23)
+1. `tests/StemStudio.Api.Tests/Security/ApiExposureTests.cs` pinned today's behaviour (`ee4a5cc4`); the "003 flips" cases
+   were turned around test-first (`11f192c2`, `12ce23e7`).
+2. Host filtering from `StemStudio:AllowedHosts` (`ApiExposure`), default `KeyEntryPolicy.LocalHosts`
+   (`localhost;127.0.0.1;[::1];api`), empty `Host` refused, `"AllowedHosts": "*"` removed (`92293df5`). Compose passes
+   `STEMSTUDIO_API_ALLOWED_HOSTS` (`55dc9824`). The e2e and generative overrides use only `localhost` and `api`, so
+   nothing was added.
+3. `TrustedPeerPolicy` (loopback or the internal caller, socket address only) is shared by `CrossSiteRequestGuard` and
+   `LocalOnlyKeyEntryFilter`; an Origin-less (or empty-Origin) write from another peer gets 403 (`eb2a7adb`). The
+   Playwright API contexts now send the Web app's `Origin` (`27d30a21`), because behind Docker port forwarding the
+   runner's requests arrive from the bridge gateway.
+4. Compose binding done in refactor 004 (same branch); recorded in `specs/018-tablet-remote/plan.md` (flag 2).
+5. `ListenerExposure` logs `ApiListensBeyondLoopback` (4106) outside a container (`9915d1de`, `c1235f64`).
+6. Verified on the isolated E2E stack: a host `curl -X POST` without `Origin` and one with `X-Forwarded-For: 127.0.0.1`
+   get 403, `Host: evil.example` gets 400, the web container and in-container loopback pass, the worker container
+   gets 403. E2E on that stack: Chromium 392 passed (the 2 failures, a missing practice-flow fixture and an export
+   timing flake, passed on rerun), `@recording` 18 passed / 1 skipped, `@agent-unavailable` Chromium and Firefox
+   passed. A second machine cannot connect at all (127.0.0.1 binding).
+
+Residual risk: `Host` and `Origin` are browser defences; a non-browser client that can reach the port forges both. With
+`STEMSTUDIO_BIND_ADDRESS` opened, a LAN client sending `Origin: http://localhost:8080` can still change data (there is
+no authentication; feature 018's remote listener is the supported LAN path). Reads are unguarded by design. The web
+app has no host allow-list yet (018). Rollback: revert `eb2a7adb` (Origin rule) and `92293df5` (host list), or set
+`STEMSTUDIO_API_ALLOWED_HOSTS=*`.
