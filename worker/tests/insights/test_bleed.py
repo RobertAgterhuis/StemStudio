@@ -169,3 +169,12 @@ def test_sources_of_a_rest_stem_include_the_kept_siblings(specs: dict) -> None:
     sources = bleed.bleed_sources("guitar.rest", specs, details)
     assert [source.family for source in sources][-1] == "guitar"
     assert len(sources) == 6
+
+
+def test_a_quiet_copy_does_not_make_the_original_look_bled() -> None:
+    """Spill of i in j (a phantom stem) must not read as bleed of j into i (MAX_GAIN, Q3)."""
+    rng = np.random.default_rng(7)
+    original = rng.gamma(0.5, 1e-1, size=(800, BANDS))  # spill stays above the activity floor
+    spill = 0.0036 * original
+    assert bleed.fit_pair(_spec(spill), _spec(original)).share == pytest.approx(1.0, abs=0.02)
+    assert bleed.fit_pair(_spec(original), _spec(spill)).share == pytest.approx(0.0036, rel=0.05)

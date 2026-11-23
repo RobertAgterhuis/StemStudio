@@ -8,7 +8,9 @@ For a target stem i and a source stem j, per mel band b over j's active frames:
   ``P_i >= a^2 P_j`` in every loud cell of j; instruments that merely play together have cells
   where j is loud and i is quiet, which pulls the floor down (Q1 refinement, 2026-11-23,
   replacing the quiet-frame fit, whose value could never exceed -15 dB);
-* ``g*_b = min(g_b, floor_b)``; leakage ``E = sum_b g*_b sum_t P_j``; share ``E / sum P_i``.
+* ``g*_b = min(g_b, floor_b, MAX_GAIN)``: a stem cannot hold more of a source than the source's
+  own stem has (a quiet copy of i in j is spill of i, not bleed of j into i; Q3);
+* leakage ``E = sum_b g*_b sum_t P_j``; share ``E / sum P_i``.
 
 The index is the largest share over the sources; ``guard_ratio`` (full fit / guarded fit) above
 ``CO_OCCURRENCE_RATIO`` flags co-occurrence for the four pairs of instruments that often play
@@ -28,6 +30,7 @@ from stemstudio_worker.insights.thresholds import (
     CO_OCCURRENCE_RATIO,
     FLOOR_PERCENTILE,
     LOUD_RANGE_DB,
+    MAX_GAIN,
 )
 from stemstudio_worker.schemas import STANDARD_STEMS, StemName
 
@@ -115,7 +118,7 @@ def fit_pair(target: Spectrogram, source: Spectrogram) -> PairFit:
     loud = _loud_cells(p_j, active)
     floor = _band_floor(p_i / np.where(p_j > 0, p_j, 1.0), loud)
     mass = np.sum(a_j, axis=0)
-    guarded = float(np.sum(np.minimum(g, floor) * mass)) / total
+    guarded = float(np.sum(np.minimum(np.minimum(g, floor), MAX_GAIN) * mass)) / total
     return PairFit(min(1.0, guarded), min(1.0, float(np.sum(g * mass)) / total))
 
 

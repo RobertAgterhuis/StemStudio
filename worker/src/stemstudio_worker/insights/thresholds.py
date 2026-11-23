@@ -36,6 +36,9 @@ LOUD_RANGE_DB: Final = 20.0
 FLOOR_PERCENTILE: Final = 5.0
 """Percentile of ``P_i / P_j`` over the source's loud cells: the ratio floor (Q1)."""
 
+MAX_GAIN: Final = 1.0
+"""Upper bound of the per-band bleed gain ``g*`` (Q3, pending confirmation)."""
+
 CO_OCCURRENCE_RATIO: Final = 2.0
 """Full fit / guarded fit above this flags co-occurrence (data-model 4.3)."""
 
@@ -45,8 +48,8 @@ CO_OCCURRENCE_PAIRS: Final[frozenset[frozenset[StemName]]] = frozenset(
 )
 """Pairs of instruments that often play together; their level is capped at ``medium``."""
 
-BLEED_LEVELS: Final = Levels(0.0053, 0.053)
-"""Bleed index (an energy share) thresholds, calibrated on V1 (2026-11-23: rho 0.91, 86 %)."""
+BLEED_LEVELS: Final = Levels(0.0065, 0.053)
+"""Bleed index (energy share) thresholds; V1 2026-11-23, seeds 7/11/23: rho >= 0.91, 87-93 %."""
 
 # artefacts (4.4) ---------------------------------------------------------------
 

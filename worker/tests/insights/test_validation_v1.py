@@ -91,7 +91,7 @@ def test_playing_together_control_is_never_high() -> None:
 
 @pytest.mark.xfail(
     strict=True,
-    reason="Q3 pending: guitar shows bass at 0.081 (guitar/bass is not a co-occurrence pair)",
+    reason="Q3 pending: co-playing sustained families read as bleed (guitar 0.080 from bass)",
 )
 def test_dense_song_has_no_false_bleed_above_medium() -> None:
     stems = song(seconds=SECONDS)

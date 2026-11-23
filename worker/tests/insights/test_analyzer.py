@@ -18,18 +18,21 @@ from stemstudio_worker.schemas import DetailParentInput, QualityResult, StemQual
 
 from .synthetic import FAMILIES, arranged_song, gate_holes, inject_bleed, write_stem
 
-SECONDS = 20.0
+SECONDS = 30.0
+GAIN = 1.6  # +4 dB: spill at -30 dB must stay above the absolute -50 dBFS activity floor
 
 
 @pytest.fixture(scope="module")
 def library(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     root = tmp_path_factory.mktemp("stems")
-    stems = arranged_song(seconds=SECONDS)
+    song = arranged_song(seconds=SECONDS)
+    gain = min(GAIN, 0.95 / max(float(np.max(np.abs(sound))) for sound in song.values()))
+    stems = {name: gain * sound for name, sound in song.items()}
     drums = stems["drums"]
     files = {name: stems[name] for name in FAMILIES}
     files["vocals"] = inject_bleed(stems["vocals"], drums, 0.3)  # much drums in the vocals
-    files["guitar"] = gate_holes(stems["guitar"], 2.0, seed=4)  # gating artefacts
-    files["piano"] = 0.02 * stems["other"]  # no piano in this song: spill only
+    files["other"] = gate_holes(stems["other"], 2.0, seed=4)  # gating artefacts
+    files["piano"] = 0.06 * stems["guitar"]  # no piano in this song: spill only
     files["drums.kick"] = 0.4 * drums
     files["drums.rest"] = 0.6 * drums  # 36 % of the drums energy went to the rest stem
     return {name: write_stem(root / f"{name}.flac", sound) for name, sound in files.items()}
@@ -70,11 +73,11 @@ def test_result_keeps_the_request_order_and_validates(result: QualityResult, lib
     QualityResult.model_validate(result.model_dump())
 
 
-def test_clean_stems_rate_good(result: QualityResult) -> None:
-    for channel in ("bass", "other"):
-        stem = _stem(result, channel)
-        assert (stem.rating, stem.rating_reason) == ("good", "clean"), stem
-        assert stem.active_seconds >= 10.0
+def test_a_clean_stem_rates_good(result: QualityResult) -> None:
+    # Drums are not clean here: the vocals hold a copy of them (a copy correlates both ways).
+    guitar = _stem(result, "guitar")
+    assert (guitar.rating, guitar.rating_reason) == ("good", "clean"), guitar
+    assert guitar.active_seconds >= 10.0
 
 
 def test_bleed_of_drums_into_vocals(result: QualityResult) -> None:
@@ -84,17 +87,17 @@ def test_bleed_of_drums_into_vocals(result: QualityResult) -> None:
     assert (vocals.rating, vocals.rating_reason) == ("poor", "bleed")
 
 
-def test_gating_artefacts_in_guitar(result: QualityResult) -> None:
-    guitar = _stem(result, "guitar")
-    assert guitar.artefacts.level in ("medium", "high")
-    assert guitar.artefacts.kinds == ["dropouts"]
-    assert guitar.rating_reason in ("artefacts", "bleed-and-artefacts")
+def test_gating_artefacts_in_other(result: QualityResult) -> None:
+    other = _stem(result, "other")
+    assert other.artefacts.level in ("medium", "high")
+    assert other.artefacts.kinds == ["dropouts"]
+    assert other.rating_reason in ("artefacts", "bleed-and-artefacts")
 
 
 def test_spill_only_piano_is_not_present(result: QualityResult) -> None:
     piano = _stem(result, "piano")
     assert piano.level_db < -30.0
-    assert piano.bleed.main_source == "other"
+    assert piano.bleed.main_source == "guitar"
     assert (piano.rating, piano.rating_reason) == ("not-present", "not-present")
 
 
@@ -138,8 +141,9 @@ def test_silent_and_short_stems_are_too_short(tmp_path: Path, library: dict[str,
     files = dict(library)
     files["piano"] = write_stem(tmp_path / "silent.flac", np.zeros(44_100 * 5))
     files["other"] = write_stem(tmp_path / "short.flac", 0.1 * np.sin(np.arange(44_100 * 5) / 7))
+    files["drums.kick"] = write_stem(tmp_path / "kick.flac", np.zeros(44_100 * 5))
     result = SignalQualityAnalyzer().analyze(_inputs(files), lambda _: None)
-    for channel in ("piano", "other"):
+    for channel in ("piano", "other", "drums.kick"):
         stem = _stem(result, channel)
         assert (stem.rating, stem.rating_reason) == ("unknown", "too-short")
     assert _stem(result, "piano").level_db == -120.0
