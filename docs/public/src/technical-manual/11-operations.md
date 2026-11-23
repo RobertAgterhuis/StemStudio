@@ -13,6 +13,8 @@
 | `GET /api/library/folders` (022) | `pendingFiling` is `0` once every item is filed; above 0 the library shows *Sorting your library (n left)* |
 | `scripts/check-soundtouch-served.sh [BASE_URL]` (012) | `soundtouch.wasm` served as `application/wasm` with the expected SHA-256 and the complete LGPL folder `/third-party/soundtouch/` |
 | Worker `/health` `lanes.practice`, `structure` (014) | Queued and running practice jobs; the section analyser (`stems-novelty` or `fake`) and its version |
+| Worker `/health` `lanes.insights`, `insights` (020) | Queued and running quality and handout jobs; the analyser (`real` or `fake`) and its version, WeasyPrint and Pango versions, fonts |
+| `scripts/check-worker-pdf.{sh,ps1} [--build] [image]` (020) | WeasyPrint imports, Pango 1.44 or newer, DejaVu Sans listed |
 | `scripts/check-worker-fonts.{sh,ps1} [--build] [image]` (008, 014) | Leipzig and DejaVu Sans listed by `fc-list`; `verovio`, `cairosvg`, `music21` and `reportlab` import |
 | Windows without Docker | `scripts/dev.ps1 -SmokeTest` waits for all three health endpoints |
 
@@ -110,6 +112,20 @@ up the pinned newer version when the project updates it.
   renders scores without music glyphs; check with `scripts/check-worker-fonts.{sh,ps1}`.
 - **Practice log**: nothing to operate. It lives in the database (part of every backup), is never
   sent anywhere and is deleted by the user on the Practice page.
+
+## Insights and handouts (020)
+
+- **Quality reports** run on the worker's `insights` lane after every six-stem separation and
+  detail split (`StemStudio__AutoQualityReport`); a 5-minute song with 18 stems takes about 13 s
+  on the reference CPU with 4 threads (`STEMSTUDIO_INSIGHTS_THREADS`; budget 30 s). A report made
+  with an older analyzer version shows as outdated and is only remade on request. Every label is a
+  rough indication until gate G1 runs on real multitrack music (MUSDB18-HQ, pending).
+- **Handouts** share that lane: a song handout takes under a second, a 20-song setlist about 3 s
+  in the worker image. A handout over its limits is refused, fails or leaves items out with a
+  warning (chapter 8); `503 worker-unavailable` means the worker cannot be reached. Check the image
+  with `scripts/check-worker-pdf.{sh,ps1}` (WeasyPrint, Pango 1.44 or newer, DejaVu Sans).
+- **Backups** include the quality reports, the practice notes and the handout items (exports
+  class, regenerable with **Make again**).
 
 ## Play-along recording (015)
 

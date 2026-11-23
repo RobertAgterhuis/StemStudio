@@ -22,6 +22,12 @@ indication**. The thresholds were checked on a synthetic set, where known amount
 into clean stems on purpose; there the measures ranked the amounts correctly. Guitar, piano, detail and rest stems stay
 rough indications even after the real check, because the models separate them less reliably.
 
+What the rough indication leaves out today:
+
+- Artefacts are estimated from dropouts (short holes) only; a watery sound is not measured yet.
+- Instruments that hold notes together on the same beats can read as bleed (on the synthetic set, one of six stems in
+  a song where every instrument plays all the time was rated High by mistake).
+
 At Expert the card also shows the index values (0 to 1) and the **analyzer version** with the time of measuring. A new
 StemStudio version can bring a new analyzer version; reports made with an older one are marked "Made with an older
 version" and are not remade on their own. Press **Check again** to remake them.

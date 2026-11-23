@@ -17,7 +17,7 @@ together with two models (see the technical manual, chapter 3):
 
 StemStudio never downloads models itself. If Ollama is not running or a model is missing, the
 panel says so and tells you the fix, for example *"Model qwen3.5:9b is not pulled."* with
-the command `ollama pull qwen3.5:9b` (chapter 25).
+the command `ollama pull qwen3.5:9b` (chapter 26).
 
 ## Opening the agent
 

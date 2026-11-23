@@ -206,6 +206,10 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `STEMSTUDIO_SECTION_DETECT_ON_COMPLETE` (`StemStudio__Practice__SectionDetectOnComplete`) | api | `true` | 014: detect the sections right after every separation; `false` leaves detection to the first mixer open or an explicit detect |
 | `StemStudio__Practice__SetlistPdfTimeoutSeconds` | api | `30` | 014: wait for a setlist PDF (5-120 s) before `504 document-timeout` |
 | `STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES` | compose | `268435456` (256 MiB) | 015: largest take upload; compose passes the same value to the api as `StemStudio__Recording__MaxUploadBytes` (`StemStudio:Recording:MaxUploadBytes`, body limit of the two take upload endpoints; the global 200 MiB upload limit is unchanged) and to the web app as `StemStudio__Recording__MaxStreamBytes` (`StemStudio:Recording:MaxStreamBytes`, the largest take the browser streams), so the browser never sends more than the API accepts |
+| `STEMSTUDIO_QUALITY_ANALYZER` | worker | empty | 020: stem quality analyser, `real` (signal measures of the stems, no download) or `fake` (fixed ratings per channel); empty means `fake` with the fake separator, else `real` |
+| `STEMSTUDIO_INSIGHTS_THREADS` | worker | `4` | 020: numpy/scipy (BLAS) threads of the `insights` lane, 1-16; anything else stops the worker at start-up |
+| `STEMSTUDIO_AUTO_QUALITY_REPORT` (`StemStudio__AutoQualityReport`, `StemStudio:AutoQualityReport`) | api | `true` | 020: start a quality report after every six-stem separation and detail split; `false` leaves it to **Check stem quality** |
+| `StemStudio__MaxSetlistHandoutSongs` (`StemStudio:MaxSetlistHandoutSongs`) | api | `50` | 020: most songs in a setlist handout (`409 too-many-songs` above it, also on the options). Do not raise it above 50: the worker contract accepts at most 50 songs per handout |
 | `StemStudio__Recording__TestLoopback` | web | `false` | 015, **test stacks only** (`docker-compose.e2e.yml`): the engine's input is its own output (digital loopback for the calibration and alignment tests); no microphone is opened |
 
 Online lookups (005) identify themselves with the User-Agent
@@ -307,6 +311,26 @@ renders their FLAC with the 007 render lane. The browser side has two requiremen
 
 A proxy added later in front of the API must accept take uploads up to
 `STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES` plus multipart overhead.
+
+### Insights and handouts (020)
+
+Nothing is downloaded for 020: the quality report is signal processing on the CPU (numpy,
+soxr, soundfile; no model) and handouts use **WeasyPrint 70.0** with the system libraries of the
+worker image. Both worker variants install `libpango-1.0-0` and `libpangoft2-1.0-0` (Pango
+1.56.3 on Debian 13, LGPL-2.1+; WeasyPrint needs 1.44 or newer) and `libharfbuzz-subset0`
+(HarfBuzz 10.2.0, MIT, font subsetting) explicitly, next to `fonts-dejavu-core`; the Archivo
+font is packaged with the worker (`handouts/assets/`, copied from the app by
+`worker/scripts/sync_handout_style.py`). `scripts/check-worker-pdf.{sh,ps1} [--build] [image]`
+checks an image in throwaway containers without network: WeasyPrint imports, Pango is 1.44 or
+newer and fontconfig lists DejaVu Sans (the CI job `cpu-image-guard` runs it). Worker
+`/health` reports `insights` (analyser kind and version, WeasyPrint and Pango versions, fonts)
+and `lanes.insights`. Handouts are made without network access; the fake stack uses the fake
+quality analyser and real handouts.
+
+The 020 writes (request a quality report, create a handout, set a practice note) are **not
+gated during a backup**: like exports they add new items and never delete or replace library
+files (013 policy). While a restore switches the library they answer `503` like every other
+request.
 
 Variables named `STEMSTUDIO_FAKE_*` are for the fake test stack only.
 

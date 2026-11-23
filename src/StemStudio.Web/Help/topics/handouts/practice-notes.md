@@ -11,6 +11,6 @@ related: [handouts, handout-families]
 reviewed: "020"
 ---
 
-The **Practice notes** card on the track page keeps one note per family for the song (one note per family), for
+The **Practice notes** card on the track page keeps one note per family (instrument family) for the song, for
 example what to practise on the bass this week. Choose the family, write the note (up to 4,000 characters) and save
 it. The note is printed in the handouts of that family. Saving an empty note removes it.

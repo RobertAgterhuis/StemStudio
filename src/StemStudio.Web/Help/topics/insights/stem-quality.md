@@ -24,8 +24,9 @@ The ratings are **estimates** made from the stems alone, without the original re
 separate instruments the song was recorded with, so it cannot measure the truth; it looks for signs instead. A rating
 can be wrong, and the card always says so.
 
-**When reports are made**: automatically after every separation and every detail split, and for older tracks when you
-press **Check stem quality**. Press **Check again** to make a new report, for example after an update: a report made
+**When reports are made**: automatically after every six-stem separation and every detail split, and for older tracks
+when you press **Check stem quality**. A track separated into 4 stems gets no report: the check needs the six stems
+(vocals, drums, bass, guitar, piano and other). Press **Check again** to make a new report, for example after an update: a report made
 with an older version is marked "Made with an older version". The previous rating stays visible as "was Fair" when
 the new one differs. Mixing, exports and imports never wait for a report.
 
