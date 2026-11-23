@@ -28,7 +28,7 @@ FAKE_SCALES: Final[Mapping[ParentStemName, Mapping[DetailStemName, float]]] = {
     "vocals": {"lead": 0.7, "backing": 0.3},
     "guitar": {"electric-guitar": 1.0, "keys": 0.001},
     "piano": {"keys": 0.15, "synth": 0.15},
-    "other": {"brass": 0.6, "strings": 0.4},
+    "other": {"brass": 0.4, "strings": 0.3, "woodwinds": 0.3},
 }
 """Output scales per parent; outputs are named with their detail stem names."""
 

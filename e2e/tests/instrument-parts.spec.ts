@@ -10,8 +10,8 @@ import type { ScoreApi } from '../support/score-api';
 import { expect, test } from '../support/test';
 
 // Feature 016 US5 (T112; FR-048..FR-056, SC-005, SC-006, quickstart V11): written parts for the orchestral families on
-// the fake stack. The fake detail split gives `other.strings` and `other.brass`; there is no woodwinds detail stem, so
-// the woodwinds case uses the `other` stem with the `woodwinds` profile. The fake notes are in C major (concert), so the
+// the fake stack. The fake detail split gives `other.strings`, `other.brass` and `other.woodwinds` (parts live on detail
+// stems, spec FR-050; orchestrator decision 1 of 2026-11-23). The fake notes are in C major (concert), so the
 // written keys are A major for the alto sax (M6 up, 3 sharps) and D major for the clarinet (M2 up, 2 sharps).
 const scoreMs = 90_000;
 const viewMs = 30_000;
@@ -52,7 +52,7 @@ test.describe('transposed parts (016 US5)', { tag: '@instrument' }, () => {
   test('woodwinds as clarinet in B-flat: written a major second up', async ({ api, scoreApi, assetsApi }) => {
     const track = await ensureDetailCompleted(api);
 
-    const id = await readyScoreId(scoreApi, assetsApi, { source: { trackId: track.id, channel: 'other' }, profile: 'woodwinds', part: { instrument: 'clarinet-bb', clef: 'auto' } }, scoreMs);
+    const id = await readyScoreId(scoreApi, assetsApi, { source: { trackId: track.id, channel: 'other.woodwinds' }, profile: 'woodwinds', part: { instrument: 'clarinet-bb', clef: 'auto' } }, scoreMs);
     const written = await scoreApi.musicXml(id);
 
     expect(chromaticTranspose(written)).toBe(-2);
