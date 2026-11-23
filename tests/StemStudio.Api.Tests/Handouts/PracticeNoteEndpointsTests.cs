@@ -79,6 +79,28 @@ public sealed class PracticeNoteEndpointsTests : ApiTestBase
         (await PutAsync(track.Id, "vocals", "x")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task ConcurrentPuts_OfOneNote_AnswerOnly200Or204()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        var codes = new List<HttpStatusCode>();
+        for (var round = 0; round < 12; round++)
+        {
+            var family = round % 2 == 0 ? "bass" : "drums";
+            (await PutAsync(track.Id, family, string.Empty)).Dispose();
+            var texts = new[] { "first", "second", round % 3 == 0 ? string.Empty : "third", "fourth" };
+            foreach (var put in await Task.WhenAll(texts.Select(text => PutAsync(track.Id, family, text))))
+            {
+                codes.Add(put.StatusCode);
+                put.Dispose();
+            }
+        }
+
+        codes.ShouldAllBe(code => code == HttpStatusCode.OK || code == HttpStatusCode.NoContent);
+        var notes = (await (await Client.GetAsync(new Uri(ApiRoutes.PracticeNotes(track.Id), UriKind.Relative), Ct)).BodyAsync<PracticeNotesDto>()).Notes;
+        notes.Count.ShouldBeLessThanOrEqualTo(2);
+    }
+
     private Task<HttpResponseMessage> PutAsync(Guid trackId, string family, string text) =>
         Client.PutAsJsonAsync($"{ApiRoutes.PracticeNotes(trackId)}/{family}", new SetPracticeNoteRequest { Text = text }, Ct);
 }
