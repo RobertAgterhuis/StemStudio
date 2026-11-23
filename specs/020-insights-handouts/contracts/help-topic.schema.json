@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/contracts/004/help-topic.schema.json",
+  "title": "StemStudio help topic front matter",
+  "description": "YAML front matter of a help topic (contracts/help-content.md section 2), converted to JSON for validation. help-content 1.2.0 (feature 020): areas insights and handouts added.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "area", "summary", "reviewed"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 48 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "area": { "enum": ["start", "import", "tracks", "detail", "mixer", "mixes", "glossary", "instruments", "insights", "handouts"] },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 140 },
+    "feature": { "type": "string", "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$" },
+    "levels": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/level" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "route": { "type": ["string", "null"], "pattern": "^/" },
+    "anchors": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(-\\*)?$" },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 40 },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "reviewed": { "type": "string", "pattern": "^[0-9]{3}$" }
+  },
+  "$defs": {
+    "level": { "enum": ["beginner", "advanced", "expert"] }
+  }
+}
