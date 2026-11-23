@@ -2,7 +2,7 @@
 
 import importlib.util
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from stemstudio_worker.schemas import QualityInputKind, QualityResult, StemQuality
 
@@ -11,7 +11,7 @@ def kind_of(channel: str) -> QualityInputKind:
     """``standard`` = no dot, ``rest`` = ``<parent>.rest``, else ``detail`` (data-model 2.3)."""
     if "." not in channel:
         return "standard"
-    return cast("QualityInputKind", "rest" if channel.endswith(".rest") else "detail")
+    return "rest" if channel.endswith(".rest") else "detail"
 
 
 def stem_of(result: QualityResult, channel: str) -> StemQuality:

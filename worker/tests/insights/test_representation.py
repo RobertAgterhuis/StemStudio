@@ -114,7 +114,7 @@ def test_reads_in_blocks_and_matches_a_single_block_read(
 def test_mix_is_the_sum_of_the_six_standard_stems(tmp_path: Path) -> None:
     stems = song(seconds=6.0)
     paths = {name: write_stem(tmp_path / f"{name}.flac", sound) for name, sound in stems.items()}
-    total = write_stem(tmp_path / "total.flac", sum(stems.values()))
+    total = write_stem(tmp_path / "total.flac", np.sum(list(stems.values()), axis=0))
     separate, mix = rep.read_standard(paths)
     assert set(separate) == set(stems)
     expected = rep.read_spectrogram(total)

@@ -17,11 +17,13 @@ import numpy.typing as npt
 import soundfile as sf
 from scipy import signal as sps
 
+from stemstudio_worker.schemas import StemName
+
 SR = 44_100
 SECONDS = 30.0
 BEAT = 0.5  # 120 BPM
 TARGET_RMS_DB = -26.0
-FAMILIES = ("vocals", "drums", "bass", "guitar", "piano", "other")
+FAMILIES: tuple[StemName, ...] = ("vocals", "drums", "bass", "guitar", "piano", "other")
 
 Signal = npt.NDArray[np.float64]
 

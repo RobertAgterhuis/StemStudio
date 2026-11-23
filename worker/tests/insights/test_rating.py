@@ -5,7 +5,8 @@ from dataclasses import replace
 import pytest
 
 from stemstudio_worker.insights import rating
-from stemstudio_worker.insights.thresholds import ARTEFACT_LEVELS, BLEED_LEVELS, Levels
+from stemstudio_worker.insights.thresholds import ARTEFACT_LEVELS, BLEED_LEVELS, G1Status, Levels
+from stemstudio_worker.schemas import QualityLevel
 
 CLEAN = rating.RatingInputs(
     active_seconds=120.0,
@@ -47,7 +48,7 @@ def test_co_occurrence_caps_bleed_at_medium() -> None:
 
 
 @pytest.mark.parametrize("status", ["not-measured", "passed"])
-def test_measured_or_passed_dimensions_show_every_level(status: str) -> None:
+def test_measured_or_passed_dimensions_show_every_level(status: G1Status) -> None:
     assert (
         rating.bleed_level(BLEED_LEVELS.low_below / 2, co_occurrence=False, status=status) == "low"
     )
@@ -90,7 +91,7 @@ def test_clean_stem_is_good() -> None:
     ],
 )
 def test_rating_is_the_worse_dimension(
-    bleed: str, artefacts: str, expected: tuple[str, str]
+    bleed: QualityLevel, artefacts: QualityLevel, expected: tuple[str, str]
 ) -> None:
     inputs = replace(CLEAN, bleed_level=bleed, artefact_level=artefacts)
     assert rating.rate(inputs) == expected

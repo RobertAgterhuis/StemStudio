@@ -1,10 +1,10 @@
 """Fake quality analyzer for the fake stack and E2E (T036, data-model 2.6, quickstart V1)."""
 
+import time
 from pathlib import Path
 
 import pytest
 
-from stemstudio_worker.insights import fake as fake_module
 from stemstudio_worker.insights.fake import FAKE_DURATION_SECONDS, FAKE_VERSION, FakeQualityAnalyzer
 from stemstudio_worker.insights.rating import RatingInputs, rate
 from stemstudio_worker.ports import (
@@ -133,7 +133,7 @@ def test_a_missing_file_fails_like_the_real_analyzer(inputs: QualityInputs) -> N
 
 
 def test_default_sleep_is_the_real_clock() -> None:
-    assert fake_module.time.sleep is FakeQualityAnalyzer()._sleep
+    assert FakeQualityAnalyzer()._sleep is time.sleep
 
 
 def test_fake_result_conforms_to_the_worker_contract(result: QualityResult) -> None:

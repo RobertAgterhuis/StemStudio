@@ -174,7 +174,8 @@ warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = ["librosa.*", "soundfile.*", "demucs.*", "yt_dlp.*", "spotdl.*", "julius.*", "numba.*",
-          "sklearn.*"]  # sklearn: feature 014 section clusters (a librosa dependency)
+          "sklearn.*",  # sklearn: feature 014 section clusters (a librosa dependency)
+          "scipy.*"]  # scipy: feature 020 insights tests (signal, stats); ships no type information
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

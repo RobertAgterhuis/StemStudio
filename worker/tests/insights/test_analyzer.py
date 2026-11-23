@@ -1,6 +1,7 @@
 """The signal quality analyzer behind ``ports.QualityAnalyzer`` (T034/T035, data-model 2.4, 4)."""
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -17,7 +18,7 @@ from stemstudio_worker.ports import (
 from stemstudio_worker.schemas import DetailParentInput, QualityResult
 
 from .results import conforms, kind_of, stem_of
-from .synthetic import FAMILIES, arranged_song, gate_holes, inject_bleed, write_stem
+from .synthetic import FAMILIES, Signal, arranged_song, gate_holes, inject_bleed, write_stem
 
 SECONDS = 30.0
 GAIN = 1.6  # +4 dB: spill at -30 dB must stay above the absolute -50 dBFS activity floor
@@ -30,7 +31,7 @@ def library(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     gain = min(GAIN, 0.95 / max(float(np.max(np.abs(sound))) for sound in song.values()))
     stems = {name: gain * sound for name, sound in song.items()}
     drums = stems["drums"]
-    files = {name: stems[name] for name in FAMILIES}
+    files: dict[str, Signal] = {name: stems[name] for name in FAMILIES}
     files["vocals"] = inject_bleed(stems["vocals"], drums, 0.3)  # much drums in the vocals
     files["other"] = gate_holes(stems["other"], 2.0, seed=4)  # gating artefacts
     files["piano"] = 0.06 * stems["guitar"]  # no piano in this song: spill only
@@ -60,7 +61,9 @@ def test_implements_the_port() -> None:
     assert analyzer.version == ANALYZER_VERSION
 
 
-def test_result_keeps_the_request_order_and_validates(result: QualityResult, library: dict) -> None:
+def test_result_keeps_the_request_order_and_validates(
+    result: QualityResult, library: dict[str, Any]
+) -> None:
     assert [stem.channel for stem in result.stems] == list(library)
     assert result.analyzer_version == ANALYZER_VERSION
     assert result.duration_seconds > 0

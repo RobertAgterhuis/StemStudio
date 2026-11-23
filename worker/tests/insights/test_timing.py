@@ -7,13 +7,13 @@ import pytest
 
 from stemstudio_worker.insights.analyzer import SignalQualityAnalyzer
 from stemstudio_worker.ports import QualityInputs, StemAudio
-from stemstudio_worker.schemas import DetailParentInput
+from stemstudio_worker.schemas import DetailParentInput, ParentStemName, QualityInputKind
 
 from .synthetic import FAMILIES, arranged_song, write_stem
 
 SECONDS = 300.0
 BUDGET_SECONDS = 30.0
-DETAIL = {
+DETAIL: dict[ParentStemName, tuple[str, ...]] = {
     "drums": ("kick", "snare", "toms", "hihat", "cymbals", "rest"),
     "vocals": ("lead", "backing", "rest"),
     "other": ("strings", "keys", "rest"),
@@ -30,7 +30,7 @@ def test_five_minute_song_with_eighteen_stems_within_30_seconds(tmp_path: Path) 
     for parent, children in DETAIL.items():
         share = 1.0 / len(children)
         for child in children:
-            kind = "rest" if child == "rest" else "detail"
+            kind: QualityInputKind = "rest" if child == "rest" else "detail"
             path = write_stem(tmp_path / f"{parent}.{child}.flac", share * song[parent])
             stems.append(StemAudio(f"{parent}.{child}", kind, path))
     parents = tuple(

@@ -1,12 +1,14 @@
 """Bleed estimate (T030): leakage share B2 with the ratio-floor guard (data-model 4.2/4.3, Q1)."""
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
 
 from stemstudio_worker.insights import bleed
 from stemstudio_worker.insights.representation import BANDS, Spectrogram, spectrogram_of
+from stemstudio_worker.schemas import StemName
 
 from .synthetic import FAMILIES, SR, arranged_song, inject_bleed
 
@@ -34,7 +36,9 @@ def _source_of(target: str) -> str:
 
 
 @pytest.mark.parametrize("target", FAMILIES)
-def test_share_grows_with_the_injected_energy(target: str, stems: dict, specs: dict) -> None:
+def test_share_grows_with_the_injected_energy(
+    target: str, stems: dict[str, Any], specs: dict[str, Any]
+) -> None:
     source = _source_of(target)
     shares = [
         bleed.fit_pair(spectrogram_of(inject_bleed(stems[target], stems[source], a), SR),
@@ -49,7 +53,9 @@ def test_share_grows_with_the_injected_energy(target: str, stems: dict, specs: d
 
 
 @pytest.mark.parametrize("target", FAMILIES)
-def test_main_source_is_the_injected_stem(target: str, stems: dict, specs: dict) -> None:
+def test_main_source_is_the_injected_stem(
+    target: str, stems: dict[str, Any], specs: dict[str, Any]
+) -> None:
     source = _source_of(target)
     bled = spectrogram_of(inject_bleed(stems[target], stems[source], 0.3), SR)
     sources = [bleed.BleedSource(name, specs[name]) for name in FAMILIES if name != target]
@@ -120,7 +126,7 @@ def _together(seed: int) -> tuple[Spectrogram, Spectrogram]:
     [("drums", "bass"), ("bass", "drums"), ("guitar", "other"), ("other", "guitar"),
      ("piano", "other"), ("other", "piano"), ("guitar", "piano"), ("piano", "guitar")],
 )  # fmt: skip
-def test_co_occurrence_is_flagged_for_the_four_pairs(family: str, source: str) -> None:
+def test_co_occurrence_is_flagged_for_the_four_pairs(family: str, source: StemName) -> None:
     target, spec = _together(5)
     measure = bleed.measure_bleed(family, target, [bleed.BleedSource(source, spec)])
     assert measure.main_source == source
@@ -130,7 +136,7 @@ def test_co_occurrence_is_flagged_for_the_four_pairs(family: str, source: str) -
 @pytest.mark.parametrize(
     ("family", "source"), [("vocals", "drums"), ("bass", "guitar"), ("drums", "other")]
 )
-def test_co_occurrence_is_never_flagged_for_other_pairs(family: str, source: str) -> None:
+def test_co_occurrence_is_never_flagged_for_other_pairs(family: str, source: StemName) -> None:
     target, spec = _together(5)
     measure = bleed.measure_bleed(family, target, [bleed.BleedSource(source, spec)])
     assert not measure.co_occurrence
@@ -146,13 +152,13 @@ def test_a_copy_inside_a_pair_is_not_co_occurrence() -> None:
     assert measure.index > 0.9
 
 
-def test_sources_of_a_standard_stem_are_the_other_five(specs: dict) -> None:
+def test_sources_of_a_standard_stem_are_the_other_five(specs: dict[str, Any]) -> None:
     sources = bleed.bleed_sources("guitar", specs, {})
     assert [source.family for source in sources] == ["vocals", "drums", "bass", "piano", "other"]
 
 
 def test_sources_of_a_detail_stem_are_the_other_standard_stems_and_its_siblings(
-    specs: dict,
+    specs: dict[str, Any],
 ) -> None:
     details = {"drums.kick": specs["drums"], "drums.snare": specs["drums"],
                "drums.rest": specs["drums"], "vocals.lead": specs["vocals"]}  # fmt: skip
@@ -164,7 +170,7 @@ def test_sources_of_a_detail_stem_are_the_other_standard_stems_and_its_siblings(
     assert bleed.family_of("bass") == "bass"
 
 
-def test_sources_of_a_rest_stem_include_the_kept_siblings(specs: dict) -> None:
+def test_sources_of_a_rest_stem_include_the_kept_siblings(specs: dict[str, Any]) -> None:
     details = {"guitar.acoustic-guitar": specs["guitar"], "guitar.rest": specs["guitar"]}
     sources = bleed.bleed_sources("guitar.rest", specs, details)
     assert [source.family for source in sources][-1] == "guitar"

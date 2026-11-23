@@ -14,6 +14,7 @@ from scipy.stats import spearmanr
 
 from stemstudio_worker.insights import artefacts, bleed, rating
 from stemstudio_worker.insights.representation import Spectrogram, spectrogram_of
+from stemstudio_worker.schemas import StemName
 
 from .synthetic import (
     FAMILIES,
@@ -64,13 +65,15 @@ def bleed_cases() -> list[tuple[float, float, str]]:
     return cases
 
 
-def test_bleed_index_ranks_the_injected_amount(bleed_cases: list) -> None:
+def test_bleed_index_ranks_the_injected_amount(bleed_cases: list[tuple[float, float, str]]) -> None:
     alphas = [case[0] for case in bleed_cases]
     indices = [case[1] for case in bleed_cases]
     assert spearmanr(alphas, indices).statistic >= 0.8
 
 
-def test_bleed_levels_are_correct_for_80_percent(bleed_cases: list) -> None:
+def test_bleed_levels_are_correct_for_80_percent(
+    bleed_cases: list[tuple[float, float, str]],
+) -> None:
     correct = [level == ALPHAS[alpha] for alpha, _, level in bleed_cases]
     assert np.mean(correct) >= 0.8
 
@@ -78,10 +81,11 @@ def test_bleed_levels_are_correct_for_80_percent(bleed_cases: list) -> None:
 def test_playing_together_control_is_never_high() -> None:
     kick = _spec(kick_on_beats(SECONDS))
     bass_line = _spec(bass(np.random.default_rng(9), SECONDS))
-    for family, target, source, source_family in (
+    pairs: tuple[tuple[str, Spectrogram, Spectrogram, StemName], ...] = (
         ("bass", bass_line, kick, "drums"),
         ("drums", kick, bass_line, "bass"),
-    ):
+    )
+    for family, target, source, source_family in pairs:
         measure = bleed.measure_bleed(family, target, [bleed.BleedSource(source_family, source)])
         level = rating.bleed_level(
             measure.index, co_occurrence=measure.co_occurrence, status="not-measured"
@@ -102,7 +106,7 @@ def test_dense_song_has_no_false_bleed_above_medium() -> None:
 
 @pytest.fixture(scope="module")
 def artefact_cases() -> list[tuple[float, float, str]]:
-    cases = []
+    cases: list[tuple[float, float, str]] = []
     for stems in (arranged_song(seconds=SECONDS), song(seconds=SECONDS)):
         others = sum(stems.values())
         for name in FAMILIES:
@@ -113,12 +117,16 @@ def artefact_cases() -> list[tuple[float, float, str]]:
     return cases
 
 
-def test_artefact_index_ranks_the_gating_rate(artefact_cases: list) -> None:
+def test_artefact_index_ranks_the_gating_rate(
+    artefact_cases: list[tuple[float, float, str]],
+) -> None:
     rates = [case[0] for case in artefact_cases]
     indices = [case[1] for case in artefact_cases]
     assert spearmanr(rates, indices).statistic >= 0.8
 
 
-def test_artefact_levels_are_correct_for_80_percent(artefact_cases: list) -> None:
+def test_artefact_levels_are_correct_for_80_percent(
+    artefact_cases: list[tuple[float, float, str]],
+) -> None:
     correct = [level == RATES[rate] for rate, _, level in artefact_cases]
     assert np.mean(correct) >= 0.8

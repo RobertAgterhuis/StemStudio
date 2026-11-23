@@ -28,7 +28,9 @@ def _stand_in_tracks() -> list[g1.Track]:
         sources = {"vocals": song["vocals"], "drums": song["drums"], "bass": song["bass"],
                    "other": song["guitar"] + song["piano"] + song["other"]}  # fmt: skip
         stereo = {name: np.stack([audio, audio], axis=1) for name, audio in sources.items()}
-        tracks.append(g1.Track(f"stand-in-{seed}", sum(stereo.values()), stereo, SR))
+        tracks.append(
+            g1.Track(f"stand-in-{seed}", np.sum(list(stereo.values()), axis=0), stereo, SR)
+        )
     return tracks
 
 

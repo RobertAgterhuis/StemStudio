@@ -6,6 +6,8 @@ shipped. A2 dropouts judge every stem against its own envelope (a hole falls and
 abruptly; natural decays do not), the same way for every family.
 """
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -30,7 +32,7 @@ def _index(stems: dict[str, np.ndarray], name: str, sound: np.ndarray) -> float:
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_clean_stems_are_low_for_every_family(name: str, stems: dict) -> None:
+def test_clean_stems_are_low_for_every_family(name: str, stems: dict[str, Any]) -> None:
     assert ARTEFACT_LEVELS.level(_index(stems, name, stems[name])) == "low"
 
 
@@ -40,7 +42,7 @@ def test_a_clean_kick_with_natural_decays_is_low() -> None:
 
 
 @pytest.mark.parametrize("name", FAMILIES)
-def test_dropouts_rise_with_the_gating_rate(name: str, stems: dict) -> None:
+def test_dropouts_rise_with_the_gating_rate(name: str, stems: dict[str, Any]) -> None:
     indices = [_index(stems, name, gate_holes(stems[name], rate, seed=4)) for rate in RATES]
     assert indices[0] < indices[1] < indices[2]
     assert ARTEFACT_LEVELS.level(indices[2]) != "low"

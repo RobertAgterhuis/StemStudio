@@ -6,13 +6,14 @@ from stemstudio_worker.insights import thresholds
 from stemstudio_worker.insights.thresholds import (
     G1_RESULTS,
     G1_STEM_TYPES,
+    Dimension,
     g1_status,
     reliability,
     shown_level,
 )
-from stemstudio_worker.schemas import STANDARD_STEMS
+from stemstudio_worker.schemas import STANDARD_STEMS, QualityInputKind, QualityLevel
 
-DIMENSIONS = ("bleed", "artefacts")
+DIMENSIONS: tuple[Dimension, ...] = ("bleed", "artefacts")
 
 
 def test_phase_0_table_has_every_v2_stem_type_not_measured() -> None:
@@ -23,13 +24,13 @@ def test_phase_0_table_has_every_v2_stem_type_not_measured() -> None:
 
 @pytest.mark.parametrize("stem", STANDARD_STEMS)
 @pytest.mark.parametrize("dimension", DIMENSIONS)
-def test_every_label_starts_indicative(stem: str, dimension: str) -> None:
+def test_every_label_starts_indicative(stem: str, dimension: Dimension) -> None:
     assert reliability(stem, "standard", dimension) == "indicative"
     assert g1_status(stem, "standard", dimension) == "not-measured"
 
 
 @pytest.mark.parametrize("level", ["low", "medium", "high"])
-def test_not_measured_and_passed_dimensions_keep_every_level(level: str) -> None:
+def test_not_measured_and_passed_dimensions_keep_every_level(level: QualityLevel) -> None:
     assert shown_level(level, "not-measured") == level
     assert shown_level(level, "passed") == level
 
@@ -59,7 +60,9 @@ def test_a_passed_v2_stem_type_is_validated(stem: str) -> None:
     [("guitar", "standard"), ("piano", "standard"), ("drums.kick", "detail"),
      ("vocals.lead", "detail"), ("drums.rest", "rest"), ("drums", "detail")],
 )  # fmt: skip
-def test_guitar_piano_detail_and_rest_stems_are_always_indicative(channel: str, kind: str) -> None:
+def test_guitar_piano_detail_and_rest_stems_are_always_indicative(
+    channel: str, kind: QualityInputKind
+) -> None:
     for dimension in DIMENSIONS:
         assert reliability(channel, kind, dimension) == "indicative"
         assert g1_status(channel, kind, dimension) == "not-measured"
