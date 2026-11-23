@@ -109,12 +109,6 @@ def band_centres() -> npt.NDArray[np.float64]:
     return _band_edges()[1:-1]
 
 
-def band_mask(low_hz: float, high_hz: float) -> BoolArray:
-    """Bands whose centre lies in ``[low_hz, high_hz]``."""
-    centres = band_centres()
-    return np.asarray((centres >= low_hz) & (centres <= high_hz))
-
-
 def mel_filterbank() -> FloatArray:
     """Triangular mel filters (HTK scale), shape ``(BANDS, N_FFT // 2 + 1)``."""
     edges = _band_edges()
@@ -256,8 +250,13 @@ def read_standard(paths: Mapping[str, Path]) -> tuple[dict[str, Spectrogram], Sp
         files = [stack.enter_context(_opened(path)) for path in paths.values()]
         _check_rates(files)
         readers = [_Reader(audio) for audio in files]
-        mix = _MelStream()
-        while not all(reader.done for reader in readers):
-            mix.push(_sum_padded([reader.step() for reader in readers]))
-        stems = {name: reader.mel.finish() for name, reader in zip(paths, readers, strict=True)}
-        return stems, mix.finish()
+        mix = _mix_of(readers)
+        return {name: reader.mel.finish() for name, reader in zip(paths, readers, strict=True)}, mix
+
+
+def _mix_of(readers: Sequence[_Reader]) -> Spectrogram:
+    """Step every reader in lockstep and analyse the sum of their samples."""
+    mix = _MelStream()
+    while not all(reader.done for reader in readers):
+        mix.push(_sum_padded([reader.step() for reader in readers]))
+    return mix.finish()

@@ -103,6 +103,12 @@ def _loud_cells(source: Float64, active: npt.NDArray[np.bool_]) -> npt.NDArray[n
     return np.asarray(active[:, None] & (level >= peak - LOUD_RANGE_DB) & (source > 0))
 
 
+def _band_gain(target: Float64, source: Float64) -> Float64:
+    """``g_b = max(0, <P_i, P_j> / <P_j, P_j>)`` per band."""
+    energy = np.sum(source * source, axis=0)
+    return np.maximum(0.0, np.sum(target * source, axis=0) / np.where(energy > 0, energy, 1.0))
+
+
 def fit_pair(target: Spectrogram, source: Spectrogram) -> PairFit:
     """Leakage share of ``source`` in ``target`` (frames beyond the shorter one are ignored)."""
     frames = min(target.frames, source.frames)
@@ -112,12 +118,9 @@ def fit_pair(target: Spectrogram, source: Spectrogram) -> PairFit:
     total = float(p_i.sum())
     if total <= 0 or not active.any():
         return PairFit(0.0, 0.0)
-    a_i, a_j = p_i[active], p_j[active]
-    energy = np.sum(a_j * a_j, axis=0)
-    g = np.maximum(0.0, np.sum(a_i * a_j, axis=0) / np.where(energy > 0, energy, 1.0))
-    loud = _loud_cells(p_j, active)
-    floor = _band_floor(p_i / np.where(p_j > 0, p_j, 1.0), loud)
-    mass = np.sum(a_j, axis=0)
+    g = _band_gain(p_i[active], p_j[active])
+    floor = _band_floor(p_i / np.where(p_j > 0, p_j, 1.0), _loud_cells(p_j, active))
+    mass = np.sum(p_j[active], axis=0)
     guarded = float(np.sum(np.minimum(np.minimum(g, floor), MAX_GAIN) * mass)) / total
     return PairFit(min(1.0, guarded), min(1.0, float(np.sum(g * mass)) / total))
 
@@ -144,9 +147,12 @@ def bleed_sources(
     (the other detail stems of the same parent, ``rest`` included) count as the parent.
     """
     family = family_of(channel)
-    sources = [BleedSource(name, standard[name]) for name in STANDARD_STEMS
-               if name != family and name in standard]  # fmt: skip
-    if "." in channel:
-        sources += [BleedSource(family, spec) for name, spec in details.items()
-                    if name != channel and family_of(name) == family]  # fmt: skip
-    return sources
+    others = [name for name in STANDARD_STEMS if name != family]
+    sources = [BleedSource(name, standard[name]) for name in others]
+    return sources + _siblings(channel, details) if "." in channel else sources
+
+
+def _siblings(channel: str, details: Mapping[str, Spectrogram]) -> list[BleedSource]:
+    family = family_of(channel)
+    names = [name for name in details if name != channel and family_of(name) == family]
+    return [BleedSource(family, details[name]) for name in names]

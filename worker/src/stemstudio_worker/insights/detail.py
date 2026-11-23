@@ -26,9 +26,17 @@ def detail_kinds(
         share: The parent's rest energy share (``rest_share``), if the parent has a rest stem.
     """
     kinds: list[ArtefactKind] = []
-    residual = parent.model_residual_db if parent is not None else None
-    if kind == "detail" and residual is not None and residual > MODEL_RESIDUAL_DB:
+    if kind == "detail" and _high_residual(parent):
         kinds.append("model-residual")
-    if kind != "standard" and share is not None and share > REST_SHARE:
+    if kind != "standard" and _large_rest(share):
         kinds.append("rest-share")
     return kinds
+
+
+def _high_residual(parent: DetailParentInput | None) -> bool:
+    residual = None if parent is None else parent.model_residual_db
+    return residual is not None and residual > MODEL_RESIDUAL_DB
+
+
+def _large_rest(share: float | None) -> bool:
+    return share is not None and share > REST_SHARE

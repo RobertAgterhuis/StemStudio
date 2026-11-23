@@ -38,6 +38,7 @@ from stemstudio_worker.schemas import (
     ArtefactKind,
     BleedEstimate,
     DetailParentInput,
+    QualityLevel,
     QualityResult,
     StemQuality,
 )
@@ -125,31 +126,30 @@ def _artefacts(stem: StemAudio, spec: Spectrogram, context: _Context) -> Artefac
     )
 
 
-def _assess(stem: StemAudio, context: _Context) -> StemQuality:
-    spec = context.spectrogram(stem.channel)
+def _rating_inputs(spec: Spectrogram, mix: Spectrogram, measure: BleedMeasure,
+                   levels: tuple[QualityLevel, QualityLevel]) -> RatingInputs:  # fmt: skip
     active = int(np.count_nonzero(spec.active()))
-    bleed, measure = _bleed(stem, spec, context)
-    artefacts = _artefacts(stem, spec, context)
-    inputs = RatingInputs(
+    return RatingInputs(
         active_seconds=active * FRAME_SECONDS,
         active_share=active / spec.frames if spec.frames else 0.0,
-        level_db=_relative_db(spec, context.mix),
+        level_db=_relative_db(spec, mix),
         bleed_index=measure.index,
-        bleed_level=bleed.level,
-        artefact_level=artefacts.level,
+        bleed_level=levels[0],
+        artefact_level=levels[1],
         co_occurrence=measure.co_occurrence,
     )
+
+
+def _assess(stem: StemAudio, context: _Context) -> StemQuality:
+    spec = context.spectrogram(stem.channel)
+    bleed, measure = _bleed(stem, spec, context)
+    artefacts = _artefacts(stem, spec, context)
+    inputs = _rating_inputs(spec, context.mix, measure, (bleed.level, artefacts.level))
     rating, reason = rate(inputs)
-    return StemQuality(
-        channel=stem.channel,
-        rating=rating,
-        rating_reason=reason,
-        active_seconds=inputs.active_seconds,
-        active_share=inputs.active_share,
-        level_db=inputs.level_db,
-        bleed=bleed,
-        artefacts=artefacts,
-    )
+    facts = {"active_seconds": inputs.active_seconds, "active_share": inputs.active_share,
+             "level_db": inputs.level_db}  # fmt: skip
+    return StemQuality(channel=stem.channel, rating=rating, rating_reason=reason,
+                       bleed=bleed, artefacts=artefacts, **facts)  # fmt: skip
 
 
 class SignalQualityAnalyzer:

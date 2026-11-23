@@ -14,8 +14,9 @@ from stemstudio_worker.ports import (
     QualityInputs,
     StemAudio,
 )
-from stemstudio_worker.schemas import DetailParentInput, QualityResult, StemQuality
+from stemstudio_worker.schemas import DetailParentInput, QualityResult
 
+from .results import kind_of, stem_of
 from .synthetic import FAMILIES, arranged_song, gate_holes, inject_bleed, write_stem
 
 SECONDS = 30.0
@@ -41,10 +42,7 @@ def library(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
 def _inputs(
     library: dict[str, Path], *, parents: tuple[DetailParentInput, ...] = ()
 ) -> QualityInputs:
-    def kind(name: str) -> str:
-        return "standard" if "." not in name else "rest" if name.endswith(".rest") else "detail"
-
-    stems = tuple(StemAudio(name, kind(name), path) for name, path in library.items())  # type: ignore[arg-type]
+    stems = tuple(StemAudio(name, kind_of(name), path) for name, path in library.items())
     return QualityInputs(stems=stems, detail_parents=parents)
 
 
@@ -54,10 +52,6 @@ def result(library: dict[str, Path]) -> QualityResult:
         parent="drums", model_residual_db=-12.0, reconstruction_error_db=-170.0
     )
     return SignalQualityAnalyzer().analyze(_inputs(library, parents=(parent,)), lambda _: None)
-
-
-def _stem(result: QualityResult, channel: str) -> StemQuality:
-    return next(stem for stem in result.stems if stem.channel == channel)
 
 
 def test_implements_the_port() -> None:
@@ -75,35 +69,35 @@ def test_result_keeps_the_request_order_and_validates(result: QualityResult, lib
 
 def test_a_clean_stem_rates_good(result: QualityResult) -> None:
     # Drums are not clean here: the vocals hold a copy of them (a copy correlates both ways).
-    guitar = _stem(result, "guitar")
+    guitar = stem_of(result, "guitar")
     assert (guitar.rating, guitar.rating_reason) == ("good", "clean"), guitar
     assert guitar.active_seconds >= 10.0
 
 
 def test_bleed_of_drums_into_vocals(result: QualityResult) -> None:
-    vocals = _stem(result, "vocals")
+    vocals = stem_of(result, "vocals")
     assert vocals.bleed.main_source == "drums"
     assert vocals.bleed.level == "high"
     assert (vocals.rating, vocals.rating_reason) == ("poor", "bleed")
 
 
 def test_gating_artefacts_in_other(result: QualityResult) -> None:
-    other = _stem(result, "other")
+    other = stem_of(result, "other")
     assert other.artefacts.level in ("medium", "high")
     assert other.artefacts.kinds == ["dropouts"]
     assert other.rating_reason in ("artefacts", "bleed-and-artefacts")
 
 
 def test_spill_only_piano_is_not_present(result: QualityResult) -> None:
-    piano = _stem(result, "piano")
+    piano = stem_of(result, "piano")
     assert piano.level_db < -30.0
     assert piano.bleed.main_source == "guitar"
     assert (piano.rating, piano.rating_reason) == ("not-present", "not-present")
 
 
 def test_detail_and_rest_stems_get_their_kinds(result: QualityResult) -> None:
-    kick = _stem(result, "drums.kick")
-    rest = _stem(result, "drums.rest")
+    kick = stem_of(result, "drums.kick")
+    rest = stem_of(result, "drums.rest")
     assert "model-residual" in kick.artefacts.kinds
     assert "rest-share" in kick.artefacts.kinds
     assert "rest-share" in rest.artefacts.kinds
@@ -144,9 +138,9 @@ def test_silent_and_short_stems_are_too_short(tmp_path: Path, library: dict[str,
     files["drums.kick"] = write_stem(tmp_path / "kick.flac", np.zeros(44_100 * 5))
     result = SignalQualityAnalyzer().analyze(_inputs(files), lambda _: None)
     for channel in ("piano", "other", "drums.kick"):
-        stem = _stem(result, channel)
+        stem = stem_of(result, channel)
         assert (stem.rating, stem.rating_reason) == ("unknown", "too-short")
-    assert _stem(result, "piano").level_db == -120.0
+    assert stem_of(result, "piano").level_db == -120.0
 
 
 def test_a_missing_standard_stem_is_refused(library: dict[str, Path]) -> None:

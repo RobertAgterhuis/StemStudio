@@ -210,3 +210,12 @@ def test_memory_stays_bounded_for_a_15_minute_stem(tmp_path: Path) -> None:
     assert spec.seconds == pytest.approx(seconds, abs=1.0)
     # The decoded stereo float32 audio alone would be about 318 MB; the mel power is about 10 MB.
     assert peak < 48 * 1024 * 1024
+
+
+def test_input_at_the_analysis_rate_is_not_resampled(tmp_path: Path) -> None:
+    tone = _sine(1_000.0, 2.0, rate=QUALITY_SAMPLE_RATE)
+    path = write_stem(tmp_path / "native.flac", tone, rate=QUALITY_SAMPLE_RATE)
+    from_file = rep.read_spectrogram(path)
+    in_memory = rep.spectrogram_of(tone, QUALITY_SAMPLE_RATE)
+    assert from_file.frames == in_memory.frames
+    np.testing.assert_allclose(from_file.power, in_memory.power, rtol=1e-3, atol=1e-9)

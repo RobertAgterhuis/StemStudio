@@ -62,13 +62,19 @@ def _absent(inputs: RatingInputs) -> bool:
     return phantom and inputs.bleed_index >= PHANTOM_BLEED_INDEX
 
 
+_BLEED_REASONS: Final[dict[tuple[bool, bool], QualityReasonCode]] = {
+    (False, False): "bleed",
+    (False, True): "bleed-together",
+    (True, False): "bleed-and-artefacts",
+    (True, True): "bleed-and-artefacts",
+}
+"""Reason of a raised bleed level by (artefacts raised, co-occurrence)."""
+
+
 def _reason(inputs: RatingInputs) -> QualityReasonCode:
-    bled = inputs.bleed_level in _RAISED
     flawed = inputs.artefact_level in _RAISED
-    if bled and flawed:
-        return "bleed-and-artefacts"
-    if bled:
-        return "bleed-together" if inputs.co_occurrence else "bleed"
+    if inputs.bleed_level in _RAISED:
+        return _BLEED_REASONS[flawed, inputs.co_occurrence]
     return "artefacts" if flawed else "clean"
 
 

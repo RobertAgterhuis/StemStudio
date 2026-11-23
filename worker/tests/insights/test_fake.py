@@ -14,16 +14,14 @@ from stemstudio_worker.ports import (
     QualityInputs,
     StemAudio,
 )
-from stemstudio_worker.schemas import QualityResult, StemQuality
+from stemstudio_worker.schemas import QualityResult
+
+from .results import kind_of, stem_of
 
 CHANNELS = (
     "vocals", "drums", "bass", "guitar", "piano", "other",
     "drums.kick", "drums.snare", "drums.rest", "vocals.lead", "other.strings", "other.rest",
 )  # fmt: skip
-
-
-def _kind(channel: str) -> str:
-    return "standard" if "." not in channel else "rest" if channel.endswith(".rest") else "detail"
 
 
 @pytest.fixture
@@ -32,17 +30,13 @@ def inputs(tmp_path: Path) -> QualityInputs:
     for channel in CHANNELS:
         path = tmp_path / f"{channel}.flac"
         path.write_bytes(b"fLaC")  # never read: only the existence is checked
-        stems.append(StemAudio(channel, _kind(channel), path))  # type: ignore[arg-type]
+        stems.append(StemAudio(channel, kind_of(channel), path))
     return QualityInputs(stems=tuple(stems), detail_parents=())
 
 
 @pytest.fixture
 def result(inputs: QualityInputs) -> QualityResult:
     return FakeQualityAnalyzer(sleep=lambda _: None).analyze(inputs, lambda _: None)
-
-
-def _stem(result: QualityResult, channel: str) -> StemQuality:
-    return next(stem for stem in result.stems if stem.channel == channel)
 
 
 def test_implements_the_port_with_its_own_version() -> None:
@@ -66,11 +60,11 @@ def test_result_shape(result: QualityResult) -> None:
 def test_fixed_ratings_of_the_standard_stems(
     result: QualityResult, channel: str, rating: str
 ) -> None:
-    assert _stem(result, channel).rating == rating
+    assert stem_of(result, channel).rating == rating
 
 
 def test_the_details_of_data_model_2_6(result: QualityResult) -> None:
-    vocals, guitar, other = (_stem(result, name) for name in ("vocals", "guitar", "other"))
+    vocals, guitar, other = (stem_of(result, name) for name in ("vocals", "guitar", "other"))
     assert (vocals.bleed.level, vocals.bleed.main_source, vocals.rating_reason) == (
         "medium",
         "drums",
@@ -80,15 +74,15 @@ def test_the_details_of_data_model_2_6(result: QualityResult) -> None:
         "high", ["flicker"], "artefacts",
     )  # fmt: skip
     assert (other.bleed.level, other.bleed.main_source) == ("medium", "guitar")
-    assert _stem(result, "piano").rating_reason == "not-present"
+    assert stem_of(result, "piano").rating_reason == "not-present"
 
 
 def test_detail_stems_are_good_and_rest_stems_fair(result: QualityResult) -> None:
     for channel in ("drums.kick", "drums.snare", "vocals.lead", "other.strings"):
-        stem = _stem(result, channel)
+        stem = stem_of(result, channel)
         assert (stem.rating, stem.rating_reason) == ("good", "clean")
     for channel in ("drums.rest", "other.rest"):
-        stem = _stem(result, channel)
+        stem = stem_of(result, channel)
         assert (stem.rating, stem.artefacts.kinds, stem.rating_reason) == (
             "fair", ["rest-share"], "artefacts",
         )  # fmt: skip

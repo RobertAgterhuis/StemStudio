@@ -66,8 +66,8 @@ def test_stand_in_runs_end_to_end(tmp_path: Path) -> None:
 def test_gate_outcomes() -> None:
     report = g1.G1Report()
     for index in range(g1.MIN_TRACKS):
-        report.add("vocals", "bleed", index, index)
-        report.add("drums", "bleed", index, -index)
+        report.add(("vocals", "bleed"), index, index)
+        report.add(("drums", "bleed"), index, -index)
     assert report.status("vocals", "bleed") == "passed"
     assert report.status("drums", "bleed") == "failed"
     assert np.isnan(report.rho("bass", "bleed"))

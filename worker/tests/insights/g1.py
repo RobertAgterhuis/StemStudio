@@ -55,8 +55,9 @@ class G1Report:
 
     pairs: dict[tuple[str, str], list[tuple[float, float]]] = field(default_factory=dict)
 
-    def add(self, source: str, dimension: str, ours: float, negated_reference: float) -> None:
-        self.pairs.setdefault((source, dimension), []).append((ours, negated_reference))
+    def add(self, key: tuple[str, str], ours: float, negated_reference: float) -> None:
+        """Record one track: ``key`` = (source, dimension)."""
+        self.pairs.setdefault(key, []).append((ours, negated_reference))
 
     def rho(self, source: str, dimension: str) -> float:
         values = self.pairs.get((source, dimension), [])
@@ -136,8 +137,8 @@ def run_g1(tracks: Iterable[Track], separate: Separator, score: Scorer, workdir:
         scores = score(estimates, track.sources, track.rate)
         for source, (bleed, artefacts) in _our_indices(result, stems).items():
             sir, sar = scores[source]
-            report.add(source, "bleed", bleed, -sir)
-            report.add(source, "artefacts", artefacts, -sar)
+            report.add((source, "bleed"), bleed, -sir)
+            report.add((source, "artefacts"), artefacts, -sar)
     return report
 
 
