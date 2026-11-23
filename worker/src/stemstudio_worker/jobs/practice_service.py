@@ -170,7 +170,7 @@ class SectionService(_PracticeService[StoredSectionJob]):
     def create(self, request: SectionJobRequest) -> SectionJob:
         """Check the stem and detail paths and queue the job (400 / 404 as ``check_input``)."""
         for path in section_inputs(request).values():
-            check_input(self._library, path, _pattern_of(path).fullmatch)
+            check_input(self._library.resolve, path, _pattern_of(path).fullmatch)
         job = StampedSectionJob(**self._stamp())
         created: SectionJob = self._queue(StoredSectionJob(job=job, request=request))
         return created
@@ -219,7 +219,7 @@ class ScoreViewService(_PracticeService[StoredScoreViewJob]):
 
     def create(self, request: ScoreViewJobRequest) -> ScoreViewJob:
         """Check the MusicXML path (``assets/<uuid>/score.musicxml`` only) and queue the job."""
-        check_input(self._library, request.musicxml, SCORE_MUSICXML_PATTERN.fullmatch)
+        check_input(self._library.resolve, request.musicxml, SCORE_MUSICXML_PATTERN.fullmatch)
         job = StampedScoreViewJob(**self._stamp())
         created: ScoreViewJob = self._queue(StoredScoreViewJob(job=job, request=request))
         return created

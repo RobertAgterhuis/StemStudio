@@ -29,6 +29,7 @@ from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNov
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
+    handout_routes,
     insights_routes,
     instrument_analysis_routes,
     lyrics_routes,
@@ -47,6 +48,7 @@ from stemstudio_worker.documents import ReportLabSetlistRenderer
 from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.engraving.score_view import VerovioScoreViewRenderer
 from stemstudio_worker.handouts.health import fonts_health, renderer_health
+from stemstudio_worker.handouts.renderer import WeasyHandoutRenderer
 from stemstudio_worker.harmony.btc import BtcParts, BtcRecognizer, TorchBtcRuntime
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
@@ -143,6 +145,7 @@ _ROUTERS = (
     practice_routes.router,
     instrument_analysis_routes.router,
     insights_routes.router,
+    handout_routes.router,
 )
 
 
@@ -169,6 +172,7 @@ class AppOverrides:
         instrument_analysis: Chords, drum hits and melody parts (default
             :func:`create_instrument_analysis_parts`, feature 016).
         quality_analyzer: Stem quality analyzer (default :func:`create_quality_analyzer`, 020).
+        handout_renderer: Handout PDFs (default ``handouts.renderer.WeasyHandoutRenderer``, 020).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -547,12 +551,17 @@ def default_insights(
     health = InsightsHealth(analyzer=settings.insights.quality_analyzer,
                             analyzer_version=analyzer.version, renderer=renderer_health(),
                             fonts=fonts_health())  # fmt: skip
-    return InsightsParts(analyzer=analyzer, health=health, threads=settings.insights.threads)
+    return InsightsParts(
+        analyzer=analyzer,
+        renderer=default_handout_renderer(overrides),
+        health=health,
+        threads=settings.insights.threads,
+    )
 
 
 def default_handout_renderer(overrides: AppOverrides) -> HandoutRenderer:
-    """Stub."""
-    raise NotImplementedError
+    """The injected renderer, else the WeasyPrint renderer (imports WeasyPrint only when used)."""
+    return overrides.handout_renderer or WeasyHandoutRenderer()
 
 
 def run() -> None:  # pragma: no cover - thin CLI wrapper around uvicorn

@@ -72,7 +72,7 @@ class QualityService(InsightsJobService[StoredQualityJob]):
     def create(self, request: QualityJobRequest) -> QualityJob:
         """Check every stem path (400 / 404 as ``check_input``) and queue the job."""
         for path in request.input_paths():
-            check_input(self._library, path, is_quality_input_path)
+            check_input(self._library.resolve, path, is_quality_input_path)
         job = QualityJob(**self._stamp())
         created: QualityJob = self._queue(StoredQualityJob(job=job, request=request))
         return created

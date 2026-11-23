@@ -8,6 +8,7 @@ stage.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, ClassVar
 
 from stemstudio_worker.jobs.insights_lane import InsightsLane
@@ -29,11 +30,16 @@ def stage_in(stages: Stages, fraction: float) -> str:
 
 @dataclass(frozen=True, slots=True)
 class InsightsContext:
-    """What the insights services share: the lane (with the stores), the library, the clock."""
+    """What the insights services share: the lane (with the stores), the library, the clock.
+
+    ``library_root`` is the mounted library (``STEMSTUDIO_LIBRARY_DIR``) for the handout inputs,
+    which the library reader's general allow-list does not accept (data-model 2.2).
+    """
 
     lane: InsightsLane
     library: LibraryReader
     clock: Clock
+    library_root: Path | None = None
 
 
 class InsightsJobService[R: Any](LaneJobService[R]):
