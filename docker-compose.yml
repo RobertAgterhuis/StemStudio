@@ -3,6 +3,17 @@
 #   STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait   # fast stack for E2E / smoke tests
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (optional)
 #
+# Network exposure (refactor 004, ADR-027 D3): web (8080) and api (8081) are published on
+# 127.0.0.1 only, so only THIS computer reaches them (Docker Desktop forwards them to the host
+# browser as before). The worker and the generative services publish no host port.
+#   STEMSTUDIO_BIND_ADDRESS=127.0.0.1       default; host address both ports are published on.
+#                                           0.0.0.0 or a LAN address lets every device on that
+#                                           network reach the library, the backups and the agent,
+#                                           and (until feature 018) overwrite or delete the stored
+#                                           Claude key (threat T7). Open it only on a network you
+#                                           trust and close it again afterwards.
+#   Check: scripts/check-loopback-ports.{sh,ps1}
+#
 # GPU option (feature 003): the override builds stemstudio/worker:local-gpu (CUDA torch +
 # onnxruntime-gpu, ~11.6 GB) and lets the worker use the GPU when one is usable; prerequisites are
 # in docker-compose.gpu.yml. Without it everything runs on the CPU, as before.
@@ -193,7 +204,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "8081:8081"
+      - "${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8081:8081"
     volumes:
       - api-data:/data
       # Data Protection key ring (011 follow-up claude-key): api only, never the worker, web or a
@@ -229,7 +240,7 @@ services:
       # Feature 015: the browser never streams a take larger than the api accepts.
       StemStudio__Recording__MaxStreamBytes: ${STEMSTUDIO_RECORDING_MAX_UPLOAD_BYTES:-268435456}
     ports:
-      - "8080:8080"
+      - "${STEMSTUDIO_BIND_ADDRESS:-127.0.0.1}:8080:8080"
     volumes:
       - web-keys:/home/app/.aspnet/DataProtection-Keys
     depends_on:
