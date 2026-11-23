@@ -1,0 +1,32 @@
+# Always-build list (tipoca:dotnet-affected, refactor proposal 001). One glob per line, matched
+# case-insensitively against repo-relative paths. A pattern without "/" matches the file name in any
+# folder; "**" spans folders, "*" one segment. A changed file that matches any line makes the run FULL
+# (every test-all step, the whole solution, every CI job): scripts/affected_select.py and CI's
+# changes job read this file.
+#
+# Tipoca defaults (MSBuild, SDK, NuGet and tool inputs; Directory.Packages.props because of
+# dotnet-affected issue #202 with transitive pinning).
+global.json
+nuget.config
+Directory.Build.props
+Directory.Build.targets
+Directory.Packages.props
+.config/dotnet-tools.json
+dotnet-tools.json
+.github/workflows/**
+azure-pipelines*.yml
+# Repository-wide inputs of StemStudio: code style and analyzers, the solution, the test run
+# settings (coverage gate), line endings, the CI composite actions.
+.editorconfig
+StemStudio.slnx
+*.runsettings
+tests/coverlet.runsettings
+.gitattributes
+.github/actions/**
+# The selection itself: a change to the map, the selector or the runners is verified by a full run.
+.claude/tipoca/affected/always-build.txt
+scripts/affected/**
+scripts/affected_select.py
+scripts/tests/test_affected_select.py
+scripts/test-all.sh
+scripts/test-all.ps1
