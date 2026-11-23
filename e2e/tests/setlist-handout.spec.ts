@@ -3,7 +3,7 @@ import { StemStudioApi } from '../support/api';
 import { apiContextOptions, fakeJobTimeoutMs } from '../support/env';
 import { expectHandoutPages, handoutIds, handoutPdf, newHandoutId, pdfWords } from '../support/handout-flow';
 import { familyManifest, seedSetlist } from '../support/handout-seed';
-import { handoutTimeoutMs } from '../support/insights-api';
+import { handoutTimeoutMs, InsightsApi } from '../support/insights-api';
 import { useInsightsApi } from '../support/insights-suite';
 import type { SetlistDto } from '../support/practice-flow';
 import { expect, test } from '../support/test';
@@ -20,6 +20,7 @@ let seeded: Promise<SetlistDto> | undefined;
 test.beforeAll(async ({ playwright }) => {
   test.setTimeout(3 * fakeJobTimeoutMs);
   const context = await playwright.request.newContext(apiContextOptions);
+  await new InsightsApi(context).requireFeature();
   seeded = seedSetlist(new StemStudioApi(context), context);
   await seeded;
 });

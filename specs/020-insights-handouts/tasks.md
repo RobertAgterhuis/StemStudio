@@ -87,7 +87,7 @@ in the execution plan.
 - [x] T010 [quality-gate] Implement the rules in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [x] T011 [P] [devops] Write the image check first and show it fail on the current image: `scripts/check-worker-pdf.{ps1,sh}` (`python -c "import weasyprint; print(weasyprint.__version__)"` as the worker user, Pango >= 1.44, `fc-list` lists DejaVu Sans) (FR-012, SC-005). **Done when** the check fails on the current image (no weasyprint) with a readable message and the failing run is in the hand-off
 - [x] T012 [devops] `docker/worker.Dockerfile` (both variants): `libpango-1.0-0`, `libpangoft2-1.0-0` listed explicitly (Pango/HarfBuzz are already pulled in transitively, P0-4), fontconfig, `fonts-dejavu-core`, `fc-cache`; `docker-compose.yml` (and the E2E/fake compose files) pass `STEMSTUDIO_QUALITY_ANALYZER`, `STEMSTUDIO_INSIGHTS_THREADS`; CI `CONTRACTS_DIR`/`scripts/test-all.*` -> `specs/020-insights-handouts/contracts` **while the 016-only checks stay pinned to `specs/016-instrument-views/contracts`** (`generate_chord_spelling_vectors.py --check`, the 016 contract pytest) and `merge_full.py --check` runs for 020; add `worker/scripts/sync_handout_style.py --check` to the worker step; rules for new inputs in `scripts/affected/components.json`; wire T011 into the image job. **Done when** T011 passes on both rebuilt images, `scripts/test-all.*` and CI lint the 020 documents and the 016 checks still run
-- [ ] T013 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: V1 synthetic validation, fake analyzer for E2E, per-family fixtures, PDF inspection, traceability US1..US4 -> test files (US5 deferred). **Done when** every FR and SC of spec.md (except the deferred FR-007/SC-007) maps to at least one named test file
+- [x] T013 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: V1 synthetic validation, fake analyzer for E2E, per-family fixtures, PDF inspection, traceability US1..US4 -> test files (US5 deferred). **Done when** every FR and SC of spec.md (except the deferred FR-007/SC-007) maps to at least one named test file
 
 ---
 
@@ -107,8 +107,8 @@ in the execution plan.
 - [ ] T025 [backend] Implement the adapters
 - [ ] T026 [P] [frontend] Failing tests: feature-catalogue entries and levels (help-topics.md), every new topic file loads and validates against the 004 schema
 - [ ] T027 [frontend] Add the catalogue entries and the help topic files (FR-016; not the deferred G2 topic/entry)
-- [ ] T028 [P] [qa] Failing tests for the per-family fixture builder `tests/fixtures/families/` (one fixture song with sections, chords, word-timed lyrics, and score/tab/drum/transposed-part PDFs for all seven families; a three-song setlist; seeding through the fake-stack API)
-- [ ] T029 [qa] Implement the fixture builder and the E2E seeding helper (SC-006)
+- [x] T028 [P] [qa] Failing tests for the per-family fixture builder `tests/fixtures/families/` (one fixture song with sections, chords, word-timed lyrics, and score/tab/drum/transposed-part PDFs for all seven families; a three-song setlist; seeding through the fake-stack API)
+- [x] T029 [qa] Implement the fixture builder and the E2E seeding helper (SC-006)
 
 **Checkpoint**: HO:foundational per owner.
 

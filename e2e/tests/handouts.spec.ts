@@ -3,7 +3,7 @@ import { ensureCancelledPhase } from '../support/detail';
 import { apiContextOptions } from '../support/env';
 import { expectHandoutPages, handoutIds, handoutPdf, newHandoutId, pdfWords } from '../support/handout-flow';
 import { familyManifest, seedFixtureSong, seedTimeoutMs, type SeededSong } from '../support/handout-seed';
-import { handoutFamilies, handoutTimeoutMs, type HandoutFamily } from '../support/insights-api';
+import { handoutFamilies, handoutTimeoutMs, InsightsApi, type HandoutFamily } from '../support/insights-api';
 import { useInsightsApi } from '../support/insights-suite';
 import { StemStudioApi } from '../support/api';
 import { levelState } from '../support/preferences';
@@ -30,6 +30,7 @@ function fixtureSong(): Promise<SeededSong> {
 test.beforeAll(async ({ playwright }) => {
   test.setTimeout(seedTimeoutMs);
   const context = await playwright.request.newContext(apiContextOptions);
+  await new InsightsApi(context).requireFeature();
   seeded = seedFixtureSong(new StemStudioApi(context), context);
   await seeded;
 });
