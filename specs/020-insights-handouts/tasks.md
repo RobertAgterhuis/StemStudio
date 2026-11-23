@@ -176,10 +176,10 @@ in the execution plan.
 - [ ] T073 [US3] [audio-ingest] Implement `handouts/document.py`, `renderer.py`
 - [ ] T074 [P] [US3] [stem-separation] Failing tests handout routes: create (422 notice/song count, 400/404 paths), get, file (409 `handout-not-completed`), delete; composition
 - [ ] T075 [US3] [stem-separation] Implement `api/handout_routes.py`, `jobs/handout_service.py`
-- [ ] T076 [P] [US3] [frontend] Failing tests `HandoutMenu` (seven families, one-click create, toast with open action, Beginner "Not included" list) and `PracticeNotesEditor` (family selector, counter, save status live region)
-- [ ] T077 [US3] [frontend] Implement them on the track page
-- [ ] T078 [P] [US3] [frontend] Failing tests `HandoutDialog` (Advanced+: ingredients with status and create links, notation choices, transposition only for melodic, paper, estimate, notice) and `HandoutAssetRow` (preview, download, omitted, warnings, make again, `library-filter-handout`)
-- [ ] T079 [US3] [frontend] Implement them
+- [x] T076 [P] [US3] [frontend] Failing tests `HandoutMenu` (seven families, one-click create, toast with open action, Beginner "Not included" list) and `PracticeNotesEditor` (family selector, counter, save status live region)
+- [x] T077 [US3] [frontend] Implement them on the track page
+- [x] T078 [P] [US3] [frontend] Failing tests `HandoutDialog` (Advanced+: ingredients with status and create links, notation choices, transposition only for melodic, paper, estimate, notice) and `HandoutAssetRow` (preview, download, omitted, warnings, make again, `library-filter-handout`)
+- [x] T079 [US3] [frontend] Implement them
 - [ ] T080 [US3] [qa] E2E `e2e/tests/handouts.spec.ts`: seven families parametrised on the fixture song (defaults in `handout.included`, PDF downloads, page count via pdf-lib), melodic B-flat, a missing ingredient listed, practice note appears (SC-006). **Done when** as T048
 
 **Checkpoint**: HO:us3 per owner.
