@@ -209,7 +209,7 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `STEMSTUDIO_QUALITY_ANALYZER` | worker | empty | 020: stem quality analyser, `real` (signal measures of the stems, no download) or `fake` (fixed ratings per channel); empty means `fake` with the fake separator, else `real` |
 | `STEMSTUDIO_INSIGHTS_THREADS` | worker | `4` | 020: numpy/scipy (BLAS) threads of the `insights` lane, 1-16; anything else stops the worker at start-up |
 | `STEMSTUDIO_AUTO_QUALITY_REPORT` (`StemStudio__AutoQualityReport`, `StemStudio:AutoQualityReport`) | api | `true` | 020: start a quality report after every six-stem separation and detail split; `false` leaves it to **Check stem quality** |
-| `StemStudio__MaxSetlistHandoutSongs` (`StemStudio:MaxSetlistHandoutSongs`) | api | `50` | 020: most songs in a setlist handout (`409 too-many-songs` above it, also on the options). Do not raise it above 50: the worker contract accepts at most 50 songs per handout |
+| `StemStudio__MaxSetlistHandoutSongs` (`StemStudio:MaxSetlistHandoutSongs`) | api | `50` | 020: most songs in a setlist handout (`409 too-many-songs` above it, also on the options). Allowed 1-50 (the worker contract accepts at most 50 songs per handout); another value stops the API at start with a readable message |
 | `StemStudio__Recording__TestLoopback` | web | `false` | 015, **test stacks only** (`docker-compose.e2e.yml`): the engine's input is its own output (digital loopback for the calibration and alignment tests); no microphone is opened |
 
 Online lookups (005) identify themselves with the User-Agent
