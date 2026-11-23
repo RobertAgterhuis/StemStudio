@@ -28,7 +28,9 @@ public sealed record HandoutStore(IAssetRepository Assets, AssetService Reader, 
 /// <param name="worker">The worker insights lane.</param>
 /// <param name="store">Item storage.</param>
 /// <param name="clock">Clock.</param>
-public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler assembler, IWorkerInsightsClient worker, HandoutStore store, TimeProvider clock)
+/// <param name="logger">Logger.</param>
+public sealed class HandoutService(
+    HandoutPlanner planner, HandoutAssembler assembler, IWorkerInsightsClient worker, HandoutStore store, TimeProvider clock, ILogger<HandoutService> logger)
 {
     /// <summary>Most handouts of one song or setlist that are queued or rendering at a time (security review 020, finding 4).</summary>
     public const int MaxActivePerSource = 3;
@@ -92,10 +94,10 @@ public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler asse
 
     private async Task<IResult> SubmitAsync(Asset asset, HandoutDraft draft, bool added, CancellationToken cancellationToken)
     {
+        WorkerHandoutJob job;
         try
         {
-            var job = await worker.CreateHandoutJobAsync(new WorkerHandoutJobRequest(assembler.Document(draft.Handout), draft.Facts.Paper), cancellationToken);
-            asset.AssignJob(job.HandoutJobId, Now);
+            job = await worker.CreateHandoutJobAsync(new WorkerHandoutJobRequest(assembler.Document(draft.Handout), draft.Facts.Paper), cancellationToken);
         }
         catch (WorkerUnavailableException)
         {
@@ -106,14 +108,23 @@ public sealed class HandoutService(HandoutPlanner planner, HandoutAssembler asse
             return HandoutProblems.Field("document", $"The processing service refused the handout: {refused.Detail}");
         }
 
+        var kept = await SubmittedJob.KeepAsync(
+            () => StoreAsync(asset, job.HandoutJobId, added), () => worker.DeleteHandoutJobAsync(job.HandoutJobId, CancellationToken.None), logger);
+        return kept!;
+    }
+
+    /// <summary>Stores the item of an accepted job; no cancellation from here on (the job exists).</summary>
+    private async Task<IResult?> StoreAsync(Asset asset, string jobId, bool added)
+    {
+        asset.AssignJob(jobId, Now);
         if (added)
         {
-            await store.Filer.FileAsync(asset, cancellationToken);
+            await store.Filer.FileAsync(asset, CancellationToken.None);
             store.Assets.Add(asset);
         }
 
-        await store.Assets.SaveAsync(cancellationToken);
-        return TypedResults.Accepted(ApiRoutes.Asset(asset.Id), await store.Reader.ToDtoAsync(asset, cancellationToken));
+        await store.Assets.SaveAsync(CancellationToken.None);
+        return TypedResults.Accepted(ApiRoutes.Asset(asset.Id), await store.Reader.ToDtoAsync(asset, CancellationToken.None));
     }
 
     private static Provenance Provenance(HandoutRecipe recipe, HandoutDraft draft, string label)

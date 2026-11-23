@@ -121,6 +121,60 @@ public sealed class AnalyzerVersionCache(IWorkerInsightsClient worker, TimeProvi
     }
 }
 
+/// <summary>
+/// Keeps a worker job only when its item is stored (security review 020, finding 5): the worker accepted the job, so the
+/// storing steps run without the request's cancellation; when they fail the job is deleted (best effort). An invalid job id
+/// (the domain refuses it with <see cref="ArgumentException"/>) answers 503 <c>worker-unavailable</c>; any other failure is
+/// passed on.
+/// </summary>
+public static partial class SubmittedJob
+{
+    /// <summary>Runs the storing steps of a submitted job.</summary>
+    /// <param name="store">Stores the item; its result is returned.</param>
+    /// <param name="delete">Deletes the worker job (called with no cancellation).</param>
+    /// <param name="logger">Logger.</param>
+    /// <returns>The result of <paramref name="store"/>, or 503 for an invalid job id.</returns>
+    public static async Task<IResult?> KeepAsync(Func<Task<IResult?>> store, Func<Task> delete, ILogger logger)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(delete);
+        try
+        {
+            return await store();
+        }
+        catch (Exception failure)
+        {
+            LogNotKept(logger, failure.Message);
+            await TryDeleteAsync(delete, logger);
+            if (failure is ArgumentException)
+            {
+                return InsightsProblems.WorkerUnavailable();
+            }
+
+            throw;
+        }
+    }
+
+    private static async Task TryDeleteAsync(Func<Task> delete, ILogger logger)
+    {
+        try
+        {
+            await delete();
+        }
+        catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException or ArgumentException)
+        {
+            // The worker sweeps unclaimed jobs after 24 hours; an invalid id cannot be addressed at all.
+            LogNotDeleted(logger, exception.Message);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A job of the processing service was accepted but its item could not be stored: {Reason}")]
+    private static partial void LogNotKept(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The unclaimed job could not be removed from the processing service: {Reason}")]
+    private static partial void LogNotDeleted(ILogger logger, string reason);
+}
+
 /// <summary>Problem responses of the quality and handout endpoints (backend 1.19.0 <c>QualityConflict</c>, <c>HandoutConflict</c>).</summary>
 public static class InsightsProblems
 {

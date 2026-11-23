@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
+using StemStudio.Domain;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 
@@ -18,8 +19,16 @@ namespace StemStudio.Api.Insights;
 /// <param name="gate">The start lock.</param>
 /// <param name="options">The <c>AutoQualityReport</c> setting.</param>
 /// <param name="clock">Clock.</param>
+/// <param name="logger">Logger.</param>
 public sealed class QualityService(
-    ITrackRepository tracks, IWorkerInsightsClient worker, QualityInputs inputs, QualityView view, QualityGate gate, IOptions<InsightsOptions> options, TimeProvider clock)
+    ITrackRepository tracks,
+    IWorkerInsightsClient worker,
+    QualityInputs inputs,
+    QualityView view,
+    QualityGate gate,
+    IOptions<InsightsOptions> options,
+    TimeProvider clock,
+    ILogger<QualityService> logger)
 {
     /// <summary>Detail of <c>track-not-ready</c> for a track that is still being processed.</summary>
     public const string NotCompleted = "The track is still being processed; check the stems when it is completed.";
@@ -95,9 +104,17 @@ public sealed class QualityService(
             return null;
         }
 
-        track.RequestQuality(plan.StemsVersion, Now);
-        track.AssignQualityJob(job.QualityJobId, Now);
-        await tracks.SaveAsync(cancellationToken);
-        return null;
+        return await SubmittedJob.KeepAsync(
+            async () =>
+            {
+                // The id is checked before the track changes, so a refused id leaves no queued report behind.
+                var jobId = JobIds.Require(job.QualityJobId, nameof(job));
+                track.RequestQuality(plan.StemsVersion, Now);
+                track.AssignQualityJob(jobId, Now);
+                await tracks.SaveAsync(CancellationToken.None);
+                return null;
+            },
+            () => worker.DeleteQualityJobAsync(job.QualityJobId, CancellationToken.None),
+            logger);
     }
 }
