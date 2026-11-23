@@ -90,7 +90,7 @@ info:
       (`assets/<uuid>/<name>.pdf`) and artwork (`tracks/<uuid>/artwork/(auto|user)/cover.jpg`);
       quality jobs only stem and detail stem paths; the general allow-list is unchanged. Jobs kept
       24 h; "interrupted by restart" after a restart. `Health.insights`, `Health.lanes.insights`.
-      Merged from `worker-api.delta.openapi.yaml` 1.11.0-delta.2 by `merge_full.py` onto 016's
+      Merged from `worker-api.delta.openapi.yaml` 1.11.0-delta.3 by `merge_full.py` onto 016's
       1.9.0; the G2 re-separation parts of the delta are deferred and not merged. See ADR-029.
     * Jobs are persisted as JSON files; after a restart, jobs that were not terminal are reported
       as `failed` with error "interrupted by restart".
@@ -1870,6 +1870,14 @@ paths:
         is checked against the handout allow-list. Stages and progress: `layout` 0-0.6, `notation`
         0.6-0.9, `writing` 0.9-1.0. An unreadable notation file does not fail the job: its pages
         are replaced by a note and a `notation-unreadable` warning is returned.
+        The worker refuses a job over its limits with `422`: a body over 8 MiB (8 388 608 bytes), more
+        than 500 000 characters of text in the document, more than 30 000 layout cells (sections,
+        bars, chords in bars, legend chords, lyric lines and their chords, setlist entries) or more
+        than 128 MiB of distinct notation PDFs together. While it renders, at most 600 notation
+        frame pages and 128 MiB of notation are read; further notation items become a note with a
+        `notation-omitted` warning. A render that passes 240 s fails ("The handout could not be
+        written"). Artwork that is not a JPEG or is larger than 40 megapixels is left out with an
+        `artwork-omitted` warning.
       requestBody:
         required: true
         content:
@@ -5302,7 +5310,7 @@ components:
       enum: [layout, notation, writing, null]
     HandoutWarningCode:
       type: string
-      enum: [missing-glyphs, notation-scaled, notation-unreadable]
+      enum: [missing-glyphs, notation-scaled, notation-unreadable, notation-omitted, artwork-omitted]
     HandoutWarning:
       type: object
       additionalProperties: false
@@ -6641,7 +6649,7 @@ components:
           sizeBytes: 184211
           sha256: 9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
           pages: 5
-          outline: [Example Song, Form, Chord chart, Notation - Bass - tablature, Notation - Bass - score, Practice notes, About this handout]
+          outline: [Example Song, Form, Chord chart, Practice notes, Notation - Bass - tablature, Notation - Bass - score, About this handout]
           warnings: []
         createdAt: '2026-11-16T10:05:00Z'
         updatedAt: '2026-11-16T10:05:04Z'

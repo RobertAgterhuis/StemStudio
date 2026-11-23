@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - insights and handouts delta (feature 020)
-  version: 1.19.0-delta.2
+  version: 1.19.0-delta.3
   summary: Additive delta of the backend API for stem quality reports, lesson handouts, practice notes and the gated high-quality vocal re-separation.
   description: |
     * **Standalone, additive delta.** Contains only what feature 020 adds. Merged unchanged into
@@ -27,7 +27,7 @@ info:
       `reseparation`, the schemas `SeparationPipeline`, `StemSet`, `ReseparationStatus`,
       `ReseparationPhase`, `ReseparationOptions`, `StartReseparationRequest` and the response
       `ReseparationConflict` are kept as the design record and are **not merged** into 1.19.0.
-    * Changelog: 1.19.0-delta.2 (Phase 0: base 016 1.15.0, G2 deferred, optional additions, no `track-missing`); 1.19.0-delta.1 (additive, feature 020 planning). See ADR-029 and DELTA.md.
+    * Changelog: 1.19.0-delta.3 (integration: no backup write gate on the 020 writes, `409 handouts-active`, `409 too-many-songs` on the options, the job limits, warnings `notation-omitted` and `artwork-omitted`); 1.19.0-delta.2 (Phase 0: base 016 1.15.0, G2 deferred, optional additions, no `track-missing`); 1.19.0-delta.1 (additive, feature 020 planning). See ADR-029 and DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -70,7 +70,6 @@ paths:
         Starts a quality job in the worker's insights lane with all standard stems, kept detail
         stems and rest stems of the track. The previous ready report stays readable until the new
         one is ready. Automatic runs (after separations) use the same path internally.
-      x-stemstudio-write-gate: backupRunning
       responses:
         '202':
           description: Accepted; the report is `queued`.
@@ -126,6 +125,8 @@ paths:
                   $ref: '#/components/examples/BassHandoutOptions'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/HandoutOptionsConflict'
         '422':
           $ref: '#/components/responses/ValidationProblem'
   /api/assets/handouts:
@@ -137,7 +138,10 @@ paths:
         The API assembles the handout document (data-model 6.3) and submits a worker handout job;
         the item is `queued`, then `rendering`, then `ready` with one `pdf` file. Missing optional
         ingredients never fail the request; they are listed in `handout.omitted`.
-      x-stemstudio-write-gate: backupRunning
+        The API refuses a document over the worker's job limits before it submits anything (`422`,
+        field `document`): more than 8 MiB of request body, 500 000 characters of text, 30 000
+        layout cells or 128 MiB of notation PDFs together (worker-api 1.11.0 `createHandoutJob`).
+        At most 3 handouts of one song or setlist are made at a time (`409 handouts-active`).
       requestBody:
         required: true
         content:
@@ -206,7 +210,6 @@ paths:
       tags: [handouts]
       operationId: setPracticeNote
       summary: Set the practice note of a family; an empty (or whitespace) text deletes it.
-      x-stemstudio-write-gate: backupRunning
       requestBody:
         required: true
         content:
@@ -672,7 +675,7 @@ components:
         code:
           type: string
           description: The worker's warnings (worker `HandoutWarningCode`).
-          enum: [missing-glyphs, notation-scaled, notation-unreadable]
+          enum: [missing-glyphs, notation-scaled, notation-unreadable, notation-omitted, artwork-omitted]
         text:
           type: string
           maxLength: 300
@@ -952,8 +955,19 @@ components:
             title: Quality report already running
             status: 409
             detail: A quality report for this track is already being made.
+    HandoutOptionsConflict:
+      description: '`too-many-songs`: the setlist has more than 50 entries, so no setlist handout can be made.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/too-many-songs
+            title: Too many songs
+            status: 409
+            detail: A setlist handout can hold up to 50 songs.
     HandoutConflict:
-      description: '`track-not-ready` (song handouts only: the track is not completed; a setlist song that is not completed is included with the ingredients it has), `setlist-empty` (the setlist has no entries), `too-many-songs` (more than 50 entries) or `insufficient-disk-space`.'
+      description: '`track-not-ready` (song handouts only: the track is not completed; a setlist song that is not completed is included with the ingredients it has), `setlist-empty` (the setlist has no entries), `too-many-songs` (more than 50 entries), `handouts-active` (3 handouts of this song or setlist are already being made; wait until one is ready) or `insufficient-disk-space`.'
       content:
         application/problem+json:
           schema:

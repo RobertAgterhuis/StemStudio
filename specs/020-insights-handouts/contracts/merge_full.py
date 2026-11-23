@@ -52,7 +52,7 @@ WORKER_CHANGELOG = """      1.11.0 (additive, feature 020; ADR-029) - insights a
       (`assets/<uuid>/<name>.pdf`) and artwork (`tracks/<uuid>/artwork/(auto|user)/cover.jpg`);
       quality jobs only stem and detail stem paths; the general allow-list is unchanged. Jobs kept
       24 h; "interrupted by restart" after a restart. `Health.insights`, `Health.lanes.insights`.
-      Merged from `worker-api.delta.openapi.yaml` 1.11.0-delta.2 by `merge_full.py` onto 016's
+      Merged from `worker-api.delta.openapi.yaml` 1.11.0-delta.3 by `merge_full.py` onto 016's
       1.9.0; the G2 re-separation parts of the delta are deferred and not merged. See ADR-029.
 """
 
@@ -64,7 +64,7 @@ BACKEND_CHANGELOG = """      1.19.0 (additive, feature 020; ADR-029) - insights 
       practice notes per track and family (`/api/tracks/{trackId}/practice-notes[/{family}]`).
       `AssetKind` and `AssetOrigin` + `handout`; `Asset.handout`, `Provenance.handoutRecipe` and
       `Track.quality` are optional (absent = null). Merged from `backend-api.delta.openapi.yaml`
-      1.19.0-delta.2 by `merge_full.py` onto 016's 1.15.0 (017-019 not built; the label stays as
+      1.19.0-delta.3 by `merge_full.py` onto 016's 1.15.0 (017-019 not built; the label stays as
       allocated); the G2 re-separation parts are deferred and not merged. No earlier entry changes
       except these additions.
 """

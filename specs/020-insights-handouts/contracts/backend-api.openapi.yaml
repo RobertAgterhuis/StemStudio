@@ -219,7 +219,7 @@ info:
       practice notes per track and family (`/api/tracks/{trackId}/practice-notes[/{family}]`).
       `AssetKind` and `AssetOrigin` + `handout`; `Asset.handout`, `Provenance.handoutRecipe` and
       `Track.quality` are optional (absent = null). Merged from `backend-api.delta.openapi.yaml`
-      1.19.0-delta.2 by `merge_full.py` onto 016's 1.15.0 (017-019 not built; the label stays as
+      1.19.0-delta.3 by `merge_full.py` onto 016's 1.15.0 (017-019 not built; the label stays as
       allocated); the G2 re-separation parts are deferred and not merged. No earlier entry changes
       except these additions.
   license:
@@ -5569,7 +5569,6 @@ paths:
         Starts a quality job in the worker's insights lane with all standard stems, kept detail
         stems and rest stems of the track. The previous ready report stays readable until the new
         one is ready. Automatic runs (after separations) use the same path internally.
-      x-stemstudio-write-gate: backupRunning
       responses:
         '202':
           description: Accepted; the report is `queued`.
@@ -5625,6 +5624,8 @@ paths:
                   $ref: '#/components/examples/BassHandoutOptions'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/HandoutOptionsConflict'
         '422':
           $ref: '#/components/responses/ValidationProblem'
   /api/assets/handouts:
@@ -5636,7 +5637,10 @@ paths:
         The API assembles the handout document (data-model 6.3) and submits a worker handout job;
         the item is `queued`, then `rendering`, then `ready` with one `pdf` file. Missing optional
         ingredients never fail the request; they are listed in `handout.omitted`.
-      x-stemstudio-write-gate: backupRunning
+        The API refuses a document over the worker's job limits before it submits anything (`422`,
+        field `document`): more than 8 MiB of request body, 500 000 characters of text, 30 000
+        layout cells or 128 MiB of notation PDFs together (worker-api 1.11.0 `createHandoutJob`).
+        At most 3 handouts of one song or setlist are made at a time (`409 handouts-active`).
       requestBody:
         required: true
         content:
@@ -5705,7 +5709,6 @@ paths:
       tags: [handouts]
       operationId: setPracticeNote
       summary: Set the practice note of a family; an empty (or whitespace) text deletes it.
-      x-stemstudio-write-gate: backupRunning
       requestBody:
         required: true
         content:
@@ -14011,7 +14014,7 @@ components:
         code:
           type: string
           description: The worker's warnings (worker `HandoutWarningCode`).
-          enum: [missing-glyphs, notation-scaled, notation-unreadable]
+          enum: [missing-glyphs, notation-scaled, notation-unreadable, notation-omitted, artwork-omitted]
         text:
           type: string
           maxLength: 300
@@ -15072,8 +15075,19 @@ components:
             title: Quality report already running
             status: 409
             detail: A quality report for this track is already being made.
+    HandoutOptionsConflict:
+      description: '`too-many-songs`: the setlist has more than 50 entries, so no setlist handout can be made.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/too-many-songs
+            title: Too many songs
+            status: 409
+            detail: A setlist handout can hold up to 50 songs.
     HandoutConflict:
-      description: '`track-not-ready` (song handouts only: the track is not completed; a setlist song that is not completed is included with the ingredients it has), `setlist-empty` (the setlist has no entries), `too-many-songs` (more than 50 entries) or `insufficient-disk-space`.'
+      description: '`track-not-ready` (song handouts only: the track is not completed; a setlist song that is not completed is included with the ingredients it has), `setlist-empty` (the setlist has no entries), `too-many-songs` (more than 50 entries), `handouts-active` (3 handouts of this song or setlist are already being made; wait until one is ready) or `insufficient-disk-space`.'
       content:
         application/problem+json:
           schema:

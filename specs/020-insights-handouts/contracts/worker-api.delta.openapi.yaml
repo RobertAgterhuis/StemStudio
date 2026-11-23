@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Worker API - insights and handouts delta (feature 020)
-  version: 1.11.0-delta.2
+  version: 1.11.0-delta.3
   summary: Additive delta of the worker API for stem quality reports, lesson handouts and the gated high-quality vocal re-separation.
   description: |
     * **Standalone, additive delta.** Contains only what feature 020 adds. It is merged unchanged
@@ -31,7 +31,7 @@ info:
       **not merged** into 1.11.0; they need a later contract minor once G2 passes.
     * Health additions (merged into `Health`, required): `lanes.insights` (`LaneHealth`),
       `insights` (`InsightsHealth`); `separationPipelines` (G2, deferred).
-    * Changelog: 1.11.0-delta.2 (Phase 0: base 016 1.9.0, G2 deferred, per-job allow-lists, setlist entries without `available`); 1.11.0-delta.1 (additive, feature 020 planning) - quality jobs, handout jobs,
+    * Changelog: 1.11.0-delta.3 (integration: the job limits in `createHandoutJob`, warnings `notation-omitted` and `artwork-omitted`, the example outline in data-model 6.4 order); 1.11.0-delta.2 (Phase 0: base 016 1.9.0, G2 deferred, per-job allow-lists, setlist entries without `available`); 1.11.0-delta.1 (additive, feature 020 planning) - quality jobs, handout jobs,
       re-separation jobs (gated), health additions. See ADR-029 and DELTA.md.
   license:
     name: MIT
@@ -121,6 +121,14 @@ paths:
         is checked against the handout allow-list. Stages and progress: `layout` 0-0.6, `notation`
         0.6-0.9, `writing` 0.9-1.0. An unreadable notation file does not fail the job: its pages
         are replaced by a note and a `notation-unreadable` warning is returned.
+        The worker refuses a job over its limits with `422`: a body over 8 MiB (8 388 608 bytes), more
+        than 500 000 characters of text in the document, more than 30 000 layout cells (sections,
+        bars, chords in bars, legend chords, lyric lines and their chords, setlist entries) or more
+        than 128 MiB of distinct notation PDFs together. While it renders, at most 600 notation
+        frame pages and 128 MiB of notation are read; further notation items become a note with a
+        `notation-omitted` warning. A render that passes 240 s fails ("The handout could not be
+        written"). Artwork that is not a JPEG or is larger than 40 megapixels is left out with an
+        `artwork-omitted` warning.
       requestBody:
         required: true
         content:
@@ -878,7 +886,7 @@ components:
       enum: [layout, notation, writing, null]
     HandoutWarningCode:
       type: string
-      enum: [missing-glyphs, notation-scaled, notation-unreadable]
+      enum: [missing-glyphs, notation-scaled, notation-unreadable, notation-omitted, artwork-omitted]
     HandoutWarning:
       type: object
       additionalProperties: false
@@ -1223,7 +1231,7 @@ components:
           sizeBytes: 184211
           sha256: 9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
           pages: 5
-          outline: [Example Song, Form, Chord chart, Notation - Bass - tablature, Notation - Bass - score, Practice notes, About this handout]
+          outline: [Example Song, Form, Chord chart, Practice notes, Notation - Bass - tablature, Notation - Bass - score, About this handout]
           warnings: []
         createdAt: '2026-11-16T10:05:00Z'
         updatedAt: '2026-11-16T10:05:04Z'
