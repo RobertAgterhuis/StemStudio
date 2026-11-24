@@ -41,6 +41,7 @@ items at all. SC-004 (latency) is met.
 - T080 (LanguageTool): Dutch grammar recall is below 60 %, so the decision point is triggered and
   presented to the owner. CTO advice: defer it. The measured cause is the prompt, not missing grammar
   knowledge (English fails the same way), so LanguageTool would not fix it; decide again after 024.
+  **Owner decision 2026-11-24: deferred** until after the 024 reference run.
 - Follow-up feature **024 lyric assistant quality** on `docs/ROADMAP.md` (owner decision
   2026-11-24): prompt and anchor fixes, the dictionary layer and failure logging in the harness, then
   this run again.
