@@ -175,8 +175,10 @@ rhyme finder keeps working. The assistant does not use the smaller processor mod
 agent: it was too slow and unreliable for lyrics. If a heavy GPU job starts while an assist
 runs, the assist stops with a readable message.
 
-The local model is weaker in Dutch than in English; the pane then shows a note that the quality
-is limited. Always read a suggestion before you accept it.
+With Local AI (Ollama) the pane shows a note that grammar and flow checks are limited: the local
+model finds few grammar or flow mistakes in Dutch and English. The spelling check from the
+dictionaries, rhymes, alternatives and title ideas are not affected. Always read a suggestion
+before you accept it.
 
 ## Revisions, the log and the take details
 
