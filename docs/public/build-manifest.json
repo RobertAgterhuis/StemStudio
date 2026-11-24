@@ -1,27 +1,27 @@
 {
   "schema": 1,
   "builtAt": "2026-11-24",
-  "sourceHash": "3d641b99eda2447eca2aa437e409411dcdc8320fbbf4d7bce859820b8b81cf12",
+  "sourceHash": "df591718cf1e009ce8394499f7e8734d09c722b50f957c7674af6c8498d8f868",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 66,
-      "bytes": 2613769
+      "bytes": 2613799
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 88,
-      "bytes": 2193386
+      "bytes": 2194153
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "696d086b00e2420f23a578efa0cb63ce4ce91a15a37600eea26fd7017a47b40b"
+      "sha256": "4773879d88f7801459732c1ba38db08b1663d3c184c6255027092b818efeccd8"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "91bdd98a6866b5633753f2a0f864e1d59845453ac1a4049b178826cbb73d2951"
+      "sha256": "6deba307a0f7eab1ed7511c0589d27f317d0fde648041f1b40cfccd15e81f08c"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -185,7 +185,7 @@
     },
     {
       "path": "docs/public/src/user-manual/20-lyric-assistant.md",
-      "sha256": "2e41aec8709f869a3ce7620c5812bd1d6a354fb4a539470ccab7e5ef3852a872"
+      "sha256": "6f247e9fbb9f835aa96f8c6ab6c5e6977d6bc65032f932d3a45878e6c66cd696"
     },
     {
       "path": "docs/public/src/user-manual/21-ai-composer-agent.md",

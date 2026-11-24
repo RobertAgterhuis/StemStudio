@@ -39,6 +39,7 @@ a later agent-tool-catalogue minor version.
 | 020 | **Insights and handouts**: stem quality report with tips; one-click lesson PDF (lyrics, chords, sections, tempo, scores) | C7, C8 | 014, 016 |
 | 022 | **Library by artist and album**: saved items filed automatically in Artist > Album > Song folders (in the app only) with folder art, live search over artist, album, song and stem/instrument, library info to correct names | S13 (owner request 2026-11-16) | 005, 007 (013/014 overlaps resolved in the 022 research) |
 | 023 | **Lyric writing assistant**: on-demand help writing own lyrics (continue, alternatives, rhymes, syllables vs rhythm, titles) and spelling/grammar/flow checks in Dutch and English that always allow poetic licence and propose it; local dictionaries + the 011 agent backends | S14 | 010, 011 (+ claude-key) |
+| 024 | **Lyric assistant quality**: the check finds real spelling, grammar and flow mistakes with the local model; stricter error rules in the prompt, exact anchors, the dictionary layer and failure logging in the eval harness, a new reference run against SC-001 (023 T068 follow-up, owner decision 2026-11-24) | S14 | 023 |
 
 **Delivery status (2026-11-17):** 002-013 are on `main` (013 Library care merged 2026-11-17; open for the owner: V9
 throughput with a ~20 GB library on the reference machine). **022 Library by artist and album and 023 Lyric writing

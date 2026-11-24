@@ -21,6 +21,14 @@ public sealed class LyricAssistStatusService(LyricAssistStores stores, AgentStat
         "With Claude selected, the lyric assistant sends the text of the lyrics you check to Anthropic (Claude), a paid online service. " +
         "Each check, suggestion or title idea is billed to your Claude key. With Local AI (Ollama) nothing leaves this computer.";
 
+    /// <summary>
+    /// The standing quality note with the local model (SC-001, constitution V): the 2026-11-24 reference-machine run of the lyric
+    /// suite (023 T068, qwen3.5:9b) found almost no grammar or flow errors in either language. Shown until a later run meets SC-001.
+    /// </summary>
+    public const string LocalModelQualityNote =
+        "Grammar and flow checks are limited with the local model: it finds few grammar or flow mistakes in Dutch and English. " +
+        "Spelling still uses the dictionaries; rhymes, alternatives and title ideas are not affected.";
+
     /// <summary>The status.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200.</returns>
@@ -86,6 +94,7 @@ public sealed class LyricAssistStatusService(LyricAssistStores stores, AgentStat
         UsingFallback = agent.UsingFallback,
         Reason = model.Available ? agent.Reason : model.Reason,
         Fix = model.Available ? agent.Fix : model.Fix,
+        QualityNote = agent.Backend == AgentBackendDto.Ollama ? LocalModelQualityNote : null,
     };
 
     private static LyricAssistSettingsDto ToDto(LyricAssistSettings settings)

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.LyricAssist;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
@@ -32,6 +33,24 @@ public sealed class LyricAssistStatusTests : AssistTestBase
 
         (await status.BodyAsync<LyricAssistStatusDto>()).Model.ShouldSatisfyAllConditions(
             m => m.Ready.ShouldBeFalse(), m => m.Reason.ShouldBe("model-unavailable"), m => m.Fix.ShouldBe(Assistants.Fix));
+    }
+
+    [Fact]
+    public async Task OllamaBackend_ShowsTheStandingQualityNote_OtherBackendsDoNot()
+    {
+        // SC-001 / T068: the local model missed the grammar and flow targets, so the pane shows the standing note.
+        await SelectBackendAsync(AgentBackendDto.Ollama);
+        using var ollama = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistStatus, UriKind.Relative), Ct);
+        await SelectClaudeAsync();
+        using var claude = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistStatus, UriKind.Relative), Ct);
+        await SelectBackendAsync(AgentBackendDto.Fake);
+        using var fake = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistStatus, UriKind.Relative), Ct);
+
+        (await ollama.BodyAsync<LyricAssistStatusDto>()).Model.QualityNote.ShouldBe(LyricAssistStatusService.LocalModelQualityNote);
+        (await claude.BodyAsync<LyricAssistStatusDto>()).Model.QualityNote.ShouldBeNull();
+        (await fake.BodyAsync<LyricAssistStatusDto>()).Model.QualityNote.ShouldBeNull();
+        LyricAssistStatusService.LocalModelQualityNote.Length.ShouldBeLessThanOrEqualTo(300);
+        await ContractAssert.MatchesAsync(ollama, "getLyricAssistStatus");
     }
 
     [Fact]
