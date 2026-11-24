@@ -1,17 +1,17 @@
 {
   "schema": 1,
-  "builtAt": "2026-11-23",
-  "sourceHash": "94af8dcb5e87fcfeb6a7e4961d9750d62b359e8d7fb43ee09b5c414c92148527",
+  "builtAt": "2026-11-24",
+  "sourceHash": "3d641b99eda2447eca2aa437e409411dcdc8320fbbf4d7bce859820b8b81cf12",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 66,
-      "bytes": 2614599
+      "bytes": 2613769
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 88,
-      "bytes": 2193094
+      "bytes": 2193386
     }
   ],
   "inputs": [
@@ -253,7 +253,7 @@
     },
     {
       "path": "tools/docs/lib/status.mjs",
-      "sha256": "19c092b70df5a1b8566a455dd174e276a40650493fbcaad52fdddb9fdac7504d"
+      "sha256": "279357324eee6650e31bc820a05df0cffa6e63ebd208126c2208499cbfd4e90f"
     },
     {
       "path": "tools/docs/package-lock.json",

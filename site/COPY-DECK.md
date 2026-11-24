@@ -179,9 +179,8 @@ the end and are **not** on the site.
 
 - **Coming soon**
 - In development now. Details can still change before they arrive.
-- **Practice tempo**: Slow a song down without changing its pitch, or move it to another key. With
-  a speed trainer and a count-in. [ROADMAP 012]
-- **Record yourself**: Record your part over the mix, keep your takes and listen back. [ROADMAP 015]
+- **Effects and controllers**: EQ, compressor and reverb per stem, and a MIDI controller for faders,
+  mute, solo and transport. [ROADMAP 017]
 - **Tablet and remote**: A music-stand layout for your tablet and a remote control over your home
   network. [ROADMAP 018]
 

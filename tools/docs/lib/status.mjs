@@ -43,7 +43,7 @@ export function roadmapFeatures(roadmap) {
  * @returns {string | null} ISO date or null when not delivered
  */
 export function deliveredOn(status, id) {
-  const heading = id === MVP.id ? /^## Final verification[^\n]*?(\d{4}-\d{2}-\d{2})/m : new RegExp(`^## Feature ${id}\\b[^\\n]*?(\\d{4}-\\d{2}-\\d{2})`, "m");
+  const heading = id === MVP.id ? /^## Final verification[^\n]*?(\d{4}-\d{2}-\d{2})/m : new RegExp(`^## Feature (?:\\d{3} \\+ )*${id}\\b[^\\n]*?(\\d{4}-\\d{2}-\\d{2})`, "m");
   const match = heading.exec(status);
   return match ? match[1] : null;
 }
