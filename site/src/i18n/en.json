@@ -171,8 +171,8 @@
   "soon": {
     "title": "Coming soon",
     "intro": "In development now. Details can still change before they arrive.",
-    "record": "Record yourself",
-    "recordText": "Record your part over the mix, keep your takes and listen back.",
+    "effects": "Effects and controllers",
+    "effectsText": "EQ, compressor and reverb per stem, and a MIDI controller for faders, mute, solo and transport.",
     "tablet": "Tablet and remote",
     "tabletText": "A music-stand layout for your tablet and a remote control over your home network."
   },
